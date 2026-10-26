@@ -10,6 +10,9 @@ Tu développes HALO, une application web progressive (PWA) de gestion des opéra
 - `docs/03-modele-donnees.md` — schéma SQL et sécurité
 - `docs/04-moteur-operations.md` — algorithmes (iCal, tâches, linge, notifications)
 - `docs/05-design-system.md` — tokens, composants, interdits
+- `docs/06-integrations.md` — HALO se branche sur les PMS existants : interface `PmsConnector`, le moteur ne connaît jamais le PMS d'origine
+
+Règle produit : HALO ne fait QUE la logistique. Ne jamais construire une fonctionnalité qui existe déjà dans un PMS (réservations, messagerie voyageurs, prix, paiements, comptabilité propriétaires).
 
 Lis le document concerné AVANT de coder une fonctionnalité. Si une demande contredit ces documents, signale-le et demande avant d'agir.
 
