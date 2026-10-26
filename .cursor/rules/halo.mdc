@@ -10,6 +10,7 @@ Tu développes HALO, une application web progressive (PWA) de gestion des opéra
 - `docs/03-modele-donnees.md` — schéma SQL et sécurité
 - `docs/04-moteur-operations.md` — algorithmes (iCal, tâches, linge, notifications)
 - `docs/05-design-system.md` — tokens, composants, interdits
+- `docs/08-feuille-de-route.md` — fonctions au-delà du MVP (vagues 1 à 4), à ne développer qu'après le MVP et dans l'ordre
 - `docs/07-photos.md` — photos et pièces jointes partout, valeur de preuve, envoi hors ligne
 - `docs/06-integrations.md` — HALO se branche sur les PMS existants : interface `PmsConnector`, le moteur ne connaît jamais le PMS d'origine
 
@@ -68,6 +69,9 @@ tests/unit/  tests/e2e/
 - Chaque écran gère : chargement (Skeleton), vide, erreur, hors-ligne, sans permission.
 - Accessibilité : labels sur tous les champs, focus visible, zones tactiles ≥ 48 px côté agent.
 - Noms de fichiers en kebab-case, composants en PascalCase, aucune dépendance ajoutée sans la justifier en une phrase.
+
+# Mobile (non négociable)
+L'app agent est conçue d'abord pour le téléphone. Toute page manager doit aussi être pleinement utilisable sur téléphone (pas de tableau qui déborde, pas d'action réservée à la souris, glisser-déposer doublé d'une alternative au toucher). Un écran n'est jamais terminé s'il n'a pas été vérifié à 375 px.
 
 # Design
 Respecte `docs/05-design-system.md` à la lettre : une seule couleur d'accent, pas de dégradés, pas d'emojis dans l'interface, une action primaire par écran. Avant de livrer un écran, vérifie-le à 375 px de large (iPhone) et à 1440 px, en clair et en sombre.
