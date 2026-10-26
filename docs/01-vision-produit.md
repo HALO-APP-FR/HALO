@@ -18,7 +18,9 @@ Aujourd'hui : Airbnb + Booking + Excel + WhatsApp + appels. Résultat : oublis, 
 4. **Une seule source de vérité** : chaque échange est rattaché à une tâche, plus aucun fil de discussion général.
 
 ## 3. Positionnement face à la concurrence
-Breezeway, Turno, Properly, Operto existent. Nos 3 angles d'attaque :
+**HALO ne remplace pas le logiciel de gestion (PMS) de la conciergerie : il s'y branche et ne fait que la logistique** (voir `docs/06-integrations.md`). Réservations, messages voyageurs, prix et comptabilité restent dans le PMS.
+
+Breezeway, Turno, Properly, Operto existent, et les PMS ont parfois un module ménage basique. Nos 3 angles d'attaque :
 - **Vitesse terrain** : interface agent pensée pour être utilisée avec une main, des gants, en 4G faible, sans savoir lire la langue (icônes + photos + langue de l'agent).
 - **Linge natif** : module de suivi et de prévision du linge intégré, pas un add-on.
 - **Mondial dès le jour 1** : multi-langues, multi-fuseaux horaires, formats de date locaux, sans dépendance à un PMS américain.
@@ -36,7 +38,7 @@ Phase 2 : **Propriétaire** (portail lecture seule), **Prestataire** (blanchisse
 ### Inclus
 - **Organisation** : création conciergerie, invitation des membres par lien/e-mail, rôles.
 - **Logements** : fiche complète (adresse, fuseau horaire, accès, lits, consignes, photos de référence), checklists par pièce.
-- **Réservations** : import automatique via lien iCal (Airbnb, Booking, Vrbo, tout PMS qui exporte de l'iCal) + saisie manuelle de secours.
+- **Réservations** : import automatique via lien iCal (Airbnb, Booking, Vrbo, tout PMS qui exporte de l'iCal), conçu dès le départ comme le premier « connecteur » d'une architecture d'intégrations PMS + saisie manuelle de secours.
 - **Tâches** : génération automatique (ménage de rotation, check-in, check-out), création manuelle, statuts, priorités.
 - **Planning** : vue jour/semaine par agent et par logement, affectation par glisser-déposer, alertes de conflit.
 - **App agent** : écran « Aujourd'hui », exécution guidée de la checklist, photos obligatoires, signalement d'incident, commentaires.
@@ -47,7 +49,7 @@ Phase 2 : **Propriétaire** (portail lecture seule), **Prestataire** (blanchisse
 - **Langues** : FR, EN, ES, PT, IT, DE au lancement.
 
 ### Exclus du MVP (phase 2+)
-Maintenance avancée (tickets techniques, prestataires), stocks consommables (savon, café), paie des agents, portail propriétaire, API PMS (Hostaway, Guesty, Lodgify), facturation, application native, IA (planning optimisé, détection de défauts sur photos).
+Maintenance avancée (tickets techniques, prestataires), stocks consommables (savon, café), paie des agents, portail propriétaire, connecteurs API PMS (Smoobu, Lodgify, Beds24, Hostaway, Guesty — priorité n°1 après le MVP), facturation, application native, IA (planning optimisé, détection de défauts sur photos).
 
 ## 6. Règles métier clés (non négociables)
 1. **Fenêtre de ménage** = de l'heure de check-out de la réservation sortante à l'heure de check-in de la réservation entrante suivante. Si aucune réservation suivante : fenêtre ouverte jusqu'à J+3 par défaut.

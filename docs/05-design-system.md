@@ -98,7 +98,11 @@ Contraste minimum WCAG AA (4,5:1) pour tout texte. À vérifier sur chaque combi
 - **Skeleton** pour tout chargement.
 - **Empty state** : icône ligne 32 px, titre, une phrase, un bouton.
 
-## 6. Icônes
+## 6. Logo
+Symbole **« Rotation »** (validé le 26/10/2026) : deux arcs, le départ (gris anthracite) et l'arrivée (accent bleu), qui forment le cycle d'une rotation. Composant : `src/components/halo/logo.tsx`. Fichiers source : `brand/` (symbole clair et sombre, icône d'app 1024 px). Icône d'onglet : `src/app/icon.svg`, icône iPhone : `src/app/apple-icon.png`, icônes PWA : `public/icons/`.
+Règles : jamais déformé, jamais d'autre couleur que l'anthracite/blanc + accent, nom « HALO » en Inter Bold avec un espacement de 18 %.
+
+## 6 bis. Icônes
 **Lucide** uniquement, trait 1,75 px, tailles 16 / 20 / 24. Une icône = un sens, utilisé partout de la même façon.
 
 ## 7. Mouvement
