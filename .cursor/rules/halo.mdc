@@ -1,0 +1,75 @@
+---
+description: Règles permanentes du projet HALO (OS opérationnel pour conciergeries)
+alwaysApply: true
+---
+
+# Contexte
+Tu développes HALO, une application web progressive (PWA) de gestion des opérations pour conciergeries de location courte durée, utilisée dans le monde entier. Les spécifications font foi et sont dans `docs/` :
+- `docs/01-vision-produit.md` — périmètre, rôles, règles métier
+- `docs/02-parcours-ux.md` — écrans et parcours
+- `docs/03-modele-donnees.md` — schéma SQL et sécurité
+- `docs/04-moteur-operations.md` — algorithmes (iCal, tâches, linge, notifications)
+- `docs/05-design-system.md` — tokens, composants, interdits
+
+Lis le document concerné AVANT de coder une fonctionnalité. Si une demande contredit ces documents, signale-le et demande avant d'agir.
+
+# L'utilisateur est débutant
+- Explique en 2-3 phrases simples ce que tu as fait et comment le vérifier dans le navigateur.
+- Donne les commandes de terminal exactes à lancer, une par ligne.
+- Ne fais jamais d'action destructive (suppression de fichiers, réinitialisation de base) sans le dire clairement avant.
+- À la fin de chaque étape, rappelle : « Pense à enregistrer avec Git : `git add . && git commit -m "…"` ».
+
+# Stack (ne pas en changer sans accord)
+- Next.js 16 (App Router), TypeScript strict, React Server Components par défaut.
+  ATTENTION : Next 16 diffère de tes connaissances. Lis `node_modules/next/dist/docs/` avant d'utiliser une API. Le middleware s'appelle `src/proxy.ts`. `cacheComponents` est volontairement désactivé (app 100 % connectée). Les pages qui dépendent de l'heure ou de l'utilisateur appellent `await connection()`.
+- Tailwind CSS v4 (tokens dans `src/app/globals.css`). Composants maison sur `radix-ui` dans `src/components/ui` (le registre shadcn n'est pas utilisé). Fusion de classes via `cn()` de `src/lib/utils.ts` (configuré pour nos tailles typographiques). Icônes Lucide. Animations Motion. Notifications `sonner`.
+- Supabase : Postgres, Auth (lien magique + Google), Storage, Realtime. Client `@supabase/ssr`.
+- i18n : `next-intl` v4 (`src/i18n/`). Langues : fr, en, es, pt, it, de. Aucun texte en dur : toute nouvelle clé est ajoutée dans les 6 fichiers `messages/*.json`. Liens via `Link` de `@/i18n/navigation`.
+- Dates : `date-fns` + `date-fns-tz`. iCal : `node-ical`. Validation : `zod`. Formulaires : `react-hook-form`.
+- Données côté client : `@tanstack/react-query`. État local léger : `zustand` si nécessaire.
+- PWA : `@serwist/next`. Hors-ligne : IndexedDB via `idb-keyval` avec file d'attente de synchronisation.
+- Push : `web-push` (VAPID). Tests : Vitest (unitaires) + Playwright (parcours critiques).
+- Déploiement : Vercel. Tâches planifiées : Vercel Cron.
+
+# Architecture des dossiers
+Les URL sont en anglais (produit mondial), le code commenté en français.
+```
+src/
+  app/[locale]/
+    (manager)/   today, planning, tasks, properties, linen, team, settings
+    (agent)/a/   today, upcoming, profile, task/[id]
+    (auth)/      login, invite/[token]          (phase 2)
+    design/      vitrine des composants
+  app/api/       routes serveur (cron, invitations, push)
+  components/ui/      primitives (button, card, sheet, dropdown-menu…)
+  components/halo/    composants métier (task-card, day-timeline, shells…)
+  lib/engine/         logique métier PURE et testée (time, ical, tasks, conflicts, linen)
+  lib/demo/           données de démonstration (supprimées après la phase 5)
+  lib/supabase/       clients serveur/navigateur/admin, types générés
+  i18n/               routing, request, navigation
+  proxy.ts            locale + session
+messages/             fr, en, es, pt, it, de
+supabase/migrations/
+tests/unit/  tests/e2e/
+```
+
+# Règles de code
+- TypeScript strict, jamais de `any`. Types Supabase générés (`supabase gen types`).
+- Toute logique métier dans `src/lib/engine/`, fonctions pures, avec tests Vitest. Les composants n'en contiennent pas.
+- Mutations via Server Actions avec validation `zod` côté serveur, toujours.
+- Ne jamais faire confiance au client : les droits sont garantis par la RLS Supabase ET vérifiés dans les Server Actions.
+- La clé `SUPABASE_SERVICE_ROLE_KEY` n'est utilisée QUE dans `src/lib/supabase/admin.ts`, importé uniquement par du code serveur (`import "server-only"`).
+- Horaires : stockés en UTC, affichés dans le fuseau du LOGEMENT (`properties.timezone`), jamais celui du navigateur.
+- Propriétés CSS logiques uniquement (`ps-`, `pe-`, `ms-`, `me-`, `start-`, `end-`) pour le support droite-à-gauche.
+- Chaque écran gère : chargement (Skeleton), vide, erreur, hors-ligne, sans permission.
+- Accessibilité : labels sur tous les champs, focus visible, zones tactiles ≥ 48 px côté agent.
+- Noms de fichiers en kebab-case, composants en PascalCase, aucune dépendance ajoutée sans la justifier en une phrase.
+
+# Design
+Respecte `docs/05-design-system.md` à la lettre : une seule couleur d'accent, pas de dégradés, pas d'emojis dans l'interface, une action primaire par écran. Avant de livrer un écran, vérifie-le à 375 px de large (iPhone) et à 1440 px, en clair et en sombre.
+
+# Définition de « terminé »
+1. `npm run check` passe (lint + types + tests unitaires).
+2. `npm run build` passe.
+3. L'écran fonctionne en clair/sombre, mobile/ordinateur, en français et en anglais.
+4. Aucune clé secrète dans le code ou dans Git.

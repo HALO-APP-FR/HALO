@@ -1,0 +1,128 @@
+{
+  "common": {
+    "appName": "HALO",
+    "tagline": "Your concierge operations, finally under control.",
+    "comingSoon": "This section is coming in a next step.",
+    "seeAll": "See all",
+    "close": "Close",
+    "previousDay": "Previous day",
+    "nextDay": "Next day",
+    "today": "Today",
+    "demoData": "Demo data",
+    "localTimeNote": "Times shown in each property's local time."
+  },
+  "nav": {
+    "today": "Today",
+    "planning": "Schedule",
+    "tasks": "Tasks",
+    "properties": "Properties",
+    "linen": "Linen",
+    "team": "Team",
+    "settings": "Settings",
+    "more": "More",
+    "upcoming": "Upcoming",
+    "profile": "Profile",
+    "collapse": "Collapse menu",
+    "expand": "Expand menu",
+    "mainNavigation": "Main navigation",
+    "switchToAgent": "Agent view",
+    "switchToManager": "Manager view"
+  },
+  "theme": {
+    "label": "Appearance",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "language": {
+    "label": "Language"
+  },
+  "taskType": {
+    "turnover": "Cleaning",
+    "check_in": "Check-in",
+    "check_out": "Check-out",
+    "linen_delivery": "Linen drop-off",
+    "linen_pickup": "Linen pickup",
+    "inspection": "Inspection",
+    "other": "Other"
+  },
+  "taskStatus": {
+    "unassigned": "Unassigned",
+    "assigned": "Assigned",
+    "in_progress": "In progress",
+    "done": "To review",
+    "to_redo": "Redo",
+    "validated": "Approved",
+    "cancelled": "Cancelled"
+  },
+  "priority": {
+    "high": "Priority",
+    "urgent": "Urgent"
+  },
+  "task": {
+    "before": "Before {time}",
+    "from": "From {time}",
+    "start": "Start",
+    "resume": "Resume",
+    "directions": "Directions",
+    "guests": "{count, plural, one {# guest} other {# guests}}",
+    "unassigned": "Nobody",
+    "sameDay": "Same-day arrival"
+  },
+  "managerToday": {
+    "title": "Today",
+    "kpiArrivals": "Arrivals",
+    "kpiDepartures": "Departures",
+    "kpiCleanings": "Cleanings",
+    "kpiIncidents": "Open incidents",
+    "toHandle": "Needs attention",
+    "unassignedCount": "{count, plural, one {# cleaning without an agent} other {# cleanings without an agent}}",
+    "toValidateCount": "{count, plural, one {# cleaning to review} other {# cleanings to review}}",
+    "incidentCount": "{count, plural, one {# urgent incident} other {# urgent incidents}}",
+    "assign": "Assign",
+    "review": "Review",
+    "view": "View",
+    "timeline": "Day",
+    "timelineHint": "The bar shows the time available between check-out and check-in.",
+    "allClear": "Everything is under control."
+  },
+  "agentToday": {
+    "greeting": "Hello {name}",
+    "summary": "{count, plural, =0 {Nothing planned today} one {# job today} other {# jobs today}}",
+    "emptyTitle": "Nothing planned today",
+    "emptyText": "Your next jobs will show up here."
+  },
+  "agentUpcoming": {
+    "title": "Upcoming",
+    "emptyText": "No jobs in the next 7 days."
+  },
+  "profile": {
+    "title": "Profile",
+    "preferences": "Preferences"
+  },
+  "offline": {
+    "banner": "Offline — everything is saved and will sync when you're back online."
+  },
+  "design": {
+    "title": "Design system",
+    "intro": "Visual check of HALO components.",
+    "buttons": "Buttons",
+    "statuses": "Statuses",
+    "taskCards": "Job cards",
+    "states": "States",
+    "loading": "Loading",
+    "empty": "Empty state",
+    "toast": "Notification",
+    "showToast": "Show a notification",
+    "toastText": "Cleaning assigned to Inès.",
+    "undo": "Undo",
+    "sheet": "Panel",
+    "openSheet": "Open the panel",
+    "sheetText": "Details open here without leaving the page.",
+    "primary": "Primary",
+    "secondary": "Secondary",
+    "outline": "Outline",
+    "ghost": "Ghost",
+    "danger": "Danger"
+  }
+}

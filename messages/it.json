@@ -1,0 +1,128 @@
+{
+  "common": {
+    "appName": "HALO",
+    "tagline": "Le operazioni della tua agenzia, finalmente sotto controllo.",
+    "comingSoon": "Questa sezione arriverà in una prossima fase.",
+    "seeAll": "Vedi tutto",
+    "close": "Chiudi",
+    "previousDay": "Giorno precedente",
+    "nextDay": "Giorno successivo",
+    "today": "Oggi",
+    "demoData": "Dati dimostrativi",
+    "localTimeNote": "Orari mostrati nell'ora locale di ogni alloggio."
+  },
+  "nav": {
+    "today": "Oggi",
+    "planning": "Pianificazione",
+    "tasks": "Attività",
+    "properties": "Alloggi",
+    "linen": "Biancheria",
+    "team": "Squadra",
+    "settings": "Impostazioni",
+    "more": "Altro",
+    "upcoming": "Prossime",
+    "profile": "Profilo",
+    "collapse": "Comprimi menu",
+    "expand": "Espandi menu",
+    "mainNavigation": "Navigazione principale",
+    "switchToAgent": "Vista operatore",
+    "switchToManager": "Vista manager"
+  },
+  "theme": {
+    "label": "Aspetto",
+    "light": "Chiaro",
+    "dark": "Scuro",
+    "system": "Sistema"
+  },
+  "language": {
+    "label": "Lingua"
+  },
+  "taskType": {
+    "turnover": "Pulizia",
+    "check_in": "Arrivo",
+    "check_out": "Partenza",
+    "linen_delivery": "Consegna biancheria",
+    "linen_pickup": "Ritiro biancheria",
+    "inspection": "Controllo",
+    "other": "Altro"
+  },
+  "taskStatus": {
+    "unassigned": "Non assegnata",
+    "assigned": "Assegnata",
+    "in_progress": "In corso",
+    "done": "Da verificare",
+    "to_redo": "Da rifare",
+    "validated": "Approvata",
+    "cancelled": "Annullata"
+  },
+  "priority": {
+    "high": "Prioritaria",
+    "urgent": "Urgente"
+  },
+  "task": {
+    "before": "Entro le {time}",
+    "from": "Dalle {time}",
+    "start": "Inizia",
+    "resume": "Riprendi",
+    "directions": "Indicazioni",
+    "guests": "{count, plural, one {# ospite} other {# ospiti}}",
+    "unassigned": "Nessuno",
+    "sameDay": "Arrivo in giornata"
+  },
+  "managerToday": {
+    "title": "Oggi",
+    "kpiArrivals": "Arrivi",
+    "kpiDepartures": "Partenze",
+    "kpiCleanings": "Pulizie",
+    "kpiIncidents": "Segnalazioni aperte",
+    "toHandle": "Da gestire",
+    "unassignedCount": "{count, plural, one {# pulizia senza operatore} other {# pulizie senza operatore}}",
+    "toValidateCount": "{count, plural, one {# pulizia da verificare} other {# pulizie da verificare}}",
+    "incidentCount": "{count, plural, one {# segnalazione urgente} other {# segnalazioni urgenti}}",
+    "assign": "Assegna",
+    "review": "Verifica",
+    "view": "Vedi",
+    "timeline": "Giornata",
+    "timelineHint": "La barra indica il tempo disponibile tra partenza e arrivo.",
+    "allClear": "È tutto sotto controllo."
+  },
+  "agentToday": {
+    "greeting": "Ciao {name}",
+    "summary": "{count, plural, =0 {Niente in programma oggi} one {# lavoro oggi} other {# lavori oggi}}",
+    "emptyTitle": "Niente in programma oggi",
+    "emptyText": "I tuoi prossimi lavori appariranno qui."
+  },
+  "agentUpcoming": {
+    "title": "Prossime",
+    "emptyText": "Nessun lavoro nei prossimi 7 giorni."
+  },
+  "profile": {
+    "title": "Profilo",
+    "preferences": "Preferenze"
+  },
+  "offline": {
+    "banner": "Offline — tutto è salvato e verrà inviato al ritorno della rete."
+  },
+  "design": {
+    "title": "Design system",
+    "intro": "Verifica visiva dei componenti HALO.",
+    "buttons": "Pulsanti",
+    "statuses": "Stati",
+    "taskCards": "Schede lavoro",
+    "states": "Situazioni",
+    "loading": "Caricamento",
+    "empty": "Stato vuoto",
+    "toast": "Notifica",
+    "showToast": "Mostra una notifica",
+    "toastText": "Pulizia assegnata a Inès.",
+    "undo": "Annulla",
+    "sheet": "Pannello",
+    "openSheet": "Apri il pannello",
+    "sheetText": "I dettagli si aprono qui senza lasciare la pagina.",
+    "primary": "Principale",
+    "secondary": "Secondario",
+    "outline": "Contorno",
+    "ghost": "Discreto",
+    "danger": "Pericolo"
+  }
+}
