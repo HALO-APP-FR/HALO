@@ -1,6 +1,5 @@
-import { Users } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { SectionPlaceholder } from "@/components/halo/section-placeholder";
+import { Team } from "@/components/views/team";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/team">) {
   const { locale } = await params;
@@ -11,5 +10,5 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/team">) 
 export default async function Page({ params }: PageProps<"/[locale]/team">) {
   const { locale } = await params;
   setRequestLocale(locale);
-  return <SectionPlaceholder titleKey="team" icon={Users} />;
+  return <Team />;
 }

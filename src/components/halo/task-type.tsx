@@ -8,7 +8,7 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
-import type { TaskType } from "@/lib/demo/data";
+import type { TaskType } from "@/lib/domain/types";
 import { cn } from "@/lib/utils";
 
 export const TASK_TYPE_META: Record<TaskType, { icon: LucideIcon; text: string; bg: string; bar: string }> = {

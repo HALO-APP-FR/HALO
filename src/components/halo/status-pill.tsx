@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl";
-import type { TaskStatus } from "@/lib/demo/data";
+import type { TaskStatus } from "@/lib/domain/types";
 import { cn } from "@/lib/utils";
 
 const TONE: Record<TaskStatus, { dot: string; text: string }> = {

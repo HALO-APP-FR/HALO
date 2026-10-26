@@ -81,3 +81,9 @@ Respecte `docs/05-design-system.md` à la lettre : une seule couleur d'accent, p
 2. `npm run build` passe.
 3. L'écran fonctionne en clair/sombre, mobile/ordinateur, en français et en anglais.
 4. Aucune clé secrète dans le code ou dans Git.
+
+# Données (mode démo, avant Supabase)
+- Toutes les données passent par `src/lib/store/halo-store.ts` (zustand). Les écrans n'écrivent jamais ailleurs.
+- Un sélecteur `useHalo((s) => …)` doit renvoyer une valeur existante du magasin (jamais `.filter()`, `.map()` ou un nouvel objet dans le sélecteur) : sinon boucle de rendu infinie (erreur React #185). Filtrer APRÈS la sélection.
+- La logique métier reste dans `src/lib/engine/` (pure, testée). Le magasin ne fait qu'appliquer ses résultats.
+- En phase 2, chaque action du magasin devient une Server Action Supabase avec la même signature.

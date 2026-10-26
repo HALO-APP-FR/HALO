@@ -29,4 +29,9 @@ Tout est dans `docs/` (vision, parcours, données, moteur, design). Les règles 
 ## Avancement
 - [x] Phase 1 — Socle technique, design system, navigation, 6 langues
 - [x] Écran de connexion (interface et logo animé ; branchement à Supabase en phase 2)
-- [ ] Phase 2 — Base de données, connexion, organisations
+- [x] Logements : création en 3 étapes, fiche complète (calendrier, infos, accès, couchages, checklist)
+- [x] Réservations : saisie manuelle + synchronisation iCal (Airbnb, Booking, Vrbo) → ménages générés automatiquement
+- [x] Planning jour/semaine par agent, répartition automatique, alertes de conflit
+- [x] Tâches (filtres, détail, assignation, validation/reprise), Équipe, Réglages
+- [x] App agent branchée : démarrer / terminer, code d'accès visible pendant la mission
+- [ ] Phase 2 — Base de données Supabase (les données sont pour l'instant enregistrées dans le navigateur)

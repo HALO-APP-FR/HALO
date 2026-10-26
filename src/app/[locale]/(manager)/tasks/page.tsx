@@ -1,6 +1,5 @@
-import { ListChecks } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { SectionPlaceholder } from "@/components/halo/section-placeholder";
+import { TasksList } from "@/components/views/tasks-list";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/tasks">) {
   const { locale } = await params;
@@ -11,5 +10,5 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/tasks">)
 export default async function Page({ params }: PageProps<"/[locale]/tasks">) {
   const { locale } = await params;
   setRequestLocale(locale);
-  return <SectionPlaceholder titleKey="tasks" icon={ListChecks} />;
+  return <TasksList />;
 }

@@ -1,6 +1,5 @@
-import { CalendarRange } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { SectionPlaceholder } from "@/components/halo/section-placeholder";
+import { Planning } from "@/components/views/planning";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/planning">) {
   const { locale } = await params;
@@ -11,5 +10,5 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/planning
 export default async function Page({ params }: PageProps<"/[locale]/planning">) {
   const { locale } = await params;
   setRequestLocale(locale);
-  return <SectionPlaceholder titleKey="planning" icon={CalendarRange} />;
+  return <Planning />;
 }

@@ -1,0 +1,530 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { toast } from "sonner";
+import { AlertTriangle, Sparkles, Wand2 } from "lucide-react";
+import { initialsOf, type Member, type Property, type Task } from "@/lib/domain/types";
+import { autoAssign, detectConflicts } from "@/lib/engine/conflicts";
+import { addDaysToKey, formatLocalTime, localDateKey, localMinutesOfDay } from "@/lib/engine/time";
+import { useHalo } from "@/lib/store/halo-store";
+import { activeAgents, byId, taskAnchor, tasksOfDay } from "@/lib/store/selectors";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Segmented } from "@/components/ui/segmented";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Avatar } from "@/components/halo/avatar";
+import { DayNav } from "@/components/halo/day-nav";
+import { EmptyState } from "@/components/halo/empty-state";
+import { PageHeader } from "@/components/halo/page-header";
+import { ReadyGate } from "@/components/halo/ready-gate";
+import { StatusPill } from "@/components/halo/status-pill";
+import { TASK_TYPE_META } from "@/components/halo/task-type";
+import { TaskSheet } from "@/components/halo/task-sheet";
+import { cn } from "@/lib/utils";
+
+const START_H = 7;
+const END_H = 22;
+const HOUR_PX = 64;
+const UNASSIGNED = "__unassigned";
+
+export function Planning() {
+  return (
+    <ReadyGate>
+      <PlanningInner />
+    </ReadyGate>
+  );
+}
+
+function PlanningInner() {
+  const t = useTranslations();
+  const locale = useLocale();
+  const org = useHalo((s) => s.org);
+  const tasks = useHalo((s) => s.tasks);
+  const properties = useHalo((s) => s.properties);
+  const members = useHalo((s) => s.members);
+  const agents = activeAgents(members);
+
+  const todayKey = localDateKey(new Date(), org.timezone);
+  const [view, setView] = useState<"day" | "week">("day");
+  const [dayKey, setDayKey] = useState(todayKey);
+  const [openTask, setOpenTask] = useState<string | null>(null);
+  const [proposal, setProposal] = useState<ReturnType<typeof autoAssign> | null>(null);
+
+  const conflictIds = useMemo(() => new Set(detectConflicts(tasks).map((c) => c.taskId)), [tasks]);
+  const dayTasks = tasksOfDay(tasks, properties, dayKey);
+  const toAssign = dayTasks.filter((x) => x.status === "unassigned");
+
+  const runAuto = () => {
+    const result = autoAssign(toAssign, agents.map((a) => a.id), tasks);
+    setProposal(result);
+  };
+
+  return (
+    <>
+      <PageHeader
+        title={t("nav.planning")}
+        subtitle={
+          view === "day"
+            ? undefined
+            : t("planning.weekOf", {
+                date: new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${weekStart(dayKey)}T12:00:00Z`)),
+              })
+        }
+        actions={
+          <>
+            <Segmented
+              label={t("planning.view")}
+              value={view}
+              onChange={setView}
+              options={[
+                { value: "day", label: t("planning.day") },
+                { value: "week", label: t("planning.week") },
+              ]}
+            />
+            <DayNav
+              dayKey={dayKey}
+              todayKey={todayKey}
+              step={view === "day" ? 1 : 7}
+              onChange={(d) => setDayKey(d === "today" ? todayKey : addDaysToKey(dayKey, d))}
+            />
+          </>
+        }
+      />
+
+      {view === "day" ? (
+        <>
+          <DayLabel dayKey={dayKey} />
+          {toAssign.length > 0 && (
+            <Card className="mb-4 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-[15px] font-semibold">
+                  <span className="grid size-7 place-items-center rounded-md bg-danger-soft text-danger">
+                    <AlertTriangle className="size-4" />
+                  </span>
+                  {t("planning.toAssign", { count: toAssign.length })}
+                </div>
+                <Button onClick={runAuto} disabled={agents.length === 0}>
+                  <Wand2 />
+                  {t("planning.autoAssign")}
+                </Button>
+              </div>
+              <ul className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+                {toAssign.map((task) => (
+                  <li key={task.id} className="shrink-0">
+                    <TaskChip task={task} property={properties.find((p) => p.id === task.propertyId)} onOpen={setOpenTask} />
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
+          {dayTasks.length === 0 ? (
+            <Card>
+              <EmptyState icon={Sparkles} title={t("planning.emptyDay")} text={t("planning.emptyDayText")} />
+            </Card>
+          ) : (
+            <>
+              <DayGrid tasks={dayTasks.filter((x) => x.assigneeId)} agents={agents} properties={properties} conflicts={conflictIds} onOpen={setOpenTask} />
+              <DayListMobile tasks={dayTasks} agents={agents} properties={properties} conflicts={conflictIds} onOpen={setOpenTask} />
+            </>
+          )}
+        </>
+      ) : (
+        <WeekGrid start={weekStart(dayKey)} todayKey={todayKey} tasks={tasks} properties={properties} agents={agents} conflicts={conflictIds} onOpen={setOpenTask} onPickDay={(k) => { setDayKey(k); setView("day"); }} />
+      )}
+
+      <TaskSheet taskId={openTask} onClose={() => setOpenTask(null)} />
+      <AutoAssignSheet
+        proposal={proposal}
+        total={toAssign.length}
+        tasks={tasks}
+        properties={properties}
+        members={members}
+        onClose={() => setProposal(null)}
+        onConfirm={() => {
+          if (!proposal) return;
+          useHalo.getState().applyAssignments(proposal);
+          toast(t("planning.autoDone", { count: proposal.length }));
+          setProposal(null);
+        }}
+      />
+    </>
+  );
+}
+
+/** Lundi de la semaine d'un jour. */
+function weekStart(dayKey: string) {
+  const dow = (new Date(`${dayKey}T12:00:00Z`).getUTCDay() + 6) % 7;
+  return addDaysToKey(dayKey, -dow);
+}
+
+function DayLabel({ dayKey }: { dayKey: string }) {
+  const locale = useLocale();
+  return (
+    <p className="-mt-2 mb-4 text-body text-muted first-letter:uppercase">
+      {new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${dayKey}T12:00:00Z`))}
+    </p>
+  );
+}
+
+function TaskChip({ task, property, onOpen }: { task: Task; property?: Property; onOpen: (id: string) => void }) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const tz = property?.timezone ?? "UTC";
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(task.id)}
+      className="flex items-center gap-2 rounded-lg border border-danger/30 bg-surface px-3 py-2 text-start transition-colors hover:bg-danger-soft"
+    >
+      <span className={cn("h-8 w-1 rounded-full", TASK_TYPE_META[task.type].bar)} aria-hidden />
+      <span>
+        <span className="block text-[14px] font-semibold">{property?.name}</span>
+        <span className="block text-caption text-muted tabular">
+          {t(`taskType.${task.type}`)} · {formatLocalTime(new Date(task.windowStart), tz, locale)} → {formatLocalTime(new Date(task.windowEnd), tz, locale)}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+/* ---------- Vue jour (ordinateur) : une colonne par agent ---------- */
+function DayGrid({
+  tasks,
+  agents,
+  properties,
+  conflicts,
+  onOpen,
+}: {
+  tasks: Task[];
+  agents: Member[];
+  properties: Property[];
+  conflicts: Set<string>;
+  onOpen: (id: string) => void;
+}) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const props = byId(properties);
+  const hours = Array.from({ length: END_H - START_H + 1 }, (_, i) => START_H + i);
+  const top = (min: number) => ((Math.max(min, START_H * 60) - START_H * 60) / 60) * HOUR_PX;
+
+  return (
+    <Card className="hidden overflow-hidden md:block">
+      <div className="overflow-x-auto">
+        <div className="min-w-[720px]" style={{ display: "grid", gridTemplateColumns: `64px repeat(${Math.max(agents.length, 1)}, minmax(160px, 1fr))` }}>
+          {/* En-têtes */}
+          <div className="sticky top-0 z-10 border-b border-line bg-surface" />
+          {agents.map((a) => {
+            const count = tasks.filter((x) => x.assigneeId === a.id).length;
+            return (
+              <div key={a.id} className="sticky top-0 z-10 flex items-center gap-2 border-b border-s border-line bg-surface px-3 py-3">
+                <Avatar initials={initialsOf(a.name)} color={a.color} size="sm" className="ring-0" />
+                <span className="min-w-0 truncate text-[14px] font-semibold">{a.name}</span>
+                <span className="ms-auto text-caption text-muted tabular">{count}</span>
+              </div>
+            );
+          })}
+
+          {/* Heures */}
+          <div className="relative" style={{ height: (END_H - START_H) * HOUR_PX }}>
+            {hours.map((h) => (
+              <span key={h} className={cn("absolute end-2 text-caption text-muted tabular", h === START_H ? "translate-y-1" : "-translate-y-1/2")} style={{ top: (h - START_H) * HOUR_PX }}>
+                {String(h).padStart(2, "0")}:00
+              </span>
+            ))}
+          </div>
+
+          {/* Colonnes agents */}
+          {agents.map((a) => (
+            <div key={a.id} className="relative border-s border-line" style={{ height: (END_H - START_H) * HOUR_PX }}>
+              {hours.map((h) => (
+                <span key={h} className="absolute inset-x-0 border-t border-line/60" style={{ top: (h - START_H) * HOUR_PX }} aria-hidden />
+              ))}
+              {tasks
+                .filter((x) => x.assigneeId === a.id)
+                .map((task) => {
+                  const p = props.get(task.propertyId);
+                  const tz = p?.timezone ?? "UTC";
+                  const start = localMinutesOfDay(new Date(taskAnchor(task)), tz);
+                  const height = Math.max((task.durationMin / 60) * HOUR_PX - 4, 28);
+                  const conflict = conflicts.has(task.id);
+                  const done = task.status === "done" || task.status === "validated";
+                  return (
+                    <button
+                      key={task.id}
+                      type="button"
+                      onClick={() => onOpen(task.id)}
+                      className={cn(
+                        "absolute inset-x-1.5 overflow-hidden rounded-md border bg-surface px-2.5 py-1.5 text-start shadow-card transition-shadow hover:shadow-float",
+                        conflict ? "border-warning ring-1 ring-warning" : "border-line",
+                        done && "opacity-60",
+                      )}
+                      style={{ top: top(start) + 2, height }}
+                    >
+                      <span className={cn("absolute inset-y-0 start-0 w-1", TASK_TYPE_META[task.type].bar)} aria-hidden />
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate text-[13px] font-semibold">{p?.name}</span>
+                        {conflict && <AlertTriangle className="size-3.5 shrink-0 text-warning" aria-label={t("conflict.overlap")} />}
+                      </span>
+                      {height > 40 && (
+                        <span className="block truncate text-caption text-muted tabular">
+                          {formatLocalTime(new Date(taskAnchor(task)), tz, locale)} · {t(`taskType.${task.type}`)}
+                        </span>
+                      )}
+                      {height > 64 && <StatusPill status={task.status} className="mt-1" />}
+                    </button>
+                  );
+                })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* ---------- Vue jour (téléphone) : choix de l'agent puis liste ---------- */
+function DayListMobile({
+  tasks,
+  agents,
+  properties,
+  conflicts,
+  onOpen,
+}: {
+  tasks: Task[];
+  agents: Member[];
+  properties: Property[];
+  conflicts: Set<string>;
+  onOpen: (id: string) => void;
+}) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const props = byId(properties);
+  const [who, setWho] = useState<string>(agents[0]?.id ?? UNASSIGNED);
+  const list = tasks.filter((x) => (who === UNASSIGNED ? !x.assigneeId : x.assigneeId === who));
+
+  return (
+    <div className="md:hidden">
+      <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]" role="tablist" aria-label={t("planning.agents")}>
+        {agents.map((a) => {
+          const n = tasks.filter((x) => x.assigneeId === a.id).length;
+          return (
+            <button
+              key={a.id}
+              role="tab"
+              aria-selected={who === a.id}
+              onClick={() => setWho(a.id)}
+              className={cn(
+                "flex h-11 shrink-0 items-center gap-2 rounded-full border px-3 text-[14px] font-medium",
+                who === a.id ? "border-fg bg-fg text-canvas" : "border-line bg-surface",
+              )}
+            >
+              <Avatar initials={initialsOf(a.name)} color={a.color} size="sm" className="ring-0" />
+              {a.name.split(" ")[0]}
+              <span className="tabular opacity-70">{n}</span>
+            </button>
+          );
+        })}
+      </div>
+      {list.length === 0 ? (
+        <Card>
+          <EmptyState icon={Sparkles} title={t("planning.nothingForAgent")} className="py-10" />
+        </Card>
+      ) : (
+        <Card className="divide-y divide-line">
+          {list.map((task) => {
+            const p = props.get(task.propertyId);
+            const tz = p?.timezone ?? "UTC";
+            return (
+              <button key={task.id} type="button" onClick={() => onOpen(task.id)} className="flex w-full items-center gap-3 px-4 py-3 text-start">
+                <span className={cn("h-10 w-1 shrink-0 rounded-full", TASK_TYPE_META[task.type].bar)} aria-hidden />
+                <span className="w-12 shrink-0 text-[15px] font-semibold tabular">{formatLocalTime(new Date(taskAnchor(task)), tz, locale)}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="truncate text-[15px] font-semibold">{p?.name}</span>
+                    {conflicts.has(task.id) && <AlertTriangle className="size-4 shrink-0 text-warning" />}
+                  </span>
+                  <span className="mt-0.5 flex items-center gap-1.5 text-caption text-muted">
+                    {t(`taskType.${task.type}`)} · <StatusPill status={task.status} />
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </Card>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Vue semaine : agents × jours ---------- */
+function WeekGrid({
+  start,
+  todayKey,
+  tasks,
+  properties,
+  agents,
+  conflicts,
+  onOpen,
+  onPickDay,
+}: {
+  start: string;
+  todayKey: string;
+  tasks: Task[];
+  properties: Property[];
+  agents: Member[];
+  conflicts: Set<string>;
+  onOpen: (id: string) => void;
+  onPickDay: (dayKey: string) => void;
+}) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const days = Array.from({ length: 7 }, (_, i) => addDaysToKey(start, i));
+  const props = byId(properties);
+  const byDay = new Map(days.map((d) => [d, tasksOfDay(tasks, properties, d)]));
+  const rows: { id: string; label: string; member?: Member }[] = [
+    { id: UNASSIGNED, label: t("planning.unassignedRow") },
+    ...agents.map((a) => ({ id: a.id, label: a.name, member: a })),
+  ];
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[860px] table-fixed border-collapse">
+          <thead>
+            <tr>
+              <th scope="col" className="w-44 border-b border-line p-3 text-start text-micro text-muted">
+                {t("planning.agents")}
+              </th>
+              {days.map((d) => (
+                <th key={d} scope="col" className="border-b border-s border-line p-2 text-center">
+                  <button type="button" onClick={() => onPickDay(d)} className="mx-auto flex flex-col items-center rounded-md px-2 py-1 hover:bg-subtle dark:hover:bg-surface-hover">
+                    <span className="text-micro text-muted">
+                      {new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`))}
+                    </span>
+                    <span className={cn("mt-0.5 grid size-7 place-items-center rounded-full text-[14px] font-semibold tabular", d === todayKey && "bg-fg text-canvas")}>
+                      {Number(d.slice(8))}
+                    </span>
+                  </button>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id}>
+                <th scope="row" className="border-b border-line p-3 text-start align-top">
+                  <span className="flex items-center gap-2">
+                    {row.member ? (
+                      <Avatar initials={initialsOf(row.member.name)} color={row.member.color} size="sm" className="ring-0" />
+                    ) : (
+                      <span className="grid size-6 place-items-center rounded-full border border-dashed border-danger/60" aria-hidden />
+                    )}
+                    <span className={cn("truncate text-[14px] font-semibold", !row.member && "text-danger")}>{row.label}</span>
+                  </span>
+                </th>
+                {days.map((d) => {
+                  const cell = (byDay.get(d) ?? []).filter((x) => (row.id === UNASSIGNED ? x.status === "unassigned" : x.assigneeId === row.id));
+                  return (
+                    <td key={d} className={cn("border-b border-s border-line p-1.5 align-top", d === todayKey && "bg-accent-soft/40")}>
+                      <ul className="space-y-1">
+                        {cell.map((task) => {
+                          const p = props.get(task.propertyId);
+                          return (
+                            <li key={task.id}>
+                              <button
+                                type="button"
+                                onClick={() => onOpen(task.id)}
+                                className={cn(
+                                  "relative w-full overflow-hidden rounded-md border bg-surface py-1 pe-1.5 ps-2.5 text-start text-[12px] leading-4 transition-colors hover:bg-surface-hover",
+                                  conflicts.has(task.id) ? "border-warning" : row.id === UNASSIGNED ? "border-danger/40" : "border-line",
+                                )}
+                              >
+                                <span className={cn("absolute inset-y-0 start-0 w-1", TASK_TYPE_META[task.type].bar)} aria-hidden />
+                                <span className="block truncate font-semibold">{p?.name}</span>
+                                <span className="block truncate text-muted tabular">{formatLocalTime(new Date(taskAnchor(task)), p?.timezone ?? "UTC", locale)}</span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
+/* ---------- Aperçu de la répartition automatique ---------- */
+function AutoAssignSheet({
+  proposal,
+  total,
+  tasks,
+  properties,
+  members,
+  onClose,
+  onConfirm,
+}: {
+  proposal: ReturnType<typeof autoAssign> | null;
+  total: number;
+  tasks: Task[];
+  properties: Property[];
+  members: Member[];
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const t = useTranslations();
+  const locale = useLocale();
+  if (!proposal) return null;
+  const props = byId(properties);
+  const people = byId(members);
+  const notPlaced = total - proposal.length;
+
+  return (
+    <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <SheetContent title={t("planning.autoTitle")} description={t("planning.autoHint")} closeLabel={t("common.close")}>
+        <div className="space-y-4 pt-2">
+          {proposal.length === 0 ? (
+            <p className="rounded-lg bg-warning-soft p-3 text-[14px]">{t("planning.autoNone")}</p>
+          ) : (
+            <ul className="divide-y divide-line rounded-lg border border-line">
+              {proposal.map((a) => {
+                const task = tasks.find((x) => x.id === a.taskId)!;
+                const p = props.get(task.propertyId);
+                const agent = people.get(a.agentId);
+                return (
+                  <li key={a.taskId} className="flex items-center gap-3 px-3 py-2.5">
+                    {agent && <Avatar initials={initialsOf(agent.name)} color={agent.color} size="md" className="ring-0" />}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[15px] font-semibold">{p?.name}</span>
+                      <span className="block text-caption text-muted">
+                        {agent?.name} · {formatLocalTime(new Date(a.scheduledStart), p?.timezone ?? "UTC", locale)}
+                      </span>
+                    </span>
+                    <Badge>{t(`taskType.${task.type}`)}</Badge>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {notPlaced > 0 && <p className="text-[14px] text-warning">{t("planning.autoNotPlaced", { count: notPlaced })}</p>}
+          <div className="flex gap-2">
+            <Button variant="secondary" size="lg" onClick={onClose}>
+              {t("form.cancel")}
+            </Button>
+            <Button size="lg" className="flex-1" onClick={onConfirm} disabled={proposal.length === 0}>
+              {t("planning.autoConfirm", { count: proposal.length })}
+            </Button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}

@@ -15,7 +15,8 @@ import { StatusPill } from "@/components/halo/status-pill";
 import { TaskCard } from "@/components/halo/task-card";
 import { TaskTypeIcon } from "@/components/halo/task-type";
 import { ThemeSwitcher } from "@/components/halo/theme-switcher";
-import { demoProperties, getDemoDay, type TaskStatus, type TaskType } from "@/lib/demo/data";
+import type { TaskStatus, TaskType } from "@/lib/domain/types";
+import { buildDemoData } from "@/lib/store/seed";
 
 const STATUSES: TaskStatus[] = ["unassigned", "assigned", "in_progress", "done", "to_redo", "validated", "cancelled"];
 const TYPES: TaskType[] = ["turnover", "check_in", "check_out", "linen_delivery", "linen_pickup", "inspection", "other"];
@@ -35,9 +36,9 @@ export default async function DesignPage({ params }: PageProps<"/[locale]/design
   await connection(); // « maintenant » = l\'heure de la requête, pas celle du build
   const t = await getTranslations();
   const now = new Date();
-  const { tasks } = getDemoDay(now);
-  const prop = (id: string) => demoProperties.find((p) => p.id === id)!;
-  const samples = [tasks[1], tasks[2], tasks[6]];
+  const demo = buildDemoData(now, locale);
+  const prop = (id: string) => demo.properties.find((p) => p.id === id)!;
+  const samples = demo.tasks.filter((x) => x.assigneeId).slice(0, 3);
 
   return (
     <div className="min-h-dvh bg-subtle">
@@ -103,7 +104,7 @@ export default async function DesignPage({ params }: PageProps<"/[locale]/design
         <Section title={t("design.taskCards")}>
           <div className="grid gap-4 md:grid-cols-2">
             {samples.map((task) => (
-              <TaskCard key={task.id} task={task} property={prop(task.propertyId)} now={now} />
+              <TaskCard key={task.id} task={task} property={prop(task.propertyId)} reference={now} />
             ))}
           </div>
         </Section>
