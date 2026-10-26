@@ -1,13 +1,22 @@
 import { cn } from "@/lib/utils";
 
-/** Marque HALO : un anneau (le « halo ») et le nom. */
+/**
+ * Marque HALO — symbole « Rotation » : deux arcs, le départ et l'arrivée,
+ * qui forment ensemble le cycle d'une rotation.
+ */
+export function LogoMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={cn("size-6 shrink-0", className)} aria-hidden>
+      <path d="M9.09 19.99A8.5 8.5 0 0 1 9.09 4.01" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+      <path d="M14.91 4.01A8.5 8.5 0 0 1 14.91 19.99" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function Logo({ className, compact = false }: { className?: string; compact?: boolean }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5 text-fg", className)}>
-      <svg viewBox="0 0 24 24" className="size-6 shrink-0" aria-hidden>
-        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2.25" />
-        <circle cx="12" cy="12" r="3.25" fill="var(--accent)" />
-      </svg>
+      <LogoMark />
       {!compact && <span className="text-[17px] font-bold tracking-[0.18em]">HALO</span>}
     </span>
   );
