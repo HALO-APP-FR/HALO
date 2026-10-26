@@ -124,5 +124,23 @@
     "outline": "Contorno",
     "ghost": "Discreto",
     "danger": "Perigo"
+  },
+  "auth": {
+    "title": "Entrar",
+    "welcome": "Bem-vindo à HALO",
+    "subtitle": "Entre para gerir as suas operações.",
+    "email": "Endereço de e-mail",
+    "emailPlaceholder": "voce@empresa.com",
+    "submit": "Receber o meu link de acesso",
+    "sending": "A enviar…",
+    "or": "ou",
+    "google": "Continuar com Google",
+    "magicHint": "Sem palavra-passe: recebe um link de acesso por e-mail.",
+    "invalidEmail": "Introduza um endereço de e-mail válido.",
+    "notConfigured": "O acesso ficará ativo assim que a base de dados estiver ligada (próxima etapa).",
+    "noAccount": "Ainda não tem conta?",
+    "createAccount": "Criar a minha empresa",
+    "agentHint": "É agente? Use o link de convite enviado pela sua empresa.",
+    "legal": "Ao continuar, aceita os termos de utilização e a política de privacidade."
   }
 }

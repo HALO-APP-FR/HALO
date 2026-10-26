@@ -124,5 +124,23 @@
     "outline": "Outline",
     "ghost": "Ghost",
     "danger": "Danger"
+  },
+  "auth": {
+    "title": "Sign in",
+    "welcome": "Welcome to HALO",
+    "subtitle": "Sign in to manage your operations.",
+    "email": "Email address",
+    "emailPlaceholder": "you@company.com",
+    "submit": "Email me a sign-in link",
+    "sending": "Sending…",
+    "or": "or",
+    "google": "Continue with Google",
+    "magicHint": "No password: you'll get a sign-in link by email.",
+    "invalidEmail": "Enter a valid email address.",
+    "notConfigured": "Sign-in will work as soon as the database is connected (next step).",
+    "noAccount": "No account yet?",
+    "createAccount": "Create my company",
+    "agentHint": "Field agent? Use the invitation link your company sent you.",
+    "legal": "By continuing, you agree to the terms of use and privacy policy."
   }
 }

@@ -242,3 +242,45 @@
     }
   }
 }
+
+/* =========================================================
+   Animation du logo (écran de connexion)
+   Les arcs se dessinent en tournant, puis se posent.
+   Avec « réduire les animations », le logo apparaît directement dans son état final.
+   ========================================================= */
+@keyframes halo-draw {
+  from { stroke-dashoffset: 21; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes halo-spin {
+  from { transform: rotate(-200deg) scale(0.86); opacity: 0; }
+  35% { opacity: 1; }
+  to { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+@keyframes halo-rise {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.halo-mark-animated .halo-spin {
+  transform-box: view-box;
+  transform-origin: 12px 12px;
+  animation: halo-spin 1.15s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.halo-mark-animated .halo-arc {
+  stroke-dasharray: 21;
+  animation: halo-draw 0.9s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.halo-mark-animated .halo-arc-2 {
+  animation-delay: 0.12s;
+}
+.halo-mark-animated:hover .halo-spin {
+  animation: halo-spin 1.15s cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation-name: halo-spin-again;
+}
+@keyframes halo-spin-again {
+  from { transform: rotate(-180deg); }
+  to { transform: rotate(0deg); }
+}
+.halo-rise {
+  animation: halo-rise 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
+}

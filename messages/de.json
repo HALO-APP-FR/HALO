@@ -124,5 +124,23 @@
     "outline": "Kontur",
     "ghost": "Dezent",
     "danger": "Gefahr"
+  },
+  "auth": {
+    "title": "Anmelden",
+    "welcome": "Willkommen bei HALO",
+    "subtitle": "Melden Sie sich an, um Ihre Abläufe zu verwalten.",
+    "email": "E-Mail-Adresse",
+    "emailPlaceholder": "sie@firma.com",
+    "submit": "Anmeldelink per E-Mail erhalten",
+    "sending": "Wird gesendet…",
+    "or": "oder",
+    "google": "Weiter mit Google",
+    "magicHint": "Kein Passwort: Sie erhalten einen Anmeldelink per E-Mail.",
+    "invalidEmail": "Geben Sie eine gültige E-Mail-Adresse ein.",
+    "notConfigured": "Die Anmeldung funktioniert, sobald die Datenbank verbunden ist (nächster Schritt).",
+    "noAccount": "Noch kein Konto?",
+    "createAccount": "Meine Agentur anlegen",
+    "agentHint": "Sie sind Mitarbeiter? Nutzen Sie den Einladungslink Ihrer Agentur.",
+    "legal": "Mit dem Fortfahren akzeptieren Sie die Nutzungsbedingungen und die Datenschutzerklärung."
   }
 }

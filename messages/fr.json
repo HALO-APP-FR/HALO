@@ -124,5 +124,23 @@
     "outline": "Contour",
     "ghost": "Discret",
     "danger": "Danger"
+  },
+  "auth": {
+    "title": "Connexion",
+    "welcome": "Bienvenue sur HALO",
+    "subtitle": "Connectez-vous pour gérer vos opérations.",
+    "email": "Adresse e-mail",
+    "emailPlaceholder": "vous@conciergerie.com",
+    "submit": "Recevoir mon lien de connexion",
+    "sending": "Envoi…",
+    "or": "ou",
+    "google": "Continuer avec Google",
+    "magicHint": "Pas de mot de passe : vous recevez un lien de connexion par e-mail.",
+    "invalidEmail": "Saisissez une adresse e-mail valide.",
+    "notConfigured": "La connexion sera active dès que la base de données sera branchée (prochaine étape).",
+    "noAccount": "Pas encore de compte ?",
+    "createAccount": "Créer ma conciergerie",
+    "agentHint": "Vous êtes agent ? Utilisez le lien d'invitation reçu de votre conciergerie.",
+    "legal": "En continuant, vous acceptez les conditions d'utilisation et la politique de confidentialité."
   }
 }

@@ -12,6 +12,7 @@ L'OS des opérations de conciergerie : ménages, planning, arrivées/départs, l
 Pages utiles :
 - Manager : http://localhost:3000/fr/today
 - Agent (format téléphone) : http://localhost:3000/fr/a/today
+- Connexion : http://localhost:3000/fr/login
 - Vitrine du design : http://localhost:3000/fr/design
 
 ## Commandes
@@ -27,4 +28,5 @@ Tout est dans `docs/` (vision, parcours, données, moteur, design). Les règles 
 
 ## Avancement
 - [x] Phase 1 — Socle technique, design system, navigation, 6 langues
+- [x] Écran de connexion (interface et logo animé ; branchement à Supabase en phase 2)
 - [ ] Phase 2 — Base de données, connexion, organisations

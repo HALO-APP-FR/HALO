@@ -124,5 +124,23 @@
     "outline": "Contorno",
     "ghost": "Discreto",
     "danger": "Pericolo"
+  },
+  "auth": {
+    "title": "Accedi",
+    "welcome": "Benvenuto su HALO",
+    "subtitle": "Accedi per gestire le tue operazioni.",
+    "email": "Indirizzo e-mail",
+    "emailPlaceholder": "tu@azienda.com",
+    "submit": "Ricevi il link di accesso",
+    "sending": "Invio…",
+    "or": "oppure",
+    "google": "Continua con Google",
+    "magicHint": "Nessuna password: riceverai un link di accesso via e-mail.",
+    "invalidEmail": "Inserisci un indirizzo e-mail valido.",
+    "notConfigured": "L'accesso sarà attivo appena il database sarà collegato (prossima fase).",
+    "noAccount": "Non hai ancora un account?",
+    "createAccount": "Crea la mia agenzia",
+    "agentHint": "Sei un operatore? Usa il link di invito ricevuto dalla tua agenzia.",
+    "legal": "Continuando, accetti i termini di utilizzo e l'informativa sulla privacy."
   }
 }
