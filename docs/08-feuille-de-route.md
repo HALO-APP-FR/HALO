@@ -21,6 +21,20 @@ Le MVP (phases 1 à 11 de `01-PROMPTS.md`), plus :
 - Le planning tient compte de qui détient la clé.
 - Tables : `keys`, `key_events` (immuable).
 
+### F10 — Bouton voyageur (QR code dans le logement)
+Validé le 26/10/2026. **Pas de chat libre** (la messagerie voyageur reste dans le PMS) : uniquement des demandes structurées qui créent de la logistique.
+- QR code imprimable par logement → page web légère, sans application, dans la langue du téléphone du voyageur, aux couleurs HALO (ou de la conciergerie plus tard).
+- 4 boutons :
+  1. **Je pars** → départ signalé : la tâche de ménage passe « prête à démarrer », l'agent est prévenu, alimente F2 (logement prêt plus tôt).
+  2. **Un problème** → photo + catégorie (panne, casse, fuite, nuisible, autre) → incident ; urgent = alerte immédiate au manager.
+  3. **Il me manque quelque chose** → linge, papier, café, autre → tâche de livraison créée pour un agent.
+  4. **Je n'arrive pas à entrer** → alerte urgente au manager + rappel des instructions d'accès générales (jamais le code s'il n'est pas déjà donné par la plateforme).
+- Suivi visible par le voyageur : « Demande reçue » → « Un agent arrive vers 15:00 » → « Résolu ».
+- Lien « Écrire à votre hôte » vers la messagerie de la plateforme de réservation pour tout le reste.
+- Sécurité : jeton QR propre au logement, actif seulement pendant une réservation en cours ; limitation du nombre de demandes ; aucune donnée personnelle affichée ; pas de compte à créer.
+- Tables : `guest_access_tokens`, `guest_requests` (type, statut, photos via `attachments`, tâche ou incident créé).
+- Placement conseillé : vague 1 (lancement), car il nourrit directement F2.
+
 ## Vague 2 — Le planning qui se fait seul
 ### F1 — Pilote automatique du planning
 - Chaque soir (heure de l'organisation, réglable), HALO propose le planning du lendemain.
