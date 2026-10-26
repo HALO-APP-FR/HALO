@@ -45,7 +45,7 @@ export default async function AgentUpcomingPage({ params }: PageProps<"/[locale]
               <ol className="space-y-3">
                 {list.map((task) => (
                   <li key={task.id}>
-                    <TaskCard task={task} property={demoProperties.find((p) => p.id === task.propertyId)!} now={now} showAction={false} />
+                    <TaskCard task={task} property={demoProperties.find((p) => p.id === task.propertyId)!} now={task.windowStart} showAction={false} />
                   </li>
                 ))}
               </ol>
