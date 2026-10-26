@@ -8,13 +8,36 @@
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
-import type { CalendarFeed, Member, Property, Reservation, Task, TaskStatus } from "@/lib/domain/types";
+import type {
+  Alert,
+  CalendarFeed,
+  LaundryOrderLine,
+  LinenLocationId,
+  LinenMovement,
+  LinenSettings,
+  LinenType,
+  Member,
+  Property,
+  Reservation,
+  Task,
+  TaskStatus,
+} from "@/lib/domain/types";
 import { newId } from "@/lib/domain/templates";
 import type { ParsedEvent } from "@/lib/engine/ical";
+import {
+  kitForTask,
+  laundryReceiveMovements,
+  laundrySendMovements,
+  qtyAt,
+  stockFromMovements,
+  turnoverMovements,
+} from "@/lib/engine/linen";
 import { planTasks } from "@/lib/engine/tasks";
-import { applyPlan, buildDemoData, type HaloData } from "./seed";
+import { DEFAULT_LINEN_SETTINGS, applyPlan, buildDemoData, defaultGuide, defaultLinenTypes, newToken, type HaloData } from "./seed";
 
-export type NewProperty = Omit<Property, "id" | "createdAt" | "archived" | "feeds">;
+export type NewProperty = Omit<Property, "id" | "createdAt" | "archived" | "feeds" | "guide" | "linenParLevel" | "amenities" | "customAmenities"> &
+  Partial<Pick<Property, "guide" | "linenParLevel" | "amenities" | "customAmenities">>;
+export type NewAlert = Omit<Alert, "id" | "status" | "createdAt" | "photoIds"> & { photoIds?: string[] };
 export type NewReservation = Omit<Reservation, "id" | "status"> & { status?: Reservation["status"] };
 export type NewTask = Pick<Task, "propertyId" | "type" | "windowStart" | "windowEnd" | "durationMin"> &
   Partial<Pick<Task, "assigneeId" | "scheduledStart" | "notes" | "priority" | "title">>;
@@ -35,6 +58,8 @@ interface HaloState extends HaloData {
   addReservation: (input: NewReservation) => string;
   updateReservation: (id: string, patch: Partial<Reservation>) => void;
   cancelReservation: (id: string) => void;
+  /** Le voyageur signale son départ (livret) : le ménage peut démarrer. */
+  markDeparted: (reservationId: string) => void;
 
   addFeed: (propertyId: string, feed: Omit<CalendarFeed, "id">) => string;
   removeFeed: (propertyId: string, feedId: string) => void;
@@ -45,6 +70,25 @@ interface HaloState extends HaloData {
   assignTask: (id: string, agentId: string | undefined, scheduledStart?: string) => void;
   setTaskStatus: (id: string, status: TaskStatus) => void;
   applyAssignments: (list: { taskId: string; agentId: string; scheduledStart: string }[]) => void;
+
+  addAlert: (input: NewAlert) => string;
+  updateAlert: (id: string, patch: Partial<Alert>) => void;
+  /** Crée une mission de suivi (intervention) liée à une alerte. */
+  createFollowUp: (alertId: string, windowStart: string, windowEnd: string) => string | null;
+  regenerateGuideToken: (propertyId: string) => void;
+
+  addLinenType: (input: Omit<LinenType, "id">) => string;
+  updateLinenType: (id: string, patch: Partial<LinenType>) => void;
+  /** Achat de linge neuf (entre dans le stock propre). */
+  purchaseLinen: (linenTypeId: string, qty: number) => void;
+  /** Inventaire : fixe la quantité réelle d'un emplacement (mouvement d'ajustement). */
+  adjustLinen: (location: LinenLocationId, linenTypeId: string, countedQty: number, note?: string) => void;
+  createLaundryOrder: (lines: LaundryOrderLine[]) => string;
+  updateLaundryOrder: (id: string, lines: LaundryOrderLine[]) => void;
+  deleteLaundryOrder: (id: string) => void;
+  sendLaundryOrder: (id: string) => void;
+  receiveLaundryOrder: (id: string, lines: LaundryOrderLine[]) => void;
+  updateLinenSettings: (patch: Partial<LinenSettings>) => void;
 
   addMember: (input: Omit<Member, "id" | "active">) => string;
   updateMember: (id: string, patch: Partial<Member>) => void;
@@ -85,6 +129,11 @@ const EMPTY: HaloData = {
   properties: [],
   reservations: [],
   tasks: [],
+  alerts: [],
+  linenTypes: [],
+  linenMovements: [],
+  laundryOrders: [],
+  linenSettings: DEFAULT_LINEN_SETTINGS,
   currentAgentId: "",
 };
 
@@ -117,6 +166,10 @@ export const useHalo = create<HaloState>()(
           properties: [],
           reservations: [],
           tasks: [],
+          alerts: [],
+          linenTypes: defaultLinenTypes(),
+          linenMovements: [],
+          laundryOrders: [],
           currentAgentId: "",
           seeded: true,
         })),
@@ -125,7 +178,20 @@ export const useHalo = create<HaloState>()(
       addProperty: (input) => {
         const id = newId("prop");
         set((s) => {
-          const properties = [...s.properties, { ...input, id, archived: false, feeds: [], createdAt: new Date().toISOString() }];
+          const properties = [
+            ...s.properties,
+            {
+              amenities: [],
+              customAmenities: [],
+              linenParLevel: 3,
+              ...input,
+              guide: input.guide ?? defaultGuide(),
+              id,
+              archived: false,
+              feeds: [],
+              createdAt: new Date().toISOString(),
+            },
+          ];
           return { properties, ...regenerate({ ...s, properties }, [id]) };
         });
         return id;
@@ -153,6 +219,7 @@ export const useHalo = create<HaloState>()(
           return { reservations, ...regenerate({ ...s, reservations }, target ? [target.propertyId] : undefined) };
         }),
       cancelReservation: (id) => get().updateReservation(id, { status: "cancelled" }),
+      markDeparted: (reservationId) => get().updateReservation(reservationId, { departedAt: new Date().toISOString() }),
 
       addFeed: (propertyId, feed) => {
         const id = newId("feed");
@@ -251,6 +318,18 @@ export const useHalo = create<HaloState>()(
         })),
       setTaskStatus: (id, status) =>
         set((s) => ({
+          linenMovements: (() => {
+            // Fin d'un ménage : le linge du logement part au sale, le kit neuf est posé (une seule fois)
+            const task = s.tasks.find((x) => x.id === id);
+            const property = task && s.properties.find((p) => p.id === task.propertyId);
+            if (!task || !property || status !== "done" || task.type !== "turnover") return s.linenMovements;
+            if (s.linenMovements.some((m) => m.taskId === id)) return s.linenMovements;
+            const kit = kitForTask(task, property, s.linenTypes);
+            return [
+              ...s.linenMovements,
+              ...turnoverMovements(task, kit, stockFromMovements(s.linenMovements), new Date().toISOString(), () => newId("mv")),
+            ];
+          })(),
           tasks: s.tasks.map((x) => {
             if (x.id !== id) return x;
             const stamp = new Date().toISOString();
@@ -270,6 +349,127 @@ export const useHalo = create<HaloState>()(
           }),
         })),
 
+      addAlert: (input) => {
+        const id = newId("alert");
+        set((s) => ({
+          alerts: [{ photoIds: [], ...input, id, status: "open", createdAt: new Date().toISOString() }, ...s.alerts],
+        }));
+        return id;
+      },
+      updateAlert: (id, patch) =>
+        set((s) => ({
+          alerts: s.alerts.map((a) =>
+            a.id === id
+              ? {
+                  ...a,
+                  ...patch,
+                  resolvedAt: patch.status === "resolved" ? new Date().toISOString() : patch.status ? undefined : a.resolvedAt,
+                }
+              : a,
+          ),
+        })),
+      createFollowUp: (alertId, windowStart, windowEnd) => {
+        const alert = get().alerts.find((a) => a.id === alertId);
+        if (!alert) return null;
+        const taskId = get().addTask({
+          propertyId: alert.propertyId,
+          type: "inspection",
+          windowStart,
+          windowEnd,
+          durationMin: 60,
+          priority: alert.urgent ? "urgent" : "normal",
+          notes: [alert.location?.label, alert.description].filter(Boolean).join(" — "),
+        });
+        get().updateAlert(alertId, { followUpTaskId: taskId, status: "in_progress" });
+        return taskId;
+      },
+      regenerateGuideToken: (propertyId) =>
+        set((s) => ({
+          properties: s.properties.map((p) => (p.id === propertyId ? { ...p, guide: { ...p.guide, token: newToken() } } : p)),
+        })),
+
+      addLinenType: (input) => {
+        const id = newId("linen");
+        set((s) => ({ linenTypes: [...s.linenTypes, { ...input, id }] }));
+        return id;
+      },
+      updateLinenType: (id, patch) => set((s) => ({ linenTypes: s.linenTypes.map((t) => (t.id === id ? { ...t, ...patch } : t)) })),
+      purchaseLinen: (linenTypeId, qty) =>
+        set((s) => ({
+          linenMovements: [
+            ...s.linenMovements,
+            { id: newId("mv"), linenTypeId, to: "clean", qty, reason: "purchase", createdAt: new Date().toISOString() },
+          ],
+        })),
+      adjustLinen: (location, linenTypeId, countedQty, note) =>
+        set((s) => {
+          const current = qtyAt(stockFromMovements(s.linenMovements), location, linenTypeId);
+          const delta = countedQty - current;
+          if (delta === 0) return {};
+          const mv: LinenMovement = {
+            id: newId("mv"),
+            linenTypeId,
+            ...(delta > 0 ? { to: location } : { from: location }),
+            qty: Math.abs(delta),
+            reason: "adjustment",
+            note,
+            createdAt: new Date().toISOString(),
+          };
+          return { linenMovements: [...s.linenMovements, mv] };
+        }),
+      createLaundryOrder: (lines) => {
+        const id = newId("order");
+        set((s) => ({
+          laundryOrders: [
+            {
+              id,
+              reference: `B-${String(s.laundryOrders.length + 1).padStart(4, "0")}`,
+              status: "draft",
+              lines: lines.filter((l) => l.sent > 0),
+              createdAt: new Date().toISOString(),
+            },
+            ...s.laundryOrders,
+          ],
+        }));
+        return id;
+      },
+      updateLaundryOrder: (id, lines) =>
+        set((s) => ({ laundryOrders: s.laundryOrders.map((o) => (o.id === id && o.status === "draft" ? { ...o, lines } : o)) })),
+      deleteLaundryOrder: (id) => set((s) => ({ laundryOrders: s.laundryOrders.filter((o) => !(o.id === id && o.status === "draft")) })),
+      sendLaundryOrder: (id) =>
+        set((s) => {
+          const order = s.laundryOrders.find((o) => o.id === id);
+          if (!order || order.status !== "draft") return {};
+          const now = new Date();
+          // On n'envoie jamais plus que le sale disponible
+          const stock = stockFromMovements(s.linenMovements);
+          const lines = order.lines
+            .map((l) => ({ ...l, sent: Math.min(l.sent, Math.max(0, qtyAt(stock, "dirty", l.linenTypeId))) }))
+            .filter((l) => l.sent > 0);
+          const sent = {
+            ...order,
+            lines,
+            status: "sent" as const,
+            sentAt: now.toISOString(),
+            expectedAt: new Date(now.getTime() + s.linenSettings.turnaroundDays * 86_400_000).toISOString(),
+          };
+          return {
+            laundryOrders: s.laundryOrders.map((o) => (o.id === id ? sent : o)),
+            linenMovements: [...s.linenMovements, ...laundrySendMovements(sent, now.toISOString(), () => newId("mv"))],
+          };
+        }),
+      receiveLaundryOrder: (id, lines) =>
+        set((s) => {
+          const order = s.laundryOrders.find((o) => o.id === id);
+          if (!order || order.status !== "sent") return {};
+          const received = { ...order, lines, status: "received" as const, receivedAt: new Date().toISOString() };
+          return {
+            laundryOrders: s.laundryOrders.map((o) => (o.id === id ? received : o)),
+            linenMovements: [...s.linenMovements, ...laundryReceiveMovements(received, new Date().toISOString(), () => newId("mv"))],
+          };
+        }),
+      updateLinenSettings: (patch) => set((s) => ({ linenSettings: { ...s.linenSettings, ...patch } })),
+
       addMember: (input) => {
         const id = newId("member");
         set((s) => ({ members: [...s.members, { ...input, id, active: true }] }));
@@ -280,7 +480,26 @@ export const useHalo = create<HaloState>()(
     }),
     {
       name: "halo-demo-v1",
-      version: 1,
+      version: 2,
+      // v1 → v2 : équipements, livret voyageur, alertes, linge
+      migrate: (persisted, version) => {
+        const data = persisted as Partial<HaloData> & { seeded?: boolean };
+        if (version < 2) {
+          data.properties = (data.properties ?? []).map((p) => ({
+            ...p,
+            amenities: p.amenities ?? [],
+            customAmenities: p.customAmenities ?? [],
+            guide: p.guide ?? defaultGuide(),
+            linenParLevel: p.linenParLevel ?? 3,
+          }));
+          data.alerts = data.alerts ?? [];
+          data.linenTypes = data.linenTypes ?? defaultLinenTypes();
+          data.linenMovements = data.linenMovements ?? [];
+          data.laundryOrders = data.laundryOrders ?? [];
+          data.linenSettings = data.linenSettings ?? DEFAULT_LINEN_SETTINGS;
+        }
+        return data as HaloState;
+      },
       storage: createJSONStorage(() => safeStorage),
       skipHydration: true,
       partialize: (s) => ({
@@ -290,6 +509,11 @@ export const useHalo = create<HaloState>()(
         properties: s.properties,
         reservations: s.reservations,
         tasks: s.tasks,
+        alerts: s.alerts,
+        linenTypes: s.linenTypes,
+        linenMovements: s.linenMovements,
+        laundryOrders: s.laundryOrders,
+        linenSettings: s.linenSettings,
         currentAgentId: s.currentAgentId,
       }),
     },

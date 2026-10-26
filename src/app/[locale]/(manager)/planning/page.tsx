@@ -7,8 +7,9 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/planning
   return { title: t("planning") };
 }
 
-export default async function Page({ params }: PageProps<"/[locale]/planning">) {
+export default async function Page({ params, searchParams }: PageProps<"/[locale]/planning">) {
   const { locale } = await params;
+  const { day } = await searchParams;
   setRequestLocale(locale);
-  return <Planning />;
+  return <Planning initialDay={typeof day === "string" ? day : undefined} />;
 }

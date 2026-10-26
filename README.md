@@ -34,4 +34,10 @@ Tout est dans `docs/` (vision, parcours, données, moteur, design). Les règles 
 - [x] Planning jour/semaine par agent, répartition automatique, alertes de conflit
 - [x] Tâches (filtres, détail, assignation, validation/reprise), Équipe, Réglages
 - [x] App agent branchée : démarrer / terminer, code d'accès visible pendant la mission
+- [x] Équipements et extérieurs par logement (terrasse, balcon, piscine, four, TV…)
+- [x] Livret voyageur : lien + QR code + affiche A5 (wifi, accès, règles, départ), signalement voyageur, bouton « Je pars »
+- [x] Alertes : signalements équipes / voyageurs / manager, localisés (pièce ou équipement), photos, intervention planifiée
+- [x] Module Linge : stock par emplacement, kits auto par logement, prévision de rupture 7 jours, bons de blanchisserie (envoi, réception, écarts), journal, coûts
+- [x] Voyageurs : noms, adultes/enfants/bébés/animaux (kit bébé, +30 min si animaux)
+- [x] Planning mois, tuiles du tableau de bord cliquables, photo exigée + photo de référence dans la checklist
 - [ ] Phase 2 — Base de données Supabase (les données sont pour l'instant enregistrées dans le navigateur)

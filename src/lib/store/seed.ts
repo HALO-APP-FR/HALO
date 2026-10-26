@@ -2,8 +2,22 @@
  * Données de démonstration, recalculées autour de la date du jour à la première visite.
  * Disparaissent en phase 2 (Supabase) ; le bouton « Réinitialiser la démo » les recrée.
  */
-import type { Member, Organization, Property, Reservation, Task } from "@/lib/domain/types";
+import type {
+  Alert,
+  GuestGuide,
+  LaundryOrder,
+  LinenMovement,
+  LinenSettings,
+  LinenType,
+  Member,
+  Organization,
+  Property,
+  Reservation,
+  Task,
+} from "@/lib/domain/types";
+import { DEFAULT_LINEN } from "@/lib/domain/linen-catalog";
 import { buildChecklist, newId } from "@/lib/domain/templates";
+import { kitFor, parLevelTarget } from "@/lib/engine/linen";
 import { planTasks } from "@/lib/engine/tasks";
 import { addDaysToKey, localDateKey, zonedTimeToUtc } from "@/lib/engine/time";
 
@@ -13,8 +27,31 @@ export interface HaloData {
   properties: Property[];
   reservations: Reservation[];
   tasks: Task[];
+  alerts: Alert[];
+  linenTypes: LinenType[];
+  linenMovements: LinenMovement[];
+  laundryOrders: LaundryOrder[];
+  linenSettings: LinenSettings;
   currentAgentId: string;
 }
+
+/** Jeton aléatoire non devinable pour le lien voyageur. */
+export function newToken() {
+  try {
+    const bytes = crypto.getRandomValues(new Uint8Array(12));
+    return Array.from(bytes, (b) => b.toString(36).padStart(2, "0")).join("").slice(0, 16);
+  } catch {
+    return Math.random().toString(36).slice(2, 18);
+  }
+}
+
+export const defaultGuide = (): GuestGuide => ({ token: newToken(), enabled: true });
+
+export function defaultLinenTypes(): LinenType[] {
+  return DEFAULT_LINEN.map((t) => ({ ...t, id: newId("linen"), name: t.key ?? "" }));
+}
+
+export const DEFAULT_LINEN_SETTINGS: LinenSettings = { laundryName: "", turnaroundDays: 2, currency: "EUR" };
 
 export function applyPlan(tasks: Task[], plan: ReturnType<typeof planTasks>, nowIso: string): Task[] {
   const updates = new Map(plan.update.map((u) => [u.id, u.patch]));
@@ -49,6 +86,16 @@ export function buildDemoData(now: Date, locale: string): HaloData {
     checkInService: false,
     checkOutService: false,
     access: { type: "key_box", code: "4821", instructions: "" },
+    amenities: ["wifi", "tv", "hob", "fridge", "coffee_machine", "kettle", "hair_dryer", "heating", "smoke_detector", "iron"],
+    customAmenities: [],
+    guide: {
+      ...defaultGuide(),
+      welcome: "",
+      wifiName: "HALO-Guest",
+      wifiPassword: "bienvenue2026",
+      checkoutInstructions: "",
+    },
+    linenParLevel: 3,
     feeds: [],
     archived: false,
     createdAt: nowIso,
@@ -57,33 +104,40 @@ export function buildDemoData(now: Date, locale: string): HaloData {
   });
 
   const properties: Property[] = [
-    base({ id: "p_marais", name: "Loft Marais", area: "Paris 3e", addressLine: "12 rue des Gravilliers", city: "Paris", postalCode: "75003", countryCode: "FR", timezone: "Europe/Paris", capacity: 4, cleaningDurationMin: 150, beds: [{ id: newId("bed"), size: "queen" }, { id: newId("bed"), size: "sofa_bed" }] }, "studio"),
+    base({ amenities: ["wifi", "tv", "oven", "microwave", "hob", "fridge", "dishwasher", "coffee_machine", "washing_machine", "air_conditioning", "hair_dryer", "balcony", "smoke_detector"], id: "p_marais", name: "Loft Marais", area: "Paris 3e", addressLine: "12 rue des Gravilliers", city: "Paris", postalCode: "75003", countryCode: "FR", timezone: "Europe/Paris", capacity: 4, cleaningDurationMin: 150, beds: [{ id: newId("bed"), size: "queen" }, { id: newId("bed"), size: "sofa_bed" }] }, "studio"),
     base({ id: "p_bastille", name: "Studio Bastille", area: "Paris 11e", addressLine: "8 rue de Lappe", city: "Paris", postalCode: "75011", countryCode: "FR", timezone: "Europe/Paris", capacity: 2, cleaningDurationMin: 90, checkOutService: true }, "studio"),
     base({ id: "p_canal", name: "Appartement Canal", area: "Paris 10e", addressLine: "45 quai de Valmy", city: "Paris", postalCode: "75010", countryCode: "FR", timezone: "Europe/Paris", capacity: 4, beds: [{ id: newId("bed"), size: "double" }, { id: newId("bed"), size: "single" }, { id: newId("bed"), size: "single" }] }, "apartment"),
-    base({ id: "p_belleville", name: "Maison Belleville", area: "Paris 20e", addressLine: "3 villa de l'Ermitage", city: "Paris", postalCode: "75020", countryCode: "FR", timezone: "Europe/Paris", capacity: 6, cleaningDurationMin: 180, checkInService: true, access: { type: "in_person", instructions: "Remise des clés en main propre" }, beds: [{ id: newId("bed"), size: "king" }, { id: newId("bed"), size: "double" }, { id: newId("bed"), size: "single" }, { id: newId("bed"), size: "single" }] }, "house"),
+    base({ amenities: ["wifi", "tv", "oven", "microwave", "hob", "fridge", "freezer", "dishwasher", "coffee_machine", "washing_machine", "dryer", "garden", "terrace", "bbq", "outdoor_furniture", "baby_cot", "high_chair", "heating", "fireplace", "smoke_detector", "first_aid_kit"], id: "p_belleville", name: "Maison Belleville", area: "Paris 20e", addressLine: "3 villa de l'Ermitage", city: "Paris", postalCode: "75020", countryCode: "FR", timezone: "Europe/Paris", capacity: 6, cleaningDurationMin: 180, checkInService: true, access: { type: "in_person", instructions: "Remise des clés en main propre" }, beds: [{ id: newId("bed"), size: "king" }, { id: newId("bed"), size: "double" }, { id: newId("bed"), size: "single" }, { id: newId("bed"), size: "single" }] }, "house"),
     base({ id: "p_montmartre", name: "Duplex Montmartre", area: "Paris 18e", addressLine: "21 rue Lepic", city: "Paris", postalCode: "75018", countryCode: "FR", timezone: "Europe/Paris", capacity: 6, cleaningDurationMin: 180, beds: [{ id: newId("bed"), size: "queen" }, { id: newId("bed"), size: "double" }, { id: newId("bed"), size: "sofa_bed" }] }, "apartment"),
-    base({ id: "p_alfama", name: "Casa Alfama", area: "Alfama", addressLine: "Rua de São Miguel 14", city: "Lisboa", postalCode: "1100-544", countryCode: "PT", timezone: "Europe/Lisbon", capacity: 2, access: { type: "keypad", code: "1907" } }, "studio"),
+    base({ amenities: ["wifi", "tv", "hob", "fridge", "coffee_machine", "washing_machine", "terrace", "air_conditioning", "smoke_detector"], id: "p_alfama", name: "Casa Alfama", area: "Alfama", addressLine: "Rua de São Miguel 14", city: "Lisboa", postalCode: "1100-544", countryCode: "PT", timezone: "Europe/Lisbon", capacity: 2, access: { type: "keypad", code: "1907" } }, "studio"),
   ];
 
   // Séjours relatifs à aujourd'hui (jour local du logement) : [arrivée, départ, voyageurs, heure d'arrivée?]
-  const stays: Record<string, [number, number, number, string?][]> = {
-    p_marais: [[-3, 0, 2], [0, 3, 4, "15:00"], [3, 6, 3], [8, 11, 2]],
-    p_bastille: [[-2, 0, 2], [0, 2, 2], [4, 7, 2]],
-    p_canal: [[-4, 0, 3], [1, 5, 3], [6, 9, 4]],
-    p_belleville: [[-6, -1, 5], [0, 4, 5], [5, 9, 6]],
-    p_montmartre: [[-5, 0, 4], [0, 3, 6, "13:30"], [3, 7, 4]],
-    p_alfama: [[-3, 0, 2], [0, 4, 2, "15:00"], [5, 8, 2]],
+  // [arrivée, départ, adultes, enfants, bébés, animaux, nom, heure d'arrivée?]
+  type Stay = [number, number, number, number, number, number, string, string?];
+  const stays: Record<string, Stay[]> = {
+    p_marais: [[-3, 0, 2, 0, 0, 1, "Thomas"], [0, 3, 2, 2, 0, 0, "Famille Rossi", "15:00"], [3, 6, 3, 0, 0, 0, "Emma"], [8, 11, 2, 0, 0, 0, "Yuki"]],
+    p_bastille: [[-2, 0, 2, 0, 0, 0, "Lena"], [0, 2, 2, 0, 0, 0, "Paul"], [4, 7, 2, 0, 0, 0, "Sara"]],
+    p_canal: [[-4, 0, 3, 0, 0, 0, "Marc"], [1, 5, 2, 1, 0, 1, "Chloé"], [6, 9, 4, 0, 0, 0, "Diego"]],
+    p_belleville: [[-6, -1, 4, 1, 0, 0, "Anna"], [0, 4, 2, 2, 1, 0, "Famille Martin"], [5, 9, 6, 0, 0, 0, "Jonas"]],
+    p_montmartre: [[-5, 0, 4, 0, 0, 0, "Olivia"], [0, 3, 4, 2, 0, 0, "Groupe Ahmed", "13:30"], [3, 7, 4, 0, 0, 0, "Nina"]],
+    p_alfama: [[-3, 0, 2, 0, 0, 0, "João"], [0, 4, 2, 0, 1, 0, "Inês & Rui", "15:00"], [5, 8, 2, 0, 0, 1, "Mia"]],
   };
 
   const reservations: Reservation[] = [];
   for (const p of properties) {
     const today = localDateKey(now, p.timezone);
-    for (const [inD, outD, guests, inTime] of stays[p.id]) {
+    for (const [inD, outD, adults, children, babies, pets, guestName, inTime] of stays[p.id]) {
       reservations.push({
         id: newId("res"),
         propertyId: p.id,
-        source: "manual",
-        guestsCount: guests,
+        source: inD % 2 === 0 ? "airbnb" : "booking",
+        guestName,
+        adults,
+        children,
+        babies,
+        pets,
+        guestsCount: adults + children,
         checkInAt: zonedTimeToUtc(addDaysToKey(today, inD), inTime ?? p.defaultCheckIn, p.timezone).toISOString(),
         checkOutAt: zonedTimeToUtc(addDaysToKey(today, outD), p.defaultCheckOut, p.timezone).toISOString(),
         status: "confirmed",
@@ -114,12 +168,83 @@ export function buildDemoData(now: Date, locale: string): HaloData {
   setTask(todayTasks("p_alfama", "turnover"), { assigneeId: "m_lucia", status: "done", scheduledStart: at("p_alfama", "11:00"), startedAt: at("p_alfama", "11:02"), completedAt: at("p_alfama", "12:55") });
   setTask(todayTasks("p_belleville", "check_in"), { assigneeId: "m_ines", status: "assigned", scheduledStart: at("p_belleville", "16:00") });
 
+  // ---------- Linge : achat du stock cible, un kit posé par logement, du sale, un bon en cours ----------
+  const linenTypes = defaultLinenTypes();
+  const linenMovements: LinenMovement[] = [];
+  const mv = (m: Omit<LinenMovement, "id" | "createdAt">, daysAgo = 3) =>
+    linenMovements.push({ ...m, id: newId("mv"), createdAt: new Date(now.getTime() - daysAgo * 86_400_000).toISOString() });
+  for (const t of linenTypes) {
+    const target = parLevelTarget(properties, linenTypes, t.id);
+    // Serviettes de bain volontairement un peu justes : la prévision doit le signaler
+    const bought = t.key === "bath_towel" ? Math.round(target * 0.55) : target;
+    if (bought > 0) mv({ linenTypeId: t.id, to: "clean", qty: bought, reason: "purchase" }, 30);
+  }
+  for (const p of properties) {
+    for (const line of kitFor(p.beds, linenTypes, p.capacity, 0)) {
+      mv({ linenTypeId: line.linenTypeId, from: "clean", to: `property:${p.id}`, qty: line.qty, reason: "turnover_placed" }, 2);
+    }
+  }
+  const laundryOrders: LaundryOrder[] = [];
+  const firstKit = kitFor(properties[2].beds, linenTypes, properties[2].capacity, 0);
+  const order: LaundryOrder = {
+    id: newId("order"),
+    reference: "B-0001",
+    status: "sent",
+    lines: firstKit.map((l) => ({ linenTypeId: l.linenTypeId, sent: l.qty * 2 })),
+    createdAt: new Date(now.getTime() - 86_400_000).toISOString(),
+    sentAt: new Date(now.getTime() - 86_400_000).toISOString(),
+    expectedAt: new Date(now.getTime() + 86_400_000).toISOString(),
+  };
+  for (const l of order.lines) {
+    mv({ linenTypeId: l.linenTypeId, from: "clean", to: "dirty", qty: l.sent, reason: "turnover_removed" }, 2);
+    mv({ linenTypeId: l.linenTypeId, from: "dirty", to: "laundry", qty: l.sent, reason: "laundry_send", orderId: order.id }, 1);
+  }
+  laundryOrders.push(order);
+  for (const l of kitFor(properties[1].beds, linenTypes, 2, 0)) {
+    mv({ linenTypeId: l.linenTypeId, from: "clean", to: "dirty", qty: l.qty, reason: "turnover_removed" }, 0);
+  }
+
+  // ---------- Alertes ----------
+  const alerts: Alert[] = [
+    {
+      id: newId("alert"),
+      propertyId: "p_alfama",
+      source: "agent",
+      reporterName: "Lucía Gómez",
+      category: "leak",
+      location: { kind: "room", label: locale === "fr" ? "Cuisine" : "Kitchen" },
+      description: locale === "fr" ? "Fuite sous l'évier, j'ai coupé l'arrivée d'eau." : "Leak under the sink, I turned off the water supply.",
+      urgent: true,
+      status: "open",
+      photoIds: [],
+      createdAt: new Date(now.getTime() - 40 * 60_000).toISOString(),
+    },
+    {
+      id: newId("alert"),
+      propertyId: "p_marais",
+      source: "guest",
+      reporterName: "Thomas",
+      category: "breakdown",
+      location: { kind: "amenity", ref: "oven", label: locale === "fr" ? "Four" : "Oven" },
+      description: locale === "fr" ? "Le four ne chauffe plus." : "The oven doesn't heat up anymore.",
+      urgent: false,
+      status: "in_progress",
+      photoIds: [],
+      createdAt: new Date(now.getTime() - 26 * 3_600_000).toISOString(),
+    },
+  ];
+
   return {
     org: { name: "HALO Demo", countryCode: "FR", timezone: "Europe/Paris" },
     members,
     properties,
     reservations,
     tasks,
+    alerts,
+    linenTypes,
+    linenMovements,
+    laundryOrders,
+    linenSettings: { ...DEFAULT_LINEN_SETTINGS, laundryName: "Blanchisserie du Canal" },
     currentAgentId: "m_ines",
   };
 }

@@ -545,6 +545,14 @@ create policy dev_manager on agent_devices for select using (is_manager(organiza
 ```
 `profiles.phone` devient obligatoire pour les agents (format international E.164).
 
+## Ajout — équipements, livret voyageur, alertes, linge (26/10/2026)
+Le mode démo stocke déjà ces objets (voir `src/lib/domain/types.ts`) ; la migration Supabase devra créer :
+- `properties` : `amenities text[]`, `custom_amenities text[]`, `linen_par_level int default 3`, `guide jsonb` (token unique indexé, enabled, wifi, accès, règles, départ, parking, poubelles, urgence, adresses).
+- `reservations` : `adults`, `children`, `babies`, `pets` (int), `notes text`, `departed_at timestamptz`.
+- `alerts` : property_id, reservation_id?, task_id?, source (`agent|guest|manager`), reporter_name, category, location jsonb (`room|amenity|other`), description, urgent, status (`open|in_progress|resolved`), follow_up_task_id, resolution, photos, created_at, resolved_at.
+- `linen_types` (règle per_bed / per_guest / per_baby / fixed, coût lavage, coût achat, actif), `linen_movements` (journal immuable : from, to, qty, reason, task_id, order_id), `laundry_orders` + `laundry_order_lines` (sent, received, damaged), `linen_settings` (blanchisserie, délai, devise).
+- Accès voyageur : la page `/g/[token]` lit le livret via une fonction RPC publique filtrée par token (jamais d'accès direct aux tables) ; les signalements voyageurs passent par une RPC limitée en débit.
+
 ## Points de vigilance pour Cursor
 1. **Création d'organisation** : se fait via une fonction serveur (route API avec la clé service) qui crée l'organisation ET la membership `owner` dans la même transaction, sinon l'utilisateur ne peut pas lire l'organisation qu'il vient de créer.
 2. **Acceptation d'invitation** : route serveur qui vérifie le token, crée la membership, marque l'invitation acceptée.

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { AlertTriangle, ArrowRight, CalendarPlus, CircleCheck, DoorClosed, KeyRound, Sparkles, UserRoundX } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarPlus, CircleCheck, DoorClosed, KeyRound, Siren, Sparkles, UserRoundX } from "lucide-react";
+import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
 import { addDaysToKey, localDateKey } from "@/lib/engine/time";
 import { useHalo } from "@/lib/store/halo-store";
@@ -15,6 +16,7 @@ import { EmptyState } from "@/components/halo/empty-state";
 import { KpiCard } from "@/components/halo/kpi-card";
 import { PageHeader } from "@/components/halo/page-header";
 import { ReadyGate } from "@/components/halo/ready-gate";
+import { StaysSheet } from "@/components/halo/stays-sheet";
 import { TaskSheet } from "@/components/halo/task-sheet";
 
 export function ManagerToday() {
@@ -33,6 +35,9 @@ function ManagerTodayInner() {
   const properties = useHalo((s) => s.properties);
   const reservations = useHalo((s) => s.reservations);
   const members = useHalo((s) => s.members);
+  const alerts = useHalo((s) => s.alerts);
+  const router = useRouter();
+  const [staysOpen, setStaysOpen] = useState<"arrivals" | "departures" | null>(null);
 
   const todayKey = localDateKey(new Date(), org.timezone);
   const [dayKey, setDayKey] = useState(todayKey);
@@ -43,11 +48,26 @@ function ManagerTodayInner() {
   const unassigned = dayTasks.filter((x) => x.status === "unassigned");
   const toValidate = tasks.filter((x) => x.status === "done");
   const urgent = dayTasks.filter((x) => x.status === "unassigned" && x.priority === "urgent");
+  const arrivals = arrivalsOfDay(reservations, properties, dayKey);
+  const departures = departuresOfDay(reservations, properties, dayKey);
+  const openAlerts = alerts.filter((a) => a.status !== "resolved");
+  const urgentAlerts = openAlerts.filter((a) => a.urgent);
   const dateLabel = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(
     new Date(`${dayKey}T12:00:00Z`),
   );
 
   const actions = [
+    openAlerts.length > 0 && {
+      key: "alerts",
+      icon: Siren,
+      tone: urgentAlerts.length ? "text-danger bg-danger-soft" : "text-warning bg-warning-soft",
+      label: urgentAlerts.length
+        ? t("managerToday.alertsUrgent", { count: openAlerts.length, urgent: urgentAlerts.length })
+        : t("managerToday.alertsOpen", { count: openAlerts.length }),
+      cta: t("managerToday.view"),
+      onClick: () => router.push("/alerts"),
+      primary: urgentAlerts.length > 0,
+    },
     unassigned.length > 0 && {
       key: "unassigned",
       icon: UserRoundX,
@@ -83,15 +103,21 @@ function ManagerTodayInner() {
       />
 
       <section className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4">
-        <KpiCard label={t("managerToday.kpiArrivals")} value={arrivalsOfDay(reservations, properties, dayKey).length} icon={KeyRound} />
-        <KpiCard label={t("managerToday.kpiDepartures")} value={departuresOfDay(reservations, properties, dayKey).length} icon={DoorClosed} />
-        <KpiCard label={t("managerToday.kpiCleanings")} value={cleanings.length} icon={Sparkles} />
+        <KpiCard label={t("managerToday.kpiArrivals")} value={arrivals.length} icon={KeyRound} onClick={() => setStaysOpen("arrivals")} />
+        <KpiCard label={t("managerToday.kpiDepartures")} value={departures.length} icon={DoorClosed} onClick={() => setStaysOpen("departures")} />
+        <KpiCard
+          label={t("managerToday.kpiCleanings")}
+          value={cleanings.length}
+          icon={Sparkles}
+          href={`/tasks?period=${dayKey === todayKey ? "today" : "all"}&type=turnover&status=all&day=${dayKey}`}
+        />
         <KpiCard
           label={t("managerToday.kpiUnassigned")}
           shortLabel={t("managerToday.kpiUnassignedShort")}
           value={unassigned.length}
           icon={AlertTriangle}
           tone="danger"
+          href={`/planning?day=${dayKey}`}
         />
       </section>
 
@@ -160,6 +186,13 @@ function ManagerTodayInner() {
       </Card>
 
       <TaskSheet taskId={openTask} onClose={() => setOpenTask(null)} />
+      <StaysSheet
+        kind={staysOpen}
+        stays={staysOpen === "departures" ? departures : arrivals}
+        properties={properties}
+        title={staysOpen === "departures" ? t("managerToday.kpiDepartures") : t("managerToday.kpiArrivals")}
+        onClose={() => setStaysOpen(null)}
+      />
     </>
   );
 }

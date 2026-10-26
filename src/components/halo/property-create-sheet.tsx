@@ -13,6 +13,7 @@ import { Field, Select } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { SwitchRow } from "@/components/ui/switch";
+import { AmenitiesPicker } from "./amenities-picker";
 import { cn } from "@/lib/utils";
 
 export const BED_SIZES: BedSize[] = ["single", "double", "queen", "king", "sofa_bed"];
@@ -56,11 +57,14 @@ export function PropertyCreateSheet({ open, onOpenChange }: { open: boolean; onO
   const [duration, setDuration] = useState<number | null>(null);
   const [checkInService, setCheckInService] = useState(false);
   const [checkOutService, setCheckOutService] = useState(false);
+  const [amenities, setAmenities] = useState<string[]>(["wifi", "smoke_detector"]);
+  const [customAmenities, setCustomAmenities] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const bedCount = Object.values(beds).reduce((a, b) => a + b, 0);
   const suggested = suggestedCleaningDuration(capacity, bedCount);
-  const steps = [t("propertyNew.stepPlace"), t("propertyNew.stepBeds"), t("propertyNew.stepTimes")];
+  const steps = [t("propertyNew.stepPlace"), t("propertyNew.stepBeds"), t("propertyNew.stepAmenities"), t("propertyNew.stepTimes")];
+  const LAST = steps.length - 1;
 
   const reset = () => {
     setStep(0);
@@ -71,6 +75,8 @@ export function PropertyCreateSheet({ open, onOpenChange }: { open: boolean; onO
     setArea("");
     setErrors({});
     setDuration(null);
+    setAmenities(["wifi", "smoke_detector"]);
+    setCustomAmenities([]);
   };
 
   const validateStep = () => {
@@ -103,6 +109,8 @@ export function PropertyCreateSheet({ open, onOpenChange }: { open: boolean; onO
       checkOutService,
       access: { type: "key_box" },
       checklist: buildChecklist(suggestedTemplate(bedList), locale),
+      amenities,
+      customAmenities,
     });
     onOpenChange(false);
     reset();
@@ -119,7 +127,7 @@ export function PropertyCreateSheet({ open, onOpenChange }: { open: boolean; onO
     >
       <SheetContent title={t("propertyNew.title")} description={steps[step]} closeLabel={t("common.close")}>
         {/* Progression */}
-        <ol className="mb-6 flex gap-1.5" aria-label={t("propertyNew.progress", { step: step + 1, total: 3 })}>
+        <ol className="mb-6 flex gap-1.5" aria-label={t("propertyNew.progress", { step: step + 1, total: steps.length })}>
           {steps.map((s, i) => (
             <li key={s} className={cn("h-1 flex-1 rounded-full", i <= step ? "bg-accent" : "bg-line")} />
           ))}
@@ -130,7 +138,7 @@ export function PropertyCreateSheet({ open, onOpenChange }: { open: boolean; onO
           onSubmit={(e) => {
             e.preventDefault();
             if (!validateStep()) return;
-            if (step < 2) setStep(step + 1);
+            if (step < LAST) setStep(step + 1);
             else create();
           }}
           className="space-y-4"
@@ -206,6 +214,10 @@ export function PropertyCreateSheet({ open, onOpenChange }: { open: boolean; onO
           )}
 
           {step === 2 && (
+            <AmenitiesPicker value={amenities} custom={customAmenities} onChange={setAmenities} onCustomChange={setCustomAmenities} />
+          )}
+
+          {step === 3 && (
             <>
               <div className="grid grid-cols-2 gap-3">
                 <Field label={t("property.checkIn")} htmlFor="p-in">
@@ -239,7 +251,7 @@ export function PropertyCreateSheet({ open, onOpenChange }: { open: boolean; onO
               </Button>
             )}
             <Button type="submit" size="lg" className="flex-1">
-              {step < 2 ? (
+              {step < LAST ? (
                 <>
                   {t("auth.continue")}
                   <ArrowRight className="rtl:-scale-x-100" />

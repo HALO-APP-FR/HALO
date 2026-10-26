@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { BedDouble, Building2, CalendarSync, ChevronRight, Plus, Search, Users } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { formatLocalTime } from "@/lib/engine/time";
+import { OUTDOOR_AMENITIES } from "@/lib/domain/amenities";
 import { useHalo } from "@/lib/store/halo-store";
 import { currentOrNextStay } from "@/lib/store/selectors";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/segmented";
+import { AmenityIcon } from "@/components/halo/amenity-icon";
 import { EmptyState } from "@/components/halo/empty-state";
 import { PageHeader } from "@/components/halo/page-header";
 import { PropertyCreateSheet } from "@/components/halo/property-create-sheet";
@@ -136,6 +138,18 @@ function PropertiesListInner() {
                       </span>
                     )}
                   </div>
+                  {p.amenities.some((a) => OUTDOOR_AMENITIES.has(a)) && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {p.amenities
+                        .filter((a) => OUTDOOR_AMENITIES.has(a))
+                        .map((a) => (
+                          <span key={a} className="inline-flex items-center gap-1 rounded-full bg-subtle px-2 py-0.5 text-caption text-muted dark:bg-surface-hover">
+                            <AmenityIcon amenity={a} className="size-3.5" />
+                            {t(`amenity.${a}`)}
+                          </span>
+                        ))}
+                    </div>
+                  )}
                   <div className="mt-4">
                     <Badge tone={stay.tone}>{stay.text}</Badge>
                   </div>

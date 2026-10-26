@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Avatar } from "./avatar";
+import { TaskLinenKit } from "@/components/linen/task-linen-kit";
+import { GuestBadges } from "./guest-badges";
 import { StatusPill } from "./status-pill";
 import { TaskTypeIcon } from "./task-type";
 import { cn } from "@/lib/utils";
@@ -108,6 +110,11 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
               <dd className="mt-1 text-[15px] font-semibold">
                 {task.guestsCount ? t("task.guests", { count: task.guestsCount }) : "—"}
               </dd>
+              {(task.babies || task.pets) && (
+                <dd className="mt-1">
+                  <GuestBadges babies={task.babies} pets={task.pets} size="sm" />
+                </dd>
+              )}
             </div>
           </dl>
           {(outgoing || incoming) && (
@@ -117,6 +124,8 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
               {incoming && t("taskSheet.arrival", { name: incoming.guestName ?? t(`source.${incoming.source}`) })}
             </p>
           )}
+
+          <TaskLinenKit task={task} property={property} />
 
           {/* Assignation */}
           {assignable && (

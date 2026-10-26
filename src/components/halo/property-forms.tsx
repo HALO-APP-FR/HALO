@@ -13,6 +13,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SwitchRow } from "@/components/ui/switch";
+import { deletePhoto } from "@/lib/store/photos";
+import { AmenitiesPicker } from "./amenities-picker";
+import { AddPhotoButton, PhotoThumb } from "./photo-thumb";
 import { BED_SIZES, Stepper } from "./property-create-sheet";
 import { cn } from "@/lib/utils";
 
@@ -304,6 +307,7 @@ export function PropertyChecklistEditor({ property }: { property: Property }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-[14px] text-muted">
           {t("checklist.summary", { rooms: rooms.length, photos: photoCount })} · {t("checklist.autosave")}
+          <span className="mt-1 block text-caption">{t("checklist.legend")}</span>
         </p>
         <div className="flex flex-wrap items-center gap-2">
           <Select aria-label={t("checklist.template")} value={template} onChange={(e) => setTemplate(e.target.value)} className="h-9 w-48">
@@ -354,35 +358,71 @@ export function PropertyChecklistEditor({ property }: { property: Property }) {
             </div>
             <ul className="mt-2 divide-y divide-line px-4">
               {room.items.map((item, index) => (
-                <li key={item.id} className="flex items-center gap-1 py-1.5">
-                  <Input
-                    aria-label={t("checklist.itemLabel")}
-                    value={item.label}
-                    onChange={(e) => updateRoom(room.id, (r) => ({ ...r, items: r.items.map((i) => (i.id === item.id ? { ...i, label: e.target.value } : i)) }))}
-                    className="h-9 min-w-0 flex-1 border-transparent px-1 hover:border-line focus:border-accent"
-                  />
-                  <button
-                    type="button"
-                    aria-pressed={item.photoRequired}
-                    aria-label={t("checklist.photoRequired")}
-                    title={t("checklist.photoRequired")}
-                    onClick={() => updateRoom(room.id, (r) => ({ ...r, items: r.items.map((i) => (i.id === item.id ? { ...i, photoRequired: !i.photoRequired } : i)) }))}
-                    className={cn(
-                      "grid size-9 shrink-0 place-items-center rounded-md transition-colors",
-                      item.photoRequired ? "bg-accent-soft text-accent-text" : "text-faint hover:text-fg",
-                    )}
-                  >
-                    <Camera className="size-4" />
-                  </button>
-                  <button type="button" onClick={() => moveItem(room.id, index, -1)} disabled={index === 0} className="grid size-8 shrink-0 place-items-center rounded-md text-faint hover:text-fg disabled:opacity-30" aria-label={t("checklist.moveUp")}>
-                    <ArrowUp className="size-4" />
-                  </button>
-                  <button type="button" onClick={() => moveItem(room.id, index, 1)} disabled={index === room.items.length - 1} className="grid size-8 shrink-0 place-items-center rounded-md text-faint hover:text-fg disabled:opacity-30" aria-label={t("checklist.moveDown")}>
-                    <ArrowDown className="size-4" />
-                  </button>
-                  <button type="button" onClick={() => updateRoom(room.id, (r) => ({ ...r, items: r.items.filter((i) => i.id !== item.id) }))} className="grid size-8 shrink-0 place-items-center rounded-md text-faint hover:text-danger" aria-label={t("form.remove")}>
-                    <Trash2 className="size-4" />
-                  </button>
+                <li key={item.id} className="py-2">
+                  <div className="flex items-center gap-1">
+                    <Input
+                      aria-label={t("checklist.itemLabel")}
+                      value={item.label}
+                      onChange={(e) => updateRoom(room.id, (r) => ({ ...r, items: r.items.map((i) => (i.id === item.id ? { ...i, label: e.target.value } : i)) }))}
+                      className="h-9 min-w-0 flex-1 border-transparent px-1 hover:border-line focus:border-accent"
+                    />
+                    <button type="button" onClick={() => moveItem(room.id, index, -1)} disabled={index === 0} className="grid size-8 shrink-0 place-items-center rounded-md text-faint hover:text-fg disabled:opacity-30" aria-label={t("checklist.moveUp")}>
+                      <ArrowUp className="size-4" />
+                    </button>
+                    <button type="button" onClick={() => moveItem(room.id, index, 1)} disabled={index === room.items.length - 1} className="grid size-8 shrink-0 place-items-center rounded-md text-faint hover:text-fg disabled:opacity-30" aria-label={t("checklist.moveDown")}>
+                      <ArrowDown className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        (item.referencePhotoIds ?? []).forEach((pid) => void deletePhoto(pid));
+                        updateRoom(room.id, (r) => ({ ...r, items: r.items.filter((i) => i.id !== item.id) }));
+                      }}
+                      className="grid size-8 shrink-0 place-items-center rounded-md text-faint hover:text-danger"
+                      aria-label={t("form.remove")}
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2 ps-1">
+                    {/* Interrupteur explicite : photo exigée de l'agent */}
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={item.photoRequired}
+                      onClick={() => {
+                        updateRoom(room.id, (r) => ({ ...r, items: r.items.map((i) => (i.id === item.id ? { ...i, photoRequired: !i.photoRequired } : i)) }));
+                        toast(item.photoRequired ? t("checklist.photoRequiredOff") : t("checklist.photoRequiredOn"));
+                      }}
+                      className={cn(
+                        "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition-colors",
+                        item.photoRequired ? "border-accent bg-accent text-on-accent" : "border-line text-muted hover:text-fg",
+                      )}
+                    >
+                      <Camera className="size-3.5" />
+                      {item.photoRequired ? t("checklist.photoOn") : t("checklist.photoOff")}
+                    </button>
+                    {(item.referencePhotoIds ?? []).map((pid) => (
+                      <PhotoThumb
+                        key={pid}
+                        id={pid}
+                        size="sm"
+                        label={item.label}
+                        onRemove={() => {
+                          void deletePhoto(pid);
+                          updateRoom(room.id, (r) => ({ ...r, items: r.items.map((i) => (i.id === item.id ? { ...i, referencePhotoIds: (i.referencePhotoIds ?? []).filter((x) => x !== pid) } : i)) }));
+                        }}
+                      />
+                    ))}
+                    <AddPhotoButton
+                      compact={(item.referencePhotoIds ?? []).length > 0}
+                      className={(item.referencePhotoIds ?? []).length > 0 ? "size-12" : "h-8 min-w-0 rounded-full px-3"}
+                      label={t("checklist.addReference")}
+                      onAdded={(pid) =>
+                        updateRoom(room.id, (r) => ({ ...r, items: r.items.map((i) => (i.id === item.id ? { ...i, referencePhotoIds: [...(i.referencePhotoIds ?? []), pid] } : i)) }))
+                      }
+                    />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -419,5 +459,37 @@ export function PropertyChecklistEditor({ property }: { property: Property }) {
         </button>
       </div>
     </div>
+  );
+}
+
+/* ---------------- Équipements ---------------- */
+export function PropertyAmenitiesForm({ property }: { property: Property }) {
+  const t = useTranslations();
+  const [amenities, setAmenities] = useState(property.amenities);
+  const [custom, setCustom] = useState(property.customAmenities);
+  const dirty = JSON.stringify([amenities, custom]) !== JSON.stringify([property.amenities, property.customAmenities]);
+  return (
+    <Card>
+      <CardHeader>
+        <div>
+          <CardTitle>{t("amenities.title")}</CardTitle>
+          <p className="mt-1 text-caption text-muted">{t("amenities.hint", { count: amenities.length + custom.length })}</p>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <AmenitiesPicker value={amenities} custom={custom} onChange={setAmenities} onCustomChange={setCustom} />
+        <SaveBar
+          dirty={dirty}
+          onReset={() => {
+            setAmenities(property.amenities);
+            setCustom(property.customAmenities);
+          }}
+          onSave={() => {
+            useHalo.getState().updateProperty(property.id, { amenities, customAmenities: custom });
+            toast(t("form.saved"));
+          }}
+        />
+      </CardContent>
+    </Card>
   );
 }

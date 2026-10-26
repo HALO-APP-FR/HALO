@@ -13,6 +13,17 @@ import { ThemeSwitcher } from "./theme-switcher";
 import { OfflineBanner } from "./offline-banner";
 import { isActive, managerMobileTabs, managerNav } from "./nav-config";
 import { usePersistedFlag } from "./use-persisted-flag";
+import { useHalo } from "@/lib/store/halo-store";
+
+/** Pastille de compteur (alertes ouvertes). */
+function CountDot({ count, className }: { count: number; className?: string }) {
+  if (count <= 0) return null;
+  return (
+    <span className={cn("grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1.5 text-[11px] font-bold leading-none text-white tabular", className)}>
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 export function ManagerShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("nav");
@@ -21,6 +32,9 @@ export function ManagerShell({ children }: { children: React.ReactNode }) {
   const mobileTabs = managerNav.filter((n) => managerMobileTabs.includes(n.key));
   const moreItems = managerNav.filter((n) => !managerMobileTabs.includes(n.key));
   const moreActive = moreItems.some((n) => isActive(pathname, n.href));
+  const alerts = useHalo((s) => s.alerts);
+  const openAlerts = alerts.filter((a) => a.status !== "resolved").length;
+  const badge = (key: string) => (key === "alerts" ? openAlerts : 0);
 
   return (
     <div className="min-h-dvh bg-subtle">
@@ -144,7 +158,10 @@ export function ManagerShell({ children }: { children: React.ReactNode }) {
                   aria-current={active ? "page" : undefined}
                   className={cn("flex h-full flex-col items-center justify-center gap-1 text-[10.5px] font-medium", active ? "text-accent-text" : "text-muted")}
                 >
-                  <Icon className="size-[22px]" strokeWidth={active ? 2.2 : 1.8} />
+                  <span className="relative">
+                    <Icon className="size-[22px]" strokeWidth={active ? 2.2 : 1.8} />
+                    <CountDot count={badge(key)} className="absolute -end-2.5 -top-1.5 h-4 min-w-4 px-1 text-[10px]" />
+                  </span>
                   {t(key)}
                 </Link>
               </li>

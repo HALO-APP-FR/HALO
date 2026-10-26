@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { CalendarClock, Monitor, Sun } from "lucide-react";
@@ -14,6 +15,7 @@ import { Avatar } from "@/components/halo/avatar";
 import { EmptyState } from "@/components/halo/empty-state";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
 import { ReadyGate } from "@/components/halo/ready-gate";
+import { ReportSheet } from "@/components/halo/report-sheet";
 import { TaskCard } from "@/components/halo/task-card";
 import { ThemeSwitcher } from "@/components/halo/theme-switcher";
 
@@ -47,6 +49,7 @@ function AgentTodayInner() {
   const locale = useLocale();
   const { me, mine, props } = useMyTasks();
   const { setTaskStatus } = useHalo.getState();
+  const [reportFor, setReportFor] = useState<string | null>(null);
   const now = new Date();
   const todayTasks = mine
     .filter((x) => {
@@ -93,12 +96,28 @@ function AgentTodayInner() {
                     setTaskStatus(task.id, "done");
                     toast(t("agentToday.doneToast"));
                   }}
+                  onReport={() => setReportFor(task.id)}
                 />
               </li>
             );
           })}
         </ol>
       )}
+      {(() => {
+        const task = mine.find((x) => x.id === reportFor);
+        const property = task && props.get(task.propertyId);
+        return property ? (
+          <ReportSheet
+            open
+            onOpenChange={(o) => !o && setReportFor(null)}
+            property={property}
+            source="agent"
+            taskId={task.id}
+            reservationId={task.reservationId}
+            reporterName={me?.name}
+          />
+        ) : null;
+      })()}
     </>
   );
 }

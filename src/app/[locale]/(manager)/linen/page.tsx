@@ -1,6 +1,5 @@
-import { BedDouble } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { SectionPlaceholder } from "@/components/halo/section-placeholder";
+import { Linen } from "@/components/views/linen";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/linen">) {
   const { locale } = await params;
@@ -11,5 +10,5 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/linen">)
 export default async function Page({ params }: PageProps<"/[locale]/linen">) {
   const { locale } = await params;
   setRequestLocale(locale);
-  return <SectionPlaceholder titleKey="linen" icon={BedDouble} />;
+  return <Linen />;
 }

@@ -29,15 +29,15 @@ const END_H = 22;
 const HOUR_PX = 64;
 const UNASSIGNED = "__unassigned";
 
-export function Planning() {
+export function Planning({ initialDay }: { initialDay?: string }) {
   return (
     <ReadyGate>
-      <PlanningInner />
+      <PlanningInner initialDay={initialDay} />
     </ReadyGate>
   );
 }
 
-function PlanningInner() {
+function PlanningInner({ initialDay }: { initialDay?: string }) {
   const t = useTranslations();
   const locale = useLocale();
   const org = useHalo((s) => s.org);
@@ -47,8 +47,8 @@ function PlanningInner() {
   const agents = activeAgents(members);
 
   const todayKey = localDateKey(new Date(), org.timezone);
-  const [view, setView] = useState<"day" | "week">("day");
-  const [dayKey, setDayKey] = useState(todayKey);
+  const [view, setView] = useState<"day" | "week" | "month">("day");
+  const [dayKey, setDayKey] = useState(initialDay && /^\d{4}-\d{2}-\d{2}$/.test(initialDay) ? initialDay : todayKey);
   const [openTask, setOpenTask] = useState<string | null>(null);
   const [proposal, setProposal] = useState<ReturnType<typeof autoAssign> | null>(null);
 
@@ -68,7 +68,9 @@ function PlanningInner() {
         subtitle={
           view === "day"
             ? undefined
-            : t("planning.weekOf", {
+            : view === "month"
+              ? new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${dayKey.slice(0, 7)}-15T12:00:00Z`))
+              : t("planning.weekOf", {
                 date: new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${weekStart(dayKey)}T12:00:00Z`)),
               })
         }
@@ -81,13 +83,21 @@ function PlanningInner() {
               options={[
                 { value: "day", label: t("planning.day") },
                 { value: "week", label: t("planning.week") },
+                { value: "month", label: t("planning.month") },
               ]}
             />
             <DayNav
               dayKey={dayKey}
               todayKey={todayKey}
               step={view === "day" ? 1 : 7}
-              onChange={(d) => setDayKey(d === "today" ? todayKey : addDaysToKey(dayKey, d))}
+              onChange={(d) => {
+                if (d === "today") return setDayKey(todayKey);
+                if (view === "month") {
+                  const [y, m] = dayKey.split("-").map(Number);
+                  return setDayKey(new Date(Date.UTC(y, m - 1 + Math.sign(d), 1)).toISOString().slice(0, 10));
+                }
+                setDayKey(addDaysToKey(dayKey, d));
+              }}
             />
           </>
         }
@@ -131,6 +141,17 @@ function PlanningInner() {
             </>
           )}
         </>
+      ) : view === "month" ? (
+        <MonthGrid
+          monthKey={dayKey.slice(0, 7)}
+          todayKey={todayKey}
+          tasks={tasks}
+          properties={properties}
+          onPickDay={(k) => {
+            setDayKey(k);
+            setView("day");
+          }}
+        />
       ) : (
         <WeekGrid start={weekStart(dayKey)} todayKey={todayKey} tasks={tasks} properties={properties} agents={agents} conflicts={conflictIds} onOpen={setOpenTask} onPickDay={(k) => { setDayKey(k); setView("day"); }} />
       )}
@@ -457,6 +478,90 @@ function WeekGrid({
             ))}
           </tbody>
         </table>
+      </div>
+    </Card>
+  );
+}
+
+/* ---------- Vue mois : charge par jour ---------- */
+function MonthGrid({
+  monthKey,
+  todayKey,
+  tasks,
+  properties,
+  onPickDay,
+}: {
+  monthKey: string;
+  todayKey: string;
+  tasks: Task[];
+  properties: Property[];
+  onPickDay: (dayKey: string) => void;
+}) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const props = byId(properties);
+  const [y, m] = monthKey.split("-").map(Number);
+  const first = `${monthKey}-01`;
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const lead = (new Date(`${first}T12:00:00Z`).getUTCDay() + 6) % 7;
+  const days = Array.from({ length: daysInMonth }, (_, i) => addDaysToKey(first, i));
+  const weekdays = Array.from({ length: 7 }, (_, i) =>
+    new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(new Date(Date.UTC(2026, 0, 5 + i, 12))),
+  );
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="grid grid-cols-7 border-b border-line">
+        {weekdays.map((d) => (
+          <span key={d} className="px-2 py-2.5 text-center text-micro text-muted">
+            {d}
+          </span>
+        ))}
+      </div>
+      <div className="grid grid-cols-7">
+        {Array.from({ length: lead }, (_, i) => (
+          <span key={`l${i}`} className="border-b border-e border-line bg-subtle/50 dark:bg-surface-hover/30" />
+        ))}
+        {days.map((d) => {
+          const list = tasksOfDay(tasks, properties, d);
+          const open = list.filter((x) => x.status === "unassigned").length;
+          const cleanings = list.filter((x) => x.type === "turnover").length;
+          return (
+            <button
+              key={d}
+              type="button"
+              onClick={() => onPickDay(d)}
+              className={cn(
+                "flex min-h-20 flex-col gap-1 border-b border-e border-line p-1.5 text-start transition-colors hover:bg-surface-hover md:min-h-28 md:p-2",
+                d < todayKey && "opacity-60",
+              )}
+              aria-label={`${new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`))} — ${t("tasks.count", { count: list.length })}`}
+            >
+              <span className="flex items-center justify-between">
+                <span className={cn("grid size-6 place-items-center rounded-full text-[13px] font-semibold tabular", d === todayKey && "bg-fg text-canvas")}>
+                  {Number(d.slice(8))}
+                </span>
+                {open > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[11px] font-bold text-white">{open}</span>}
+              </span>
+              {/* Téléphone : compteur ; ordinateur : aperçu des missions */}
+              {list.length > 0 && (
+                <span className="text-caption text-muted md:hidden">
+                  {cleanings > 0 ? `${cleanings}×` : list.length}
+                  <span className="ms-0.5 inline-block size-1.5 rounded-full bg-type-turnover align-middle" />
+                </span>
+              )}
+              <span className="hidden flex-col gap-0.5 md:flex">
+                {list.slice(0, 3).map((x) => (
+                  <span key={x.id} className="relative truncate rounded-sm bg-subtle py-0.5 pe-1 ps-2 text-[11px] leading-4 dark:bg-surface-hover">
+                    <span className={cn("absolute inset-y-0 start-0 w-0.5", TASK_TYPE_META[x.type].bar)} aria-hidden />
+                    {props.get(x.propertyId)?.name}
+                  </span>
+                ))}
+                {list.length > 3 && <span className="text-[11px] text-muted">{t("planning.more", { count: list.length - 3 })}</span>}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </Card>
   );

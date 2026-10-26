@@ -8,6 +8,7 @@ import {
   UserRound,
   Users,
   CalendarClock,
+  Siren,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ export const managerNav: NavItem[] = [
   { key: "today", href: "/today", icon: House },
   { key: "planning", href: "/planning", icon: CalendarRange },
   { key: "tasks", href: "/tasks", icon: ListChecks },
+  { key: "alerts", href: "/alerts", icon: Siren },
   { key: "properties", href: "/properties", icon: Building2 },
   { key: "linen", href: "/linen", icon: BedDouble },
   { key: "team", href: "/team", icon: Users },
@@ -28,7 +30,7 @@ export const managerNav: NavItem[] = [
 ];
 
 /** Onglets visibles dans la barre du bas sur mobile (le reste est dans « Plus »). */
-export const managerMobileTabs = ["today", "planning", "tasks", "properties"];
+export const managerMobileTabs = ["today", "planning", "tasks", "alerts"];
 
 export const agentNav: NavItem[] = [
   { key: "today", href: "/a/today", icon: House },

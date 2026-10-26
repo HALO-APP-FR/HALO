@@ -22,29 +22,40 @@ import { TaskCreateSheet } from "@/components/halo/task-create-sheet";
 import { TaskSheet } from "@/components/halo/task-sheet";
 import { TaskTypeIcon } from "@/components/halo/task-type";
 
-type Period = "today" | "week" | "upcoming" | "past";
+type Period = "today" | "week" | "upcoming" | "past" | "day";
+export interface TasksInitial {
+  period?: string;
+  type?: string;
+  status?: string;
+  day?: string;
+}
 type StatusFilter = "all" | "todo" | TaskStatus;
 const STATUS_FILTERS: StatusFilter[] = ["all", "todo", "unassigned", "assigned", "in_progress", "done", "to_redo", "validated", "cancelled"];
 const TYPES: TaskType[] = ["turnover", "check_in", "check_out", "linen_delivery", "linen_pickup", "inspection", "other"];
 
-export function TasksList() {
+export function TasksList({ initial = {} }: { initial?: TasksInitial }) {
   return (
     <ReadyGate>
-      <TasksListInner />
+      <TasksListInner initial={initial} />
     </ReadyGate>
   );
 }
 
-function TasksListInner() {
+const PERIODS: Period[] = ["today", "week", "upcoming", "past"];
+
+function TasksListInner({ initial }: { initial: TasksInitial }) {
   const t = useTranslations();
   const locale = useLocale();
   const tasks = useHalo((s) => s.tasks);
   const properties = useHalo((s) => s.properties);
   const members = useHalo((s) => s.members);
   const orgTz = useHalo((s) => s.org.timezone);
-  const [period, setPeriod] = useState<Period>("week");
-  const [status, setStatus] = useState<StatusFilter>("todo");
-  const [type, setType] = useState<TaskType | "all">("all");
+  const validDay = initial.day && /^\d{4}-\d{2}-\d{2}$/.test(initial.day) ? initial.day : undefined;
+  const [period, setPeriod] = useState<Period>(
+    PERIODS.includes(initial.period as Period) && !(validDay && initial.period !== "today") ? (initial.period as Period) : validDay ? "day" : "week",
+  );
+  const [status, setStatus] = useState<StatusFilter>(STATUS_FILTERS.includes(initial.status as StatusFilter) ? (initial.status as StatusFilter) : "todo");
+  const [type, setType] = useState<TaskType | "all">(TYPES.includes(initial.type as TaskType) ? (initial.type as TaskType) : "all");
   const [propertyId, setPropertyId] = useState("all");
   const [query, setQuery] = useState("");
   const [openTask, setOpenTask] = useState<string | null>(null);
@@ -62,6 +73,7 @@ function TasksListInner() {
       if (period === "week" && (key < todayKey || key > addDaysToKey(todayKey, 6))) return false;
       if (period === "upcoming" && key < todayKey) return false;
       if (period === "past" && key >= todayKey) return false;
+      if (period === "day" && key !== validDay) return false;
       if (status === "todo" && !["unassigned", "assigned", "in_progress", "to_redo", "done"].includes(x.status)) return false;
       if (status !== "all" && status !== "todo" && x.status !== status) return false;
       if (status !== "cancelled" && status !== "all" && x.status === "cancelled") return false;
@@ -98,7 +110,7 @@ function TasksListInner() {
       <div className="mb-4 space-y-3">
         <Segmented
           label={t("tasks.period")}
-          value={period}
+          value={period === "day" ? ("" as Period) : period}
           onChange={setPeriod}
           className="flex w-full md:inline-flex md:w-auto"
           options={[

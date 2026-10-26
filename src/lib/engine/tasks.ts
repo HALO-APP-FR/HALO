@@ -11,6 +11,8 @@ const MINUTE = 60_000;
 const DAY = 24 * 60 * MINUTE;
 /** Fenêtre par défaut quand aucune arrivée ne suit : départ + 3 jours. */
 export const OPEN_WINDOW_DAYS = 3;
+/** Temps de ménage ajouté quand des animaux ont séjourné (poils, odeurs). */
+export const PET_EXTRA_MIN = 30;
 const HORIZON_PAST_MS = DAY;
 const HORIZON_FUTURE_MS = 90 * DAY;
 
@@ -24,6 +26,8 @@ export interface TaskDraft {
   priority: TaskPriority;
   durationMin: number;
   guestsCount?: number;
+  babies?: number;
+  pets?: number;
 }
 
 export interface TaskPatch {
@@ -32,6 +36,9 @@ export interface TaskPatch {
   priority?: TaskPriority;
   nextReservationId?: string;
   guestsCount?: number;
+  babies?: number;
+  pets?: number;
+  durationMin?: number;
 }
 
 export type TaskNotice = { kind: "task_changed" | "task_cancelled"; taskId: string; assigneeId: string };
@@ -55,7 +62,8 @@ export function expectedTasks(property: Property, reservations: Reservation[], n
 
   const drafts: TaskDraft[] = [];
   confirmed.forEach((r) => {
-    const outMs = t(r.checkOutAt);
+    // Départ anticipé signalé par le voyageur : la fenêtre de ménage s'ouvre plus tôt
+    const outMs = r.departedAt ? Math.min(t(r.departedAt), t(r.checkOutAt)) : t(r.checkOutAt);
     const inMs = t(r.checkInAt);
 
     // Ménage de rotation : départ de R → arrivée suivante
@@ -75,8 +83,12 @@ export function expectedTasks(property: Property, reservations: Reservation[], n
           cleaningDurationMin: property.cleaningDurationMin,
           timeZone: property.timezone,
         }),
-        durationMin: property.cleaningDurationMin,
+        // Animaux chez le voyageur sortant = ménage plus long
+        durationMin: property.cleaningDurationMin + (r.pets ? PET_EXTRA_MIN : 0),
+        // Préparation pour le voyageur entrant (linge, lit bébé…)
         guestsCount: next?.guestsCount,
+        babies: next?.babies || undefined,
+        pets: r.pets || undefined,
       });
     }
 
@@ -91,6 +103,8 @@ export function expectedTasks(property: Property, reservations: Reservation[], n
         priority: "normal",
         durationMin: 30,
         guestsCount: r.guestsCount,
+        babies: r.babies || undefined,
+        pets: r.pets || undefined,
       });
     }
 
@@ -105,6 +119,8 @@ export function expectedTasks(property: Property, reservations: Reservation[], n
         priority: "normal",
         durationMin: 20,
         guestsCount: r.guestsCount,
+        babies: r.babies || undefined,
+        pets: r.pets || undefined,
       });
     }
   });
@@ -145,6 +161,9 @@ export function planTasks(
     if (current.priority !== draft.priority) patch.priority = draft.priority;
     if (current.nextReservationId !== draft.nextReservationId) patch.nextReservationId = draft.nextReservationId;
     if (current.guestsCount !== draft.guestsCount) patch.guestsCount = draft.guestsCount;
+    if (current.babies !== draft.babies) patch.babies = draft.babies;
+    if (current.pets !== draft.pets) patch.pets = draft.pets;
+    if (current.durationMin !== draft.durationMin) patch.durationMin = draft.durationMin;
     if (Object.keys(patch).length > 0) {
       plan.update.push({ id: current.id, patch });
       const windowMoved = patch.windowStart !== undefined || patch.windowEnd !== undefined;

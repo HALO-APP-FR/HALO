@@ -1,11 +1,13 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowRight, Check, KeyRound, Navigation, Users } from "lucide-react";
+import { ArrowRight, Baby, Check, KeyRound, Navigation, PawPrint, Siren } from "lucide-react";
 import type { Property, Task } from "@/lib/domain/types";
 import { formatLocalTime, isSameLocalDay } from "@/lib/engine/time";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TaskLinenKit } from "@/components/linen/task-linen-kit";
+import { GuestBadges } from "./guest-badges";
 import { StatusPill } from "./status-pill";
 import { TASK_TYPE_META, TaskTypeIcon } from "./task-type";
 import { cn } from "@/lib/utils";
@@ -35,6 +37,7 @@ export function TaskCard({
   reference,
   onStart,
   onFinish,
+  onReport,
 }: {
   task: Task;
   property: Property;
@@ -42,6 +45,8 @@ export function TaskCard({
   reference: Date;
   onStart?: () => void;
   onFinish?: () => void;
+  /** Signaler un problème (visible pendant la mission). */
+  onReport?: () => void;
 }) {
   const t = useTranslations();
   const deadline = useDeadlineLabel()(task, property, reference);
@@ -70,13 +75,28 @@ export function TaskCard({
 
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1">
           <time className="text-[19px] font-semibold tabular">{deadline}</time>
-          {task.guestsCount ? (
-            <span className="flex items-center gap-1.5 text-[15px] text-muted">
-              <Users className="size-4" strokeWidth={1.9} />
-              {t("task.guests", { count: task.guestsCount })}
-            </span>
-          ) : null}
+          <GuestBadges guests={task.guestsCount} />
         </div>
+
+        {/* Préparation spécifique : bébé, animaux */}
+        {(task.babies || task.pets) && task.type === "turnover" ? (
+          <ul className="mt-3 space-y-1.5">
+            {task.babies ? (
+              <li className="flex items-center gap-2 rounded-md bg-info-soft px-3 py-2 text-[15px] font-medium text-info">
+                <Baby className="size-4 shrink-0" />
+                {t("guests.prepareBaby", { count: task.babies })}
+              </li>
+            ) : null}
+            {task.pets ? (
+              <li className="flex items-center gap-2 rounded-md bg-warning-soft px-3 py-2 text-[15px] font-medium text-warning">
+                <PawPrint className="size-4 shrink-0" />
+                {t("guests.petsCleaning")}
+              </li>
+            ) : null}
+          </ul>
+        ) : null}
+
+        {!finished && <TaskLinenKit task={task} property={property} className="mt-3" />}
 
         {/* Accès : visible uniquement pendant la mission */}
         {started && property.access.type !== "in_person" && (
@@ -109,6 +129,12 @@ export function TaskCard({
               </a>
             </Button>
           </div>
+        )}
+        {onReport && started && (
+          <Button variant="ghost" className="mt-2 w-full text-danger" onClick={onReport}>
+            <Siren />
+            {t("alerts.report")}
+          </Button>
         )}
       </div>
     </article>

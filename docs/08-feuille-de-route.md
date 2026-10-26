@@ -51,6 +51,7 @@ Validé le 26/10/2026. **Pas de chat libre** (la messagerie voyageur reste dans 
 - Les valeurs aberrantes (moins de 20 % ou plus de 300 % de la médiane) sont ignorées.
 
 ## Vague 3 — Stocks et blanchisserie automatiques
+> **Livré en démo (26/10/2026)** : module Linge complet. Kits calculés par logement (lits × tailles, voyageurs, bébés), stock par emplacement (propre / logement / sale / blanchisserie), mouvements automatiques à la fin de chaque rotation, prévision de rupture sur 7 jours (retour blanchisserie inclus), bons de blanchisserie pré-remplis (brouillon → envoyé → reçu avec manquants et abîmés), inventaire, achats, journal immuable, coût par rotation, niveau de stock cible par logement (jeux de linge). Reste : QR sur les sacs et rôle `laundry_partner` (phase base de données).
 ### F5 — Linge prédictif
 - Proposition automatique du bon de blanchisserie selon les rotations des 7 prochains jours et le stock.
 - QR code sur les sacs de linge : scan au départ et à la réception.

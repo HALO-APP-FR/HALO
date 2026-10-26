@@ -12,7 +12,14 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/halo/empty-state";
 import { PropertyCalendar } from "@/components/halo/property-calendar";
-import { PropertyAccessForm, PropertyBedsForm, PropertyChecklistEditor, PropertyInfoForm } from "@/components/halo/property-forms";
+import { PropertyGuide } from "@/components/halo/property-guide";
+import {
+  PropertyAccessForm,
+  PropertyAmenitiesForm,
+  PropertyBedsForm,
+  PropertyChecklistEditor,
+  PropertyInfoForm,
+} from "@/components/halo/property-forms";
 import { ReadyGate } from "@/components/halo/ready-gate";
 
 export function PropertyDetail({ id }: { id: string }) {
@@ -81,7 +88,9 @@ function PropertyDetailInner({ id }: { id: string }) {
           <TabsTrigger value="info">{t("propertyDetail.tabInfo")}</TabsTrigger>
           <TabsTrigger value="access">{t("propertyDetail.tabAccess")}</TabsTrigger>
           <TabsTrigger value="beds">{t("propertyDetail.tabBeds")}</TabsTrigger>
+          <TabsTrigger value="amenities">{t("propertyDetail.tabAmenities")}</TabsTrigger>
           <TabsTrigger value="checklist">{t("propertyDetail.tabChecklist")}</TabsTrigger>
+          <TabsTrigger value="guide">{t("propertyDetail.tabGuide")}</TabsTrigger>
         </TabsList>
         <div className="pt-5">
           <TabsContent value="calendar">
@@ -96,8 +105,14 @@ function PropertyDetailInner({ id }: { id: string }) {
           <TabsContent value="beds">
             <PropertyBedsForm key={property.id} property={property} />
           </TabsContent>
+          <TabsContent value="amenities">
+            <PropertyAmenitiesForm key={property.id} property={property} />
+          </TabsContent>
           <TabsContent value="checklist">
             <PropertyChecklistEditor property={property} />
+          </TabsContent>
+          <TabsContent value="guide">
+            <PropertyGuide key={property.id} property={property} />
           </TabsContent>
         </div>
       </Tabs>

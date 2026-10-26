@@ -3,19 +3,21 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { CalendarPlus, ChevronLeft, ChevronRight, Link2, Plus, RefreshCw, Trash2, Users } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, Link2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import type { Property, Reservation, ReservationSource } from "@/lib/domain/types";
 import { parseIcs } from "@/lib/engine/ical";
-import { addDaysToKey, formatLocalTime, localDateKey, zonedTimeToUtc } from "@/lib/engine/time";
+import { PET_EXTRA_MIN } from "@/lib/engine/tasks";
+import { addDaysToKey, formatLocalTime, localDateKey, localMinutesOfDay, zonedTimeToUtc } from "@/lib/engine/time";
 import { useHalo } from "@/lib/store/halo-store";
 import { taskDayKey } from "@/lib/store/selectors";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, Select } from "@/components/ui/field";
+import { Field, Select, Textarea } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { EmptyState } from "./empty-state";
+import { GuestBadges } from "./guest-badges";
 import { Stepper } from "./property-create-sheet";
 import { cn } from "@/lib/utils";
 
@@ -54,7 +56,8 @@ export function PropertyCalendar({ property }: { property: Property }) {
   const tz = property.timezone;
   const todayKey = localDateKey(new Date(), tz);
   const [month, setMonth] = useState(todayKey.slice(0, 7)); // AAAA-MM
-  const [adding, setAdding] = useState(false);
+  const [stayOpen, setStayOpen] = useState(false);
+  const [editingStay, setEditingStay] = useState<Reservation | undefined>(undefined);
 
   const mine = reservations.filter((r) => r.propertyId === property.id && r.status !== "cancelled");
   const keyOf = (iso: string) => localDateKey(new Date(iso), tz);
@@ -165,7 +168,13 @@ export function PropertyCalendar({ property }: { property: Property }) {
         <Card>
           <CardHeader>
             <CardTitle>{t("calendar.stays")}</CardTitle>
-            <Button size="sm" onClick={() => setAdding(true)}>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingStay(undefined);
+                setStayOpen(true);
+              }}
+            >
               <Plus />
               {t("calendar.addStay")}
             </Button>
@@ -176,7 +185,15 @@ export function PropertyCalendar({ property }: { property: Property }) {
             ) : (
               <ul className="divide-y divide-line">
                 {upcoming.map((r) => (
-                  <StayRow key={r.id} stay={r} property={property} />
+                  <StayRow
+                    key={r.id}
+                    stay={r}
+                    property={property}
+                    onEdit={() => {
+                      setEditingStay(r);
+                      setStayOpen(true);
+                    }}
+                  />
                 ))}
               </ul>
             )}
@@ -185,15 +202,14 @@ export function PropertyCalendar({ property }: { property: Property }) {
       </div>
 
       <FeedsCard property={property} />
-      <AddStaySheet property={property} open={adding} onOpenChange={setAdding} />
+      <StaySheet property={property} stay={editingStay} open={stayOpen} onOpenChange={setStayOpen} />
     </div>
   );
 }
 
-function StayRow({ stay, property }: { stay: Reservation; property: Property }) {
+function StayRow({ stay, property, onEdit }: { stay: Reservation; property: Property; onEdit: () => void }) {
   const t = useTranslations();
   const locale = useLocale();
-  const [confirming, setConfirming] = useState(false);
   const tz = property.timezone;
   const fmt = (iso: string) =>
     `${new Intl.DateTimeFormat(locale, { timeZone: tz, weekday: "short", day: "numeric", month: "short" }).format(new Date(iso))} · ${formatLocalTime(new Date(iso), tz, locale)}`;
@@ -205,131 +221,176 @@ function StayRow({ stay, property }: { stay: Reservation; property: Property }) 
         86_400_000,
     ),
   );
-  const fromFeed = Boolean(stay.feedId);
 
   return (
-    <li className="flex items-center gap-3 py-3">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[15px] font-semibold">
-            {stay.status === "blocked" ? t("calendar.blocked") : stay.guestName ?? t(`source.${stay.source}`)}
-          </span>
-          {stay.source !== "manual" && <Badge>{t(`source.${stay.source}`)}</Badge>}
-        </div>
-        <div className="mt-0.5 text-caption text-muted tabular">
-          {fmt(stay.checkInAt)} → {fmt(stay.checkOutAt)}
-        </div>
-        <div className="mt-0.5 flex items-center gap-3 text-caption text-muted">
-          <span>{t("calendar.nights", { count: nights })}</span>
-          {stay.guestsCount ? (
-            <span className="flex items-center gap-1">
-              <Users className="size-3.5" />
-              {stay.guestsCount}
+    <li>
+      <button type="button" onClick={onEdit} className="flex w-full items-center gap-3 py-3 text-start">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[15px] font-semibold">
+              {stay.status === "blocked" ? t("calendar.blocked") : stay.guestName ?? t(`source.${stay.source}`)}
             </span>
-          ) : null}
-        </div>
-      </div>
-      {!fromFeed &&
-        (confirming ? (
-          <div className="flex gap-1">
-            <Button size="sm" variant="danger" onClick={() => useHalo.getState().cancelReservation(stay.id)}>
-              {t("calendar.confirmCancel")}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
-              {t("calendar.keep")}
-            </Button>
+            {stay.source !== "manual" && <Badge>{t(`source.${stay.source}`)}</Badge>}
           </div>
-        ) : (
-          <Button size="icon" variant="ghost" className="text-muted" onClick={() => setConfirming(true)} aria-label={t("calendar.cancelStay")}>
-            <Trash2 />
-          </Button>
-        ))}
+          <div className="mt-0.5 text-caption text-muted tabular">
+            {fmt(stay.checkInAt)} → {fmt(stay.checkOutAt)}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="text-caption text-muted">{t("calendar.nights", { count: nights })}</span>
+            <GuestBadges guests={stay.guestsCount} babies={stay.babies} pets={stay.pets} size="sm" />
+          </div>
+          {stay.notes && <p className="mt-1 line-clamp-2 text-caption text-fg">{stay.notes}</p>}
+        </div>
+        <ChevronRight className="size-4 shrink-0 text-faint rtl:-scale-x-100" />
+      </button>
     </li>
   );
 }
 
-function AddStaySheet({ property, open, onOpenChange }: { property: Property; open: boolean; onOpenChange: (o: boolean) => void }) {
+/** Ajout ou modification d'un séjour (les dates d'un séjour importé restent celles de la plateforme). */
+function StaySheet({
+  property,
+  stay,
+  open,
+  onOpenChange,
+}: {
+  property: Property;
+  stay?: Reservation;
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+}) {
+  if (!open) return null;
+  return <StaySheetInner key={stay?.id ?? "new"} property={property} stay={stay} onOpenChange={onOpenChange} />;
+}
+
+function StaySheetInner({ property, stay, onOpenChange }: { property: Property; stay?: Reservation; onOpenChange: (o: boolean) => void }) {
   const t = useTranslations();
   const reservations = useHalo((s) => s.reservations);
   const tz = property.timezone;
   const todayKey = localDateKey(new Date(), tz);
-  const [guestName, setGuestName] = useState("");
-  const [guests, setGuests] = useState(2);
-  const [inDate, setInDate] = useState(todayKey);
-  const [inTime, setInTime] = useState(property.defaultCheckIn);
-  const [outDate, setOutDate] = useState(addDaysToKey(todayKey, 2));
-  const [outTime, setOutTime] = useState(property.defaultCheckOut);
-  const [source, setSource] = useState<ReservationSource>("manual");
+  const editing = Boolean(stay);
+  const imported = Boolean(stay?.feedId);
+  const timeOf = (iso: string) => {
+    const m = localMinutesOfDay(new Date(iso), tz);
+    return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+  };
+  const [guestName, setGuestName] = useState(stay?.guestName ?? "");
+  const [adults, setAdults] = useState(stay?.adults ?? stay?.guestsCount ?? 2);
+  const [children, setChildren] = useState(stay?.children ?? 0);
+  const [babies, setBabies] = useState(stay?.babies ?? 0);
+  const [pets, setPets] = useState(stay?.pets ?? 0);
+  const [notes, setNotes] = useState(stay?.notes ?? "");
+  const [inDate, setInDate] = useState(stay ? localDateKey(new Date(stay.checkInAt), tz) : todayKey);
+  const [inTime, setInTime] = useState(stay ? timeOf(stay.checkInAt) : property.defaultCheckIn);
+  const [outDate, setOutDate] = useState(stay ? localDateKey(new Date(stay.checkOutAt), tz) : addDaysToKey(todayKey, 2));
+  const [outTime, setOutTime] = useState(stay ? timeOf(stay.checkOutAt) : property.defaultCheckOut);
+  const [source, setSource] = useState<ReservationSource>(stay?.source ?? "manual");
   const [error, setError] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const checkIn = zonedTimeToUtc(inDate, inTime, tz);
     const checkOut = zonedTimeToUtc(outDate, outTime, tz);
-    if (!(checkOut > checkIn)) {
-      setError(t("calendar.errorDates"));
-      return;
+    if (!imported) {
+      if (!(checkOut > checkIn)) {
+        setError(t("calendar.errorDates"));
+        return;
+      }
+      const overlap = reservations.some(
+        (r) =>
+          r.id !== stay?.id &&
+          r.propertyId === property.id &&
+          r.status === "confirmed" &&
+          new Date(r.checkInAt) < checkOut &&
+          new Date(r.checkOutAt) > checkIn,
+      );
+      if (overlap) {
+        setError(t("calendar.errorOverlap"));
+        return;
+      }
     }
-    const overlap = reservations.some(
-      (r) =>
-        r.propertyId === property.id &&
-        r.status === "confirmed" &&
-        new Date(r.checkInAt) < checkOut &&
-        new Date(r.checkOutAt) > checkIn,
-    );
-    if (overlap) {
-      setError(t("calendar.errorOverlap"));
-      return;
-    }
-    useHalo.getState().addReservation({
-      propertyId: property.id,
-      source,
+    const details = {
       guestName: guestName.trim() || undefined,
-      guestsCount: guests,
-      checkInAt: checkIn.toISOString(),
-      checkOutAt: checkOut.toISOString(),
-    });
-    toast(t("calendar.stayAdded"));
-    setError(null);
-    setGuestName("");
+      adults,
+      children,
+      babies,
+      pets,
+      guestsCount: adults + children,
+      notes: notes.trim() || undefined,
+    };
+    const { addReservation, updateReservation } = useHalo.getState();
+    if (stay) {
+      updateReservation(stay.id, imported ? details : { ...details, source, checkInAt: checkIn.toISOString(), checkOutAt: checkOut.toISOString() });
+      toast(t("form.saved"));
+    } else {
+      addReservation({ propertyId: property.id, source, checkInAt: checkIn.toISOString(), checkOutAt: checkOut.toISOString(), ...details });
+      toast(t("calendar.stayAdded"));
+    }
     onOpenChange(false);
   };
 
+  const counter = (label: string, value: number, set: (v: number) => void, min = 0) => (
+    <div className="flex items-center justify-between gap-3 px-4 py-2">
+      <span className="text-[15px]">{label}</span>
+      <Stepper label={label} value={value} onChange={set} min={min} max={30} />
+    </div>
+  );
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent title={t("calendar.addStay")} description={t("calendar.addStayHint")} closeLabel={t("common.close")}>
+    <Sheet open onOpenChange={onOpenChange}>
+      <SheetContent
+        title={editing ? stay?.guestName ?? t("calendar.editStay") : t("calendar.addStay")}
+        description={imported ? t("calendar.importedHint") : t("calendar.addStayHint")}
+        closeLabel={t("common.close")}
+      >
         <form onSubmit={submit} noValidate className="space-y-4 pt-2">
           <Field label={t("calendar.guestName")} htmlFor="s-name" hint={t("calendar.guestNameHint")}>
             <Input id="s-name" value={guestName} onChange={(e) => setGuestName(e.target.value)} autoComplete="off" />
           </Field>
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-line px-4 py-2.5">
-            <span className="text-[15px]">{t("taskSheet.guests")}</span>
-            <Stepper label={t("taskSheet.guests")} value={guests} onChange={setGuests} min={1} max={30} />
-          </div>
-          <div className="grid grid-cols-[1fr_120px] gap-3">
-            <Field label={t("calendar.arrival")} htmlFor="s-in">
-              <Input id="s-in" type="date" value={inDate} onChange={(e) => setInDate(e.target.value)} />
-            </Field>
-            <Field label={t("calendar.time")} htmlFor="s-in-t">
-              <Input id="s-in-t" type="time" step={900} value={inTime} onChange={(e) => setInTime(e.target.value)} />
-            </Field>
-          </div>
-          <div className="grid grid-cols-[1fr_120px] gap-3">
-            <Field label={t("calendar.departure")} htmlFor="s-out">
-              <Input id="s-out" type="date" value={outDate} min={inDate} onChange={(e) => setOutDate(e.target.value)} />
-            </Field>
-            <Field label={t("calendar.time")} htmlFor="s-out-t">
-              <Input id="s-out-t" type="time" step={900} value={outTime} onChange={(e) => setOutTime(e.target.value)} />
-            </Field>
-          </div>
-          <Field label={t("calendar.source")} htmlFor="s-src">
-            <Select id="s-src" value={source} onChange={(e) => setSource(e.target.value as ReservationSource)}>
-              {(["manual", ...SOURCES] as ReservationSource[]).map((s) => (
-                <option key={s} value={s}>
-                  {t(`source.${s}`)}
-                </option>
-              ))}
-            </Select>
+          <fieldset className="divide-y divide-line rounded-lg border border-line">
+            <legend className="sr-only">{t("guests.composition")}</legend>
+            {counter(t("guests.adults"), adults, setAdults, 1)}
+            {counter(t("guests.children"), children, setChildren)}
+            {counter(t("guests.babiesLabel"), babies, setBabies)}
+            {counter(t("guests.petsLabel"), pets, setPets)}
+          </fieldset>
+          {(babies > 0 || pets > 0) && (
+            <p className="text-caption text-muted">
+              {[babies > 0 ? t("guests.babyImpact") : "", pets > 0 ? t("guests.petImpact", { minutes: PET_EXTRA_MIN }) : ""].filter(Boolean).join(" ")}
+            </p>
+          )}
+          {!imported && (
+            <>
+              <div className="grid grid-cols-[1fr_120px] gap-3">
+                <Field label={t("calendar.arrival")} htmlFor="s-in">
+                  <Input id="s-in" type="date" value={inDate} onChange={(e) => setInDate(e.target.value)} />
+                </Field>
+                <Field label={t("calendar.time")} htmlFor="s-in-t">
+                  <Input id="s-in-t" type="time" step={900} value={inTime} onChange={(e) => setInTime(e.target.value)} />
+                </Field>
+              </div>
+              <div className="grid grid-cols-[1fr_120px] gap-3">
+                <Field label={t("calendar.departure")} htmlFor="s-out">
+                  <Input id="s-out" type="date" value={outDate} min={inDate} onChange={(e) => setOutDate(e.target.value)} />
+                </Field>
+                <Field label={t("calendar.time")} htmlFor="s-out-t">
+                  <Input id="s-out-t" type="time" step={900} value={outTime} onChange={(e) => setOutTime(e.target.value)} />
+                </Field>
+              </div>
+              <Field label={t("calendar.source")} htmlFor="s-src">
+                <Select id="s-src" value={source} onChange={(e) => setSource(e.target.value as ReservationSource)}>
+                  {(["manual", ...SOURCES] as ReservationSource[]).map((x) => (
+                    <option key={x} value={x}>
+                      {t(`source.${x}`)}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </>
+          )}
+          <Field label={t("calendar.stayNotes")} htmlFor="s-notes" hint={t("calendar.stayNotesHint")}>
+            <Textarea id="s-notes" value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-20" />
           </Field>
           {error && (
             <p role="alert" className="rounded-lg bg-danger-soft p-3 text-[14px] text-danger">
@@ -337,8 +398,33 @@ function AddStaySheet({ property, open, onOpenChange }: { property: Property; op
             </p>
           )}
           <Button type="submit" size="xl">
-            {t("calendar.addStay")}
+            {editing ? t("form.save") : t("calendar.addStay")}
           </Button>
+          {editing && !imported && stay?.status !== "cancelled" &&
+            (confirmCancel ? (
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="danger"
+                  className="flex-1"
+                  onClick={() => {
+                    useHalo.getState().cancelReservation(stay!.id);
+                    toast(t("calendar.stayCancelled"));
+                    onOpenChange(false);
+                  }}
+                >
+                  {t("calendar.confirmCancel")}
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => setConfirmCancel(false)}>
+                  {t("calendar.keep")}
+                </Button>
+              </div>
+            ) : (
+              <Button type="button" variant="ghost" className="w-full text-danger" onClick={() => setConfirmCancel(true)}>
+                <Trash2 />
+                {t("calendar.cancelStay")}
+              </Button>
+            ))}
         </form>
       </SheetContent>
     </Sheet>

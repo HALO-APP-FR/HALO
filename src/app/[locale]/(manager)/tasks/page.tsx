@@ -7,8 +7,10 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/tasks">)
   return { title: t("tasks") };
 }
 
-export default async function Page({ params }: PageProps<"/[locale]/tasks">) {
+export default async function Page({ params, searchParams }: PageProps<"/[locale]/tasks">) {
   const { locale } = await params;
+  const sp = await searchParams;
   setRequestLocale(locale);
-  return <TasksList />;
+  const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : undefined);
+  return <TasksList initial={{ period: one(sp.period), type: one(sp.type), status: one(sp.status), day: one(sp.day) }} />;
 }

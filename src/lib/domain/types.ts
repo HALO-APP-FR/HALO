@@ -38,7 +38,10 @@ export interface Bed {
 export interface ChecklistItem {
   id: string;
   label: string;
+  /** L'agent doit prendre une photo pour valider cet élément. */
   photoRequired: boolean;
+  /** Photos de référence : « voilà à quoi ça doit ressembler ». */
+  referencePhotoIds?: string[];
 }
 
 export interface ChecklistRoom {
@@ -59,6 +62,24 @@ export interface CalendarFeed {
   url: string;
   lastSyncedAt?: string;
   lastError?: string;
+}
+
+/** Livret d'accueil digital du logement (page voyageur). */
+export interface GuestGuide {
+  /** Jeton du lien voyageur (/g/<jeton>). Le régénérer invalide l'ancien lien et l'ancien QR code. */
+  token: string;
+  enabled: boolean;
+  welcome?: string;
+  wifiName?: string;
+  wifiPassword?: string;
+  /** Informations d'accès montrées au voyageur (choisies par la conciergerie). */
+  accessInfo?: string;
+  houseRules?: string;
+  checkoutInstructions?: string;
+  parking?: string;
+  trash?: string;
+  emergencyPhone?: string;
+  recommendations?: string;
 }
 
 export interface Property {
@@ -82,6 +103,13 @@ export interface Property {
   instructions?: string;
   access: PropertyAccess;
   checklist: ChecklistRoom[];
+  /** Équipements du catalogue (clés de AMENITIES) présents dans le logement. */
+  amenities: string[];
+  /** Équipements ajoutés librement par la conciergerie. */
+  customAmenities: string[];
+  guide: GuestGuide;
+  /** Nombre de kits de linge par lit et par voyageur en circulation (niveau de stock cible). */
+  linenParLevel: number;
   feeds: CalendarFeed[];
   archived: boolean;
   createdAt: string;
@@ -94,11 +122,18 @@ export interface Reservation {
   externalUid?: string;
   feedId?: string;
   guestName?: string;
+  /** Total voyageurs (adultes + enfants, hors bébés). */
   guestsCount?: number;
+  adults?: number;
+  children?: number;
+  babies?: number;
+  pets?: number;
   checkInAt: string;
   checkOutAt: string;
   status: ReservationStatus;
   notes?: string;
+  /** Départ signalé par le voyageur (bouton « Je pars ») : le ménage peut commencer plus tôt. */
+  departedAt?: string;
 }
 
 export interface Task {
@@ -117,6 +152,9 @@ export interface Task {
   durationMin: number;
   assigneeId?: string;
   guestsCount?: number;
+  /** Voyageurs du séjour suivant (ménage) ou du séjour concerné : impacte linge et préparation. */
+  babies?: number;
+  pets?: number;
   notes?: string;
   startedAt?: string;
   completedAt?: string;
@@ -136,6 +174,103 @@ export interface Organization {
   name: string;
   countryCode: string;
   timezone: string;
+}
+
+/* ---------------- Alertes ---------------- */
+export type AlertSource = "agent" | "guest" | "manager";
+export type AlertCategory = "damage" | "breakdown" | "leak" | "cleanliness" | "missing_item" | "pests" | "noise" | "access" | "other";
+export type AlertStatus = "open" | "in_progress" | "resolved";
+
+export interface AlertLocation {
+  kind: "room" | "amenity" | "other";
+  /** Identifiant de pièce (checklist) ou clé d'équipement. */
+  ref?: string;
+  /** Libellé figé au moment du signalement. */
+  label: string;
+}
+
+export interface Alert {
+  id: string;
+  propertyId: string;
+  reservationId?: string;
+  taskId?: string;
+  source: AlertSource;
+  reporterName?: string;
+  category: AlertCategory;
+  location?: AlertLocation;
+  description: string;
+  urgent: boolean;
+  status: AlertStatus;
+  photoIds: string[];
+  followUpTaskId?: string;
+  resolution?: string;
+  createdAt: string;
+  resolvedAt?: string;
+}
+
+/* ---------------- Linge ---------------- */
+export type LinenCategory = "bed" | "bath" | "kitchen" | "baby" | "other";
+/** Règle de calcul d'un article par rotation. */
+export type LinenRule =
+  | { kind: "per_bed"; qtyBySize: Partial<Record<BedSize, number>> }
+  | { kind: "per_guest"; qty: number }
+  | { kind: "per_baby"; qty: number }
+  | { kind: "fixed"; qty: number };
+
+export interface LinenType {
+  id: string;
+  /** Clé de traduction pour les articles du catalogue HALO (sinon on affiche `name`). */
+  key?: string;
+  name: string;
+  category: LinenCategory;
+  rule: LinenRule;
+  /** Prix de blanchisserie par pièce. */
+  laundryCost: number;
+  /** Prix d'achat d'une pièce neuve. */
+  purchaseCost: number;
+  active: boolean;
+}
+
+export type LinenLocationId = "clean" | "dirty" | "laundry" | `property:${string}`;
+
+export type LinenReason = "purchase" | "turnover_placed" | "turnover_removed" | "laundry_send" | "laundry_receive" | "damaged" | "lost" | "adjustment";
+
+export interface LinenMovement {
+  id: string;
+  linenTypeId: string;
+  from?: LinenLocationId;
+  to?: LinenLocationId;
+  qty: number;
+  reason: LinenReason;
+  taskId?: string;
+  orderId?: string;
+  note?: string;
+  createdAt: string;
+}
+
+export interface LaundryOrderLine {
+  linenTypeId: string;
+  sent: number;
+  received?: number;
+  damaged?: number;
+}
+
+export interface LaundryOrder {
+  id: string;
+  reference: string;
+  status: "draft" | "sent" | "received";
+  lines: LaundryOrderLine[];
+  createdAt: string;
+  sentAt?: string;
+  expectedAt?: string;
+  receivedAt?: string;
+}
+
+export interface LinenSettings {
+  laundryName: string;
+  /** Délai de retour de la blanchisserie, en jours. */
+  turnaroundDays: number;
+  currency: string;
 }
 
 export function initialsOf(name: string): string {
