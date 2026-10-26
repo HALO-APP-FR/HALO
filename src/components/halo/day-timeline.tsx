@@ -40,7 +40,44 @@ export function DayTimeline({
   const showNow = nowMin > DAY_START && nowMin < DAY_END;
 
   return (
-    <div className="overflow-x-auto">
+    <>
+      {/* Téléphone : liste compacte, lisible sans défilement horizontal */}
+      <ul className="divide-y divide-line md:hidden">
+        {sorted.map((task) => {
+          const property = properties.find((p) => p.id === task.propertyId)!;
+          const agent = agents.find((a) => a.id === task.assigneeId);
+          const tz = property.timezone;
+          return (
+            <li key={task.id} className="flex items-center gap-3 py-3">
+              <TaskTypeIcon type={task.type} size="sm" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="truncate text-[15px] font-semibold">{property.name}</span>
+                  {task.priority !== "normal" && (
+                    <Badge tone="danger" className="px-1.5">
+                      {t(`priority.${task.priority}`)}
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-caption text-muted">
+                  <time className="tabular">
+                    {formatLocalTime(task.windowStart, tz, locale)} → {formatLocalTime(task.windowEnd, tz, locale)}
+                  </time>
+                  <span aria-hidden>·</span>
+                  <StatusPill status={task.status} />
+                </div>
+              </div>
+              {agent ? (
+                <Avatar initials={agent.initials} color={agent.color} size="md" label={agent.name} />
+              ) : (
+                <span className="grid size-8 place-items-center rounded-full border border-dashed border-danger/60" aria-label={t("task.unassigned")} />
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+    <div className="hidden overflow-x-auto md:block">
       <div className="min-w-[760px]">
         {/* Axe des heures */}
         <div className="grid grid-cols-[264px_1fr] border-b border-line pb-2">
@@ -145,5 +182,6 @@ export function DayTimeline({
         </ul>
       </div>
     </div>
+    </>
   );
 }

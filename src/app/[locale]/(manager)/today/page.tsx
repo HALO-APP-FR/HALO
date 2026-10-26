@@ -113,7 +113,7 @@ export default async function ManagerTodayPage({ params }: PageProps<"/[locale]/
         <CardHeader>
           <div>
             <CardTitle>{t("managerToday.timeline")}</CardTitle>
-            <p className="mt-1 text-caption text-muted">{t("managerToday.timelineHint")}</p>
+            <p className="mt-1 hidden text-caption text-muted md:block">{t("managerToday.timelineHint")}</p>
           </div>
         </CardHeader>
         <CardContent className="pt-4">
