@@ -1,0 +1,128 @@
+{
+  "common": {
+    "appName": "HALO",
+    "tagline": "Die Abläufe Ihrer Concierge-Agentur, endlich im Griff.",
+    "comingSoon": "Dieser Bereich folgt in einem nächsten Schritt.",
+    "seeAll": "Alle anzeigen",
+    "close": "Schließen",
+    "previousDay": "Vorheriger Tag",
+    "nextDay": "Nächster Tag",
+    "today": "Heute",
+    "demoData": "Demodaten",
+    "localTimeNote": "Uhrzeiten in der Ortszeit der jeweiligen Unterkunft."
+  },
+  "nav": {
+    "today": "Heute",
+    "planning": "Planung",
+    "tasks": "Aufgaben",
+    "properties": "Unterkünfte",
+    "linen": "Wäsche",
+    "team": "Team",
+    "settings": "Einstellungen",
+    "more": "Mehr",
+    "upcoming": "Demnächst",
+    "profile": "Profil",
+    "collapse": "Menü einklappen",
+    "expand": "Menü ausklappen",
+    "mainNavigation": "Hauptnavigation",
+    "switchToAgent": "Mitarbeiteransicht",
+    "switchToManager": "Manageransicht"
+  },
+  "theme": {
+    "label": "Darstellung",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "system": "System"
+  },
+  "language": {
+    "label": "Sprache"
+  },
+  "taskType": {
+    "turnover": "Reinigung",
+    "check_in": "Anreise",
+    "check_out": "Abreise",
+    "linen_delivery": "Wäschelieferung",
+    "linen_pickup": "Wäscheabholung",
+    "inspection": "Kontrolle",
+    "other": "Sonstiges"
+  },
+  "taskStatus": {
+    "unassigned": "Nicht zugewiesen",
+    "assigned": "Zugewiesen",
+    "in_progress": "In Arbeit",
+    "done": "Zu prüfen",
+    "to_redo": "Nacharbeit",
+    "validated": "Freigegeben",
+    "cancelled": "Storniert"
+  },
+  "priority": {
+    "high": "Priorität",
+    "urgent": "Dringend"
+  },
+  "task": {
+    "before": "Bis {time}",
+    "from": "Ab {time}",
+    "start": "Starten",
+    "resume": "Fortsetzen",
+    "directions": "Route",
+    "guests": "{count, plural, one {# Gast} other {# Gäste}}",
+    "unassigned": "Niemand",
+    "sameDay": "Anreise am selben Tag"
+  },
+  "managerToday": {
+    "title": "Heute",
+    "kpiArrivals": "Anreisen",
+    "kpiDepartures": "Abreisen",
+    "kpiCleanings": "Reinigungen",
+    "kpiIncidents": "Offene Vorfälle",
+    "toHandle": "Zu erledigen",
+    "unassignedCount": "{count, plural, one {# Reinigung ohne Mitarbeiter} other {# Reinigungen ohne Mitarbeiter}}",
+    "toValidateCount": "{count, plural, one {# Reinigung zu prüfen} other {# Reinigungen zu prüfen}}",
+    "incidentCount": "{count, plural, one {# dringender Vorfall} other {# dringende Vorfälle}}",
+    "assign": "Zuweisen",
+    "review": "Prüfen",
+    "view": "Ansehen",
+    "timeline": "Tagesablauf",
+    "timelineHint": "Der Balken zeigt die verfügbare Zeit zwischen Abreise und Anreise.",
+    "allClear": "Alles unter Kontrolle."
+  },
+  "agentToday": {
+    "greeting": "Hallo {name}",
+    "summary": "{count, plural, =0 {Heute nichts geplant} one {# Einsatz heute} other {# Einsätze heute}}",
+    "emptyTitle": "Heute nichts geplant",
+    "emptyText": "Ihre nächsten Einsätze erscheinen hier."
+  },
+  "agentUpcoming": {
+    "title": "Demnächst",
+    "emptyText": "Keine Einsätze in den nächsten 7 Tagen."
+  },
+  "profile": {
+    "title": "Profil",
+    "preferences": "Einstellungen"
+  },
+  "offline": {
+    "banner": "Offline — alles ist gespeichert und wird gesendet, sobald das Netz zurück ist."
+  },
+  "design": {
+    "title": "Designsystem",
+    "intro": "Visuelle Kontrolle der HALO-Komponenten.",
+    "buttons": "Schaltflächen",
+    "statuses": "Status",
+    "taskCards": "Einsatzkarten",
+    "states": "Zustände",
+    "loading": "Wird geladen",
+    "empty": "Leerer Zustand",
+    "toast": "Benachrichtigung",
+    "showToast": "Benachrichtigung anzeigen",
+    "toastText": "Reinigung an Inès zugewiesen.",
+    "undo": "Rückgängig",
+    "sheet": "Seitenleiste",
+    "openSheet": "Seitenleiste öffnen",
+    "sheetText": "Details öffnen sich hier, ohne die Seite zu verlassen.",
+    "primary": "Primär",
+    "secondary": "Sekundär",
+    "outline": "Kontur",
+    "ghost": "Dezent",
+    "danger": "Gefahr"
+  }
+}
