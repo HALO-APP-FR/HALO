@@ -525,6 +525,26 @@ create policy notif_self on notifications for all using (user_id = auth.uid()) w
 create policy push_self on push_subscriptions for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 ```
 
+## Ajout phase 2 — connexion des agents par PIN
+```sql
+create table agent_devices (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references organizations(id) on delete cascade,
+  user_id uuid not null references profiles(id) on delete cascade,
+  device_label text,                 -- « iPhone d'Inès », saisi automatiquement
+  pin_hash text not null,            -- hachage argon2/bcrypt, jamais le code en clair
+  failed_attempts int not null default 0,
+  locked_until timestamptz,
+  last_used_at timestamptz,
+  revoked_at timestamptz,
+  created_at timestamptz not null default now()
+);
+alter table agent_devices enable row level security;
+create policy dev_manager on agent_devices for select using (is_manager(organization_id));
+-- La vérification du PIN passe exclusivement par une route serveur (clé service), jamais par le client.
+```
+`profiles.phone` devient obligatoire pour les agents (format international E.164).
+
 ## Points de vigilance pour Cursor
 1. **Création d'organisation** : se fait via une fonction serveur (route API avec la clé service) qui crée l'organisation ET la membership `owner` dans la même transaction, sinon l'utilisateur ne peut pas lire l'organisation qu'il vient de créer.
 2. **Acceptation d'invitation** : route serveur qui vérifie le token, crée la membership, marque l'invitation acceptée.

@@ -24,6 +24,13 @@ Rien d'autre. Un agent ne voit jamais les réglages, la facturation ou les autre
 
 ## 2. Écrans détaillés
 
+
+### 2.0 Connexion (révisé le 26/10/2026)
+Deux parcours distincts, choisis par un sélecteur « Responsable / Agent terrain » sur l'écran de connexion :
+- **Responsable** (ordinateur) : lien magique par e-mail ou Google.
+- **Agent terrain** (téléphone) : **jamais d'e-mail**. Première fois : lien d'invitation reçu par SMS → l'agent crée un **code PIN à 6 chiffres** → le téléphone est enregistré. Ensuite, chaque jour : écran de déverrouillage (« Bonjour Inès ») + clavier PIN à grosses touches, rien d'autre. Sur un nouveau téléphone : numéro de téléphone + PIN.
+- Sécurité du PIN (phase 2) : code haché côté serveur (jamais stocké en clair), valable uniquement sur un téléphone enregistré par invitation, blocage 15 min après 5 erreurs, session longue (30 jours) sur le téléphone de l'agent, révocation d'un téléphone par le manager, nouveau lien d'invitation pour réinitialiser le code.
+
 ### 2.1 Onboarding conciergerie (objectif : 1re rotation créée en < 5 min)
 1. Inscription par e-mail (lien magique, pas de mot de passe) ou Google.
 2. Nom de la conciergerie, pays, langue, fuseau horaire par défaut (pré-rempli depuis le navigateur).
@@ -38,7 +45,8 @@ Chaque étape est passable (« Plus tard »), une barre de progression discrète
 - En-tête : date du jour, sélecteur de date (← aujourd'hui →).
 - **4 compteurs** en cartes : Arrivées · Départs · Ménages · Incidents ouverts.
 - **Bloc « À traiter »** en haut, uniquement s'il y a quelque chose : tâches non assignées, tâches en retard, tâches à valider, incidents. Chaque ligne a son action directe (Assigner, Valider, Voir).
-- **Timeline du jour** : une ligne par logement concerné, avec la fenêtre de ménage visualisée (barre de check-out à check-in), l'agent assigné (avatar), le statut (pastille).
+- **Journée** : tableau strict « qui fait quoi, à quelle heure » — Horaire · Logement · Mission · Agent · Statut. Pas de diagramme en barres. Tâche sans agent = bouton « Assigner » dans la colonne Agent. Sur téléphone : liste compacte (heure, logement sur toute la largeur, mission + statut, avatar ou « Assigner »).
+- **Indicateurs** : sur téléphone, cartes d'une seule ligne (libellé + chiffre), moitié moins hautes, pour que « À traiter » soit visible sans défiler.
 
 ### 2.3 Planning (manager)
 - Bascule **Par agent** / **Par logement**, et **Jour** / **Semaine**.

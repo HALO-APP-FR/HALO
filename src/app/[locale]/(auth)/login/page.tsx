@@ -1,7 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { AnimatedLogoMark } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
-import { LoginForm } from "@/components/halo/login-form";
+import { LoginPanel } from "@/components/halo/login-panel";
 
 export async function generateMetadata({ params }: PageProps<"/[locale]/login">) {
   const { locale } = await params;
@@ -9,8 +9,9 @@ export async function generateMetadata({ params }: PageProps<"/[locale]/login">)
   return { title: t("title") };
 }
 
-export default async function LoginPage({ params }: PageProps<"/[locale]/login">) {
+export default async function LoginPage({ params, searchParams }: PageProps<"/[locale]/login">) {
   const { locale } = await params;
+  const { role } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations("auth");
 
@@ -29,10 +30,8 @@ export default async function LoginPage({ params }: PageProps<"/[locale]/login">
           </div>
 
           <div className="halo-rise mt-10 rounded-xl border border-line bg-surface p-6 shadow-card [animation-delay:0.85s] md:p-8">
-            <LoginForm />
+            <LoginPanel initialRole={role === "agent" ? "agent" : "manager"} />
           </div>
-
-          <p className="halo-rise mt-6 text-center text-caption text-muted [animation-delay:0.95s]">{t("agentHint")}</p>
         </div>
       </main>
 

@@ -83,8 +83,14 @@
     "review": "Validar",
     "view": "Ver",
     "timeline": "Dia",
-    "timelineHint": "A barra mostra o tempo disponível entre a saída e a chegada.",
-    "allClear": "Está tudo sob controlo."
+    "allClear": "Está tudo sob controlo.",
+    "colTime": "Horário",
+    "colProperty": "Alojamento",
+    "colTask": "Trabalho",
+    "colAgent": "Agente",
+    "colStatus": "Estado",
+    "noAgent": "Ninguém",
+    "kpiIncidentsShort": "Incidentes"
   },
   "agentToday": {
     "greeting": "Olá {name}",
@@ -140,7 +146,23 @@
     "notConfigured": "O acesso ficará ativo assim que a base de dados estiver ligada (próxima etapa).",
     "noAccount": "Ainda não tem conta?",
     "createAccount": "Criar a minha empresa",
-    "agentHint": "É agente? Use o link de convite enviado pela sua empresa.",
-    "legal": "Ao continuar, aceita os termos de utilização e a política de privacidade."
+    "legal": "Ao continuar, aceita os termos de utilização e a política de privacidade.",
+    "roleManager": "Responsável",
+    "roleAgent": "Agente de terreno",
+    "roleLabel": "Entro como",
+    "phone": "Número de telemóvel",
+    "phonePlaceholder": "912 345 678",
+    "invalidPhone": "Introduza um número de telemóvel válido.",
+    "continue": "Continuar",
+    "back": "Voltar",
+    "pinTitle": "Introduza o seu código",
+    "pinHint": "Código pessoal de 6 dígitos",
+    "pinDelete": "Apagar",
+    "pinForgot": "Esqueceu o código? Peça um novo link ao seu responsável.",
+    "hello": "Olá {name}",
+    "notYou": "Não é você?",
+    "agentFirstTime": "Primeira vez? Abra o link de convite recebido por SMS para criar o seu código.",
+    "pinDigit": "Dígito {digit}",
+    "pinProgress": "{count} de 6 dígitos introduzidos"
   }
 }

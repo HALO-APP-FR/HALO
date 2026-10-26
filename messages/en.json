@@ -83,8 +83,14 @@
     "review": "Review",
     "view": "View",
     "timeline": "Day",
-    "timelineHint": "The bar shows the time available between check-out and check-in.",
-    "allClear": "Everything is under control."
+    "allClear": "Everything is under control.",
+    "colTime": "Time",
+    "colProperty": "Property",
+    "colTask": "Job",
+    "colAgent": "Agent",
+    "colStatus": "Status",
+    "noAgent": "Nobody",
+    "kpiIncidentsShort": "Incidents"
   },
   "agentToday": {
     "greeting": "Hello {name}",
@@ -140,7 +146,23 @@
     "notConfigured": "Sign-in will work as soon as the database is connected (next step).",
     "noAccount": "No account yet?",
     "createAccount": "Create my company",
-    "agentHint": "Field agent? Use the invitation link your company sent you.",
-    "legal": "By continuing, you agree to the terms of use and privacy policy."
+    "legal": "By continuing, you agree to the terms of use and privacy policy.",
+    "roleManager": "Manager",
+    "roleAgent": "Field agent",
+    "roleLabel": "I'm signing in as",
+    "phone": "Phone number",
+    "phonePlaceholder": "+44 7700 900123",
+    "invalidPhone": "Enter a valid phone number.",
+    "continue": "Continue",
+    "back": "Back",
+    "pinTitle": "Enter your code",
+    "pinHint": "Your 6-digit personal code",
+    "pinDelete": "Delete",
+    "pinForgot": "Forgot your code? Ask your manager for a new link.",
+    "hello": "Hello {name}",
+    "notYou": "Not you?",
+    "agentFirstTime": "First time? Open the invitation link you received by text to create your code.",
+    "pinDigit": "Digit {digit}",
+    "pinProgress": "{count} of 6 digits entered"
   }
 }

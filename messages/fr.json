@@ -83,8 +83,14 @@
     "review": "Valider",
     "view": "Voir",
     "timeline": "Journée",
-    "timelineHint": "La barre représente le temps disponible entre le départ et l'arrivée.",
-    "allClear": "Tout est sous contrôle."
+    "allClear": "Tout est sous contrôle.",
+    "colTime": "Horaire",
+    "colProperty": "Logement",
+    "colTask": "Mission",
+    "colAgent": "Agent",
+    "colStatus": "Statut",
+    "noAgent": "Personne",
+    "kpiIncidentsShort": "Incidents"
   },
   "agentToday": {
     "greeting": "Bonjour {name}",
@@ -140,7 +146,23 @@
     "notConfigured": "La connexion sera active dès que la base de données sera branchée (prochaine étape).",
     "noAccount": "Pas encore de compte ?",
     "createAccount": "Créer ma conciergerie",
-    "agentHint": "Vous êtes agent ? Utilisez le lien d'invitation reçu de votre conciergerie.",
-    "legal": "En continuant, vous acceptez les conditions d'utilisation et la politique de confidentialité."
+    "legal": "En continuant, vous acceptez les conditions d'utilisation et la politique de confidentialité.",
+    "roleManager": "Responsable",
+    "roleAgent": "Agent terrain",
+    "roleLabel": "Je me connecte en tant que",
+    "phone": "Numéro de téléphone",
+    "phonePlaceholder": "06 12 34 56 78",
+    "invalidPhone": "Saisissez un numéro de téléphone valide.",
+    "continue": "Continuer",
+    "back": "Retour",
+    "pinTitle": "Saisissez votre code",
+    "pinHint": "Code personnel à 6 chiffres",
+    "pinDelete": "Effacer",
+    "pinForgot": "Code oublié ? Demandez un nouveau lien à votre responsable.",
+    "hello": "Bonjour {name}",
+    "notYou": "Ce n'est pas vous ?",
+    "agentFirstTime": "Première connexion ? Ouvrez le lien d'invitation reçu par SMS pour créer votre code.",
+    "pinDigit": "Chiffre {digit}",
+    "pinProgress": "{count} chiffres saisis sur 6"
   }
 }

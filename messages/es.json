@@ -83,8 +83,14 @@
     "review": "Validar",
     "view": "Ver",
     "timeline": "Jornada",
-    "timelineHint": "La barra muestra el tiempo disponible entre la salida y la llegada.",
-    "allClear": "Todo está bajo control."
+    "allClear": "Todo está bajo control.",
+    "colTime": "Horario",
+    "colProperty": "Alojamiento",
+    "colTask": "Trabajo",
+    "colAgent": "Agente",
+    "colStatus": "Estado",
+    "noAgent": "Nadie",
+    "kpiIncidentsShort": "Incidencias"
   },
   "agentToday": {
     "greeting": "Hola {name}",
@@ -140,7 +146,23 @@
     "notConfigured": "El acceso funcionará en cuanto la base de datos esté conectada (próxima etapa).",
     "noAccount": "¿Aún no tienes cuenta?",
     "createAccount": "Crear mi empresa",
-    "agentHint": "¿Eres agente? Usa el enlace de invitación que te envió tu empresa.",
-    "legal": "Al continuar, aceptas las condiciones de uso y la política de privacidad."
+    "legal": "Al continuar, aceptas las condiciones de uso y la política de privacidad.",
+    "roleManager": "Responsable",
+    "roleAgent": "Agente de campo",
+    "roleLabel": "Me conecto como",
+    "phone": "Número de teléfono",
+    "phonePlaceholder": "612 34 56 78",
+    "invalidPhone": "Introduce un número de teléfono válido.",
+    "continue": "Continuar",
+    "back": "Atrás",
+    "pinTitle": "Introduce tu código",
+    "pinHint": "Código personal de 6 cifras",
+    "pinDelete": "Borrar",
+    "pinForgot": "¿Olvidaste tu código? Pide un nuevo enlace a tu responsable.",
+    "hello": "Hola {name}",
+    "notYou": "¿No eres tú?",
+    "agentFirstTime": "¿Primera vez? Abre el enlace de invitación recibido por SMS para crear tu código.",
+    "pinDigit": "Cifra {digit}",
+    "pinProgress": "{count} de 6 cifras introducidas"
   }
 }

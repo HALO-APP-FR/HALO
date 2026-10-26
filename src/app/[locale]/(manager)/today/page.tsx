@@ -5,7 +5,7 @@ import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DayTimeline } from "@/components/halo/day-timeline";
+import { DayTable } from "@/components/halo/day-table";
 import { KpiCard } from "@/components/halo/kpi-card";
 import { PageHeader } from "@/components/halo/page-header";
 import { demoAgents, demoProperties, getDemoDay } from "@/lib/demo/data";
@@ -76,15 +76,15 @@ export default async function ManagerTodayPage({ params }: PageProps<"/[locale]/
         actions={<Badge tone="neutral">{t("common.demoData")}</Badge>}
       />
 
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+      <section className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4">
         <KpiCard label={t("managerToday.kpiArrivals")} value={day.arrivals} icon={KeyRound} />
         <KpiCard label={t("managerToday.kpiDepartures")} value={day.departures} icon={DoorClosed} />
         <KpiCard label={t("managerToday.kpiCleanings")} value={cleanings.length} icon={Sparkles} />
-        <KpiCard label={t("managerToday.kpiIncidents")} value={day.openIncidents} icon={AlertTriangle} tone="danger" />
+        <KpiCard label={t("managerToday.kpiIncidents")} shortLabel={t("managerToday.kpiIncidentsShort")} value={day.openIncidents} icon={AlertTriangle} tone="danger" />
       </section>
 
       {actions.length > 0 && (
-        <Card className="mt-6">
+        <Card className="mt-4 md:mt-6">
           <CardHeader>
             <CardTitle>{t("managerToday.toHandle")}</CardTitle>
           </CardHeader>
@@ -111,13 +111,10 @@ export default async function ManagerTodayPage({ params }: PageProps<"/[locale]/
 
       <Card className="mt-6">
         <CardHeader>
-          <div>
-            <CardTitle>{t("managerToday.timeline")}</CardTitle>
-            <p className="mt-1 hidden text-caption text-muted md:block">{t("managerToday.timelineHint")}</p>
-          </div>
+          <CardTitle>{t("managerToday.timeline")}</CardTitle>
         </CardHeader>
-        <CardContent className="pt-4">
-          <DayTimeline tasks={day.tasks} properties={demoProperties} agents={demoAgents} now={now} />
+        <CardContent className="pt-2">
+          <DayTable tasks={day.tasks} properties={demoProperties} agents={demoAgents} orgTimezone={orgTz} />
           <p className="mt-4 text-caption text-muted">{t("common.localTimeNote")}</p>
         </CardContent>
       </Card>

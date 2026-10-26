@@ -16,7 +16,7 @@ export function StatusPill({ status, className }: { status: TaskStatus; classNam
   const t = useTranslations("taskStatus");
   const tone = TONE[status];
   return (
-    <span className={cn("inline-flex items-center gap-1.5 text-micro", tone.text, className)}>
+    <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap text-micro", tone.text, className)}>
       <span className={cn("size-1.5 rounded-full", tone.dot)} aria-hidden />
       {t(status)}
     </span>

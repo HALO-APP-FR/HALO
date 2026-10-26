@@ -83,8 +83,14 @@
     "review": "Prüfen",
     "view": "Ansehen",
     "timeline": "Tagesablauf",
-    "timelineHint": "Der Balken zeigt die verfügbare Zeit zwischen Abreise und Anreise.",
-    "allClear": "Alles unter Kontrolle."
+    "allClear": "Alles unter Kontrolle.",
+    "colTime": "Zeit",
+    "colProperty": "Unterkunft",
+    "colTask": "Einsatz",
+    "colAgent": "Mitarbeiter",
+    "colStatus": "Status",
+    "noAgent": "Niemand",
+    "kpiIncidentsShort": "Vorfälle"
   },
   "agentToday": {
     "greeting": "Hallo {name}",
@@ -140,7 +146,23 @@
     "notConfigured": "Die Anmeldung funktioniert, sobald die Datenbank verbunden ist (nächster Schritt).",
     "noAccount": "Noch kein Konto?",
     "createAccount": "Meine Agentur anlegen",
-    "agentHint": "Sie sind Mitarbeiter? Nutzen Sie den Einladungslink Ihrer Agentur.",
-    "legal": "Mit dem Fortfahren akzeptieren Sie die Nutzungsbedingungen und die Datenschutzerklärung."
+    "legal": "Mit dem Fortfahren akzeptieren Sie die Nutzungsbedingungen und die Datenschutzerklärung.",
+    "roleManager": "Manager",
+    "roleAgent": "Außendienst",
+    "roleLabel": "Ich melde mich an als",
+    "phone": "Telefonnummer",
+    "phonePlaceholder": "0151 23456789",
+    "invalidPhone": "Geben Sie eine gültige Telefonnummer ein.",
+    "continue": "Weiter",
+    "back": "Zurück",
+    "pinTitle": "Code eingeben",
+    "pinHint": "Ihr 6-stelliger persönlicher Code",
+    "pinDelete": "Löschen",
+    "pinForgot": "Code vergessen? Bitten Sie Ihren Manager um einen neuen Link.",
+    "hello": "Hallo {name}",
+    "notYou": "Nicht Sie?",
+    "agentFirstTime": "Erstes Mal? Öffnen Sie den per SMS erhaltenen Einladungslink, um Ihren Code zu erstellen.",
+    "pinDigit": "Ziffer {digit}",
+    "pinProgress": "{count} von 6 Ziffern eingegeben"
   }
 }
