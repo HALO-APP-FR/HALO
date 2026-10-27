@@ -29,7 +29,9 @@
     "mainNavigation": "Navegación principal",
     "switchToAgent": "Vista agente",
     "switchToManager": "Vista gestor",
-    "alerts": "Alertas"
+    "alerts": "Alertas",
+    "calendar": "Calendario",
+    "services": "Servicios"
   },
   "theme": {
     "label": "Apariencia",
@@ -101,7 +103,8 @@
     "emptyText": "Las limpiezas aparecen aquí en cuanto se registra una reserva.",
     "emptyNoProperty": "Añade un alojamiento y sus reservas: las limpiezas se crean solas.",
     "alertsOpen": "{count, plural, one {# alerta abierta} other {# alertas abiertas}}",
-    "alertsUrgent": "{count, plural, one {# alerta} other {# alertas}}, {urgent} urgente(s)"
+    "alertsUrgent": "{count, plural, one {# alerta} other {# alertas}}, {urgent} urgente(s)",
+    "servicesRequested": "{count, plural, one {# solicitud de servicio por confirmar} other {# solicitudes de servicio por confirmar}}"
   },
   "agentToday": {
     "greeting": "Hola {name}",
@@ -203,7 +206,16 @@
     "redo": "Pedir que se repita",
     "redoReason": "¿Qué hay que repetir?",
     "sendRedo": "Enviar al agente",
-    "cancelTask": "Cancelar este trabajo"
+    "cancelTask": "Cancelar este trabajo",
+    "duration": "Duración prevista",
+    "durationLearned": "{count, plural, one {Aprendida de # limpieza fichada} other {Aprendida de # limpiezas fichadas}}",
+    "durationManual": "Fijada a mano",
+    "durationDefault": "Duración de la ficha",
+    "durationLess": "15 min menos",
+    "durationMore": "15 min más",
+    "agentLoad": "{count, plural, one {# misión ese día · {time}} other {# misiones ese día · {time}}}",
+    "agentFree": "Libre ese día",
+    "endAt": "fin prevista {time}"
   },
   "source": {
     "manual": "Entrada manual",
@@ -224,7 +236,8 @@
     "remove": "Eliminar"
   },
   "time": {
-    "duration": "{hours, plural, =0 {{minutes} min} other {{minutes, plural, =0 {{hours} h} other {{hours} h {minutes}}}}}"
+    "duration": "{hours, plural, =0 {{minutes} min} other {{minutes, plural, =0 {{hours} h} other {{hours} h {minutes}}}}}",
+    "today": "Hoy"
   },
   "bed": {
     "single": "Cama individual",
@@ -280,7 +293,11 @@
     "bedSize": "Tipo de cama",
     "bedLabel": "Habitación",
     "bedLabelPlaceholder": "Habitación {n}",
-    "linenSoon": "El cálculo de ropa por cama llegará con el módulo Ropa."
+    "linenSoon": "El cálculo de ropa por cama llegará con el módulo Ropa.",
+    "learnDuration": "Ajustar la duración automáticamente",
+    "learnDurationHint": "HALO ajusta las próximas limpiezas a las duraciones reales fichadas.",
+    "learnedValue": "Duración aprendida: {time} ({count} limpiezas)",
+    "learnedNone": "Se necesitan {count} limpiezas fichadas para aprender la duración."
   },
   "properties": {
     "free": "Libre",
@@ -407,7 +424,12 @@
     "autoNotPlaced": "{count, plural, one {# trabajo no se pudo colocar: asígnalo a mano.} other {# trabajos no se pudieron colocar: asígnalos a mano.}}",
     "autoConfirm": "{count, plural, one {Validar # asignación} other {Validar # asignaciones}}",
     "month": "Mes",
-    "more": "+{count} más"
+    "more": "+{count} más",
+    "dragHint": "Arrastra una misión a un agente",
+    "dropDone": "{name} · {time}",
+    "dropAdjusted": "Hora ajustada a la ventana de limpieza.",
+    "dropOutside": "Imposible: este día está fuera de la ventana de la misión.",
+    "outsideWindow": "Fuera de ventana"
   },
   "tasks": {
     "errorWindow": "El final debe ser posterior al inicio.",
@@ -456,7 +478,13 @@
     "color": "Color en la planificación",
     "active": "Activo",
     "activeHint": "Un miembro inactivo ya no puede conectarse ni recibir trabajos.",
-    "inviteSoon": "La invitación por SMS (creación del código PIN) se enviará automáticamente cuando la base de datos esté conectada."
+    "inviteSoon": "La invitación por SMS (creación del código PIN) se enviará automáticamente cuando la base de datos esté conectada.",
+    "groupCleaning": "Limpieza y control",
+    "groupMaintenance": "Mantenimiento",
+    "groupConcierge": "Conserjería y servicios",
+    "position": "Puesto",
+    "positionHint": "Limpieza, control, mantenimiento y recepción aparecen en el planning; chóferes y chefs reciben servicios.",
+    "hoursWeek": "fichadas esta sem."
   },
   "role": {
     "owner": "Propietario",
@@ -670,7 +698,8 @@
     "regenerate": "Nuevo enlace",
     "regenerated": "Nuevo enlace creado: el anterior ya no funciona.",
     "securityNotice": "Cambia el enlace si un antiguo huésped lo conserva: los códigos son visibles.",
-    "demoNotice": "Modo demo: el enlace solo se abre en este dispositivo. Funcionará en todas partes cuando la base de datos esté activa."
+    "demoNotice": "La guía va dentro del enlace: se abre en cualquier móvil. Las incidencias y solicitudes te llegarán cuando la base de datos esté activa.",
+    "scanToTest": "Escanéalo con tu móvil para probar"
   },
   "guest": {
     "welcomeTo": "Bienvenido",
@@ -700,7 +729,12 @@
     "departedToast": "¡Gracias y buen viaje! El equipo de limpieza está avisado.",
     "goodbye": "¡Buen viaje!",
     "unavailable": "Guía no disponible",
-    "unavailableText": "Este enlace ya no está activo. Contacta con tu anfitrión."
+    "unavailableText": "Este enlace ya no está activo. Contacta con tu anfitrión.",
+    "concierge": "Conserjería",
+    "conciergeText": "Chef a domicilio, mesa en restaurante, chófer… Nos ocupamos de todo.",
+    "conciergeVip": "Tu conserje dedicado está a tu disposición para cada deseo.",
+    "otherRequest": "Otra solicitud",
+    "sharedNotice": "Guía digital con HALO"
   },
   "linen": {
     "subtitle": "Stock, lavandería, kits: cada pieza controlada, sin roturas.",
@@ -856,5 +890,131 @@
     "damaged": "Dañado",
     "lost": "Perdido",
     "adjustment": "Inventario"
+  },
+  "vip": {
+    "label": "Cliente VIP",
+    "hint": "Preparación premium y servicios de alta gama destacados.",
+    "legend": "Estancia VIP"
+  },
+  "position": {
+    "housekeeper": "Limpieza",
+    "inspector": "Gobernanta / control",
+    "maintenance": "Mantenimiento",
+    "laundry": "Logística de ropa",
+    "concierge": "Conserje / recepción",
+    "driver": "Chófer",
+    "chef": "Chef a domicilio",
+    "other": "Otro puesto"
+  },
+  "roomStatus": {
+    "ok": "Todo bien",
+    "damage": "Rotura",
+    "missing": "Falta",
+    "dirty": "Muy sucio",
+    "other": "Otro"
+  },
+  "mission": {
+    "title": "Misión",
+    "notFound": "Misión no encontrada",
+    "start": "Empezar la misión",
+    "continue": "Continuar la misión",
+    "startedToast": "Misión iniciada a las {time}",
+    "estimated": "Duración estimada",
+    "clockHint": "Empezar y terminar registran tus horas.",
+    "inProgressSince": "En curso desde las {time}",
+    "finishedAt": "Terminada a las {time}",
+    "finish": "Terminar · {time}",
+    "finishAnyway": "Terminar de todos modos",
+    "uncheckedWarning": "{count, plural, one {# punto sin marcar.} other {# puntos sin marcar.}}",
+    "photosMissing": "{count, plural, one {# foto obligatoria pendiente} other {# fotos obligatorias pendientes}}",
+    "alertsSent": "{count, plural, one {# alerta enviada al gestor} other {# alertas enviadas al gestor}}",
+    "checklist": "Checklist",
+    "startToCheck": "Empieza la misión para marcar los puntos.",
+    "roomState": "Estado de la estancia",
+    "comment": "Comentario",
+    "commentPlaceholder": "Ej. vaso roto bajo el fregadero, bombilla fundida…",
+    "addComment": "Añadir un comentario",
+    "issueHint": "Se envía al gestor como alerta al terminar.",
+    "ref": "Ref.",
+    "vipPrep": "Llegada VIP: preparación premium, cada detalle cuenta.",
+    "report": "Informe de misión",
+    "checkedCount": "{done}/{total} puntos marcados",
+    "photosTaken": "{count, plural, one {# foto tomada} other {# fotos tomadas}}",
+    "realTime": "Real {time}",
+    "plannedTime": "previsto {time}"
+  },
+  "agentCalendar": {
+    "next7": "7 días",
+    "free": "Nada previsto"
+  },
+  "hours": {
+    "title": "Mis horas",
+    "week": "Esta semana",
+    "month": "Este mes",
+    "missions": "{count, plural, one {# misión} other {# misiones}}",
+    "faster": "De media un {pct} % más rápido de lo previsto en 30 días",
+    "slower": "De media un {pct} % más largo de lo previsto en 30 días"
+  },
+  "serviceKind": {
+    "private_chef": "Chef a domicilio",
+    "restaurant": "Reserva de restaurante",
+    "driver": "Chófer privado",
+    "airport_transfer": "Traslado aeropuerto",
+    "grocery": "Compra antes de llegar",
+    "spa": "Masaje y bienestar",
+    "babysitter": "Canguro",
+    "experience": "Actividades y visitas",
+    "flowers": "Flores y detalles",
+    "other": "Otro"
+  },
+  "serviceStatus": {
+    "requested": "Por confirmar",
+    "confirmed": "Confirmado",
+    "done": "Realizado",
+    "cancelled": "Cancelado"
+  },
+  "services": {
+    "subtitle": "Conserjería de alta gama: cada solicitud seguida hasta el final.",
+    "new": "Nuevo servicio",
+    "newHint": "Para un huésped, con tu equipo o un socio.",
+    "kpiRequested": "Solicitudes por confirmar",
+    "kpiWeek": "Previstos en 7 días",
+    "kpiRevenue": "Importe del mes",
+    "filterTodo": "Por confirmar",
+    "filterUpcoming": "Próximos",
+    "filterDone": "Pasados",
+    "empty": "Ningún servicio aquí",
+    "emptyText": "Aquí llegan las solicitudes de huéspedes y tus servicios.",
+    "kind": "Servicio",
+    "property": "Alojamiento",
+    "stay": "Estancia",
+    "noStay": "Sin estancia vinculada",
+    "date": "Fecha",
+    "time": "Hora",
+    "people": "Personas",
+    "details": "Detalles",
+    "detailsPlaceholder": "Alergias, preferencias, dirección de recogida…",
+    "assignee": "Asignado a",
+    "assigneeHint": "El puesto adecuado aparece primero.",
+    "nobody": "Nadie",
+    "provider": "Socio externo",
+    "providerPlaceholder": "Ej. Restaurante Le Grand Véfour",
+    "price": "Precio",
+    "create": "Crear servicio",
+    "confirm": "Confirmar al huésped",
+    "markDone": "Marcar realizado",
+    "cancel": "Cancelar servicio",
+    "doneToast": "Servicio realizado.",
+    "toast_confirmed": "Servicio confirmado.",
+    "toast_done": "Servicio realizado.",
+    "toast_cancelled": "Servicio cancelado.",
+    "toast_requested": "Solicitud guardada.",
+    "from_guest": "Solicitud del huésped",
+    "from_manager": "Creado por la conserjería",
+    "mine": "Mis servicios",
+    "requestTitle": "Tu solicitud",
+    "requestHint": "Tu conserje te confirmará enseguida.",
+    "sendRequest": "Enviar solicitud",
+    "requestSent": "¡Solicitud enviada! Tu conserje te responderá."
   }
 }

@@ -553,6 +553,13 @@ Le mode démo stocke déjà ces objets (voir `src/lib/domain/types.ts`) ; la mig
 - `linen_types` (règle per_bed / per_guest / per_baby / fixed, coût lavage, coût achat, actif), `linen_movements` (journal immuable : from, to, qty, reason, task_id, order_id), `laundry_orders` + `laundry_order_lines` (sent, received, damaged), `linen_settings` (blanchisserie, délai, devise).
 - Accès voyageur : la page `/g/[token]` lit le livret via une fonction RPC publique filtrée par token (jamais d'accès direct aux tables) ; les signalements voyageurs passent par une RPC limitée en débit.
 
+## Ajout — pointage, VIP, prestations, postes (27/10/2026)
+- `members.position` : `housekeeper | inspector | maintenance | laundry | concierge | driver | chef | other` (le rôle `agent/manager/owner` garde les droits). Chauffeurs et chefs n'apparaissent pas dans le planning des ménages.
+- `reservations.vip boolean` ; `tasks.vip`, `tasks.duration_locked`, `tasks.report jsonb` (`checked[]`, `photos{itemId: photoIds[]}`, `rooms{roomId: {status, comment, photoIds}}`).
+- `properties.learn_duration boolean default true` : durée de ménage = médiane des 6 derniers ménages pointés (min. 3, hors animaux), arrondie à 5 min.
+- `service_requests` : property_id, reservation_id?, kind, start_at, people, details, status (`requested|confirmed|done|cancelled`), assignee_id?, provider?, price?, source (`guest|manager`), guest_name, created_at.
+- Fin de mission : chaque pièce marquée autre que « RAS » crée une alerte (source agent, localisée sur la pièce).
+
 ## Points de vigilance pour Cursor
 1. **Création d'organisation** : se fait via une fonction serveur (route API avec la clé service) qui crée l'organisation ET la membership `owner` dans la même transaction, sinon l'utilisateur ne peut pas lire l'organisation qu'il vient de créer.
 2. **Acceptation d'invitation** : route serveur qui vérifie le token, crée la membership, marque l'invitation acceptée.

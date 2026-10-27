@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { AlertTriangle, ArrowRight, CalendarPlus, CircleCheck, DoorClosed, KeyRound, Siren, Sparkles, UserRoundX } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarPlus, CircleCheck, DoorClosed, KeyRound, Siren, Sparkles, UserRoundX, ConciergeBell } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
 import { addDaysToKey, localDateKey } from "@/lib/engine/time";
@@ -50,6 +50,8 @@ function ManagerTodayInner() {
   const urgent = dayTasks.filter((x) => x.status === "unassigned" && x.priority === "urgent");
   const arrivals = arrivalsOfDay(reservations, properties, dayKey);
   const departures = departuresOfDay(reservations, properties, dayKey);
+  const services = useHalo((s) => s.services);
+  const requestedServices = services.filter((x) => x.status === "requested");
   const openAlerts = alerts.filter((a) => a.status !== "resolved");
   const urgentAlerts = openAlerts.filter((a) => a.urgent);
   const dateLabel = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(
@@ -67,6 +69,15 @@ function ManagerTodayInner() {
       cta: t("managerToday.view"),
       onClick: () => router.push("/alerts"),
       primary: urgentAlerts.length > 0,
+    },
+    requestedServices.length > 0 && {
+      key: "services",
+      icon: ConciergeBell,
+      tone: "text-vip bg-vip-soft",
+      label: t("managerToday.servicesRequested", { count: requestedServices.length }),
+      cta: t("managerToday.view"),
+      onClick: () => router.push("/services"),
+      primary: false,
     },
     unassigned.length > 0 && {
       key: "unassigned",

@@ -67,7 +67,7 @@ export function LinenKits() {
                       date: `${new Intl.DateTimeFormat(locale, { timeZone: p.timezone, weekday: "short", day: "numeric" }).format(new Date(next.task.windowStart))} ${formatLocalTime(new Date(next.task.windowStart), p.timezone, locale)}`,
                     })}
                   </span>
-                  <GuestBadges guests={next.task.guestsCount} babies={next.task.babies} pets={next.task.pets} size="sm" />
+                  <GuestBadges guests={next.task.guestsCount} babies={next.task.babies} pets={next.task.pets} vip={next.task.vip} size="sm" />
                 </div>
                 {next.task.babies ? (
                   <p className="mt-1 flex items-center gap-1.5 text-caption text-info">

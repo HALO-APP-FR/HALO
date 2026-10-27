@@ -10,6 +10,7 @@ const badgeVariants = cva("inline-flex items-center gap-1 rounded-full px-2 py-0
       warning: "bg-warning-soft text-warning",
       danger: "bg-danger-soft text-danger",
       info: "bg-info-soft text-info",
+      vip: "bg-vip-soft font-bold text-vip",
     },
   },
   defaultVariants: { tone: "neutral" },

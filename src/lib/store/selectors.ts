@@ -1,7 +1,7 @@
 /**
  * Lectures dérivées des données (fonctions pures, testables).
  */
-import type { Member, Property, Reservation, Task } from "@/lib/domain/types";
+import { FIELD_POSITIONS, type Member, type Property, type Reservation, type Task } from "@/lib/domain/types";
 import { localDateKey } from "@/lib/engine/time";
 
 export const byId = <T extends { id: string }>(list: T[]) => new Map(list.map((x) => [x.id, x]));
@@ -38,7 +38,12 @@ export function departuresOfDay(reservations: Reservation[], properties: Propert
   });
 }
 
-export const activeAgents = (members: Member[]) => members.filter((m) => m.role === "agent" && m.active);
+/** Équipe terrain qui reçoit des missions logistiques (planning, répartition automatique). */
+export const activeAgents = (members: Member[]) =>
+  members.filter((m) => m.role === "agent" && m.active && FIELD_POSITIONS.includes(m.position ?? "housekeeper"));
+
+/** Tout le personnel actif hors managers (y compris chauffeurs et chefs). */
+export const activeStaff = (members: Member[]) => members.filter((m) => m.role === "agent" && m.active);
 
 /** Prochaine réservation (en cours ou future) d'un logement. */
 export function currentOrNextStay(reservations: Reservation[], propertyId: string, now: Date) {

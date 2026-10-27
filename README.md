@@ -40,4 +40,11 @@ Tout est dans `docs/` (vision, parcours, données, moteur, design). Les règles 
 - [x] Module Linge : stock par emplacement, kits auto par logement, prévision de rupture 7 jours, bons de blanchisserie (envoi, réception, écarts), journal, coûts
 - [x] Voyageurs : noms, adultes/enfants/bébés/animaux (kit bébé, +30 min si animaux)
 - [x] Planning mois, tuiles du tableau de bord cliquables, photo exigée + photo de référence dans la checklist
+- [x] Écran de mission agent : chrono (pointage), checklist par pièce, photos, état de chaque pièce (RAS / casse / manquant / très sale) + commentaire → alertes automatiques
+- [x] Durées apprises : chaque ménage pointé ajuste la durée des suivants (par logement, désactivable)
+- [x] Planning glisser-déposer (jour et semaine), durée et charge visibles à l'assignation
+- [x] Agent : calendrier 7 jours / semaine / mois, heures travaillées
+- [x] VIP + Prestations haut de gamme (chef, restaurant, chauffeur, transfert…), demandes depuis le livret
+- [x] Équipe par postes (ménage, gouvernante, maintenance, linge, concierge, chauffeur, chef)
+- [x] Livret voyageur contenu dans le lien : le QR code fonctionne sur n'importe quel téléphone
 - [ ] Phase 2 — Base de données Supabase (les données sont pour l'instant enregistrées dans le navigateur)

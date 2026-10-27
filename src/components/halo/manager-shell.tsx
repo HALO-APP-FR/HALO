@@ -34,7 +34,9 @@ export function ManagerShell({ children }: { children: React.ReactNode }) {
   const moreActive = moreItems.some((n) => isActive(pathname, n.href));
   const alerts = useHalo((s) => s.alerts);
   const openAlerts = alerts.filter((a) => a.status !== "resolved").length;
-  const badge = (key: string) => (key === "alerts" ? openAlerts : 0);
+  const services = useHalo((s) => s.services);
+  const requestedServices = services.filter((x) => x.status === "requested").length;
+  const badge = (key: string) => (key === "alerts" ? openAlerts : key === "services" ? requestedServices : 0);
 
   return (
     <div className="min-h-dvh bg-subtle">

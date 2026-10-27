@@ -63,6 +63,13 @@ Validé le 26/10/2026. **Pas de chat libre** (la messagerie voyageur reste dans 
 - HALO génère la **liste de réassort** et l'ajoute à la prochaine tournée passant par le stock central.
 - Tables : `supplies`, `property_supply_targets`, `supply_counts`, `supply_movements`.
 
+## Livré en démo le 27/10/2026
+- Pointage des missions (démarrer/terminer) et heures travaillées par agent ; durées apprises par logement → le planning et la répartition automatique se calent sur le réel.
+- Glisser-déposer dans le planning (jour : heure + agent ; semaine : agent + jour), recalage automatique dans la fenêtre de ménage.
+- Rapport de mission par pièce (RAS / casse / manquant / très sale / autre, commentaire, photos) → alertes manager automatiques.
+- VIP et prestations haut de gamme (page Prestations, demandes voyageur depuis le livret, prestations visibles dans l'app du chef / chauffeur / concierge).
+- Livret voyageur autonome (contenu compressé dans le lien du QR, jamais envoyé au serveur).
+
 ## Vague 4 — Intelligence
 ### F3 — Contrôle qualité par IA
 - Comparaison des photos de fin de ménage avec les photos de référence du logement.

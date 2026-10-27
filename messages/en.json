@@ -29,7 +29,9 @@
     "mainNavigation": "Main navigation",
     "switchToAgent": "Agent view",
     "switchToManager": "Manager view",
-    "alerts": "Alerts"
+    "alerts": "Alerts",
+    "calendar": "Calendar",
+    "services": "Services"
   },
   "theme": {
     "label": "Appearance",
@@ -101,7 +103,8 @@
     "emptyText": "Cleanings appear here as soon as a booking is recorded.",
     "emptyNoProperty": "Add a property and its bookings: cleanings are created automatically.",
     "alertsOpen": "{count, plural, one {# open alert} other {# open alerts}}",
-    "alertsUrgent": "{count, plural, one {# alert} other {# alerts}}, {urgent} urgent"
+    "alertsUrgent": "{count, plural, one {# alert} other {# alerts}}, {urgent} urgent",
+    "servicesRequested": "{count, plural, one {# service request to confirm} other {# service requests to confirm}}"
   },
   "agentToday": {
     "greeting": "Hello {name}",
@@ -203,7 +206,16 @@
     "redo": "Request a redo",
     "redoReason": "What needs to be redone?",
     "sendRedo": "Send to agent",
-    "cancelTask": "Cancel this job"
+    "cancelTask": "Cancel this job",
+    "duration": "Planned duration",
+    "durationLearned": "{count, plural, one {Learned from # clocked cleaning} other {Learned from # clocked cleanings}}",
+    "durationManual": "Set manually",
+    "durationDefault": "Property default",
+    "durationLess": "15 min less",
+    "durationMore": "15 min more",
+    "agentLoad": "{count, plural, one {# job that day · {time}} other {# jobs that day · {time}}}",
+    "agentFree": "Free that day",
+    "endAt": "ends {time}"
   },
   "source": {
     "manual": "Manual entry",
@@ -224,7 +236,8 @@
     "remove": "Remove"
   },
   "time": {
-    "duration": "{hours, plural, =0 {{minutes} min} other {{minutes, plural, =0 {{hours} h} other {{hours} h {minutes}}}}}"
+    "duration": "{hours, plural, =0 {{minutes} min} other {{minutes, plural, =0 {{hours} h} other {{hours} h {minutes}}}}}",
+    "today": "Today"
   },
   "bed": {
     "single": "Single bed",
@@ -280,7 +293,11 @@
     "bedSize": "Bed type",
     "bedLabel": "Room",
     "bedLabelPlaceholder": "Bedroom {n}",
-    "linenSoon": "Linen per bed comes with the Linen module."
+    "linenSoon": "Linen per bed comes with the Linen module.",
+    "learnDuration": "Adjust duration automatically",
+    "learnDurationHint": "HALO sets upcoming cleanings to the durations your team actually clocks.",
+    "learnedValue": "Learned duration: {time} (from {count} cleanings)",
+    "learnedNone": "{count} clocked cleanings needed to learn the duration."
   },
   "properties": {
     "free": "Available",
@@ -407,7 +424,12 @@
     "autoNotPlaced": "{count, plural, one {# job couldn't be placed: assign it manually.} other {# jobs couldn't be placed: assign them manually.}}",
     "autoConfirm": "{count, plural, one {Confirm # assignment} other {Confirm # assignments}}",
     "month": "Month",
-    "more": "+{count} more"
+    "more": "+{count} more",
+    "dragHint": "Drag a job onto a team member",
+    "dropDone": "{name} · {time}",
+    "dropAdjusted": "Time adjusted to fit the cleaning window.",
+    "dropOutside": "Not possible: this day is outside the job window.",
+    "outsideWindow": "Outside window"
   },
   "tasks": {
     "errorWindow": "The end must be after the start.",
@@ -456,7 +478,13 @@
     "color": "Colour in the schedule",
     "active": "Active",
     "activeHint": "An inactive member can no longer sign in or receive jobs.",
-    "inviteSoon": "The text-message invitation (PIN setup) will be sent automatically once the database is connected."
+    "inviteSoon": "The text-message invitation (PIN setup) will be sent automatically once the database is connected.",
+    "groupCleaning": "Cleaning & QA",
+    "groupMaintenance": "Maintenance",
+    "groupConcierge": "Concierge & services",
+    "position": "Role",
+    "positionHint": "Cleaning, QA, maintenance and greeters appear in the schedule; drivers and chefs receive services.",
+    "hoursWeek": "clocked this week"
   },
   "role": {
     "owner": "Owner",
@@ -670,7 +698,8 @@
     "regenerate": "New link",
     "regenerated": "New link created: the old one no longer works.",
     "securityNotice": "Change the link if a past guest still has it: access codes are visible.",
-    "demoNotice": "Demo mode: the link only opens on this device. It will work everywhere once the database is live."
+    "demoNotice": "The guide lives inside the link: it opens on any phone. Guest reports and requests will reach you once the database is live.",
+    "scanToTest": "Scan with your phone to try it"
   },
   "guest": {
     "welcomeTo": "Welcome",
@@ -700,7 +729,12 @@
     "departedToast": "Thanks, safe travels! The cleaning team has been notified.",
     "goodbye": "Safe travels!",
     "unavailable": "Guide unavailable",
-    "unavailableText": "This link is no longer active. Please contact your host."
+    "unavailableText": "This link is no longer active. Please contact your host.",
+    "concierge": "Concierge",
+    "conciergeText": "Private chef, restaurant table, driver… We take care of everything.",
+    "conciergeVip": "Your dedicated concierge is at your service for every wish.",
+    "otherRequest": "Other request",
+    "sharedNotice": "Digital guide powered by HALO"
   },
   "linen": {
     "subtitle": "Stock, laundry, kits: every piece tracked, no shortages.",
@@ -856,5 +890,131 @@
     "damaged": "Damaged",
     "lost": "Lost",
     "adjustment": "Stock count"
+  },
+  "vip": {
+    "label": "VIP guest",
+    "hint": "Premium preparation and high-end services highlighted.",
+    "legend": "VIP stay"
+  },
+  "position": {
+    "housekeeper": "Housekeeper",
+    "inspector": "Supervisor / QA",
+    "maintenance": "Maintenance",
+    "laundry": "Linen runner",
+    "concierge": "Concierge / greeter",
+    "driver": "Driver",
+    "chef": "Private chef",
+    "other": "Other role"
+  },
+  "roomStatus": {
+    "ok": "All good",
+    "damage": "Damage",
+    "missing": "Missing",
+    "dirty": "Very dirty",
+    "other": "Other"
+  },
+  "mission": {
+    "title": "Job",
+    "notFound": "Job not found",
+    "start": "Start the job",
+    "continue": "Continue the job",
+    "startedToast": "Job started at {time}",
+    "estimated": "Estimated time",
+    "clockHint": "Start and finish clock your hours.",
+    "inProgressSince": "In progress since {time}",
+    "finishedAt": "Finished at {time}",
+    "finish": "Finish · {time}",
+    "finishAnyway": "Finish anyway",
+    "uncheckedWarning": "{count, plural, one {# item isn't checked.} other {# items aren't checked.}}",
+    "photosMissing": "{count, plural, one {# required photo missing} other {# required photos missing}}",
+    "alertsSent": "{count, plural, one {# alert sent to the manager} other {# alerts sent to the manager}}",
+    "checklist": "Checklist",
+    "startToCheck": "Start the job to check items.",
+    "roomState": "Room condition",
+    "comment": "Comment",
+    "commentPlaceholder": "E.g. broken glass under the sink, bulb out…",
+    "addComment": "Add a comment",
+    "issueHint": "Sent to the manager as an alert when the job ends.",
+    "ref": "Ref.",
+    "vipPrep": "VIP arrival: premium preparation, every detail counts.",
+    "report": "Job report",
+    "checkedCount": "{done}/{total} items checked",
+    "photosTaken": "{count, plural, one {# photo taken} other {# photos taken}}",
+    "realTime": "Actual {time}",
+    "plannedTime": "planned {time}"
+  },
+  "agentCalendar": {
+    "next7": "7 days",
+    "free": "Nothing planned"
+  },
+  "hours": {
+    "title": "My hours",
+    "week": "This week",
+    "month": "This month",
+    "missions": "{count, plural, one {# job} other {# jobs}}",
+    "faster": "On average {pct}% faster than planned over 30 days",
+    "slower": "On average {pct}% longer than planned over 30 days"
+  },
+  "serviceKind": {
+    "private_chef": "Private chef",
+    "restaurant": "Restaurant booking",
+    "driver": "Private driver",
+    "airport_transfer": "Airport transfer",
+    "grocery": "Pre-arrival groceries",
+    "spa": "Massage & wellness",
+    "babysitter": "Babysitter",
+    "experience": "Experiences & tours",
+    "flowers": "Flowers & treats",
+    "other": "Other"
+  },
+  "serviceStatus": {
+    "requested": "To confirm",
+    "confirmed": "Confirmed",
+    "done": "Done",
+    "cancelled": "Cancelled"
+  },
+  "services": {
+    "subtitle": "High-end concierge: every request followed through.",
+    "new": "New service",
+    "newHint": "For a guest, with your team or a partner.",
+    "kpiRequested": "Requests to confirm",
+    "kpiWeek": "Planned in 7 days",
+    "kpiRevenue": "This month's total",
+    "filterTodo": "To confirm",
+    "filterUpcoming": "Upcoming",
+    "filterDone": "Past",
+    "empty": "No services here",
+    "emptyText": "Guest requests (guide) and your services land here.",
+    "kind": "Service",
+    "property": "Property",
+    "stay": "Stay",
+    "noStay": "No linked stay",
+    "date": "Date",
+    "time": "Time",
+    "people": "People",
+    "details": "Details",
+    "detailsPlaceholder": "Allergies, preferences, pick-up address…",
+    "assignee": "Assigned to",
+    "assigneeHint": "The matching role is suggested first.",
+    "nobody": "Nobody",
+    "provider": "External partner",
+    "providerPlaceholder": "E.g. Le Grand Véfour restaurant",
+    "price": "Price",
+    "create": "Create service",
+    "confirm": "Confirm to the guest",
+    "markDone": "Mark as done",
+    "cancel": "Cancel service",
+    "doneToast": "Service done.",
+    "toast_confirmed": "Service confirmed.",
+    "toast_done": "Service done.",
+    "toast_cancelled": "Service cancelled.",
+    "toast_requested": "Request saved.",
+    "from_guest": "Guest request",
+    "from_manager": "Created by the concierge",
+    "mine": "My services",
+    "requestTitle": "Your request",
+    "requestHint": "Your concierge will confirm shortly.",
+    "sendRequest": "Send request",
+    "requestSent": "Request sent! Your concierge will get back to you."
   }
 }

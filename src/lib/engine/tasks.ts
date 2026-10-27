@@ -28,6 +28,7 @@ export interface TaskDraft {
   guestsCount?: number;
   babies?: number;
   pets?: number;
+  vip?: boolean;
 }
 
 export interface TaskPatch {
@@ -38,6 +39,7 @@ export interface TaskPatch {
   guestsCount?: number;
   babies?: number;
   pets?: number;
+  vip?: boolean;
   durationMin?: number;
 }
 
@@ -89,6 +91,7 @@ export function expectedTasks(property: Property, reservations: Reservation[], n
         guestsCount: next?.guestsCount,
         babies: next?.babies || undefined,
         pets: r.pets || undefined,
+        vip: next?.vip || undefined,
       });
     }
 
@@ -105,6 +108,7 @@ export function expectedTasks(property: Property, reservations: Reservation[], n
         guestsCount: r.guestsCount,
         babies: r.babies || undefined,
         pets: r.pets || undefined,
+        vip: r.vip || undefined,
       });
     }
 
@@ -121,6 +125,7 @@ export function expectedTasks(property: Property, reservations: Reservation[], n
         guestsCount: r.guestsCount,
         babies: r.babies || undefined,
         pets: r.pets || undefined,
+        vip: r.vip || undefined,
       });
     }
   });
@@ -163,7 +168,8 @@ export function planTasks(
     if (current.guestsCount !== draft.guestsCount) patch.guestsCount = draft.guestsCount;
     if (current.babies !== draft.babies) patch.babies = draft.babies;
     if (current.pets !== draft.pets) patch.pets = draft.pets;
-    if (current.durationMin !== draft.durationMin) patch.durationMin = draft.durationMin;
+    if (current.vip !== draft.vip) patch.vip = draft.vip;
+    if (!current.durationLocked && current.durationMin !== draft.durationMin) patch.durationMin = draft.durationMin;
     if (Object.keys(patch).length > 0) {
       plan.update.push({ id: current.id, patch });
       const windowMoved = patch.windowStart !== undefined || patch.windowEnd !== undefined;

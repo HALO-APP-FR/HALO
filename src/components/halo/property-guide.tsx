@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import QRCode from "qrcode";
 import { Copy, Download, ExternalLink, RefreshCw } from "lucide-react";
 import type { GuestGuide, Property } from "@/lib/domain/types";
+import { encodeGuideForQr } from "@/lib/engine/guide-link";
 import { useHalo } from "@/lib/store/halo-store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,7 +49,7 @@ async function downloadPoster(property: Property, url: string, title: string, su
   ctx.fillStyle = "#6E6E73";
   ctx.font = "500 44px Inter, system-ui, sans-serif";
   ctx.fillText(title, cx, 480, W - 160);
-  const qr = await QRCode.toDataURL(url, { margin: 1, width: 820, errorCorrectionLevel: "M", color: { dark: "#0B0B0C", light: "#FFFFFF" } });
+  const qr = await QRCode.toDataURL(url, { margin: 1, width: 820, errorCorrectionLevel: url.length > 600 ? "L" : "M", color: { dark: "#0B0B0C", light: "#FFFFFF" } });
   const img = new Image();
   await new Promise((resolve) => {
     img.onload = resolve;
@@ -60,7 +61,7 @@ async function downloadPoster(property: Property, url: string, title: string, su
   ctx.fillText(subtitle, cx, 1500, W - 160);
   ctx.fillStyle = "#A1A1A6";
   ctx.font = "500 30px Inter, system-ui, sans-serif";
-  ctx.fillText(url.replace(/^https?:\/\//, ""), cx, 1580, W - 160);
+  ctx.fillText(url.replace(/^https?:\/\//, "").replace(/#.*$/, ""), cx, 1580, W - 160);
   const a = document.createElement("a");
   a.href = canvas.toDataURL("image/png");
   a.download = `halo-${property.name.toLowerCase().replace(/[^a-z0-9]+/gi, "-")}-qr.png`;
@@ -72,14 +73,27 @@ export function PropertyGuide({ property }: { property: Property }) {
   const locale = useLocale();
   const [draft, setDraft] = useState<GuestGuide>(property.guide);
   const [qr, setQr] = useState<string | null>(null);
-  const url = guideUrl(locale, property.guide.token);
+  const [data, setData] = useState<string | null>(null);
+  const baseUrl = guideUrl(locale, property.guide.token);
+  // Le livret voyage dans le lien : le QR s'ouvre sur n'importe quel téléphone
+  const url = data ? `${baseUrl}#d=${data}` : baseUrl;
   const set = <K extends keyof GuestGuide>(k: K, v: GuestGuide[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const editable = (g: GuestGuide) => JSON.stringify({ ...g, token: "" });
   const dirty = editable(draft) !== editable(property.guide);
 
   useEffect(() => {
     let alive = true;
-    QRCode.toString(url, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: "#0B0B0C", light: "#00000000" } })
+    encodeGuideForQr(property)
+      .then((d) => alive && setData(d))
+      .catch(() => alive && setData(null));
+    return () => {
+      alive = false;
+    };
+  }, [property]);
+
+  useEffect(() => {
+    let alive = true;
+    QRCode.toString(url, { type: "svg", margin: 0, errorCorrectionLevel: url.length > 600 ? "L" : "M", color: { dark: "#0B0B0C", light: "#00000000" } })
       .then((svg) => alive && setQr(svg))
       .catch(() => alive && setQr(null));
     return () => {
@@ -145,9 +159,10 @@ export function PropertyGuide({ property }: { property: Property }) {
           <CardTitle>{t("guide.share")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="mx-auto aspect-square w-full max-w-[240px] rounded-lg bg-white p-4 ring-1 ring-line">
+          <div className="mx-auto aspect-square w-full max-w-[260px] rounded-lg bg-white p-4 ring-1 ring-line">
             {qr ? <div className="size-full [&_svg]:size-full" role="img" aria-label={t("guide.qrAlt")} dangerouslySetInnerHTML={{ __html: qr }} /> : null}
           </div>
+          <p className="text-center text-caption font-medium text-muted">{t("guide.scanToTest")}</p>
           <div className="flex gap-2">
             <Input readOnly value={url} aria-label={t("guide.link")} className="text-[13px]" onFocus={(e) => e.target.select()} />
             <Button
@@ -190,7 +205,7 @@ export function PropertyGuide({ property }: { property: Property }) {
               {t("guide.regenerate")}
             </Button>
           </div>
-          <p className="rounded-lg bg-warning-soft p-3 text-caption text-fg">{t("guide.demoNotice")}</p>
+          <p className="rounded-lg bg-accent-soft p-3 text-caption text-fg">{t("guide.demoNotice")}</p>
           <p className="text-caption text-muted">{t("guide.securityNotice")}</p>
         </CardContent>
       </Card>

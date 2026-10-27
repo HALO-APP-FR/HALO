@@ -15,6 +15,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           position="bottom-center"
           toastOptions={{
             className: "!rounded-lg !border-line !bg-fg !text-canvas !shadow-overlay !font-sans",
+            classNames: { description: "!text-canvas/75" },
             duration: 4000,
           }}
         />

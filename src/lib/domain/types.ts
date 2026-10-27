@@ -28,6 +28,10 @@ export type ReservationSource = "manual" | "airbnb" | "booking" | "vrbo" | "othe
 export type AccessType = "key_box" | "keypad" | "smart_lock" | "in_person" | "other";
 export type BedSize = "single" | "double" | "queen" | "king" | "sofa_bed";
 export type MemberRole = "owner" | "manager" | "agent";
+/** Poste occupé sur le terrain (le rôle, lui, règle les droits d'accès). */
+export type StaffPosition = "housekeeper" | "inspector" | "maintenance" | "laundry" | "concierge" | "driver" | "chef" | "other";
+/** Postes qui reçoivent des missions logistiques (ménages, accueils, interventions) dans le planning. */
+export const FIELD_POSITIONS: StaffPosition[] = ["housekeeper", "inspector", "maintenance", "laundry", "concierge", "other"];
 
 export interface Bed {
   id: string;
@@ -96,6 +100,8 @@ export interface Property {
   defaultCheckIn: string; // "16:00"
   defaultCheckOut: string; // "11:00"
   cleaningDurationMin: number;
+  /** Ajuste automatiquement la durée des ménages d'après les durées réelles (activé par défaut). */
+  learnDuration?: boolean;
   /** Accueil physique des voyageurs (crée des tâches d'arrivée). */
   checkInService: boolean;
   /** Départ accompagné (crée des tâches de départ). */
@@ -134,6 +140,8 @@ export interface Reservation {
   notes?: string;
   /** Départ signalé par le voyageur (bouton « Je pars ») : le ménage peut commencer plus tôt. */
   departedAt?: string;
+  /** Client VIP : préparation et services haut de gamme. */
+  vip?: boolean;
 }
 
 export interface Task {
@@ -156,9 +164,27 @@ export interface Task {
   babies?: number;
   pets?: number;
   notes?: string;
+  /** Séjour VIP concerné (préparation premium). */
+  vip?: boolean;
+  /** Durée fixée à la main par le manager : le moteur ne la recalcule plus. */
+  durationLocked?: boolean;
+  /** Pointage : début et fin réels de la mission par l'agent. */
   startedAt?: string;
   completedAt?: string;
+  /** Rapport de l'agent : points cochés, photos, état et commentaire par pièce. */
+  report?: TaskReport;
   createdAt: string;
+}
+
+/** État constaté d'une pièce en fin de mission. */
+export type RoomStatus = "ok" | "damage" | "missing" | "dirty" | "other";
+
+export interface TaskReport {
+  /** Identifiants des points de checklist cochés. */
+  checked: string[];
+  /** Photos prises par point de checklist. */
+  photos: Record<string, string[]>;
+  rooms: Record<string, { status?: RoomStatus; comment?: string; photoIds?: string[] }>;
 }
 
 export interface Member {
@@ -166,6 +192,8 @@ export interface Member {
   name: string;
   role: MemberRole;
   phone?: string;
+  /** Poste sur le terrain (agents uniquement). */
+  position?: StaffPosition;
   color: string;
   active: boolean;
 }
@@ -206,6 +234,40 @@ export interface Alert {
   resolution?: string;
   createdAt: string;
   resolvedAt?: string;
+}
+
+/* ---------------- Prestations (conciergerie haut de gamme) ---------------- */
+export type ServiceKind =
+  | "private_chef"
+  | "restaurant"
+  | "driver"
+  | "airport_transfer"
+  | "grocery"
+  | "spa"
+  | "babysitter"
+  | "experience"
+  | "flowers"
+  | "other";
+export type ServiceStatus = "requested" | "confirmed" | "done" | "cancelled";
+
+export interface ServiceRequest {
+  id: string;
+  propertyId: string;
+  reservationId?: string;
+  kind: ServiceKind;
+  /** Date et heure souhaitées. */
+  startAt: string;
+  people?: number;
+  details?: string;
+  status: ServiceStatus;
+  /** Membre de l'équipe en charge (concierge, chauffeur, chef…). */
+  assigneeId?: string;
+  /** Partenaire externe (restaurant, société de transport…). */
+  provider?: string;
+  price?: number;
+  source: "guest" | "manager";
+  guestName?: string;
+  createdAt: string;
 }
 
 /* ---------------- Linge ---------------- */

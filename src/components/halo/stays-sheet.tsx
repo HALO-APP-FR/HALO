@@ -56,7 +56,7 @@ export function StaysSheet({
                         )}
                       </span>
                       <span className="block text-[14px] text-muted">{p?.name}</span>
-                      <GuestBadges guests={r.guestsCount} babies={r.babies} pets={r.pets} size="sm" className="mt-1" />
+                      <GuestBadges guests={r.guestsCount} babies={r.babies} pets={r.pets} vip={r.vip} size="sm" className="mt-1" />
                       {r.notes && <span className="mt-1 block text-caption text-fg">{r.notes}</span>}
                     </span>
                     <ChevronRight className="size-4 shrink-0 text-faint rtl:-scale-x-100" />

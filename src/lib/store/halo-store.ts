@@ -19,7 +19,10 @@ import type {
   Member,
   Property,
   Reservation,
+  RoomStatus,
+  ServiceRequest,
   Task,
+  TaskReport,
   TaskStatus,
 } from "@/lib/domain/types";
 import { newId } from "@/lib/domain/templates";
@@ -32,6 +35,7 @@ import {
   stockFromMovements,
   turnoverMovements,
 } from "@/lib/engine/linen";
+import { withLearnedDuration } from "@/lib/engine/learning";
 import { planTasks } from "@/lib/engine/tasks";
 import { DEFAULT_LINEN_SETTINGS, applyPlan, buildDemoData, defaultGuide, defaultLinenTypes, newToken, type HaloData } from "./seed";
 
@@ -39,6 +43,7 @@ export type NewProperty = Omit<Property, "id" | "createdAt" | "archived" | "feed
   Partial<Pick<Property, "guide" | "linenParLevel" | "amenities" | "customAmenities">>;
 export type NewAlert = Omit<Alert, "id" | "status" | "createdAt" | "photoIds"> & { photoIds?: string[] };
 export type NewReservation = Omit<Reservation, "id" | "status"> & { status?: Reservation["status"] };
+export type NewService = Omit<ServiceRequest, "id" | "createdAt" | "status"> & { status?: ServiceRequest["status"] };
 export type NewTask = Pick<Task, "propertyId" | "type" | "windowStart" | "windowEnd" | "durationMin"> &
   Partial<Pick<Task, "assigneeId" | "scheduledStart" | "notes" | "priority" | "title">>;
 
@@ -70,6 +75,15 @@ interface HaloState extends HaloData {
   assignTask: (id: string, agentId: string | undefined, scheduledStart?: string) => void;
   setTaskStatus: (id: string, status: TaskStatus) => void;
   applyAssignments: (list: { taskId: string; agentId: string; scheduledStart: string }[]) => void;
+  /** Durée prévue fixée à la main (le moteur ne la recalcule plus). */
+  setTaskDuration: (id: string, minutes: number) => void;
+  /** Met à jour le rapport de mission de l'agent (cases cochées, photos, état des pièces). */
+  updateTaskReport: (id: string, update: (report: TaskReport) => TaskReport) => void;
+  /** Fin de mission : pointage, pièces sans état → RAS, chaque anomalie devient une alerte. */
+  finishTask: (id: string, reporterName?: string) => number;
+
+  addService: (input: NewService) => string;
+  updateService: (id: string, patch: Partial<ServiceRequest>) => void;
 
   addAlert: (input: NewAlert) => string;
   updateAlert: (id: string, patch: Partial<Alert>) => void;
@@ -134,7 +148,17 @@ const EMPTY: HaloData = {
   linenMovements: [],
   laundryOrders: [],
   linenSettings: DEFAULT_LINEN_SETTINGS,
+  services: [],
   currentAgentId: "",
+};
+
+export const emptyReport = (): TaskReport => ({ checked: [], photos: {}, rooms: {} });
+
+const ROOM_ALERT: Record<Exclude<RoomStatus, "ok">, Alert["category"]> = {
+  damage: "damage",
+  missing: "missing_item",
+  dirty: "cleanliness",
+  other: "other",
 };
 
 function regenerate(state: HaloData, propertyIds?: string[]): Pick<HaloData, "tasks"> {
@@ -143,7 +167,8 @@ function regenerate(state: HaloData, propertyIds?: string[]): Pick<HaloData, "ta
   for (const p of state.properties) {
     if (propertyIds && !propertyIds.includes(p.id)) continue;
     if (p.archived) continue;
-    tasks = applyPlan(tasks, planTasks(p, state.reservations, tasks, now), now.toISOString());
+    // Durée de ménage apprise des pointages réels (si activée pour ce logement)
+    tasks = applyPlan(tasks, planTasks(withLearnedDuration(p, tasks), state.reservations, tasks, now), now.toISOString());
   }
   return { tasks };
 }
@@ -170,6 +195,7 @@ export const useHalo = create<HaloState>()(
           linenTypes: defaultLinenTypes(),
           linenMovements: [],
           laundryOrders: [],
+          services: [],
           currentAgentId: "",
           seeded: true,
         })),
@@ -349,6 +375,52 @@ export const useHalo = create<HaloState>()(
           }),
         })),
 
+      setTaskDuration: (id, minutes) =>
+        set((s) => ({
+          tasks: s.tasks.map((x) => (x.id === id ? { ...x, durationMin: Math.max(15, Math.min(600, Math.round(minutes))), durationLocked: true } : x)),
+        })),
+      updateTaskReport: (id, update) =>
+        set((s) => ({ tasks: s.tasks.map((x) => (x.id === id ? { ...x, report: update(x.report ?? emptyReport()) } : x)) })),
+      finishTask: (id, reporterName) => {
+        const task = get().tasks.find((x) => x.id === id);
+        const property = task && get().properties.find((p) => p.id === task.propertyId);
+        if (!task || !property) return 0;
+        const report = task.report ?? emptyReport();
+        const rooms = { ...report.rooms };
+        let created = 0;
+        for (const room of property.checklist) {
+          const r = rooms[room.id] ?? {};
+          if (!r.status) {
+            rooms[room.id] = { ...r, status: "ok" };
+            continue;
+          }
+          if (r.status === "ok") continue;
+          get().addAlert({
+            propertyId: property.id,
+            taskId: task.id,
+            reservationId: task.reservationId,
+            source: "agent",
+            reporterName,
+            category: ROOM_ALERT[r.status],
+            location: { kind: "room", ref: room.id, label: room.name },
+            description: r.comment?.trim() || room.name,
+            urgent: false,
+            photoIds: r.photoIds ?? [],
+          });
+          created += 1;
+        }
+        get().updateTaskReport(id, () => ({ ...report, rooms }));
+        get().setTaskStatus(id, "done");
+        return created;
+      },
+
+      addService: (input) => {
+        const id = newId("svc");
+        set((s) => ({ services: [{ status: "requested", ...input, id, createdAt: new Date().toISOString() }, ...s.services] }));
+        return id;
+      },
+      updateService: (id, patch) => set((s) => ({ services: s.services.map((x) => (x.id === id ? { ...x, ...patch } : x)) })),
+
       addAlert: (input) => {
         const id = newId("alert");
         set((s) => ({
@@ -480,7 +552,7 @@ export const useHalo = create<HaloState>()(
     }),
     {
       name: "halo-demo-v1",
-      version: 2,
+      version: 3,
       // v1 → v2 : équipements, livret voyageur, alertes, linge
       migrate: (persisted, version) => {
         const data = persisted as Partial<HaloData> & { seeded?: boolean };
@@ -498,6 +570,11 @@ export const useHalo = create<HaloState>()(
           data.laundryOrders = data.laundryOrders ?? [];
           data.linenSettings = data.linenSettings ?? DEFAULT_LINEN_SETTINGS;
         }
+        // v2 → v3 : postes, prestations, VIP, pointage
+        if (version < 3) {
+          data.members = (data.members ?? []).map((m) => (m.role === "agent" && !m.position ? { ...m, position: "housekeeper" as const } : m));
+          data.services = data.services ?? [];
+        }
         return data as HaloState;
       },
       storage: createJSONStorage(() => safeStorage),
@@ -514,6 +591,7 @@ export const useHalo = create<HaloState>()(
         linenMovements: s.linenMovements,
         laundryOrders: s.laundryOrders,
         linenSettings: s.linenSettings,
+        services: s.services,
         currentAgentId: s.currentAgentId,
       }),
     },

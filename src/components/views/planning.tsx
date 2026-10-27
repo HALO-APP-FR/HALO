@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { AlertTriangle, Sparkles, Wand2 } from "lucide-react";
+import { AlertTriangle, GripVertical, Hand, Sparkles, Wand2 } from "lucide-react";
 import { initialsOf, type Member, type Property, type Task } from "@/lib/domain/types";
-import { autoAssign, detectConflicts } from "@/lib/engine/conflicts";
+import { autoAssign, conflictsIfAssigned, detectConflicts } from "@/lib/engine/conflicts";
+import { formatDuration } from "@/lib/engine/learning";
+import { placeTask, SNAP_MIN } from "@/lib/engine/schedule";
 import { addDaysToKey, formatLocalTime, localDateKey, localMinutesOfDay } from "@/lib/engine/time";
 import { useHalo } from "@/lib/store/halo-store";
 import { activeAgents, byId, taskAnchor, tasksOfDay } from "@/lib/store/selectors";
@@ -22,12 +24,109 @@ import { ReadyGate } from "@/components/halo/ready-gate";
 import { StatusPill } from "@/components/halo/status-pill";
 import { TASK_TYPE_META } from "@/components/halo/task-type";
 import { TaskSheet } from "@/components/halo/task-sheet";
+import { VipBadge } from "@/components/halo/vip-badge";
 import { cn } from "@/lib/utils";
 
 const START_H = 7;
 const END_H = 22;
 const HOUR_PX = 64;
 const UNASSIGNED = "__unassigned";
+
+/* ---------- Glisser-déposer : prendre une mission et la poser sur un agent ---------- */
+interface DropTarget {
+  /** null = remettre « à assigner ». */
+  agentId: string | null;
+  dayKey: string;
+  /** Minutes locales visées (colonne horaire de la vue jour). */
+  minutes?: number;
+}
+interface DragState {
+  task: Task;
+  x: number;
+  y: number;
+  grab: number;
+  width: number;
+  target?: DropTarget;
+}
+
+const draggable = (task: Task) => task.status === "unassigned" || task.status === "assigned";
+
+function findTarget(x: number, y: number, grab: number): DropTarget | undefined {
+  const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-drop-day]");
+  if (!el) return undefined;
+  const agent = el.dataset.dropAgent ?? "";
+  const target: DropTarget = { agentId: agent === UNASSIGNED ? null : agent, dayKey: el.dataset.dropDay! };
+  if (el.dataset.dropTimeline) {
+    const rect = el.getBoundingClientRect();
+    const raw = START_H * 60 + ((y - grab - rect.top) / HOUR_PX) * 60;
+    target.minutes = Math.round(raw / SNAP_MIN) * SNAP_MIN;
+  }
+  return target;
+}
+
+function useDragAssign(onDrop: (task: Task, target: DropTarget) => void) {
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const begin = (e: React.PointerEvent<HTMLElement>, task: Task) => {
+    if (e.button !== 0 || !draggable(task)) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const grab = Math.min(e.clientY - rect.top, 24);
+    let active = false;
+    let last: DragState | null = null;
+    const move = (ev: PointerEvent) => {
+      if (!active && Math.hypot(ev.clientX - startX, ev.clientY - startY) < 6) return;
+      if (!active) {
+        active = true;
+        document.body.style.userSelect = "none";
+        document.body.style.cursor = "grabbing";
+      }
+      ev.preventDefault();
+      last = { task, x: ev.clientX, y: ev.clientY, grab, width: Math.min(rect.width, 240), target: findTarget(ev.clientX, ev.clientY, grab) };
+      setDrag(last);
+    };
+    const end = (ev: PointerEvent) => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+      document.body.style.userSelect = "";
+      document.body.style.cursor = "";
+      if (active) {
+        // Le relâchement ne doit pas ouvrir la fiche de la mission
+        const stop = (c: MouseEvent) => {
+          c.stopPropagation();
+          c.preventDefault();
+        };
+        window.addEventListener("click", stop, { capture: true, once: true });
+        window.setTimeout(() => window.removeEventListener("click", stop, { capture: true }), 50);
+        if (ev.type === "pointerup" && last?.target) onDrop(task, last.target);
+      }
+      setDrag(null);
+    };
+    window.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+  };
+  return { drag, begin };
+}
+
+function DragGhost({ drag, property }: { drag: DragState; property?: Property }) {
+  const t = useTranslations();
+  const locale = useLocale();
+  return (
+    <div
+      className="pointer-events-none fixed z-50 -rotate-2 rounded-md border border-accent bg-surface px-3 py-2 shadow-float"
+      style={{ left: drag.x - 16, top: drag.y - drag.grab, width: drag.width }}
+      aria-hidden
+    >
+      <span className={cn("absolute inset-y-0 start-0 w-1 rounded-s-md", TASK_TYPE_META[drag.task.type].bar)} />
+      <span className="block truncate text-[13px] font-semibold">{property?.name}</span>
+      <span className="block truncate text-caption text-muted">
+        {t(`taskType.${drag.task.type}`)} · {formatDuration(drag.task.durationMin, locale)}
+      </span>
+    </div>
+  );
+}
 
 export function Planning({ initialDay }: { initialDay?: string }) {
   return (
@@ -55,6 +154,33 @@ function PlanningInner({ initialDay }: { initialDay?: string }) {
   const conflictIds = useMemo(() => new Set(detectConflicts(tasks).map((c) => c.taskId)), [tasks]);
   const dayTasks = tasksOfDay(tasks, properties, dayKey);
   const toAssign = dayTasks.filter((x) => x.status === "unassigned");
+
+  const props = byId(properties);
+  const onDrop = (task: Task, target: DropTarget) => {
+    const { assignTask } = useHalo.getState();
+    if (target.agentId === null) {
+      if (task.assigneeId) {
+        assignTask(task.id, undefined);
+        toast(t("taskSheet.unassignedToast"));
+      }
+      return;
+    }
+    const p = props.get(task.propertyId);
+    const tz = p?.timezone ?? org.timezone;
+    const minutes = target.minutes ?? localMinutesOfDay(new Date(taskAnchor(task)), tz);
+    const placed = placeTask(task, target.dayKey, minutes, tz);
+    if (!placed.ok) {
+      toast(t("planning.dropOutside"));
+      return;
+    }
+    const overlap = conflictsIfAssigned(task, target.agentId, placed.start, tasks).some((c) => c.kind === "overlap");
+    assignTask(task.id, target.agentId, placed.start);
+    const name = members.find((m) => m.id === target.agentId)?.name ?? "";
+    toast(t("planning.dropDone", { name, time: formatLocalTime(new Date(placed.start), tz, locale) }), {
+      description: overlap ? t("conflict.overlap") : placed.adjusted ? t("planning.dropAdjusted") : undefined,
+    });
+  };
+  const { drag, begin } = useDragAssign(onDrop);
 
   const runAuto = () => {
     const result = autoAssign(toAssign, agents.map((a) => a.id), tasks);
@@ -106,8 +232,12 @@ function PlanningInner({ initialDay }: { initialDay?: string }) {
       {view === "day" ? (
         <>
           <DayLabel dayKey={dayKey} />
-          {toAssign.length > 0 && (
-            <Card className="mb-4 p-4">
+          {(toAssign.length > 0 || drag) && (
+            <Card
+              className={cn("mb-4 p-4 transition-shadow", drag?.target?.agentId === null && "ring-2 ring-danger")}
+              data-drop-day={dayKey}
+              data-drop-agent={UNASSIGNED}
+            >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-[15px] font-semibold">
                   <span className="grid size-7 place-items-center rounded-md bg-danger-soft text-danger">
@@ -115,6 +245,10 @@ function PlanningInner({ initialDay }: { initialDay?: string }) {
                   </span>
                   {t("planning.toAssign", { count: toAssign.length })}
                 </div>
+                <span className="hidden items-center gap-1.5 text-caption text-muted md:flex">
+                  <Hand className="size-3.5" />
+                  {t("planning.dragHint")}
+                </span>
                 <Button onClick={runAuto} disabled={agents.length === 0}>
                   <Wand2 />
                   {t("planning.autoAssign")}
@@ -123,7 +257,7 @@ function PlanningInner({ initialDay }: { initialDay?: string }) {
               <ul className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
                 {toAssign.map((task) => (
                   <li key={task.id} className="shrink-0">
-                    <TaskChip task={task} property={properties.find((p) => p.id === task.propertyId)} onOpen={setOpenTask} />
+                    <TaskChip task={task} property={properties.find((p) => p.id === task.propertyId)} onOpen={setOpenTask} onDragStart={begin} dragging={drag?.task.id === task.id} />
                   </li>
                 ))}
               </ul>
@@ -136,7 +270,16 @@ function PlanningInner({ initialDay }: { initialDay?: string }) {
             </Card>
           ) : (
             <>
-              <DayGrid tasks={dayTasks.filter((x) => x.assigneeId)} agents={agents} properties={properties} conflicts={conflictIds} onOpen={setOpenTask} />
+              <DayGrid
+                dayKey={dayKey}
+                tasks={dayTasks.filter((x) => x.assigneeId)}
+                agents={agents}
+                properties={properties}
+                conflicts={conflictIds}
+                onOpen={setOpenTask}
+                drag={drag}
+                onDragStart={begin}
+              />
               <DayListMobile tasks={dayTasks} agents={agents} properties={properties} conflicts={conflictIds} onOpen={setOpenTask} />
             </>
           )}
@@ -153,8 +296,23 @@ function PlanningInner({ initialDay }: { initialDay?: string }) {
           }}
         />
       ) : (
-        <WeekGrid start={weekStart(dayKey)} todayKey={todayKey} tasks={tasks} properties={properties} agents={agents} conflicts={conflictIds} onOpen={setOpenTask} onPickDay={(k) => { setDayKey(k); setView("day"); }} />
+        <WeekGrid
+          start={weekStart(dayKey)}
+          todayKey={todayKey}
+          tasks={tasks}
+          properties={properties}
+          agents={agents}
+          conflicts={conflictIds}
+          onOpen={setOpenTask}
+          onPickDay={(k) => {
+            setDayKey(k);
+            setView("day");
+          }}
+          drag={drag}
+          onDragStart={begin}
+        />
       )}
+      {drag && <DragGhost drag={drag} property={props.get(drag.task.propertyId)} />}
 
       <TaskSheet taskId={openTask} onClose={() => setOpenTask(null)} />
       <AutoAssignSheet
@@ -190,7 +348,19 @@ function DayLabel({ dayKey }: { dayKey: string }) {
   );
 }
 
-function TaskChip({ task, property, onOpen }: { task: Task; property?: Property; onOpen: (id: string) => void }) {
+function TaskChip({
+  task,
+  property,
+  onOpen,
+  onDragStart,
+  dragging,
+}: {
+  task: Task;
+  property?: Property;
+  onOpen: (id: string) => void;
+  onDragStart: (e: React.PointerEvent<HTMLElement>, task: Task) => void;
+  dragging: boolean;
+}) {
   const t = useTranslations();
   const locale = useLocale();
   const tz = property?.timezone ?? "UTC";
@@ -198,13 +368,21 @@ function TaskChip({ task, property, onOpen }: { task: Task; property?: Property;
     <button
       type="button"
       onClick={() => onOpen(task.id)}
-      className="flex items-center gap-2 rounded-lg border border-danger/30 bg-surface px-3 py-2 text-start transition-colors hover:bg-danger-soft"
+      onPointerDown={(e) => onDragStart(e, task)}
+      className={cn(
+        "flex items-center gap-2 rounded-lg border border-danger/30 bg-surface py-2 pe-3 ps-1.5 text-start transition-[colors,opacity] hover:bg-danger-soft md:cursor-grab md:touch-none",
+        dragging && "opacity-30",
+      )}
     >
+      <GripVertical className="hidden size-4 shrink-0 text-faint md:block" aria-hidden />
       <span className={cn("h-8 w-1 rounded-full", TASK_TYPE_META[task.type].bar)} aria-hidden />
       <span>
-        <span className="block text-[14px] font-semibold">{property?.name}</span>
+        <span className="flex items-center gap-1.5 text-[14px] font-semibold">
+          {property?.name}
+          {task.vip && <VipBadge />}
+        </span>
         <span className="block text-caption text-muted tabular">
-          {t(`taskType.${task.type}`)} · {formatLocalTime(new Date(task.windowStart), tz, locale)} → {formatLocalTime(new Date(task.windowEnd), tz, locale)}
+          {t(`taskType.${task.type}`)} · {formatDuration(task.durationMin, locale)} · {formatLocalTime(new Date(task.windowStart), tz, locale)} → {formatLocalTime(new Date(task.windowEnd), tz, locale)}
         </span>
       </span>
     </button>
@@ -213,17 +391,23 @@ function TaskChip({ task, property, onOpen }: { task: Task; property?: Property;
 
 /* ---------- Vue jour (ordinateur) : une colonne par agent ---------- */
 function DayGrid({
+  dayKey,
   tasks,
   agents,
   properties,
   conflicts,
   onOpen,
+  drag,
+  onDragStart,
 }: {
+  dayKey: string;
   tasks: Task[];
   agents: Member[];
   properties: Property[];
   conflicts: Set<string>;
   onOpen: (id: string) => void;
+  drag: DragState | null;
+  onDragStart: (e: React.PointerEvent<HTMLElement>, task: Task) => void;
 }) {
   const t = useTranslations();
   const locale = useLocale();
@@ -238,12 +422,17 @@ function DayGrid({
           {/* En-têtes */}
           <div className="sticky top-0 z-10 border-b border-line bg-surface" />
           {agents.map((a) => {
-            const count = tasks.filter((x) => x.assigneeId === a.id).length;
+            const mine = tasks.filter((x) => x.assigneeId === a.id);
+            const minutes = mine.reduce((n, x) => n + x.durationMin, 0);
             return (
               <div key={a.id} className="sticky top-0 z-10 flex items-center gap-2 border-b border-s border-line bg-surface px-3 py-3">
                 <Avatar initials={initialsOf(a.name)} color={a.color} size="sm" className="ring-0" />
-                <span className="min-w-0 truncate text-[14px] font-semibold">{a.name}</span>
-                <span className="ms-auto text-caption text-muted tabular">{count}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[14px] font-semibold">{a.name}</span>
+                  <span className="block text-caption text-muted tabular">
+                    {mine.length ? `${mine.length} · ${formatDuration(minutes, locale)}` : t(`position.${a.position ?? "housekeeper"}`)}
+                  </span>
+                </span>
               </div>
             );
           })}
@@ -259,10 +448,18 @@ function DayGrid({
 
           {/* Colonnes agents */}
           {agents.map((a) => (
-            <div key={a.id} className="relative border-s border-line" style={{ height: (END_H - START_H) * HOUR_PX }}>
+            <div
+              key={a.id}
+              className={cn("relative border-s border-line transition-colors", drag?.target?.agentId === a.id && "bg-accent-soft/50")}
+              style={{ height: (END_H - START_H) * HOUR_PX }}
+              data-drop-day={dayKey}
+              data-drop-agent={a.id}
+              data-drop-timeline="1"
+            >
               {hours.map((h) => (
                 <span key={h} className="absolute inset-x-0 border-t border-line/60" style={{ top: (h - START_H) * HOUR_PX }} aria-hidden />
               ))}
+              {drag?.target?.agentId === a.id && drag.target.minutes !== undefined && <DropPreview drag={drag} dayKey={dayKey} property={props.get(drag.task.propertyId)} top={top} />}
               {tasks
                 .filter((x) => x.assigneeId === a.id)
                 .map((task) => {
@@ -277,21 +474,25 @@ function DayGrid({
                       key={task.id}
                       type="button"
                       onClick={() => onOpen(task.id)}
+                      onPointerDown={(e) => onDragStart(e, task)}
                       className={cn(
-                        "absolute inset-x-1.5 overflow-hidden rounded-md border bg-surface px-2.5 py-1.5 text-start shadow-card transition-shadow hover:shadow-float",
+                        "absolute inset-x-1.5 overflow-hidden rounded-md border bg-surface px-2.5 py-1.5 text-start shadow-card transition-[box-shadow,opacity] hover:shadow-float",
                         conflict ? "border-warning ring-1 ring-warning" : "border-line",
                         done && "opacity-60",
+                        draggable(task) && "cursor-grab touch-none",
+                        drag?.task.id === task.id && "opacity-25",
                       )}
                       style={{ top: top(start) + 2, height }}
                     >
                       <span className={cn("absolute inset-y-0 start-0 w-1", TASK_TYPE_META[task.type].bar)} aria-hidden />
                       <span className="flex items-center gap-1.5">
                         <span className="truncate text-[13px] font-semibold">{p?.name}</span>
+                        {task.vip && <VipBadge className="px-1.5 py-0" />}
                         {conflict && <AlertTriangle className="size-3.5 shrink-0 text-warning" aria-label={t("conflict.overlap")} />}
                       </span>
                       {height > 40 && (
                         <span className="block truncate text-caption text-muted tabular">
-                          {formatLocalTime(new Date(taskAnchor(task)), tz, locale)} · {t(`taskType.${task.type}`)}
+                          {formatLocalTime(new Date(taskAnchor(task)), tz, locale)} · {formatDuration(task.durationMin, locale)} · {t(`taskType.${task.type}`)}
                         </span>
                       )}
                       {height > 64 && <StatusPill status={task.status} className="mt-1" />}
@@ -303,6 +504,29 @@ function DayGrid({
         </div>
       </div>
     </Card>
+  );
+}
+
+/** Fantôme de dépôt : où la mission va réellement atterrir (recalée dans sa fenêtre). */
+function DropPreview({ drag, dayKey, property, top }: { drag: DragState; dayKey: string; property?: Property; top: (min: number) => number }) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const tz = property?.timezone ?? "UTC";
+  const placed = placeTask(drag.task, dayKey, drag.target?.minutes ?? 0, tz);
+  const minutes = placed.ok ? localMinutesOfDay(new Date(placed.start), tz) : drag.target?.minutes ?? 0;
+  const height = Math.max((drag.task.durationMin / 60) * HOUR_PX - 4, 28);
+  return (
+    <div
+      className={cn(
+        "pointer-events-none absolute inset-x-1.5 z-10 rounded-md border-2 border-dashed px-2.5 py-1.5",
+        !placed.ok ? "border-danger bg-danger-soft/70" : placed.adjusted ? "border-warning bg-warning-soft/70" : "border-accent bg-accent-soft/70",
+      )}
+      style={{ top: top(minutes) + 2, height }}
+    >
+      <span className={cn("text-[13px] font-bold tabular", !placed.ok ? "text-danger" : placed.adjusted ? "text-warning" : "text-accent-text")}>
+        {placed.ok ? formatLocalTime(new Date(placed.start), tz, locale) : t("planning.outsideWindow")}
+      </span>
+    </div>
   );
 }
 
@@ -390,6 +614,8 @@ function WeekGrid({
   conflicts,
   onOpen,
   onPickDay,
+  drag,
+  onDragStart,
 }: {
   start: string;
   todayKey: string;
@@ -399,6 +625,8 @@ function WeekGrid({
   conflicts: Set<string>;
   onOpen: (id: string) => void;
   onPickDay: (dayKey: string) => void;
+  drag: DragState | null;
+  onDragStart: (e: React.PointerEvent<HTMLElement>, task: Task) => void;
 }) {
   const t = useTranslations();
   const locale = useLocale();
@@ -448,8 +676,18 @@ function WeekGrid({
                 </th>
                 {days.map((d) => {
                   const cell = (byDay.get(d) ?? []).filter((x) => (row.id === UNASSIGNED ? x.status === "unassigned" : x.assigneeId === row.id));
+                  const hovered = drag?.target?.dayKey === d && (drag.target.agentId ?? UNASSIGNED) === row.id;
                   return (
-                    <td key={d} className={cn("border-b border-s border-line p-1.5 align-top", d === todayKey && "bg-accent-soft/40")}>
+                    <td
+                      key={d}
+                      className={cn(
+                        "h-14 border-b border-s border-line p-1.5 align-top transition-colors",
+                        d === todayKey && "bg-accent-soft/40",
+                        hovered && "bg-accent-soft outline outline-2 -outline-offset-2 outline-accent",
+                      )}
+                      data-drop-day={d}
+                      data-drop-agent={row.id}
+                    >
                       <ul className="space-y-1">
                         {cell.map((task) => {
                           const p = props.get(task.propertyId);
@@ -458,14 +696,19 @@ function WeekGrid({
                               <button
                                 type="button"
                                 onClick={() => onOpen(task.id)}
+                                onPointerDown={(e) => onDragStart(e, task)}
                                 className={cn(
-                                  "relative w-full overflow-hidden rounded-md border bg-surface py-1 pe-1.5 ps-2.5 text-start text-[12px] leading-4 transition-colors hover:bg-surface-hover",
+                                  "relative w-full overflow-hidden rounded-md border bg-surface py-1 pe-1.5 ps-2.5 text-start text-[12px] leading-4 transition-[colors,opacity] hover:bg-surface-hover",
                                   conflicts.has(task.id) ? "border-warning" : row.id === UNASSIGNED ? "border-danger/40" : "border-line",
+                                  draggable(task) && "cursor-grab touch-none",
+                                  drag?.task.id === task.id && "opacity-25",
                                 )}
                               >
                                 <span className={cn("absolute inset-y-0 start-0 w-1", TASK_TYPE_META[task.type].bar)} aria-hidden />
                                 <span className="block truncate font-semibold">{p?.name}</span>
-                                <span className="block truncate text-muted tabular">{formatLocalTime(new Date(taskAnchor(task)), p?.timezone ?? "UTC", locale)}</span>
+                                <span className="block truncate text-muted tabular">
+                                  {formatLocalTime(new Date(taskAnchor(task)), p?.timezone ?? "UTC", locale)} · {formatDuration(task.durationMin, locale)}
+                                </span>
                               </button>
                             </li>
                           );
@@ -610,7 +853,8 @@ function AutoAssignSheet({
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[15px] font-semibold">{p?.name}</span>
                       <span className="block text-caption text-muted">
-                        {agent?.name} · {formatLocalTime(new Date(a.scheduledStart), p?.timezone ?? "UTC", locale)}
+                        {agent?.name} · {formatLocalTime(new Date(a.scheduledStart), p?.timezone ?? "UTC", locale)} →{" "}
+                        {formatLocalTime(new Date(new Date(a.scheduledStart).getTime() + task.durationMin * 60_000), p?.timezone ?? "UTC", locale)} ({formatDuration(task.durationMin, locale)})
                       </span>
                     </span>
                     <Badge>{t(`taskType.${task.type}`)}</Badge>

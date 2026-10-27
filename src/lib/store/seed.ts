@@ -13,10 +13,12 @@ import type {
   Organization,
   Property,
   Reservation,
+  ServiceRequest,
   Task,
 } from "@/lib/domain/types";
 import { DEFAULT_LINEN } from "@/lib/domain/linen-catalog";
 import { buildChecklist, newId } from "@/lib/domain/templates";
+import { withLearnedDuration } from "@/lib/engine/learning";
 import { kitFor, parLevelTarget } from "@/lib/engine/linen";
 import { planTasks } from "@/lib/engine/tasks";
 import { addDaysToKey, localDateKey, zonedTimeToUtc } from "@/lib/engine/time";
@@ -32,6 +34,7 @@ export interface HaloData {
   linenMovements: LinenMovement[];
   laundryOrders: LaundryOrder[];
   linenSettings: LinenSettings;
+  services: ServiceRequest[];
   currentAgentId: string;
 }
 
@@ -71,10 +74,14 @@ export function buildDemoData(now: Date, locale: string): HaloData {
   const nowIso = now.toISOString();
   const members: Member[] = [
     { id: "m_owner", name: "Mathieu D.", role: "owner", color: "#0B0B0C", active: true },
-    { id: "m_ines", name: "Inès Moreau", role: "agent", phone: "+33 6 12 34 56 78", color: "#0055FF", active: true },
-    { id: "m_karim", name: "Karim Benali", role: "agent", phone: "+33 6 98 76 54 32", color: "#1F9D55", active: true },
-    { id: "m_lucia", name: "Lucía Gómez", role: "agent", phone: "+351 912 345 678", color: "#8E4EC6", active: true },
-    { id: "m_tomas", name: "Tomás Silva", role: "agent", phone: "+351 913 222 111", color: "#B86E00", active: true },
+    { id: "m_ines", name: "Inès Moreau", role: "agent", position: "housekeeper", phone: "+33 6 12 34 56 78", color: "#0055FF", active: true },
+    { id: "m_karim", name: "Karim Benali", role: "agent", position: "housekeeper", phone: "+33 6 98 76 54 32", color: "#1F9D55", active: true },
+    { id: "m_lucia", name: "Lucía Gómez", role: "agent", position: "housekeeper", phone: "+351 912 345 678", color: "#8E4EC6", active: true },
+    { id: "m_tomas", name: "Tomás Silva", role: "agent", position: "housekeeper", phone: "+351 913 222 111", color: "#B86E00", active: true },
+    { id: "m_hugo", name: "Hugo Lefèvre", role: "agent", position: "maintenance", phone: "+33 6 45 12 78 90", color: "#4E5D6C", active: true },
+    { id: "m_camille", name: "Camille Bernard", role: "agent", position: "concierge", phone: "+33 6 77 21 43 65", color: "#C2185B", active: true },
+    { id: "m_sofiane", name: "Sofiane Haddad", role: "agent", position: "driver", phone: "+33 6 31 54 76 98", color: "#0E7C86", active: true },
+    { id: "m_julien", name: "Julien Roux", role: "agent", position: "chef", phone: "+33 6 58 90 12 34", color: "#7A5C3E", active: true },
   ];
 
   const base = (over: Partial<Property> & Pick<Property, "id" | "name" | "area" | "city" | "timezone" | "countryCode">, template: string): Property => ({
@@ -115,6 +122,7 @@ export function buildDemoData(now: Date, locale: string): HaloData {
   // Séjours relatifs à aujourd'hui (jour local du logement) : [arrivée, départ, voyageurs, heure d'arrivée?]
   // [arrivée, départ, adultes, enfants, bébés, animaux, nom, heure d'arrivée?]
   type Stay = [number, number, number, number, number, number, string, string?];
+  const VIP_GUESTS = new Set(["Famille Martin", "Groupe Ahmed", "Emma"]);
   const stays: Record<string, Stay[]> = {
     p_marais: [[-3, 0, 2, 0, 0, 1, "Thomas"], [0, 3, 2, 2, 0, 0, "Famille Rossi", "15:00"], [3, 6, 3, 0, 0, 0, "Emma"], [8, 11, 2, 0, 0, 0, "Yuki"]],
     p_bastille: [[-2, 0, 2, 0, 0, 0, "Lena"], [0, 2, 2, 0, 0, 0, "Paul"], [4, 7, 2, 0, 0, 0, "Sara"]],
@@ -138,6 +146,8 @@ export function buildDemoData(now: Date, locale: string): HaloData {
         babies,
         pets,
         guestsCount: adults + children,
+        vip: VIP_GUESTS.has(guestName) || undefined,
+        notes: guestName === "Groupe Ahmed" ? (locale === "fr" ? "Client fidèle : champagne et fleurs à l'arrivée." : "Loyal client: champagne and flowers on arrival.") : undefined,
         checkInAt: zonedTimeToUtc(addDaysToKey(today, inD), inTime ?? p.defaultCheckIn, p.timezone).toISOString(),
         checkOutAt: zonedTimeToUtc(addDaysToKey(today, outD), p.defaultCheckOut, p.timezone).toISOString(),
         status: "confirmed",
@@ -145,8 +155,39 @@ export function buildDemoData(now: Date, locale: string): HaloData {
     }
   }
 
+  // ---------- Historique : 3 semaines de ménages pointés (durées réelles, heures travaillées) ----------
   let tasks: Task[] = [];
-  for (const p of properties) tasks = applyPlan(tasks, planTasks(p, reservations, tasks, now), nowIso);
+  const housekeepers = ["m_ines", "m_karim", "m_lucia", "m_tomas"];
+  let seq = 0;
+  for (const p of properties) {
+    const today = localDateKey(now, p.timezone);
+    for (let d = 22; d >= 1; d -= 3) {
+      seq += 1;
+      // Durée réelle : un peu plus rapide que prévu en moyenne, avec de la variation
+      const factor = 0.78 + ((seq * 37) % 25) / 100;
+      const actual = Math.round(p.cleaningDurationMin * factor);
+      const start = zonedTimeToUtc(addDaysToKey(today, -d), "11:10", p.timezone);
+      const end = new Date(start.getTime() + actual * 60_000);
+      tasks.push({
+        id: newId("task"),
+        propertyId: p.id,
+        type: "turnover",
+        status: "validated",
+        priority: "normal",
+        isAutoGenerated: true,
+        windowStart: zonedTimeToUtc(addDaysToKey(today, -d), p.defaultCheckOut, p.timezone).toISOString(),
+        windowEnd: zonedTimeToUtc(addDaysToKey(today, -d), p.defaultCheckIn, p.timezone).toISOString(),
+        scheduledStart: start.toISOString(),
+        durationMin: p.cleaningDurationMin,
+        assigneeId: housekeepers[seq % housekeepers.length],
+        guestsCount: 2,
+        startedAt: start.toISOString(),
+        completedAt: end.toISOString(),
+        createdAt: start.toISOString(),
+      });
+    }
+  }
+  for (const p of properties) tasks = applyPlan(tasks, planTasks(withLearnedDuration(p, tasks), reservations, tasks, now), nowIso);
 
   // Situation réaliste du jour : certaines missions déjà assignées, une en cours, une à valider
   const todayTasks = (propertyId: string, type: Task["type"]) =>
@@ -234,6 +275,87 @@ export function buildDemoData(now: Date, locale: string): HaloData {
     },
   ];
 
+  // ---------- Prestations haut de gamme ----------
+  const stayOf = (propertyId: string, guestName: string) => reservations.find((r) => r.propertyId === propertyId && r.guestName === guestName);
+  const svcAt = (propertyId: string, days: number, time: string) => {
+    const p = properties.find((pp) => pp.id === propertyId)!;
+    return zonedTimeToUtc(addDaysToKey(localDateKey(now, p.timezone), days), time, p.timezone).toISOString();
+  };
+  const fr = locale === "fr";
+  const services: ServiceRequest[] = [
+    {
+      id: newId("svc"),
+      propertyId: "p_montmartre",
+      reservationId: stayOf("p_montmartre", "Groupe Ahmed")?.id,
+      guestName: "Groupe Ahmed",
+      kind: "private_chef",
+      startAt: svcAt("p_montmartre", 0, "20:00"),
+      people: 6,
+      details: fr ? "Menu dégustation, une personne végétarienne." : "Tasting menu, one vegetarian guest.",
+      status: "confirmed",
+      assigneeId: "m_julien",
+      price: 540,
+      source: "guest",
+      createdAt: new Date(now.getTime() - 2 * 86_400_000).toISOString(),
+    },
+    {
+      id: newId("svc"),
+      propertyId: "p_montmartre",
+      reservationId: stayOf("p_montmartre", "Groupe Ahmed")?.id,
+      guestName: "Groupe Ahmed",
+      kind: "airport_transfer",
+      startAt: svcAt("p_montmartre", 3, "09:30"),
+      people: 6,
+      details: fr ? "Van, 8 valises, vol CDG 12:45." : "Van, 8 suitcases, CDG flight 12:45.",
+      status: "requested",
+      source: "guest",
+      createdAt: new Date(now.getTime() - 3 * 3_600_000).toISOString(),
+    },
+    {
+      id: newId("svc"),
+      propertyId: "p_belleville",
+      reservationId: stayOf("p_belleville", "Famille Martin")?.id,
+      guestName: "Famille Martin",
+      kind: "grocery",
+      startAt: svcAt("p_belleville", 0, "14:00"),
+      people: 5,
+      details: fr ? "Petit-déjeuner, lait infantile, fruits." : "Breakfast, baby formula, fruit.",
+      status: "confirmed",
+      assigneeId: "m_camille",
+      price: 85,
+      source: "manager",
+      createdAt: new Date(now.getTime() - 86_400_000).toISOString(),
+    },
+    {
+      id: newId("svc"),
+      propertyId: "p_belleville",
+      reservationId: stayOf("p_belleville", "Famille Martin")?.id,
+      guestName: "Famille Martin",
+      kind: "restaurant",
+      startAt: svcAt("p_belleville", 1, "20:30"),
+      people: 4,
+      details: fr ? "Table calme, cuisine française, chaise haute." : "Quiet table, French cuisine, high chair.",
+      status: "requested",
+      source: "guest",
+      createdAt: new Date(now.getTime() - 50 * 60_000).toISOString(),
+    },
+    {
+      id: newId("svc"),
+      propertyId: "p_marais",
+      reservationId: stayOf("p_marais", "Emma")?.id,
+      guestName: "Emma",
+      kind: "flowers",
+      startAt: svcAt("p_marais", 3, "15:00"),
+      details: fr ? "Bouquet et champagne pour un anniversaire." : "Flowers and champagne for a birthday.",
+      status: "confirmed",
+      assigneeId: "m_camille",
+      provider: fr ? "Fleuriste Rosa" : "Rosa Florist",
+      price: 120,
+      source: "manager",
+      createdAt: new Date(now.getTime() - 86_400_000).toISOString(),
+    },
+  ];
+
   return {
     org: { name: "HALO Demo", countryCode: "FR", timezone: "Europe/Paris" },
     members,
@@ -245,6 +367,7 @@ export function buildDemoData(now: Date, locale: string): HaloData {
     linenMovements,
     laundryOrders,
     linenSettings: { ...DEFAULT_LINEN_SETTINGS, laundryName: "Blanchisserie du Canal" },
+    services,
     currentAgentId: "m_ines",
   };
 }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { CalendarPlus, ChevronLeft, ChevronRight, Link2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, Link2, Plus, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import type { Property, Reservation, ReservationSource } from "@/lib/domain/types";
 import { parseIcs } from "@/lib/engine/ical";
 import { PET_EXTRA_MIN } from "@/lib/engine/tasks";
@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { SwitchRow } from "@/components/ui/switch";
 import { EmptyState } from "./empty-state";
 import { GuestBadges } from "./guest-badges";
 import { Stepper } from "./property-create-sheet";
@@ -135,18 +136,25 @@ export function PropertyCalendar({ property }: { property: Property }) {
                         className={cn(
                           "absolute bottom-3 h-2",
                           arriving ? "start-1/2 end-0 rounded-s-full" : "start-0 end-0",
-                          blocked ? "bg-line-strong" : "bg-accent",
+                          blocked ? "bg-line-strong" : night.vip ? "bg-vip" : "bg-accent",
                         )}
                         aria-hidden
                       />
                     )}
                     {leaving && (
                       <span
-                        className={cn("absolute bottom-3 start-0 end-1/2 h-2 rounded-e-full", leaving.status === "blocked" ? "bg-line-strong" : "bg-accent")}
+                        className={cn("absolute bottom-3 start-0 end-1/2 h-2 rounded-e-full", leaving.status === "blocked" ? "bg-line-strong" : leaving.vip ? "bg-vip" : "bg-accent")}
                         aria-hidden
                       />
                     )}
-                    {turnover && <span className="absolute bottom-0.5 size-1.5 rounded-full bg-type-turnover ring-2 ring-surface" aria-hidden />}
+                    {turnover && (
+                      <span
+                        className={cn("absolute start-1/2 top-0 z-20 ms-2 grid size-4 place-items-center rounded-full bg-type-turnover text-white ring-2 ring-surface", d < todayKey && "opacity-40")}
+                        aria-hidden
+                      >
+                        <Sparkles className="size-2.5" strokeWidth={2.6} />
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -159,7 +167,13 @@ export function PropertyCalendar({ property }: { property: Property }) {
                 <span className="h-2 w-5 rounded-full bg-line-strong" aria-hidden /> {t("calendar.legendBlocked")}
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-type-turnover" aria-hidden /> {t("calendar.legendCleaning")}
+                <span className="h-2 w-5 rounded-full bg-vip" aria-hidden /> {t("vip.legend")}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="grid size-4 place-items-center rounded-full bg-type-turnover text-white" aria-hidden>
+                  <Sparkles className="size-2.5" strokeWidth={2.6} />
+                </span>
+                {t("calendar.legendCleaning")}
               </span>
             </div>
           </CardContent>
@@ -237,7 +251,7 @@ function StayRow({ stay, property, onEdit }: { stay: Reservation; property: Prop
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="text-caption text-muted">{t("calendar.nights", { count: nights })}</span>
-            <GuestBadges guests={stay.guestsCount} babies={stay.babies} pets={stay.pets} size="sm" />
+            <GuestBadges guests={stay.guestsCount} babies={stay.babies} pets={stay.pets} vip={stay.vip} size="sm" />
           </div>
           {stay.notes && <p className="mt-1 line-clamp-2 text-caption text-fg">{stay.notes}</p>}
         </div>
@@ -280,6 +294,7 @@ function StaySheetInner({ property, stay, onOpenChange }: { property: Property; 
   const [babies, setBabies] = useState(stay?.babies ?? 0);
   const [pets, setPets] = useState(stay?.pets ?? 0);
   const [notes, setNotes] = useState(stay?.notes ?? "");
+  const [vip, setVip] = useState(stay?.vip ?? false);
   const [inDate, setInDate] = useState(stay ? localDateKey(new Date(stay.checkInAt), tz) : todayKey);
   const [inTime, setInTime] = useState(stay ? timeOf(stay.checkInAt) : property.defaultCheckIn);
   const [outDate, setOutDate] = useState(stay ? localDateKey(new Date(stay.checkOutAt), tz) : addDaysToKey(todayKey, 2));
@@ -318,6 +333,7 @@ function StaySheetInner({ property, stay, onOpenChange }: { property: Property; 
       pets,
       guestsCount: adults + children,
       notes: notes.trim() || undefined,
+      vip: vip || undefined,
     };
     const { addReservation, updateReservation } = useHalo.getState();
     if (stay) {
@@ -389,6 +405,7 @@ function StaySheetInner({ property, stay, onOpenChange }: { property: Property; 
               </Field>
             </>
           )}
+          <SwitchRow id="s-vip" label={t("vip.label")} description={t("vip.hint")} checked={vip} onCheckedChange={setVip} />
           <Field label={t("calendar.stayNotes")} htmlFor="s-notes" hint={t("calendar.stayNotesHint")}>
             <Textarea id="s-notes" value={notes} onChange={(e) => setNotes(e.target.value)} className="min-h-20" />
           </Field>

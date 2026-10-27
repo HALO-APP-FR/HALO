@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Camera, Eye, EyeOff, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Camera, Eye, EyeOff, Plus, Sparkles, Trash2 } from "lucide-react";
 import type { AccessType, BedSize, ChecklistRoom, Property } from "@/lib/domain/types";
 import { COUNTRY_TZ, allTimezones, sortedCountries, timezoneLabel } from "@/lib/domain/geo";
 import { CHECKLIST_TEMPLATES, buildChecklist, newId } from "@/lib/domain/templates";
+import { LEARN_MIN_SAMPLES, formatDuration, learnedCleaningDuration } from "@/lib/engine/learning";
 import { useHalo } from "@/lib/store/halo-store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,25 @@ function SaveBar({ dirty, onSave, onReset }: { dirty: boolean; onSave: () => voi
   );
 }
 
+/** Durée apprise des pointages : la conciergerie voit d'où vient le chiffre et peut couper l'ajustement. */
+function LearnedDurationRow({ property, enabled, onChange }: { property: Property; enabled: boolean; onChange: (v: boolean) => void }) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const tasks = useHalo((s) => s.tasks);
+  const learned = learnedCleaningDuration(property.id, tasks);
+  return (
+    <div className="rounded-lg border border-line p-3">
+      <SwitchRow id="i-learn" label={t("property.learnDuration")} description={t("property.learnDurationHint")} checked={enabled} onCheckedChange={onChange} />
+      <p className="mt-1 flex items-center gap-1.5 text-caption text-muted">
+        <Sparkles className="size-3.5 text-accent-text" />
+        {learned
+          ? t("property.learnedValue", { time: formatDuration(learned.minutes, locale), count: learned.samples })
+          : t("property.learnedNone", { count: LEARN_MIN_SAMPLES })}
+      </p>
+    </div>
+  );
+}
+
 /* ---------------- Infos ---------------- */
 export function PropertyInfoForm({ property }: { property: Property }) {
   const t = useTranslations();
@@ -40,7 +60,7 @@ export function PropertyInfoForm({ property }: { property: Property }) {
   const [error, setError] = useState<string | null>(null);
   const set = <K extends keyof Property>(k: K, v: Property[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const editable = (p: Property) =>
-    JSON.stringify([p.name, p.addressLine, p.postalCode, p.city, p.area, p.countryCode, p.timezone, p.capacity, p.defaultCheckIn, p.defaultCheckOut, p.cleaningDurationMin, p.checkInService, p.checkOutService, p.instructions]);
+    JSON.stringify([p.name, p.addressLine, p.postalCode, p.city, p.area, p.countryCode, p.timezone, p.capacity, p.defaultCheckIn, p.defaultCheckOut, p.cleaningDurationMin, p.learnDuration !== false, p.checkInService, p.checkOutService, p.instructions]);
   const dirty = editable(draft) !== editable(property);
 
   const save = () => {
@@ -61,6 +81,7 @@ export function PropertyInfoForm({ property }: { property: Property }) {
       defaultCheckIn: draft.defaultCheckIn,
       defaultCheckOut: draft.defaultCheckOut,
       cleaningDurationMin: draft.cleaningDurationMin,
+      learnDuration: draft.learnDuration !== false,
       checkInService: draft.checkInService,
       checkOutService: draft.checkOutService,
       instructions: draft.instructions,
@@ -146,6 +167,7 @@ export function PropertyInfoForm({ property }: { property: Property }) {
               ))}
             </Select>
           </Field>
+          <LearnedDurationRow property={property} enabled={draft.learnDuration !== false} onChange={(v) => set("learnDuration", v)} />
           <div className="divide-y divide-line">
             <SwitchRow id="i-cis" label={t("property.checkInService")} description={t("property.checkInServiceHint")} checked={draft.checkInService} onCheckedChange={(v) => set("checkInService", v)} />
             <SwitchRow id="i-cos" label={t("property.checkOutService")} description={t("property.checkOutServiceHint")} checked={draft.checkOutService} onCheckedChange={(v) => set("checkOutService", v)} />

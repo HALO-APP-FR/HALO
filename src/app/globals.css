@@ -33,7 +33,9 @@
   --info: #5b5bd6;
   --info-soft: #efeffd;
 
-  --type-turnover: #0055ff;
+  --type-turnover: #00807a;
+  --vip: #8a6a00;
+  --vip-soft: #fbf3dc;
   --type-checkin: #137a40;
   --type-checkout: #9a5b00;
   --type-linen: #8e4ec6;
@@ -71,7 +73,9 @@
     --danger-soft: #3a1210;
     --info: #8b8bf0;
     --info-soft: #1c1c3a;
-    --type-turnover: #3d7bff;
+    --type-turnover: #2ec4b6;
+    --vip: #f2cf5b;
+    --vip-soft: #33290a;
     --type-checkin: #34c472;
     --type-checkout: #f0a83a;
     --type-linen: #b17fe0;
@@ -105,7 +109,9 @@
   --danger-soft: #3a1210;
   --info: #8b8bf0;
   --info-soft: #1c1c3a;
-  --type-turnover: #3d7bff;
+  --type-turnover: #2ec4b6;
+    --vip: #f2cf5b;
+    --vip-soft: #33290a;
   --type-checkin: #34c472;
   --type-checkout: #f0a83a;
   --type-linen: #b17fe0;
@@ -145,6 +151,8 @@
   --color-info-soft: var(--info-soft);
 
   --color-type-turnover: var(--type-turnover);
+  --color-vip: var(--vip);
+  --color-vip-soft: var(--vip-soft);
   --color-type-checkin: var(--type-checkin);
   --color-type-checkout: var(--type-checkout);
   --color-type-linen: var(--type-linen);

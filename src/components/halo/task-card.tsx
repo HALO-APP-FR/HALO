@@ -1,7 +1,8 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowRight, Baby, Check, KeyRound, Navigation, PawPrint, Siren } from "lucide-react";
+import { ArrowRight, Baby, Check, ChevronRight, KeyRound, Navigation, PawPrint, Siren } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import type { Property, Task } from "@/lib/domain/types";
 import { formatLocalTime, isSameLocalDay } from "@/lib/engine/time";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +39,7 @@ export function TaskCard({
   onStart,
   onFinish,
   onReport,
+  href,
 }: {
   task: Task;
   property: Property;
@@ -47,6 +49,8 @@ export function TaskCard({
   onFinish?: () => void;
   /** Signaler un problème (visible pendant la mission). */
   onReport?: () => void;
+  /** Écran de la mission (toute la carte devient cliquable). */
+  href?: string;
 }) {
   const t = useTranslations();
   const deadline = useDeadlineLabel()(task, property, reference);
@@ -70,12 +74,21 @@ export function TaskCard({
           </div>
         </div>
 
-        <h3 className="mt-4 text-[22px] font-semibold leading-7 tracking-[-0.01em]">{property.name}</h3>
+        <h3 className="mt-4 text-[22px] font-semibold leading-7 tracking-[-0.01em]">
+          {href ? (
+            <Link href={href} className="flex items-center justify-between gap-2 after:absolute after:inset-0 after:content-['']">
+              {property.name}
+              <ChevronRight className="size-5 shrink-0 text-faint rtl:-scale-x-100" aria-hidden />
+            </Link>
+          ) : (
+            property.name
+          )}
+        </h3>
         <p className="mt-0.5 text-[15px] text-muted">{[property.area, property.city].filter(Boolean).join(" · ")}</p>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1">
           <time className="text-[19px] font-semibold tabular">{deadline}</time>
-          <GuestBadges guests={task.guestsCount} />
+          <GuestBadges guests={task.guestsCount} vip={task.vip} />
         </div>
 
         {/* Préparation spécifique : bébé, animaux */}
@@ -111,8 +124,15 @@ export function TaskCard({
         )}
 
         {canAct && (
-          <div className="mt-5 flex gap-2">
-            {started ? (
+          <div className="relative z-10 mt-5 flex gap-2">
+            {started && href ? (
+              <Button asChild size="xl" className="flex-1">
+                <Link href={href}>
+                  {t("mission.continue")}
+                  <ArrowRight className="rtl:-scale-x-100" />
+                </Link>
+              </Button>
+            ) : started ? (
               <Button size="xl" className="flex-1 bg-success hover:bg-success hover:opacity-90" onClick={onFinish}>
                 <Check />
                 {t("task.finish")}
@@ -131,7 +151,7 @@ export function TaskCard({
           </div>
         )}
         {onReport && started && (
-          <Button variant="ghost" className="mt-2 w-full text-danger" onClick={onReport}>
+          <Button variant="ghost" className="relative z-10 mt-2 w-full text-danger" onClick={onReport}>
             <Siren />
             {t("alerts.report")}
           </Button>

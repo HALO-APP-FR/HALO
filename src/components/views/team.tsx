@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Phone, Plus, UserRound, Users } from "lucide-react";
-import { initialsOf, type Member, type MemberRole } from "@/lib/domain/types";
-import { addDaysToKey, localDateKey } from "@/lib/engine/time";
+import { initialsOf, type Member, type MemberRole, type StaffPosition } from "@/lib/domain/types";
+import { formatDuration, workedMinutes } from "@/lib/engine/learning";
+import { addDaysToKey, localDateKey, zonedTimeToUtc } from "@/lib/engine/time";
 import { useHalo } from "@/lib/store/halo-store";
 import { byId, taskDayKey } from "@/lib/store/selectors";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,13 @@ import { PageHeader } from "@/components/halo/page-header";
 import { ReadyGate } from "@/components/halo/ready-gate";
 import { cn } from "@/lib/utils";
 
+export const POSITIONS: StaffPosition[] = ["housekeeper", "inspector", "maintenance", "laundry", "concierge", "driver", "chef", "other"];
+const GROUPS: { key: string; positions: StaffPosition[] }[] = [
+  { key: "groupCleaning", positions: ["housekeeper", "inspector", "laundry"] },
+  { key: "groupMaintenance", positions: ["maintenance"] },
+  { key: "groupConcierge", positions: ["concierge", "driver", "chef", "other"] },
+];
+
 const PALETTE = ["#0055FF", "#1F9D55", "#8E4EC6", "#B86E00", "#D92D20", "#0E7C86", "#C2185B", "#5B5BD6", "#4E5D6C", "#7A5C3E"];
 
 export function Team() {
@@ -34,6 +42,7 @@ export function Team() {
 
 function TeamInner() {
   const t = useTranslations();
+  const locale = useLocale();
   const members = useHalo((s) => s.members);
   const tasks = useHalo((s) => s.tasks);
   const properties = useHalo((s) => s.properties);
@@ -50,10 +59,20 @@ function TeamInner() {
       return k >= todayKey && k <= weekEnd;
     }).length;
 
+  // Heures pointées depuis lundi
+  const monday = addDaysToKey(todayKey, -((new Date(`${todayKey}T12:00:00Z`).getUTCDay() + 6) % 7));
+  const weekFrom = zonedTimeToUtc(monday, "00:00", orgTz);
+  const nowEnd = zonedTimeToUtc(addDaysToKey(todayKey, 1), "00:00", orgTz);
+  const hours = (id: string) => workedMinutes(tasks, id, weekFrom, nowEnd).minutes;
+
   const groups: { title: string; list: Member[] }[] = [
-    { title: t("team.agents"), list: members.filter((m) => m.role === "agent") },
+    ...GROUPS.map((g) => ({
+      title: t(`team.${g.key}`),
+      list: members.filter((m) => m.role === "agent" && g.positions.includes(m.position ?? "housekeeper")),
+    })).filter((g) => g.list.length > 0),
     { title: t("team.managers"), list: members.filter((m) => m.role !== "agent") },
   ];
+  if (groups.length === 1) groups.unshift({ title: t("team.agents"), list: [] });
 
   return (
     <>
@@ -83,7 +102,7 @@ function TeamInner() {
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-2">
                         <span className="truncate text-[15px] font-semibold">{m.name}</span>
-                        <Badge>{t(`role.${m.role}`)}</Badge>
+                        <Badge>{m.role === "agent" ? t(`position.${m.position ?? "housekeeper"}`) : t(`role.${m.role}`)}</Badge>
                         {!m.active && <Badge tone="warning">{t("team.inactive")}</Badge>}
                       </span>
                       {m.phone && (
@@ -94,9 +113,15 @@ function TeamInner() {
                       )}
                     </span>
                     {m.role === "agent" && (
-                      <span className="shrink-0 text-end">
-                        <span className="block text-title-3 tabular">{load(m.id)}</span>
-                        <span className="block text-caption text-muted">{t("team.next7")}</span>
+                      <span className="flex shrink-0 gap-5 text-end">
+                        <span className="hidden sm:block">
+                          <span className="block text-title-3 tabular">{formatDuration(hours(m.id), locale)}</span>
+                          <span className="block text-caption text-muted">{t("team.hoursWeek")}</span>
+                        </span>
+                        <span>
+                          <span className="block text-title-3 tabular">{load(m.id)}</span>
+                          <span className="block text-caption text-muted">{t("team.next7")}</span>
+                        </span>
                       </span>
                     )}
                   </button>
@@ -123,6 +148,7 @@ function MemberSheetInner({ member, onClose }: { member: Member | "new"; onClose
   const [name, setName] = useState(isNew ? "" : member.name);
   const [phone, setPhone] = useState(isNew ? "" : member.phone ?? "");
   const [role, setRole] = useState<MemberRole>(isNew ? "agent" : member.role);
+  const [position, setPosition] = useState<StaffPosition>(isNew ? "housekeeper" : member.position ?? "housekeeper");
   const [color, setColor] = useState(isNew ? PALETTE[count % PALETTE.length] : member.color);
   const [active, setActive] = useState(isNew ? true : member.active);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -136,10 +162,17 @@ function MemberSheetInner({ member, onClose }: { member: Member | "new"; onClose
     if (Object.keys(err).length) return;
     const { addMember, updateMember } = useHalo.getState();
     if (isNew) {
-      addMember({ name: name.trim(), phone: phone.trim() || undefined, role, color });
+      addMember({ name: name.trim(), phone: phone.trim() || undefined, role, color, position: role === "agent" ? position : undefined });
       toast(t("team.added", { name: name.trim() }));
     } else {
-      updateMember(member.id, { name: name.trim(), phone: phone.trim() || undefined, role: member.role === "owner" ? "owner" : role, color, active });
+      updateMember(member.id, {
+        name: name.trim(),
+        phone: phone.trim() || undefined,
+        role: member.role === "owner" ? "owner" : role,
+        position: role === "agent" ? position : undefined,
+        color,
+        active,
+      });
       toast(t("form.saved"));
     }
     onClose();
@@ -163,6 +196,17 @@ function MemberSheetInner({ member, onClose }: { member: Member | "new"; onClose
               <Select id="m-role" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
                 <option value="agent">{t("role.agent")}</option>
                 <option value="manager">{t("role.manager")}</option>
+              </Select>
+            </Field>
+          )}
+          {role === "agent" && (
+            <Field label={t("team.position")} htmlFor="m-position" hint={t("team.positionHint")}>
+              <Select id="m-position" value={position} onChange={(e) => setPosition(e.target.value as StaffPosition)}>
+                {POSITIONS.map((p) => (
+                  <option key={p} value={p}>
+                    {t(`position.${p}`)}
+                  </option>
+                ))}
               </Select>
             </Field>
           )}

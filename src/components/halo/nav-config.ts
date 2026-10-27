@@ -7,7 +7,8 @@ import {
   Settings,
   UserRound,
   Users,
-  CalendarClock,
+  CalendarDays,
+  ConciergeBell,
   Siren,
   type LucideIcon,
 } from "lucide-react";
@@ -23,6 +24,7 @@ export const managerNav: NavItem[] = [
   { key: "planning", href: "/planning", icon: CalendarRange },
   { key: "tasks", href: "/tasks", icon: ListChecks },
   { key: "alerts", href: "/alerts", icon: Siren },
+  { key: "services", href: "/services", icon: ConciergeBell },
   { key: "properties", href: "/properties", icon: Building2 },
   { key: "linen", href: "/linen", icon: BedDouble },
   { key: "team", href: "/team", icon: Users },
@@ -34,7 +36,7 @@ export const managerMobileTabs = ["today", "planning", "tasks", "alerts"];
 
 export const agentNav: NavItem[] = [
   { key: "today", href: "/a/today", icon: House },
-  { key: "upcoming", href: "/a/upcoming", icon: CalendarClock },
+  { key: "calendar", href: "/a/upcoming", icon: CalendarDays },
   { key: "profile", href: "/a/profile", icon: UserRound },
 ];
 
