@@ -724,7 +724,8 @@
     "regenerated": "New address created. The old one no longer opens from this device's data, but links and QRs already shared stay readable (without access details): real revocation requires the database.",
     "securityNotice": "Current limit: links and QRs already shared can't be revoked or limited to a stay, and don't expire. They never contain access details. Revocation and per-stay links depend on the database (not live yet).",
     "demoNotice": "The guide content is embedded in the link so it opens on any phone. This link doesn't expire and can't be revoked, so it never contains access details. Guest reports and requests will only reach you once the database is live.",
-    "scanToTest": "Scan with your phone to try it"
+    "scanToTest": "Scan with your phone to try it",
+    "doNotShare": "Demo link: don't give it to any real guest. It is permanent and can't be revoked. At launch, these links will be refused (\"link replaced\") and each stay will get its own link, expiring at check-out and revocable."
   },
   "guest": {
     "welcomeTo": "Welcome",
@@ -1084,7 +1085,9 @@
     "toast_info_requested": "Details noted on the request.",
     "toast_declined": "Request declined.",
     "confirmDecline": "Confirm decline",
-    "saveInfo": "Log the request for details"
+    "saveInfo": "Log the request for details",
+    "edit": "Edit details",
+    "editTitle": "Edit: {kind}"
   },
   "demo": {
     "badge": "Demo",
@@ -1196,5 +1199,11 @@
     "channelEmail": "Email: not available yet, needs the server and a sending service.",
     "channelPush": "Push: not available yet, needs the server and your consent on the device.",
     "channelSms": "SMS: not planned until the provider, cost and consent are decided."
+  },
+  "proofs": {
+    "missing": "Photo proof: {count} missing out of {total}",
+    "complete": "Photo proof: {count}/{count} received",
+    "none": "Missing",
+    "cannotValidate": "Can't approve: {count} required photo proof(s) missing. Request a correction."
   }
 }

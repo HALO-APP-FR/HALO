@@ -464,7 +464,7 @@ export const useHalo = create<HaloState>()(
         const task = get().tasks.find((x) => x.id === id);
         const by = get().members.find((m) => m.id === managerId);
         if (!task) return { ok: false, reason: "bad_status" };
-        const check = canValidate(task, by);
+        const check = canValidate(task, by, get().properties.find((p) => p.id === task.propertyId));
         if (!check.ok) return check;
         get().setTaskStatus(id, "validated", by?.name);
         return check;

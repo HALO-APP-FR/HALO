@@ -724,7 +724,8 @@
     "regenerated": "Neue Adresse erstellt. Die alte öffnet sich mit den Daten dieses Geräts nicht mehr, geteilte Links/QR bleiben aber lesbar (ohne Zugangsdaten): echter Widerruf braucht die Datenbank.",
     "securityNotice": "Aktuelle Grenze: geteilte Links/QR sind weder widerrufbar noch auf einen Aufenthalt begrenzt und laufen nicht ab. Sie enthalten nie Zugangsdaten. Widerruf und Links pro Aufenthalt hängen von der Datenbank ab (noch nicht live).",
     "demoNotice": "Der Inhalt der Mappe steckt im Link, damit er auf jedem Handy öffnet. Der Link läuft nicht ab und ist nicht widerrufbar – er enthält daher nie Zugangsdaten. Meldungen und Anfragen erreichen Sie erst mit der Datenbank.",
-    "scanToTest": "Mit dem Handy scannen zum Testen"
+    "scanToTest": "Mit dem Handy scannen zum Testen",
+    "doNotShare": "Demo-Link: Geben Sie ihn keinem echten Gast. Er ist dauerhaft und nicht widerrufbar. Beim Start werden diese Links abgelehnt („Link ersetzt“) und jeder Aufenthalt erhält einen eigenen Link, der beim Check-out abläuft und widerrufbar ist."
   },
   "guest": {
     "welcomeTo": "Willkommen",
@@ -1084,7 +1085,9 @@
     "toast_info_requested": "Rückfrage an der Anfrage vermerkt.",
     "toast_declined": "Anfrage abgelehnt.",
     "confirmDecline": "Ablehnung bestätigen",
-    "saveInfo": "Rückfrage vermerken"
+    "saveInfo": "Rückfrage vermerken",
+    "edit": "Details bearbeiten",
+    "editTitle": "Bearbeiten: {kind}"
   },
   "demo": {
     "badge": "Demo",
@@ -1196,5 +1199,11 @@
     "channelEmail": "E-Mail: noch nicht verfügbar, erfordert den Server und einen Versanddienst.",
     "channelPush": "Push: noch nicht verfügbar, erfordert den Server und Ihre Zustimmung auf dem Gerät.",
     "channelSms": "SMS: nicht vorgesehen, solange Anbieter, Kosten und Einwilligung nicht entschieden sind."
+  },
+  "proofs": {
+    "missing": "Fotonachweise: {count} von {total} fehlen",
+    "complete": "Fotonachweise: {count}/{count} erhalten",
+    "none": "Fehlt",
+    "cannotValidate": "Bestätigung nicht möglich: {count} Pflicht-Fotonachweis(e) fehlen. Fordern Sie eine Korrektur an."
   }
 }

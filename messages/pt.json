@@ -724,7 +724,8 @@
     "regenerated": "Novo endereço criado. O antigo já não abre com os dados deste dispositivo, mas links e QR já partilhados continuam legíveis (sem acessos): uma revogação real exige a base de dados.",
     "securityNotice": "Limite atual: links e QR já partilhados não podem ser revogados nem limitados a uma estadia, e não expiram. Nunca contêm as informações de acesso. A revogação e links por estadia dependem da base de dados (ainda não ativa).",
     "demoNotice": "O conteúdo do guia vai dentro do link para abrir em qualquer telemóvel. Este link não expira nem pode ser revogado: por isso nunca contém as informações de acesso. Ocorrências e pedidos só chegarão com a base de dados.",
-    "scanToTest": "Digitalize com o telemóvel para testar"
+    "scanToTest": "Digitalize com o telemóvel para testar",
+    "doNotShare": "Ligação de demonstração: não a entregue a nenhum hóspede real. É permanente e não pode ser revogada. No lançamento, estas ligações serão recusadas («ligação substituída») e cada estadia terá a sua própria ligação, que expira na saída e é revogável."
   },
   "guest": {
     "welcomeTo": "Bem-vindo",
@@ -1084,7 +1085,9 @@
     "toast_info_requested": "Detalhes anotados no pedido.",
     "toast_declined": "Pedido recusado.",
     "confirmDecline": "Confirmar a recusa",
-    "saveInfo": "Registar o pedido de detalhes"
+    "saveInfo": "Registar o pedido de detalhes",
+    "edit": "Editar os detalhes",
+    "editTitle": "Editar: {kind}"
   },
   "demo": {
     "badge": "Demo",
@@ -1196,5 +1199,11 @@
     "channelEmail": "E-mail: ainda indisponível, requer o servidor e um serviço de envio.",
     "channelPush": "Push: ainda indisponível, requer o servidor e o seu consentimento no dispositivo.",
     "channelSms": "SMS: não previsto sem decisão sobre fornecedor, custo e consentimento."
+  },
+  "proofs": {
+    "missing": "Provas fotográficas: faltam {count} de {total}",
+    "complete": "Provas fotográficas: {count}/{count} recebidas",
+    "none": "Em falta",
+    "cannotValidate": "Validação impossível: faltam {count} prova(s) fotográfica(s) obrigatória(s). Peça uma correção."
   }
 }

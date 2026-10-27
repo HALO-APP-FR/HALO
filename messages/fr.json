@@ -724,7 +724,8 @@
     "regenerated": "Nouvelle adresse créée. L'ancienne ne s'ouvre plus depuis les données de cet appareil, mais les liens et QR déjà diffusés restent lisibles (sans infos d'accès) : une révocation réelle nécessite la base de données.",
     "securityNotice": "Limite actuelle : les liens et QR déjà diffusés ne peuvent être ni révoqués ni limités à un séjour, et n'expirent pas. Ils ne contiennent jamais les informations d'accès. La révocation et les liens par séjour dépendent de la base de données (non encore en service).",
     "demoNotice": "Le contenu du livret est intégré au lien pour s'ouvrir sur n'importe quel téléphone. Ce lien n'expire pas et ne peut pas être révoqué : il ne contient donc jamais les informations d'accès. Les signalements et demandes des voyageurs ne vous parviendront qu'avec la base de données.",
-    "scanToTest": "Scannez avec votre téléphone pour tester"
+    "scanToTest": "Scannez avec votre téléphone pour tester",
+    "doNotShare": "Lien de démonstration : ne le remettez à aucun vrai voyageur. Il est permanent et non révocable. À la mise en service, ces liens seront refusés (« lien remplacé ») et chaque séjour recevra son propre lien, expirant au départ et révocable."
   },
   "guest": {
     "welcomeTo": "Bienvenue",
@@ -1084,7 +1085,9 @@
     "toast_info_requested": "Précisions notées sur la demande.",
     "toast_declined": "Demande refusée.",
     "confirmDecline": "Confirmer le refus",
-    "saveInfo": "Noter la demande de précisions"
+    "saveInfo": "Noter la demande de précisions",
+    "edit": "Modifier les détails",
+    "editTitle": "Modifier : {kind}"
   },
   "demo": {
     "badge": "Démo",
@@ -1196,5 +1199,11 @@
     "channelEmail": "E-mail : pas encore disponible, nécessite le serveur et un service d'envoi.",
     "channelPush": "Push : pas encore disponible, nécessite le serveur et votre accord sur l'appareil.",
     "channelSms": "SMS : non prévu sans décision sur le fournisseur, le coût et le consentement."
+  },
+  "proofs": {
+    "missing": "Preuves photo : {count} manquante(s) sur {total}",
+    "complete": "Preuves photo : {count}/{count} reçues",
+    "none": "Manquante",
+    "cannotValidate": "Validation impossible : {count} preuve(s) photo exigée(s) manquante(s). Demandez une correction."
   }
 }

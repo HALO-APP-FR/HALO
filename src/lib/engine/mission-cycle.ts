@@ -33,7 +33,7 @@ export function needsValidation(type: TaskType, rules: TaskType[] | undefined) {
 
 export type StartCheck = { ok: true } | { ok: false; reason: "not_assignee" | "bad_status" };
 export type SubmitCheck = { ok: true } | { ok: false; reason: "not_assignee" | "bad_status" | "missing_photos"; missing?: number };
-export type ReviewCheck = { ok: true } | { ok: false; reason: "not_manager" | "bad_status" | "reason_required" };
+export type ReviewCheck = { ok: true } | { ok: false; reason: "not_manager" | "bad_status" | "reason_required" | "missing_photos"; missing?: number };
 
 /** Seul l'agent assigné démarre sa mission (à faire ou à corriger). */
 export function canStart(task: Task, memberId: string | undefined): StartCheck {
@@ -53,10 +53,21 @@ export function canSubmit(task: Task, property: Property, memberId: string | und
 
 const isManager = (m: Member | undefined) => !!m && m.active && (m.role === "owner" || m.role === "manager");
 
-export function canValidate(task: Task, by: Member | undefined): ReviewCheck {
+/** Validation : jamais silencieuse si une preuve exigée manque (il faut alors demander une correction). */
+export function canValidate(task: Task, by: Member | undefined, property?: Property): ReviewCheck {
   if (!isManager(by)) return { ok: false, reason: "not_manager" };
   if (task.status !== "done") return { ok: false, reason: "bad_status" };
+  const missing = property ? missingRequiredPhotos(task, property).length : 0;
+  if (missing > 0) return { ok: false, reason: "missing_photos", missing };
   return { ok: true };
+}
+
+/** Points « photo exigée » avec leur pièce, pour dire précisément ce qui manque. */
+export function requiredPhotoStatus(task: Task, property: Property) {
+  if (!checklistApplies(task)) return [];
+  return property.checklist.flatMap((room) =>
+    room.items.filter((i) => i.photoRequired).map((item) => ({ room, item, photoIds: task.report?.photos[item.id] ?? [] })),
+  );
 }
 
 export function canRequestCorrection(task: Task, by: Member | undefined, reason: string): ReviewCheck {

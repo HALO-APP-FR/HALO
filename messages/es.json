@@ -724,7 +724,8 @@
     "regenerated": "Nueva dirección creada. La anterior ya no se abre con los datos de este dispositivo, pero los enlaces y QR ya compartidos siguen legibles (sin accesos): una revocación real requiere la base de datos.",
     "securityNotice": "Límite actual: los enlaces y QR ya compartidos no se pueden revocar ni limitar a una estancia, y no caducan. Nunca contienen la información de acceso. La revocación y los enlaces por estancia dependen de la base de datos (aún no activa).",
     "demoNotice": "El contenido de la guía va dentro del enlace para abrirse en cualquier móvil. Este enlace no caduca ni se puede revocar: por eso nunca contiene la información de acceso. Las incidencias y solicitudes solo te llegarán con la base de datos.",
-    "scanToTest": "Escanéalo con tu móvil para probar"
+    "scanToTest": "Escanéalo con tu móvil para probar",
+    "doNotShare": "Enlace de demostración: no lo entregues a ningún huésped real. Es permanente y no se puede revocar. En la puesta en marcha, estos enlaces se rechazarán («enlace sustituido») y cada estancia tendrá su propio enlace, que caduca a la salida y es revocable."
   },
   "guest": {
     "welcomeTo": "Bienvenido",
@@ -1084,7 +1085,9 @@
     "toast_info_requested": "Detalles anotados en la solicitud.",
     "toast_declined": "Solicitud rechazada.",
     "confirmDecline": "Confirmar el rechazo",
-    "saveInfo": "Anotar la petición de detalles"
+    "saveInfo": "Anotar la petición de detalles",
+    "edit": "Editar los detalles",
+    "editTitle": "Editar: {kind}"
   },
   "demo": {
     "badge": "Demo",
@@ -1196,5 +1199,11 @@
     "channelEmail": "Correo: aún no disponible, requiere el servidor y un servicio de envío.",
     "channelPush": "Push: aún no disponible, requiere el servidor y tu consentimiento en el dispositivo.",
     "channelSms": "SMS: no previsto sin decidir proveedor, coste y consentimiento."
+  },
+  "proofs": {
+    "missing": "Pruebas fotográficas: faltan {count} de {total}",
+    "complete": "Pruebas fotográficas: {count}/{count} recibidas",
+    "none": "Falta",
+    "cannotValidate": "No se puede validar: faltan {count} prueba(s) fotográfica(s) obligatoria(s). Pide una corrección."
   }
 }

@@ -724,7 +724,8 @@
     "regenerated": "Nuovo indirizzo creato. Il vecchio non si apre più dai dati di questo dispositivo, ma link e QR già condivisi restano leggibili (senza accessi): una revoca reale richiede il database.",
     "securityNotice": "Limite attuale: link e QR già condivisi non possono essere revocati né limitati a un soggiorno, e non scadono. Non contengono mai le informazioni di accesso. Revoca e link per soggiorno dipendono dal database (non ancora attivo).",
     "demoNotice": "Il contenuto della guida è nel link per aprirsi su qualsiasi telefono. Il link non scade e non può essere revocato: non contiene quindi mai le informazioni di accesso. Segnalazioni e richieste arriveranno solo con il database.",
-    "scanToTest": "Scansiona con il telefono per provare"
+    "scanToTest": "Scansiona con il telefono per provare",
+    "doNotShare": "Link dimostrativo: non consegnarlo a nessun ospite reale. È permanente e non revocabile. All'avvio questi link saranno rifiutati («link sostituito») e ogni soggiorno avrà il proprio link, con scadenza al check-out e revocabile."
   },
   "guest": {
     "welcomeTo": "Benvenuti",
@@ -1084,7 +1085,9 @@
     "toast_info_requested": "Dettagli annotati sulla richiesta.",
     "toast_declined": "Richiesta rifiutata.",
     "confirmDecline": "Conferma il rifiuto",
-    "saveInfo": "Annota la richiesta di dettagli"
+    "saveInfo": "Annota la richiesta di dettagli",
+    "edit": "Modifica i dettagli",
+    "editTitle": "Modifica: {kind}"
   },
   "demo": {
     "badge": "Demo",
@@ -1196,5 +1199,11 @@
     "channelEmail": "E-mail: non ancora disponibile, richiede il server e un servizio di invio.",
     "channelPush": "Push: non ancora disponibile, richiede il server e il tuo consenso sul dispositivo.",
     "channelSms": "SMS: non previsto senza decisione su fornitore, costo e consenso."
+  },
+  "proofs": {
+    "missing": "Prove fotografiche: ne mancano {count} su {total}",
+    "complete": "Prove fotografiche: {count}/{count} ricevute",
+    "none": "Mancante",
+    "cannotValidate": "Validazione impossibile: mancano {count} prova/e fotografica/he obbligatoria/e. Chiedi una correzione."
   }
 }

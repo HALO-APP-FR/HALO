@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Check, CheckCheck, MessageCircleQuestion, XCircle } from "lucide-react";
+import { Check, CheckCheck, MessageCircleQuestion, Pencil, XCircle } from "lucide-react";
 import type { Property, Reservation, ServiceKind, ServiceRequest } from "@/lib/domain/types";
 import { addDaysToKey, localDateKey, localMinutesOfDay, zonedTimeToUtc } from "@/lib/engine/time";
 import { useHalo } from "@/lib/store/halo-store";
@@ -130,10 +130,139 @@ export function GuestServiceSheet({
 /** Création / suivi d'une prestation côté conciergerie. */
 export function ServiceSheet({ service, onClose }: { service: ServiceRequest | "new" | null; onClose: () => void }) {
   if (!service) return null;
-  return <ServiceSheetInner key={service === "new" ? "new" : service.id} service={service} onClose={onClose} />;
+  return <ServiceSheetSwitch key={service === "new" ? "new" : service.id} service={service} onClose={onClose} />;
 }
 
-function ServiceSheetInner({ service, onClose }: { service: ServiceRequest | "new"; onClose: () => void }) {
+/** Une demande existante s'ouvre en lecture ; la modification demande une action explicite. */
+function ServiceSheetSwitch({ service, onClose }: { service: ServiceRequest | "new"; onClose: () => void }) {
+  const [editing, setEditing] = useState(service === "new");
+  // Lecture de la version à jour (après une action)
+  const live = useHalo((s) => (service === "new" ? null : s.services.find((x) => x.id === service.id) ?? null));
+  if (service !== "new" && !editing) return <ServiceView service={live ?? service} onClose={onClose} onEdit={() => setEditing(true)} />;
+  return <ServiceSheetInner service={service === "new" ? "new" : live ?? service} onClose={onClose} onCancel={service === "new" ? onClose : () => setEditing(false)} />;
+}
+
+function ServiceView({ service, onClose, onEdit }: { service: ServiceRequest; onClose: () => void; onEdit: () => void }) {
+  const t = useTranslations();
+  const locale = useLocale();
+  const property = useHalo((s) => s.properties.find((p) => p.id === service.propertyId));
+  const members = useHalo((s) => s.members);
+  const stay = useHalo((s) => s.reservations.find((r) => r.id === service.reservationId));
+  const currency = useHalo((s) => s.linenSettings.currency);
+  const [noteFor, setNoteFor] = useState<"info_requested" | "declined" | null>(null);
+  const [note, setNote] = useState("");
+  const tz = property?.timezone ?? "UTC";
+  const who = members.find((m) => m.id === service.assigneeId);
+  const managerName = currentManager(members)?.name;
+  const when = `${new Intl.DateTimeFormat(locale, { timeZone: tz, weekday: "long", day: "numeric", month: "long" }).format(new Date(service.startAt))} · ${hhmm(localMinutesOfDay(new Date(service.startAt), tz))}`;
+
+  const act = (status: ServiceRequest["status"], statusNote?: string) => {
+    useHalo.getState().setServiceStatus(service.id, status, managerName, statusNote);
+    // Aucun message n'est envoyé au voyageur : on le dit
+    toast(t(`services.toast_${status}`), { description: service.source === "guest" ? t("services.guestNotNotified") : undefined });
+    setNoteFor(null);
+    setNote("");
+  };
+
+  const rows: [string, string | undefined][] = [
+    [t("services.property"), property?.name],
+    [t("services.stay"), stay ? `${stay.guestName ?? t(`source.${stay.source}`)}${stay.vip ? " · VIP" : ""}` : service.guestName],
+    [t("services.date"), when],
+    [t("services.people"), service.people ? String(service.people) : undefined],
+    [t("services.assignee"), who ? who.name : service.provider ?? t("services.nobody")],
+    [t("services.price"), service.price !== undefined ? new Intl.NumberFormat(locale, { style: "currency", currency }).format(service.price) : undefined],
+  ];
+
+  return (
+    <Sheet open onOpenChange={(o) => !o && onClose()}>
+      <SheetContent title={t(`serviceKind.${service.kind}`)} closeLabel={t("common.close")}>
+        <div className="min-w-0 space-y-4 pt-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone={SERVICE_STATUS_TONE[service.status]}>{t(`serviceStatus.${service.status}`)}</Badge>
+            <Badge>{t(`services.from_${service.source}`)}</Badge>
+          </div>
+          {service.statusNote && (
+            <p className="rounded-lg bg-subtle p-3 text-[14px] dark:bg-surface-hover">
+              <span className="block text-caption text-muted">{t(`services.noteLabel_${service.status === "declined" ? "declined" : "info_requested"}`)}</span>
+              {service.statusNote}
+            </p>
+          )}
+          <dl className="divide-y divide-line rounded-lg border border-line">
+            {rows
+              .filter(([, v]) => v)
+              .map(([k, v]) => (
+                <div key={k} className="flex items-start justify-between gap-3 px-3 py-2.5">
+                  <dt className="shrink-0 text-[14px] text-muted">{k}</dt>
+                  <dd className="text-end text-[15px] font-medium first-letter:uppercase">{v}</dd>
+                </div>
+              ))}
+          </dl>
+          {service.details && (
+            <div>
+              <p className="mb-1 text-caption text-muted">{t("services.details")}</p>
+              <p className="whitespace-pre-line text-[15px]">{service.details}</p>
+            </div>
+          )}
+
+          {/* Décisions : trois actions distinctes, chacune explicite */}
+          {isPendingService(service) && noteFor === null && (
+            <div className="grid gap-2">
+              <Button type="button" size="xl" onClick={() => act("confirmed")}>
+                <Check />
+                {t("services.accept")}
+              </Button>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Button type="button" size="lg" variant="secondary" className="min-w-0 whitespace-normal" onClick={() => setNoteFor("info_requested")}>
+                  <MessageCircleQuestion />
+                  {t("services.askInfo")}
+                </Button>
+                <Button type="button" size="lg" variant="secondary" className="min-w-0 whitespace-normal text-danger" onClick={() => setNoteFor("declined")}>
+                  <XCircle />
+                  {t("services.decline")}
+                </Button>
+              </div>
+            </div>
+          )}
+          {noteFor && (
+            <div className="space-y-3 rounded-lg border border-line p-3">
+              <Field label={t(`services.noteLabel_${noteFor}`)} htmlFor="s-note" hint={t("services.guestNotNotified")}>
+                <Textarea id="s-note" value={note} onChange={(e) => setNote(e.target.value)} autoFocus />
+              </Field>
+              <div className="grid gap-2 sm:grid-cols-[auto_1fr]">
+                <Button type="button" variant="ghost" onClick={() => setNoteFor(null)}>
+                  {t("form.cancel")}
+                </Button>
+                <Button type="button" className="min-w-0 whitespace-normal" disabled={!note.trim()} onClick={() => act(noteFor, note)}>
+                  {noteFor === "declined" ? t("services.confirmDecline") : t("services.saveInfo")}
+                </Button>
+              </div>
+            </div>
+          )}
+          {service.status === "confirmed" && (
+            <Button type="button" size="xl" className="bg-success hover:bg-success hover:opacity-90" onClick={() => act("done")}>
+              <CheckCheck />
+              {t("services.markDone")}
+            </Button>
+          )}
+          {noteFor === null && (
+            <Button type="button" size="lg" variant="secondary" className="w-full" onClick={onEdit}>
+              <Pencil />
+              {t("services.edit")}
+            </Button>
+          )}
+          {service.status === "confirmed" && (
+            <Button type="button" variant="ghost" className="w-full text-danger" onClick={() => act("cancelled")}>
+              <XCircle />
+              {t("services.cancel")}
+            </Button>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function ServiceSheetInner({ service, onClose, onCancel }: { service: ServiceRequest | "new"; onClose: () => void; onCancel: () => void }) {
   const t = useTranslations();
   const locale = useLocale();
   const isNew = service === "new";
@@ -183,46 +312,31 @@ function ServiceSheetInner({ service, onClose }: { service: ServiceRequest | "ne
     price: price.trim() ? Math.max(0, Number(price.replace(",", ".")) || 0) : undefined,
   });
 
-  const { addService, updateService, setServiceStatus } = useHalo.getState();
-  const managerName = currentManager(members)?.name;
-  const [noteFor, setNoteFor] = useState<"info_requested" | "declined" | null>(null);
-  const [note, setNote] = useState("");
-  const save = (e?: React.FormEvent, status?: ServiceRequest["status"], statusNote?: string) => {
+  const { addService, updateService } = useHalo.getState();
+  const save = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!propertyId) return;
     const d = data();
-    if (isNew) addService({ ...d, source: "manager", status: status ?? (d.assigneeId || d.provider ? "confirmed" : "requested") });
-    else {
+    if (isNew) {
+      addService({ ...d, source: "manager", status: d.assigneeId || d.provider ? "confirmed" : "requested" });
+      toast(t("services.toast_requested"));
+      onClose();
+    } else {
+      // Modifier les détails ne change jamais le statut (accepter / refuser se font depuis la fiche)
       updateService(service.id, d);
-      if (status) setServiceStatus(service.id, status, managerName, statusNote);
+      toast(t("form.saved"));
+      onCancel();
     }
-    // Aucun message n'est envoyé au voyageur : on le dit
-    toast(status ? t(`services.toast_${status}`) : t("form.saved"), {
-      description: status && !isNew && service.source === "guest" ? t("services.guestNotNotified") : undefined,
-    });
-    onClose();
   };
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()}>
       <SheetContent
-        title={isNew ? t("services.new") : t(`serviceKind.${service.kind}`)}
+        title={isNew ? t("services.new") : t("services.editTitle", { kind: t(`serviceKind.${service.kind}`) })}
         description={isNew ? t("services.newHint") : undefined}
         closeLabel={t("common.close")}
       >
         <form onSubmit={save} className="space-y-4 pt-2">
-          {!isNew && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge tone={SERVICE_STATUS_TONE[service.status]}>{t(`serviceStatus.${service.status}`)}</Badge>
-              <Badge>{t(`services.from_${service.source}`)}</Badge>
-            </div>
-          )}
-          {!isNew && service.statusNote && (
-            <p className="rounded-lg bg-subtle p-3 text-[14px] dark:bg-surface-hover">
-              <span className="block text-caption text-muted">{t(`services.noteLabel_${service.status === "declined" ? "declined" : "info_requested"}`)}</span>
-              {service.statusNote}
-            </p>
-          )}
           <KindPicker value={kind} onChange={setKind} />
           <Field label={t("services.property")} htmlFor="s-prop">
             <Select
@@ -305,62 +419,14 @@ function ServiceSheetInner({ service, onClose }: { service: ServiceRequest | "ne
             <Input id="s-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} className="w-40 tabular" />
           </Field>
 
-          {isNew ? (
+          <div className="grid gap-2">
             <Button type="submit" size="xl">
-              {t("services.create")}
+              {isNew ? t("services.create") : t("form.save")}
             </Button>
-          ) : (
-            <div className="grid gap-2">
-              {isPendingService(service) && noteFor === null && (
-                <>
-                  <Button type="button" size="xl" onClick={() => save(undefined, "confirmed")}>
-                    <Check />
-                    {t("services.accept")}
-                  </Button>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button type="button" size="lg" variant="secondary" onClick={() => setNoteFor("info_requested")}>
-                      <MessageCircleQuestion />
-                      {t("services.askInfo")}
-                    </Button>
-                    <Button type="button" size="lg" variant="secondary" className="text-danger" onClick={() => setNoteFor("declined")}>
-                      <XCircle />
-                      {t("services.decline")}
-                    </Button>
-                  </div>
-                </>
-              )}
-              {noteFor && (
-                <div className="space-y-3 rounded-lg border border-line p-3">
-                  <Field label={t(`services.noteLabel_${noteFor}`)} htmlFor="s-note" hint={t("services.guestNotNotified")}>
-                    <Textarea id="s-note" value={note} onChange={(e) => setNote(e.target.value)} autoFocus />
-                  </Field>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button type="button" variant="ghost" onClick={() => setNoteFor(null)}>
-                      {t("form.cancel")}
-                    </Button>
-                    <Button type="button" disabled={!note.trim()} onClick={() => save(undefined, noteFor, note)}>
-                      {noteFor === "declined" ? t("services.confirmDecline") : t("services.saveInfo")}
-                    </Button>
-                  </div>
-                </div>
-              )}
-              {service.status === "confirmed" && (
-                <Button type="button" size="xl" className="bg-success hover:bg-success hover:opacity-90" onClick={() => save(undefined, "done")}>
-                  <CheckCheck />
-                  {t("services.markDone")}
-                </Button>
-              )}
-              <Button type="submit" size="lg" variant="secondary">
-                {t("form.save")}
-              </Button>
-              {service.status === "confirmed" && (
-                <Button type="button" variant="ghost" className="text-danger" onClick={() => save(undefined, "cancelled")}>
-                  <XCircle />
-                  {t("services.cancel")}
-                </Button>
-              )}
-            </div>
-          )}
+            <Button type="button" size="lg" variant="ghost" onClick={onCancel}>
+              {t("form.cancel")}
+            </Button>
+          </div>
         </form>
       </SheetContent>
     </Sheet>

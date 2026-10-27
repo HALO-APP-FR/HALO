@@ -51,7 +51,7 @@ export function SheetContent({
             <X className="size-5" />
           </Dialog.Close>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 pb-6">{children}</div>
+        <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden px-5 pb-[max(env(safe-area-inset-bottom),24px)]">{children}</div>
       </Dialog.Content>
     </Dialog.Portal>
   );

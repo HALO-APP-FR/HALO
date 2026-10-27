@@ -113,7 +113,9 @@ language sql stable security definer set search_path = '' as $$
   join public.checklist_rooms r on r.organization_id = t.organization_id and r.property_id = t.property_id
   join public.checklist_items i on i.organization_id = r.organization_id and i.room_id = r.id and i.photo_required
   where t.organization_id = org and t.id = task and t.type in ('turnover', 'inspection')
+    -- Une réservation d'emplacement ne suffit pas : le fichier doit être réellement déposé
     and not exists (select 1 from public.files f
+                    join storage.objects o on o.bucket_id = 'org-files' and o.name = f.path
                     where f.organization_id = org and f.task_id = task and f.checklist_item_id = i.id);
 $$;
 revoke all on function public.missing_required_photos(uuid, uuid) from public, anon;
@@ -157,6 +159,8 @@ begin
   select status into st from public.tasks where organization_id = org and id = task for update;
   if st is null then raise exception 'not_found' using errcode = 'P0002'; end if;
   if st <> 'done' then return 'conflict:' || st; end if;
+  -- Jamais de validation silencieuse d'une mission sans ses preuves : il faut demander une correction
+  if public.missing_required_photos(org, task) > 0 then return 'missing_photos'; end if;
   update public.tasks set status = 'validated', validated_at = now(), validated_by = (select auth.uid())
   where organization_id = org and id = task;
   return 'applied';

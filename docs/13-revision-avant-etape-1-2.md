@@ -229,3 +229,19 @@ Question à poser à la conciergerie pilote : combien d'agents n'ont pas d'adres
 1. Ta validation de ce document.
 2. Ton accord pour : ajouter `vercel.json` (Paris) sur la branche ; activer la protection des aperçus ; mettre le réglage de région du projet sur Paris. La production reste inchangée jusqu'à la fusion.
 3. Le projet `halo-test` créé de ton côté (§5), puis « c'est fait ».
+
+---
+
+## 10. Suite aux retours sur la préversion (27/10/2026, soir)
+
+| # | Point | Fait | Critère vérifié | Reste |
+|---|---|---|---|---|
+| 1 | Lien voyageur par séjour | Migration `20261029000001_liens_invites.sql` : tables `guest_guides` et `guest_links`, fonctions `create_guest_link`, `revoke_guest_link`, `extend_guest_link`, `get_guest_stay`. Révocation automatique si le séjour est annulé. Avertissement rouge « ne pas partager » sur le livret de démo | 35 vérifications en base locale : valable pendant le séjour et réutilisable ; à venir, expiré, révoqué, faux ou vide donnent la même réponse neutre ; contenu de ce séjour seulement ; aucun code ; renouveler révoque l'ancien lien ; prolongation plafonnée ; aucun droit croisé ; `anon` n'a que `get_guest_stay` | **Non prêt** tant que ce n'est pas vérifié sur `halo-test`. Écrans manager (statut, révoquer, renouveler, prolonger) et page voyageur branchés à la base : étape 1.6 |
+| 1b | Anciens liens permanents (`/g/…#d=`) | Politique arrêtée : à la mise en service, la page voyageur **ignore le contenu intégré au lien** et affiche « Ce lien a été remplacé : demandez le lien de votre séjour à votre conciergerie ». Aucune migration de ces liens, ils n'ont jamais été remis à de vrais voyageurs | — | À coder avec l'étape 1.6 |
+| 2 | Photos obligatoires | Cause : donnée de démo créée « terminée » **sans rapport**. Corrigé : les missions terminées de la démo ont un rapport complet avec des photos marquées « DEMO ». **Faille réelle corrigée dans la base** : une simple réservation d'emplacement suffisait ; il faut désormais le fichier déposé. **La validation est refusée** si une preuve manque (démo et base) | Test isolé dans un navigateur vierge (ordinateur et iPhone) : bouton bloqué, les 3 photos manquantes nommées (pièce et point), cocher ne suffit pas, 3 vraies photos nécessaires, le manager voit « 3/3 reçues » avec les vignettes. Base : réservé sans dépôt = refusé ; validation sans preuve = `missing_photos` | — |
+| 3 | Correction Manager → Agent | — | Test isolé de bout en bout (ordinateur et iPhone) : motif obligatoire ; notification chez le bon agent avec la mention « Dans l'application uniquement » ; motif visible ; reprise ; nouvelle soumission ; le manager voit le nouveau rapport, le compte rendu n° 1 conservé et l'historique complet ; validation | — |
+| 4 | Temps de trajet | — | — | **Pas dans le prochain lot.** Prérequis : choix du fournisseur et clé côté serveur, coordonnées des logements. Plan : durée estimée entre deux missions avec une marge, alerte « planning irréalisable », jamais présentée comme de l'IA, aucune position suivie |
+| 5 | Fiche prestation | S'ouvre en lecture. « Modifier les détails » est explicite et ne change jamais le statut. Accepter, Demander des précisions et Refuser sont trois actions séparées | Test : aucun champ ni « Enregistrer » en lecture ; les trois décisions sont visibles ; l'édition s'annule | — |
+| — | Mobile | Défaut trouvé et corrigé : un sélecteur d'onglets élargissait la page sur téléphone, et la feuille de détail débordait de l'écran | 13 écrans vérifiés en largeur iPhone, sans débordement horizontal ; bandeau Démo présent | Tests sur de vrais appareils |
+
+Tests au 27/10/2026 : 1 040 vérifications en base (0 échec), 92 tests unitaires, 14 parcours navigateur (ordinateur et iPhone).

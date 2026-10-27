@@ -9,7 +9,7 @@ import { conflictsIfAssigned } from "@/lib/engine/conflicts";
 import { formatDuration, learnedCleaningDuration } from "@/lib/engine/learning";
 import { formatLocalTime, isSameLocalDay, formatLocalRange } from "@/lib/engine/time";
 import { activeAgents, currentManager, taskDayKey } from "@/lib/store/selectors";
-import { needsValidation } from "@/lib/engine/mission-cycle";
+import { missingRequiredPhotos, needsValidation } from "@/lib/engine/mission-cycle";
 import { useHalo } from "@/lib/store/halo-store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,7 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
   if (!task || !property) return null;
 
   const tz = property.timezone;
+  const missingProofs = missingRequiredPhotos(task, property).length;
   const fmt = (iso: string) => {
     const d = new Date(iso);
     const time = formatLocalTime(d, tz, locale);
@@ -287,13 +288,18 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
             </p>
           )}
 
-          {/* Contrôle qualité */}
+          {/* Contrôle qualité : jamais de validation si une preuve exigée manque */}
+          {task.status === "done" && !showRedo && missingProofs > 0 && (
+            <p className="rounded-lg bg-danger-soft p-3 text-[14px] font-medium text-danger">{t("proofs.cannotValidate", { count: missingProofs })}</p>
+          )}
           {task.status === "done" && !showRedo && (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-2 sm:grid-cols-2">
               <Button
                 size="lg"
+                disabled={missingProofs > 0}
                 onClick={() => {
-                  if (validateTask(task.id, manager?.id).ok) toast(t("taskSheet.validatedToast"));
+                  const res = validateTask(task.id, manager?.id);
+                  toast(res.ok ? t("taskSheet.validatedToast") : t("proofs.cannotValidate", { count: res.reason === "missing_photos" ? res.missing ?? 0 : 0 }));
                 }}
               >
                 <Check />

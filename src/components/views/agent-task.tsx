@@ -254,10 +254,15 @@ function AgentTaskInner({ taskId }: { taskId: string }) {
         <div className="fixed inset-x-0 bottom-[calc(68px+env(safe-area-inset-bottom))] z-20 border-t border-line bg-canvas/90 px-4 py-3 backdrop-blur-xl">
           <div className="mx-auto max-w-xl">
             {missingPhotos.length > 0 ? (
-              <p className="mb-2 flex items-center gap-1.5 text-[14px] font-medium text-danger">
-                <Camera className="size-4 shrink-0" />
-                {t("mission.photosMissing", { count: missingPhotos.length })}
-              </p>
+              <div className="mb-2 text-[14px] text-danger">
+                <p className="flex items-center gap-1.5 font-medium">
+                  <Camera className="size-4 shrink-0" />
+                  {t("mission.photosMissing", { count: missingPhotos.length })}
+                </p>
+                <p className="mt-0.5" data-testid="missing-photos">
+                  {missingPhotos.map((i) => `${checklist.find((r) => r.items.some((x) => x.id === i.id))?.name ?? ""} · ${i.label}`).join(", ")}
+                </p>
+              </div>
             ) : confirmUnchecked ? (
               <p className="mb-2 text-[14px] font-medium text-warning">{t("mission.uncheckedWarning", { count: unchecked })}</p>
             ) : null}

@@ -39,6 +39,30 @@ export async function deletePhoto(id: string) {
   if (store) await del(id, store).catch(() => undefined);
 }
 
+const DEMO_PREFIX = "demophoto_";
+
+/** Image générée pour les données de démonstration (clairement marquée « DÉMO »). */
+async function demoPhoto(id: string): Promise<Blob | undefined> {
+  if (typeof document === "undefined") return undefined;
+  const canvas = document.createElement("canvas");
+  canvas.width = 480;
+  canvas.height = 360;
+  const ctx = canvas.getContext("2d")!;
+  let hash = 0;
+  for (const c of id) hash = (hash * 31 + c.charCodeAt(0)) >>> 0;
+  const hue = hash % 360;
+  const g = ctx.createLinearGradient(0, 0, 480, 360);
+  g.addColorStop(0, `hsl(${hue} 30% 82%)`);
+  g.addColorStop(1, `hsl(${(hue + 40) % 360} 30% 68%)`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 480, 360);
+  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  ctx.font = "700 44px Inter, system-ui, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("DEMO", 240, 195);
+  return new Promise((resolve) => canvas.toBlob((b) => resolve(b ?? undefined), "image/jpeg", 0.8));
+}
+
 /** URL affichable d'une photo enregistrée (libérée automatiquement). */
 export function usePhotoUrl(id: string | undefined) {
   const [url, setUrl] = useState<string | null>(null);
@@ -47,7 +71,13 @@ export function usePhotoUrl(id: string | undefined) {
     let objectUrl: string | null = null;
     let cancelled = false;
     get<Blob>(id, store)
-      .then((blob) => {
+      .then(async (stored) => {
+        let blob = stored;
+        // Photos des données de démonstration : générées et enregistrées à la première lecture
+        if (!blob && id.startsWith(DEMO_PREFIX)) {
+          blob = await demoPhoto(id);
+          if (blob && store) await set(id, blob, store).catch(() => undefined);
+        }
         if (!blob || cancelled) return;
         objectUrl = URL.createObjectURL(blob);
         setUrl(objectUrl);

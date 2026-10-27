@@ -15,6 +15,7 @@ import type {
   Reservation,
   ServiceRequest,
   Task,
+  TaskReport,
 } from "@/lib/domain/types";
 import { DEFAULT_LINEN } from "@/lib/domain/linen-catalog";
 import { buildChecklist, newId } from "@/lib/domain/templates";
@@ -55,6 +56,19 @@ export function defaultLinenTypes(): LinenType[] {
 }
 
 export const DEFAULT_LINEN_SETTINGS: LinenSettings = { laundryName: "", turnaroundDays: 2, currency: "EUR" };
+
+/** Préfixe des photos de démonstration (images générées dans le navigateur, voir photos.ts). */
+export const DEMO_PHOTO_PREFIX = "demophoto_";
+
+/** Rapport complet d'une mission de démo terminée : tout coché, pièces RAS, une photo par point exigé. */
+export function completeDemoReport(property: Property, taskId: string): TaskReport {
+  const items = property.checklist.flatMap((r) => r.items);
+  return {
+    checked: items.map((i) => i.id),
+    photos: Object.fromEntries(items.filter((i) => i.photoRequired).map((i) => [i.id, [`${DEMO_PHOTO_PREFIX}${taskId}_${i.id}`]])),
+    rooms: Object.fromEntries(property.checklist.map((r) => [r.id, { status: "ok" as const }])),
+  };
+}
 
 export function applyPlan(tasks: Task[], plan: ReturnType<typeof planTasks>, nowIso: string): Task[] {
   const updates = new Map(plan.update.map((u) => [u.id, u.patch]));
@@ -168,8 +182,10 @@ export function buildDemoData(now: Date, locale: string): HaloData {
       const actual = Math.round(p.cleaningDurationMin * factor);
       const start = zonedTimeToUtc(addDaysToKey(today, -d), "11:10", p.timezone);
       const end = new Date(start.getTime() + actual * 60_000);
+      const histId = newId("task");
       tasks.push({
-        id: newId("task"),
+        id: histId,
+        report: completeDemoReport(p, histId),
         propertyId: p.id,
         type: "turnover",
         status: "validated",
@@ -206,7 +222,10 @@ export function buildDemoData(now: Date, locale: string): HaloData {
   setTask(todayTasks("p_marais", "turnover"), { assigneeId: "m_ines", status: "assigned", scheduledStart: at("p_marais", "11:15") });
   setTask(todayTasks("p_bastille", "turnover"), { assigneeId: "m_karim", status: "in_progress", scheduledStart: at("p_bastille", "11:30"), startedAt: at("p_bastille", "11:32") });
   setTask(todayTasks("p_bastille", "check_out"), { assigneeId: "m_karim", status: "validated", scheduledStart: at("p_bastille", "10:45") });
-  setTask(todayTasks("p_alfama", "turnover"), { assigneeId: "m_lucia", status: "done", scheduledStart: at("p_alfama", "11:00"), startedAt: at("p_alfama", "11:02"), completedAt: at("p_alfama", "12:55") });
+  const alfama = todayTasks("p_alfama", "turnover");
+  const alfamaProperty = properties.find((pp) => pp.id === "p_alfama")!;
+  // Mission soumise avec ses preuves : rapport complet et une photo par point exigé
+  setTask(alfama, { report: alfama ? completeDemoReport(alfamaProperty, alfama.id) : undefined, assigneeId: "m_lucia", status: "done", scheduledStart: at("p_alfama", "11:00"), startedAt: at("p_alfama", "11:02"), completedAt: at("p_alfama", "12:55") });
   setTask(todayTasks("p_belleville", "check_in"), { assigneeId: "m_ines", status: "assigned", scheduledStart: at("p_belleville", "16:00") });
 
   // ---------- Linge : achat du stock cible, un kit posé par logement, du sale, un bon en cours ----------

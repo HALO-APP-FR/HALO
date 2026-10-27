@@ -1,7 +1,8 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { CircleCheck, Hammer, MessageSquareText, PackageX, SprayCan, Timer, type LucideIcon } from "lucide-react";
+import { Camera, CircleCheck, Hammer, MessageSquareText, PackageX, SprayCan, Timer, type LucideIcon } from "lucide-react";
+import { requiredPhotoStatus } from "@/lib/engine/mission-cycle";
 import type { Property, RoomStatus, Task } from "@/lib/domain/types";
 import { actualMinutes, formatDuration } from "@/lib/engine/learning";
 import { PhotoThumb } from "./photo-thumb";
@@ -43,11 +44,40 @@ export function TaskReportView({ task, property }: { task: Task; property: Prope
   const items = property.checklist.flatMap((r) => r.items);
   const checked = report?.checked.filter((id) => items.some((i) => i.id === id)).length ?? 0;
   const photos = Object.values(report?.photos ?? {}).flat();
+  const proofs = requiredPhotoStatus(task, property);
+  const missingProofs = proofs.filter((p) => p.photoIds.length === 0).length;
 
   return (
     <section className="space-y-3">
       <h3 className="text-micro text-muted">{t("mission.report")}</h3>
       <DurationCompare task={task} />
+      {proofs.length > 0 && (
+        <div className={cn("rounded-lg border p-3", missingProofs ? "border-danger bg-danger-soft" : "border-line")}>
+          <p className={cn("mb-2 flex items-center gap-1.5 text-[14px] font-semibold", missingProofs ? "text-danger" : "text-fg")}>
+            <Camera className="size-4" />
+            {missingProofs ? t("proofs.missing", { count: missingProofs, total: proofs.length }) : t("proofs.complete", { count: proofs.length })}
+          </p>
+          <ul className="space-y-2">
+            {proofs.map(({ room, item, photoIds }) => (
+              <li key={item.id} className="flex items-center justify-between gap-3">
+                <span className="min-w-0 text-[14px]">
+                  <span className="text-muted">{room.name} · </span>
+                  {item.label}
+                </span>
+                {photoIds.length ? (
+                  <span className="flex shrink-0 gap-1">
+                    {photoIds.map((id) => (
+                      <PhotoThumb key={id} id={id} size="sm" label={item.label} />
+                    ))}
+                  </span>
+                ) : (
+                  <span className="shrink-0 text-[13px] font-semibold text-danger">{t("proofs.none")}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {items.length > 0 && <p className="text-[14px] text-muted">{t("mission.checkedCount", { done: checked, total: items.length })}</p>}
       <ul className="divide-y divide-line rounded-lg border border-line">
         {property.checklist.map((room) => {

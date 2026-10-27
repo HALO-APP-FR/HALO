@@ -54,6 +54,9 @@ describe("cycle de mission : règles", () => {
     expect(canValidate(task({ status: "done" }), agent)).toEqual({ ok: false, reason: "not_manager" });
     expect(canValidate(task({ status: "in_progress" }), manager)).toEqual({ ok: false, reason: "bad_status" });
     expect(canValidate(task({ status: "done" }), manager).ok).toBe(true);
+    // Une mission arrivée « terminée » sans ses preuves ne se valide pas en silence
+    expect(canValidate(task({ status: "done" }), manager, property)).toEqual({ ok: false, reason: "missing_photos", missing: 1 });
+    expect(canValidate(task({ status: "done", report: { checked: [], photos: { i1: ["ph1"] }, rooms: {} } }), manager, property).ok).toBe(true);
     expect(canValidate(task({ status: "done" }), { ...manager, active: false })).toEqual({ ok: false, reason: "not_manager" });
     expect(canRequestCorrection(task({ status: "done" }), manager, "  ")).toEqual({ ok: false, reason: "reason_required" });
     expect(canRequestCorrection(task({ status: "done" }), agent, "x")).toEqual({ ok: false, reason: "not_manager" });

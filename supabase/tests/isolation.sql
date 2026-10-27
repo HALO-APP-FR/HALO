@@ -126,6 +126,17 @@ insert into public.files (organization_id, kind, task_id, property_id, path, mim
   (t.id('B'), 'task_photo', t.id('TB1'), t.id('PB1'), t.id('B') || '/task/' || t.id('TB1') || '/fb1.jpg', 'image/jpeg', 1000, t.id('b_agent'));
 insert into storage.objects (bucket_id, name, owner) select 'org-files', path, created_by from public.files;
 
+insert into t.ids select k, gen_random_uuid() from unnest(array['RA2', 'RB2', 'RA3']) k;
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values
+  (t.id('RA2'), t.id('A'), t.id('PA1'), 'Séjour en cours A', now() - interval '1 day', now() + interval '2 days'),
+  (t.id('RB2'), t.id('B'), t.id('PB1'), 'Séjour en cours B', now() - interval '1 day', now() + interval '2 days'),
+  (t.id('RA3'), t.id('A'), t.id('PA2'), 'Séjour futur A', now() + interval '10 days', now() + interval '13 days');
+insert into public.guest_guides (organization_id, property_id, welcome, wifi_password) values
+  (t.id('A'), t.id('PA1'), 'Bienvenue au Canal', 'wifi-A'), (t.id('A'), t.id('PA2'), 'Bienvenue à Bastille', 'wifi-A2'),
+  (t.id('B'), t.id('PB1'), 'Bienvenue au Vieux-Port', 'wifi-B');
+insert into public.guest_links (organization_id, reservation_id, token_hash, valid_from, valid_until) values
+  (t.id('A'), t.id('RA2'), 'fixture-a', now() - interval '1 day', now() + interval '2 days'),
+  (t.id('B'), t.id('RB2'), 'fixture-b', now() - interval '1 day', now() + interval '2 days');
 insert into public.task_report_versions (organization_id, task_id, checked, rooms) values
   (t.id('A'), t.id('TA2'), '[]', '{}'), (t.id('B'), t.id('TB1'), '[]', '{}');
 
@@ -161,9 +172,11 @@ from pg_class c join pg_namespace n on n.oid = c.relnamespace
 left join information_schema.role_table_grants p on p.table_schema = 'public' and p.table_name = c.relname and p.grantee = 'anon'
 where n.nspname = 'public' and c.relkind = 'r' group by c.relname;
 
-select t.check('aucune fonction exécutable par anon : ' || p.proname, p.proname, false)
+select t.check('aucune fonction exécutable par anon (hors exception invité) : ' || p.proname, p.proname, false)
 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute');
+where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute') and p.proname <> 'get_guest_stay';
+select t.is('exception anonyme unique : get_guest_stay', (select string_agg(p.proname, ',') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'get_guest_stay');
 
 select t.check('fonction security definer avec search_path fixé : ' || p.proname,
   coalesce(array_to_string(p.proconfig, ','), 'aucun'), coalesce(array_to_string(p.proconfig, ','), '') like '%search_path=%')
@@ -457,6 +470,9 @@ select t.is('cycle : la mission reste en cours', (select status::text from publi
 select t.is('cycle : le refus n''est pas mémorisé (l''action pourra être rejouée)', (select count(*)::text from public.task_actions where id = '22222222-2222-2222-2222-222222222222'), '0');
 select t.check('cycle : photo du point obligatoire réservée',
   t.keep('a_agent2', format('select public.begin_upload(%L, ''task_photo'', ''image/jpeg'', 900, %L, null, %L)', t.id('A'), t.id('TC1'), t.id('itemA2'))), true);
+select t.is('cycle : réservée mais pas envoyée = toujours refusée', t.q('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC1'))), 'missing_photos');
+select t.is('cycle : envoi réel du fichier par l''agent',
+  t.exec('a_agent2', format('insert into storage.objects (bucket_id, name) select ''org-files'', path from public.files where task_id = %L and checklist_item_id = %L', t.id('TC1'), t.id('itemA2')), true, true), '1');
 select t.is('cycle : même action rejouée, cette fois acceptée', t.keep('a_agent2', format('select public.finish_task(%L, %L, %L)', t.id('A'), t.id('TC1'), '22222222-2222-2222-2222-222222222222')), 'applied');
 select t.is('cycle : terminée, à valider (ménage)', (select status::text from public.tasks where id = t.id('TC1')), 'done');
 select t.err('cycle : agent ne valide pas', t.q('a_agent2', format('select public.validate_task(%L, %L)', t.id('A'), t.id('TC1'))), '42501');
@@ -495,11 +511,90 @@ select t.is('itinéraire : chacun règle son application par défaut', t.dml('a_
 select t.deny('itinéraire : pas celle d''un collègue', t.dml('a_manager', format('update public.profiles set maps_app = ''waze'' where id = %L', t.id('a_agent'))));
 select t.err('itinéraire : valeur inconnue refusée', t.dml('a_agent', format('update public.profiles set maps_app = ''autre'' where id = %L', t.id('a_agent'))), '23514');
 
+-- 3.6 Validation refusée si une preuve exigée manque (même pour un manager)
+insert into t.ids values ('TC3', gen_random_uuid());
+insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, window_start, window_end, duration_min) values
+  (t.id('TC3'), t.id('A'), t.id('PA2'), 'turnover', 'assigned', t.id('a_agent2'), now() - interval '1 hour', now() + interval '3 hours', 60);
+update public.tasks set status = 'done' where id = t.id('TC3');  -- mission arrivée « terminée » sans preuve (ex. ancienne donnée)
+select t.is('preuves : validation refusée sans la photo exigée', t.q('a_manager', format('select public.validate_task(%L, %L)', t.id('A'), t.id('TC3'))), 'missing_photos');
+select t.is('preuves : la mission reste à valider', (select status::text from public.tasks where id = t.id('TC3')), 'done');
+select t.is('preuves : une correction reste possible', t.q('a_manager', format('select public.request_correction(%L, %L, ''Photo de la douche manquante'')', t.id('A'), t.id('TC3'))), 'applied');
+
 -- 3.4 Mission sans validation requise : validée automatiquement à la soumission
 select t.is('auto : démarrer un accueil', t.keep('a_agent2', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC2'))), 'applied');
 select t.is('auto : soumettre', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC2'))), 'applied');
 select t.is('auto : validée sans passer par le manager', (select status::text from public.tasks where id = t.id('TC2')), 'validated');
 select t.is('auto : tracée comme validation automatique', (select kind from public.task_events where task_id = t.id('TC2') order by id desc limit 1), 'auto_validated');
+
+-- =====================================================================
+-- 4. Liens invités par séjour (migration 3) — la seule exception anonyme
+-- =====================================================================
+create table t.tok (name text primary key, token text);
+do $$ begin
+  insert into t.tok values ('A', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('RA2'))));
+  insert into t.tok values ('B', t.keep('b_manager', format('select public.create_guest_link(%L, %L)', t.id('B'), t.id('RB2'))));
+  insert into t.tok values ('A3', t.keep('a_owner', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('RA3'))));
+end $$;
+create function t.tk(n text) returns text language sql stable as $$ select token from t.tok where name = n $$;
+create function t.guest(tok text, path text default '{status}') returns text language sql as $$
+  select t.q(null, format('select public.get_guest_stay(%L) #>> %L', tok, path))
+$$;
+
+select t.check('invité : jeton brut renvoyé une fois (64 caractères hexadécimaux)', t.tk('A'), t.tk('A') ~ '^[0-9a-f]{64}$');
+select t.is('invité : jeton jamais stocké en clair', (select count(*)::text from public.guest_links where token_hash = t.tk('A')), '0');
+select t.is('invité : lien valide pendant le séjour (sans compte)', t.guest(t.tk('A')), 'ok');
+select t.is('invité : contenu du séjour concerné uniquement', t.guest(t.tk('A'), '{guide,welcome}'), 'Bienvenue au Canal');
+select t.is('invité : réutilisable (deuxième ouverture)', t.guest(t.tk('A')), 'ok');
+select t.check('invité : jamais de code d''accès dans la réponse', t.q(null, format('select public.get_guest_stay(%L)::text', t.tk('A'))),
+  t.q(null, format('select public.get_guest_stay(%L)::text', t.tk('A'))) not like '%A-1234%' and t.q(null, format('select public.get_guest_stay(%L)::text', t.tk('A'))) not like '%code%');
+select t.is('invité : le lien de B ne donne que B', t.guest(t.tk('B'), '{property,name}'), 'B — Vieux-Port');
+select t.is('invité : séjour à venir (plus de 72 h) = réponse neutre', t.guest(t.tk('A3')), 'unavailable');
+select t.is('invité : jeton faux = réponse neutre', t.guest(repeat('0', 64)), 'unavailable');
+select t.is('invité : jeton vide = réponse neutre', t.guest(''), 'unavailable');
+select t.is('invité : jeton mal formé = réponse neutre', t.guest('x'' or 1=1 --'), 'unavailable');
+select t.is('invité : la réponse neutre ne contient rien d''autre', t.q(null, format('select public.get_guest_stay(%L)::text', repeat('0', 64))), '{"status": "unavailable"}');
+select t.err('invité : aucune lecture directe des liens sans compte', t.q(null, 'select count(*) from public.guest_links'), '42501');
+select t.err('invité : aucune lecture des séjours sans compte', t.q(null, 'select count(*) from public.reservations'), '42501');
+select t.err('invité : aucune lecture du livret par table sans compte', t.q(null, 'select count(*) from public.guest_guides'), '42501');
+select t.err('invité : aucune autre fonction sans compte', t.q(null, format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('RA2'))), '42501');
+select t.err('invité : empreinte du jeton illisible même pour le owner', t.q('a_owner', 'select count(token_hash) from public.guest_links'), '42501');
+select t.is('invité : le manager voit le statut', t.q('a_manager', format('select public.guest_link_status(revoked_at, valid_from, valid_until) from public.guest_links where reservation_id = %L and revoked_at is null', t.id('RA2'))), 'active');
+select t.is('invité : statut « à venir »', t.q('a_manager', format('select public.guest_link_status(revoked_at, valid_from, valid_until) from public.guest_links where reservation_id = %L and revoked_at is null', t.id('RA3'))), 'upcoming');
+
+-- Droits sur les liens
+select t.err('invité : manager de B ne crée pas de lien pour un séjour de A', t.q('b_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('RA2'))), '42501');
+select t.err('invité : manager de B, séjour de A annoncé en B', t.q('b_manager', format('select public.create_guest_link(%L, %L)', t.id('B'), t.id('RA2'))), 'P0002');
+select t.err('invité : agent ne crée pas de lien', t.q('a_agent', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('RA2'))), '42501');
+select t.err('invité : manager de B ne révoque pas un lien de A', t.q('b_manager', format('select public.revoke_guest_link(%L, (select id from public.guest_links where reservation_id = %L and revoked_at is null))', t.id('A'), t.id('RA2'))), '42501');
+select t.err('invité : manager de B ne prolonge pas un lien de A', t.q('b_manager', format('select public.extend_guest_link(%L, %L, now() + interval ''3 days'')', t.id('A'),
+  (select id from public.guest_links where reservation_id = t.id('RA2') and revoked_at is null))), '42501');
+select t.err('invité : pas de lien pour un séjour terminé', t.q('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('RA1'))), '22023');
+
+-- Prolongation (départ tardif), plafonnée
+select t.err('invité : prolongation au-delà de 7 jours après le départ refusée', t.q('a_manager', format('select public.extend_guest_link(%L, %L, now() + interval ''30 days'')', t.id('A'),
+  (select id from public.guest_links where reservation_id = t.id('RA2') and revoked_at is null))), '22023');
+select t.is('invité : prolongation acceptée', t.keep('a_manager', format('select public.extend_guest_link(%L, %L, now() + interval ''3 days'')', t.id('A'),
+  (select id from public.guest_links where reservation_id = t.id('RA2') and revoked_at is null))), '');
+
+-- Expiration à l'heure de départ (le temps qui passe est simulé en reculant les dates)
+update public.guest_links set valid_from = now() - interval '5 days', valid_until = now() - interval '1 second' where token_hash = encode(extensions.digest(t.tk('B'), 'sha256'), 'hex');
+select t.is('invité : expiré après l''heure de départ', t.guest(t.tk('B')), 'unavailable');
+select t.is('invité : statut « expiré » pour le manager', t.q('b_manager', format('select public.guest_link_status(revoked_at, valid_from, valid_until) from public.guest_links where reservation_id = %L and revoke_reason is null', t.id('RB2'))), 'expired');
+
+-- Révocation immédiate, puis renouvellement
+select t.is('invité : révocation par le manager', t.keep('a_manager', format('select public.revoke_guest_link(%L, (select id from public.guest_links where reservation_id = %L and revoked_at is null))', t.id('A'), t.id('RA2'))), '');
+select t.is('invité : lien révoqué = réponse neutre, immédiatement', t.guest(t.tk('A')), 'unavailable');
+do $$ begin insert into t.tok values ('A2', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('RA2')))); end $$;
+select t.is('invité : nouveau lien actif', t.guest(t.tk('A2')), 'ok');
+do $$ begin insert into t.tok values ('A2b', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('RA2')))); end $$;
+select t.is('invité : renouveler révoque le lien précédent', t.guest(t.tk('A2')), 'unavailable');
+select t.is('invité : le lien renouvelé fonctionne', t.guest(t.tk('A2b')), 'ok');
+
+-- Séjour annulé ou livret désactivé
+select t.is('invité : séjour annulé', t.dml('a_manager', format('update public.reservations set status = ''cancelled'' where id = %L', t.id('RA2'))) || '/' || t.guest(t.tk('A2b')), '1/ok');
+update public.reservations set status = 'cancelled' where id = t.id('RA2');
+select t.is('invité : séjour annulé = lien révoqué automatiquement', t.guest(t.tk('A2b')), 'unavailable');
+select t.is('invité : motif tracé', (select revoke_reason from public.guest_links where token_hash = encode(extensions.digest(t.tk('A2b'), 'sha256'), 'hex')), 'stay_cancelled');
 
 -- =====================================================================
 -- Bilan

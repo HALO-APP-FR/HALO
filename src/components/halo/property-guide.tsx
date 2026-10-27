@@ -205,6 +205,9 @@ export function PropertyGuide({ property }: { property: Property }) {
               {t("guide.regenerate")}
             </Button>
           </div>
+          <p className="rounded-lg border border-danger bg-danger-soft p-3 text-caption font-medium text-danger" role="note">
+            {t("guide.doNotShare")}
+          </p>
           <p className="rounded-lg bg-accent-soft p-3 text-caption text-fg">{t("guide.demoNotice")}</p>
           <p className="text-caption text-muted">{t("guide.securityNotice")}</p>
         </CardContent>
