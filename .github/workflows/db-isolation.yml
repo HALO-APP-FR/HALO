@@ -1,0 +1,27 @@
+name: Isolation base de données
+
+on:
+  push:
+    paths: ["supabase/**", ".github/workflows/db-isolation.yml"]
+  pull_request:
+    paths: ["supabase/**", ".github/workflows/db-isolation.yml"]
+
+jobs:
+  isolation:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 2s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Client PostgreSQL
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Migrations + tests d'isolation (données fictives uniquement)
+        env:
+          DATABASE_URL: postgres://postgres:test@localhost:5432/postgres
+        run: bash supabase/tests/run.sh

@@ -1,6 +1,6 @@
 # HALO — Architecture SaaS multi-organisation (proposition à valider)
 
-Statut : **proposition, rien n'est encore implémenté.** Rédigé le 27/10/2026 après inspection du code (commit `51a57c2`).
+Statut : **direction générale validée** (Next.js + Vercel + Postgres, une conciergerie = une organisation, cloisonnement dans la base et le stockage). Le plan d'exécution est **remplacé par `11-plan-saas-lot-1.md`** (socle / fonctions ultérieures / options chiffrées, lot 1 détaillé). Rédigé le 27/10/2026 après inspection du code (commit `51a57c2`).
 
 ## 0. État actuel constaté
 
@@ -100,7 +100,7 @@ Points clés :
 
 ## 4. Règles d'accès (appliquées par la base)
 
-1. **RLS activé sur toutes les tables**, sans exception, et `force row level security`. Aucun accès anonyme aux tables.
+1. **RLS activé sur toutes les tables**, sans exception. Aucun accès anonyme aux tables. (Pas de `force row level security` : voir les risques dans docs/11.)
 2. Fonctions d'aide `security definer` avec `search_path` fixé : `has_role(org, roles[])`, `is_member(org)`, `my_task(task_id)`.
 3. Chaque politique précise **SELECT, INSERT, UPDATE, DELETE séparément** ; `with check` reprend la condition d'organisation pour qu'aucune ligne ne puisse être « déplacée » vers une autre organisation. Un trigger interdit en plus toute modification de `organization_id`.
 4. **Élévation de privilèges bloquée** : les rôles se changent uniquement par une fonction (`set_member_role`) : un manager ne peut ni nommer un owner/manager ni se promouvoir ; on ne peut pas retirer le dernier owner.
