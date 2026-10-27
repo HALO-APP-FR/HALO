@@ -7,7 +7,7 @@ import { AlertTriangle, Check, Clock, Minus, Plus, RotateCcw, Sparkles, Timer, U
 import { initialsOf, type Task, type TaskStatus } from "@/lib/domain/types";
 import { conflictsIfAssigned } from "@/lib/engine/conflicts";
 import { formatDuration, learnedCleaningDuration } from "@/lib/engine/learning";
-import { formatLocalTime, isSameLocalDay } from "@/lib/engine/time";
+import { formatLocalTime, isSameLocalDay, formatLocalRange } from "@/lib/engine/time";
 import { activeAgents, taskDayKey } from "@/lib/store/selectors";
 import { useHalo } from "@/lib/store/halo-store";
 import { Badge } from "@/components/ui/badge";
@@ -77,9 +77,12 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
   const learned = property.learnDuration === false ? null : learnedCleaningDuration(property.id, tasks);
 
   const assign = (agentId: string | undefined) => {
+    const overlap = agentId ? conflictsIfAssigned(task, agentId, selectedStart, tasks).some((c) => c.kind === "overlap") : false;
     assignTask(task.id, agentId, agentId ? selectedStart : undefined);
     const name = members.find((m) => m.id === agentId)?.name;
-    toast(agentId ? t("taskSheet.assignedTo", { name: name ?? "" }) : t("taskSheet.unassignedToast"));
+    toast(agentId ? t("taskSheet.assignedTo", { name: name ?? "" }) : t("taskSheet.unassignedToast"), {
+      description: overlap ? t("conflict.overlap") : undefined,
+    });
   };
 
   const status = (s: TaskStatus, message: string) => {
@@ -106,7 +109,7 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
                 <Clock className="size-3.5" /> {t("taskSheet.window")}
               </dt>
               <dd className="mt-1 text-[15px] font-semibold tabular">
-                {fmt(task.windowStart)} → {fmt(task.windowEnd)}
+                {formatLocalRange(new Date(task.windowStart), new Date(task.windowEnd), tz, locale)}
               </dd>
             </div>
             <div className="rounded-lg bg-subtle p-3 dark:bg-surface-hover">
@@ -209,7 +212,11 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
                         <span className="min-w-0 flex-1">
                           <span className="block text-[15px] font-medium">{agent.name}</span>
                           <span className="block text-caption text-muted tabular">
-                            {dayLoad.length > 0 ? t("taskSheet.agentLoad", { count: dayLoad.length, time: formatDuration(loadMin, locale) }) : t("taskSheet.agentFree")}
+                            {dayLoad.length > 0
+                              ? t("taskSheet.agentLoad", { count: dayLoad.length, time: formatDuration(loadMin, locale) })
+                              : conflicts.some((c) => c.kind === "overlap")
+                                ? t("conflict.overlap")
+                                : t("taskSheet.agentFree")}
                             {" · "}
                             {t("taskSheet.endAt", { time: fmt(new Date(new Date(selectedStart).getTime() + task.durationMin * 60_000).toISOString()) })}
                           </span>
@@ -244,6 +251,20 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
           )}
 
           <TaskReportView task={task} property={property} />
+
+          {/* Traçabilité : reprise et validation */}
+          {(task.previousWorkMin || task.validatedAt) && (
+            <ul className="space-y-1 text-caption text-muted">
+              {task.previousWorkMin ? <li>{t("taskSheet.redoTrace", { time: formatDuration(task.previousWorkMin, locale) })}</li> : null}
+              {task.validatedAt && (
+                <li>
+                  {t("taskSheet.validatedAt", {
+                    date: `${new Intl.DateTimeFormat(locale, { timeZone: tz, weekday: "short", day: "numeric", month: "short" }).format(new Date(task.validatedAt))} ${formatLocalTime(new Date(task.validatedAt), tz, locale)}`,
+                  })}
+                </li>
+              )}
+            </ul>
+          )}
 
           {/* Contrôle qualité */}
           {task.status === "done" && !showRedo && (

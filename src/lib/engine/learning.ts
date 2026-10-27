@@ -37,7 +37,8 @@ export interface LearnedDuration {
  */
 export function learnedCleaningDuration(propertyId: string, tasks: Task[]): LearnedDuration | null {
   const samples = tasks
-    .filter((x) => x.propertyId === propertyId && x.type === "turnover" && !x.pets && (x.status === "done" || x.status === "validated"))
+    // Hors animaux (supplément à part) et hors missions reprises (deux passages faussent la durée)
+    .filter((x) => x.propertyId === propertyId && x.type === "turnover" && !x.pets && !x.previousWorkMin && (x.status === "done" || x.status === "validated"))
     .map((x) => ({ at: x.completedAt ?? "", min: actualMinutes(x) }))
     .filter((x): x is { at: string; min: number } => x.min !== null)
     .sort((a, b) => b.at.localeCompare(a.at))
@@ -64,7 +65,8 @@ export function workedMinutes(tasks: Task[], memberId: string, from: Date, to: D
     if (end < from.getTime() || end >= to.getTime()) continue;
     const min = actualMinutes(x);
     if (min === null) continue;
-    total += min;
+    // Une mission reprise compte tous ses passages
+    total += min + (x.previousWorkMin ?? 0);
     count += 1;
   }
   return { minutes: total, count };

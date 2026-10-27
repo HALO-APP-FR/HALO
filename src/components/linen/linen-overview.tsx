@@ -26,17 +26,20 @@ export function LinenOverview({ goTo, onNewOrder }: { goTo: (tab: string) => voi
   const locale = useLocale();
   const name = useLinenName();
   const money = useMoney();
-  const { stock, forecast, upcoming, types, laundryReturnKey, orders } = useLinenData(7);
+  const { stock, forecast, upcoming, types, orders } = useLinenData(7);
 
   const sum = (loc: "clean" | "dirty" | "laundry") => types.reduce((n, ty) => n + Math.max(0, qtyAt(stock, loc, ty.id)), 0);
   const inProps = types.reduce((n, ty) => n + Math.max(0, qtyInProperties(stock, ty.id)), 0);
   const shortages = forecast.filter((r) => r.shortageDay).sort((a, b) => (a.shortageDay ?? "").localeCompare(b.shortageDay ?? ""));
+  const fmtShort = (k: string) => new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${k}T12:00:00Z`));
   const weekCost = upcoming.reduce((n, u) => n + kitCost(u.kit, types), 0);
   const avgCost = upcoming.length ? weekCost / upcoming.length : 0;
   const dirty = sum("dirty");
   const fmtDay = (k: string) =>
     new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${k}T12:00:00Z`));
   const sentOrders = orders.filter((o) => o.status === "sent");
+  const nowIso = new Date().toISOString();
+  const lateOrders = sentOrders.filter((o) => o.expectedAt && o.expectedAt < nowIso);
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -53,7 +56,12 @@ export function LinenOverview({ goTo, onNewOrder }: { goTo: (tab: string) => voi
                 {shortages.slice(0, 4).map((r) => (
                   <li key={r.linenTypeId}>
                     <strong>{name(types.find((x) => x.id === r.linenTypeId))}</strong>{" "}
-                    {t("linen.shortageLine", { day: fmtDay(r.shortageDay!), need: r.need, clean: r.available - r.incoming })}
+                    {t("linen.shortageLine", {
+                      day: fmtDay(r.shortageDay!),
+                      missing: (r.needAtShortage ?? 0) - (r.availableAtShortage ?? 0),
+                      need: r.needAtShortage ?? 0,
+                      available: r.availableAtShortage ?? 0,
+                    })}
                   </li>
                 ))}
               </ul>
@@ -70,6 +78,17 @@ export function LinenOverview({ goTo, onNewOrder }: { goTo: (tab: string) => voi
                 {t("linen.buy")}
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      ) : lateOrders.length > 0 ? (
+        <Card className="border-warning/40 bg-warning-soft/60">
+          <CardContent className="flex flex-wrap items-center gap-3">
+            <AlertTriangle className="size-6 shrink-0 text-warning" />
+            <p className="min-w-0 flex-1 text-[15px] font-medium">{t("linen.lateOrders", { count: lateOrders.length })}</p>
+            <Button variant="secondary" onClick={() => goTo("laundry")}>
+              <Truck />
+              {t("linen.tabLaundry")}
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -94,8 +113,7 @@ export function LinenOverview({ goTo, onNewOrder }: { goTo: (tab: string) => voi
             <div>
               <CardTitle>{t("linen.needs7")}</CardTitle>
               <p className="mt-1 text-caption text-muted">
-                {t("linen.needs7Hint", { count: upcoming.length })}
-                {laundryReturnKey && ` · ${t("linen.returnOn", { day: fmtDay(laundryReturnKey) })}`}
+                {t("linen.needs7Hint", { count: upcoming.length })} · {t("linen.returnRule")}
               </p>
             </div>
           </CardHeader>
@@ -103,35 +121,83 @@ export function LinenOverview({ goTo, onNewOrder }: { goTo: (tab: string) => voi
             {forecast.length === 0 ? (
               <p className="py-6 text-center text-[15px] text-muted">{t("linen.noNeeds")}</p>
             ) : (
-              <div className="-mx-5 overflow-x-auto px-5">
-                <table className="w-full min-w-[520px] text-[14px]">
+              <>
+              {/* Téléphone : une ligne lisible par article, le bilan d'abord */}
+              <ul className="divide-y divide-line md:hidden">
+                {forecast
+                  .slice()
+                  .sort((a, b) => Number(Boolean(b.shortageDay)) - Number(Boolean(a.shortageDay)) || (a.shortageDay ?? "").localeCompare(b.shortageDay ?? "") || a.gap - b.gap)
+                  .map((r) => (
+                    <li key={r.linenTypeId} className="py-2.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="min-w-0 text-[15px] font-medium">{name(types.find((x) => x.id === r.linenTypeId))}</span>
+                        <span className="shrink-0 text-end">
+                          {r.gap < 0 ? (
+                            <Badge tone="danger">{t("linen.missingQty", { count: -r.gap })}</Badge>
+                          ) : r.shortageDay ? (
+                            <Badge tone="warning">{t("linen.missingQty", { count: (r.needAtShortage ?? 0) - (r.availableAtShortage ?? 0) })}</Badge>
+                          ) : (
+                            <span className={cn("text-[14px] font-semibold tabular", r.gap > 0 ? "text-success" : "text-muted")}>
+                              {r.gap > 0 ? t("linen.surplusQty", { count: r.gap }) : t("linen.balanced")}
+                            </span>
+                          )}
+                          {r.shortageDay && <span className="block text-caption text-muted">{t("linen.fromDay", { day: fmtShort(r.shortageDay) })}</span>}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-caption text-muted tabular">
+                        {t("linen.need7")} {r.need} · {t("linen.cleanNow")} {r.clean}
+                        {r.dirty > 0 && ` · ${t("linen.dirtyToSend")} ${r.dirty}`}
+                        {r.returns.map((ret) => ` · ${t("linen.returnShort")} ${ret.qty} ${ret.late ? t("linen.lateReturn") : fmtShort(ret.dayKey)}`).join("")}
+                      </p>
+                    </li>
+                  ))}
+              </ul>
+              <div className="-mx-5 hidden overflow-x-auto px-5 md:block">
+                <table className="w-full min-w-[640px] text-[14px]">
                   <thead>
                     <tr className="border-b border-line text-micro text-muted">
                       <th scope="col" className="py-2.5 pe-3 text-start font-semibold">{t("linen.item")}</th>
-                      <th scope="col" className="py-2.5 pe-3 text-end font-semibold">{t("linen.need")}</th>
-                      <th scope="col" className="py-2.5 pe-3 text-end font-semibold">{t("linen.loc_clean")}</th>
-                      <th scope="col" className="py-2.5 pe-3 text-end font-semibold">{t("linen.returning")}</th>
-                      <th scope="col" className="py-2.5 text-end font-semibold">{t("linen.balance")}</th>
+                      <th scope="col" className="py-2.5 pe-3 text-end font-semibold">{t("linen.need7")}</th>
+                      <th scope="col" className="py-2.5 pe-3 text-end font-semibold">{t("linen.cleanNow")}</th>
+                      <th scope="col" className="py-2.5 pe-3 text-end font-semibold">{t("linen.dirtyToSend")}</th>
+                      <th scope="col" className="py-2.5 pe-3 text-end font-semibold">{t("linen.atLaundryReturn")}</th>
+                      <th scope="col" className="py-2.5 text-end font-semibold">{t("linen.outcome7")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {forecast
                       .slice()
-                      .sort((a, b) => a.gap - b.gap)
+                      .sort((a, b) => Number(Boolean(b.shortageDay)) - Number(Boolean(a.shortageDay)) || (a.shortageDay ?? "").localeCompare(b.shortageDay ?? "") || a.gap - b.gap)
                       .map((r) => {
                         const ty = types.find((x) => x.id === r.linenTypeId);
                         return (
-                          <tr key={r.linenTypeId} className="border-b border-line last:border-b-0">
+                          <tr key={r.linenTypeId} className="border-b border-line align-top last:border-b-0">
                             <td className="py-2.5 pe-3 font-medium">{name(ty)}</td>
                             <td className="py-2.5 pe-3 text-end tabular">{r.need}</td>
-                            <td className="py-2.5 pe-3 text-end tabular">{r.available - r.incoming}</td>
-                            <td className="py-2.5 pe-3 text-end tabular text-muted">{r.incoming || "—"}</td>
-                            <td className="py-2.5 text-end">
-                              {r.shortageDay ? (
-                                <Badge tone="danger">{r.gap < 0 ? r.gap : t("linen.tight")}</Badge>
+                            <td className="py-2.5 pe-3 text-end tabular">{r.clean}</td>
+                            <td className="py-2.5 pe-3 text-end tabular text-muted">{r.dirty || "—"}</td>
+                            <td className="py-2.5 pe-3 text-end tabular">
+                              {r.returns.length === 0 ? (
+                                <span className="text-muted">{r.atLaundry || "—"}</span>
                               ) : (
-                                <span className="font-semibold text-success tabular">+{r.gap}</span>
+                                r.returns.map((ret) => (
+                                  <span key={ret.dayKey} className={cn("block", ret.late ? "text-danger" : "text-muted")}>
+                                    {ret.qty} · {ret.late ? t("linen.lateReturn") : fmtShort(ret.dayKey)}
+                                  </span>
+                                ))
                               )}
+                            </td>
+                            <td className="py-2.5 text-end">
+                              {r.gap < 0 ? (
+                                <Badge tone="danger">{t("linen.missingQty", { count: -r.gap })}</Badge>
+                              ) : r.shortageDay ? (
+                                <Badge tone="warning">{t("linen.missingQty", { count: (r.needAtShortage ?? 0) - (r.availableAtShortage ?? 0) })}</Badge>
+                              ) : (
+                                <span className={cn("font-semibold tabular", r.gap > 0 ? "text-success" : "text-muted")}>
+                                  {r.gap > 0 ? t("linen.surplusQty", { count: r.gap }) : t("linen.balanced")}
+                                </span>
+                              )}
+                              {r.shortageDay && <span className="mt-0.5 block text-caption text-muted">{t("linen.fromDay", { day: fmtShort(r.shortageDay) })}</span>}
                             </td>
                           </tr>
                         );
@@ -139,6 +205,7 @@ export function LinenOverview({ goTo, onNewOrder }: { goTo: (tab: string) => voi
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -171,9 +238,11 @@ export function LinenOverview({ goTo, onNewOrder }: { goTo: (tab: string) => voi
                 sentOrders.map((o) => (
                   <button key={o.id} type="button" onClick={() => goTo("laundry")} className="flex w-full items-center justify-between rounded-md bg-subtle px-3 py-2 text-start text-[14px] dark:bg-surface-hover">
                     <span className="font-semibold">{o.reference}</span>
-                    <span className="text-muted">
-                      {t("linen.pieces", { count: o.lines.reduce((n, l) => n + l.sent, 0) })}
-                      {o.expectedAt && ` · ${new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric" }).format(new Date(o.expectedAt))}`}
+                    <span className={cn(o.expectedAt && o.expectedAt < nowIso ? "font-medium text-danger" : "text-muted")}>
+                      {t("linen.pieces", { count: o.lines.reduce((n, l) => n + l.sent, 0) })} ·{" "}
+                      {o.expectedAt && o.expectedAt < nowIso
+                        ? t("linen.lateReturn")
+                        : o.expectedAt && new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric" }).format(new Date(o.expectedAt))}
                     </span>
                   </button>
                 ))

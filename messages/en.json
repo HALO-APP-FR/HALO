@@ -104,7 +104,8 @@
     "emptyNoProperty": "Add a property and its bookings: cleanings are created automatically.",
     "alertsOpen": "{count, plural, one {# open alert} other {# open alerts}}",
     "alertsUrgent": "{count, plural, one {# alert} other {# alerts}}, {urgent} urgent",
-    "servicesRequested": "{count, plural, one {# service request to confirm} other {# service requests to confirm}}"
+    "servicesRequested": "{count, plural, one {# service request to confirm} other {# service requests to confirm}}",
+    "linenShortage": "{count, plural, one {Linen shortage expected on # item} other {Linen shortage expected on # items}}"
   },
   "agentToday": {
     "greeting": "Hello {name}",
@@ -215,7 +216,9 @@
     "durationMore": "15 min more",
     "agentLoad": "{count, plural, one {# job that day · {time}} other {# jobs that day · {time}}}",
     "agentFree": "Free that day",
-    "endAt": "ends {time}"
+    "endAt": "ends {time}",
+    "redoTrace": "Redone job: first visit {time}",
+    "validatedAt": "Validated on {date}"
   },
   "source": {
     "manual": "Manual entry",
@@ -737,7 +740,7 @@
     "sharedNotice": "Digital guide powered by HALO"
   },
   "linen": {
-    "subtitle": "Stock, laundry, kits: every piece tracked, no shortages.",
+    "subtitle": "Track every piece, anticipate shortages.",
     "tabOverview": "Overview",
     "tabStock": "Stock",
     "tabLaundry": "Laundry",
@@ -753,7 +756,7 @@
     "inProperties": "In properties",
     "inPropertiesShort": "Properties",
     "shortageTitle": "{count, plural, one {Shortage expected on # item} other {Shortage expected on # items}}",
-    "shortageLine": "short on {day}: {need} needed, {clean} clean",
+    "shortageLine": "short by {missing} on {day} ({need} needed, {available} available in time)",
     "sendDirty": "Send dirty linen",
     "buy": "Buy",
     "allGood": "Enough stock for the next 7 days.",
@@ -782,7 +785,7 @@
     "countShort": "Count",
     "buyTitle": "Buy linen",
     "qtyBought": "Quantity bought",
-    "buyHint": "Cost: {cost}. Added to clean stock.",
+    "buyHint": "Cost: {cost}. Record it on delivery: the linen then enters clean stock.",
     "confirmBuy": "Record purchase",
     "bought": "{count, plural, one {# piece added to stock.} other {# pieces added to stock.}}",
     "countTitle": "Stock count",
@@ -857,7 +860,21 @@
     "laundryCost": "Wash / piece",
     "purchaseCost": "Purchase / piece",
     "activeItem": "Active item",
-    "activeItemHint": "Included in kits and forecasts."
+    "activeItemHint": "Included in kits and forecasts.",
+    "returnRule": "a laundry return only counts if it arrives before the cleaning",
+    "need7": "Need 7 d",
+    "cleanNow": "Clean",
+    "dirtyToSend": "Dirty to send",
+    "atLaundryReturn": "At laundry · back",
+    "outcome": "Shortfall / surplus",
+    "missingQty": "Short {count}",
+    "surplusQty": "+{count} spare",
+    "fromDay": "from {day}",
+    "lateReturn": "late",
+    "lateOrders": "{count, plural, one {# laundry order is late: not counted in stock until received.} other {# laundry orders are late: not counted in stock until received.}}",
+    "balanced": "Balanced",
+    "returnShort": "back",
+    "outcome7": "7-day balance"
   },
   "linenCategory": {
     "bed": "Bed",

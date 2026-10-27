@@ -29,6 +29,19 @@ export function formatLocalTime(instant: Date, timeZone: string, locale: string)
   }).format(instant);
 }
 
+/**
+ * Plage horaire à l'heure locale du logement : « 11:00 → 16:00 » le même jour,
+ * « 11:00 → mer. 28 16:00 » quand la fin tombe un autre jour (fenêtre qui traverse minuit).
+ * Seule source de formatage des fenêtres de mission : liste, fiche, planning et accueil l'utilisent.
+ */
+export function formatLocalRange(start: Date, end: Date, timeZone: string, locale: string): string {
+  const from = formatLocalTime(start, timeZone, locale);
+  const to = formatLocalTime(end, timeZone, locale);
+  if (isSameLocalDay(start, end, timeZone)) return `${from} → ${to}`;
+  const day = new Intl.DateTimeFormat(locale, { timeZone, weekday: "short", day: "numeric" }).format(end);
+  return `${from} → ${day} ${to}`;
+}
+
 /** Durée en minutes entre deux instants (arrondie à la minute inférieure). */
 export function minutesBetween(start: Date, end: Date): number {
   return Math.floor((end.getTime() - start.getTime()) / 60_000);

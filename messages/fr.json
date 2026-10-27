@@ -104,7 +104,8 @@
     "emptyNoProperty": "Ajoutez un logement et ses réservations : les ménages se créent tout seuls.",
     "alertsOpen": "{count, plural, one {# alerte ouverte} other {# alertes ouvertes}}",
     "alertsUrgent": "{count, plural, one {# alerte} other {# alertes}} dont {urgent} urgente(s)",
-    "servicesRequested": "{count, plural, one {# demande de prestation à confirmer} other {# demandes de prestation à confirmer}}"
+    "servicesRequested": "{count, plural, one {# demande de prestation à confirmer} other {# demandes de prestation à confirmer}}",
+    "linenShortage": "{count, plural, one {Rupture de linge prévue sur # article} other {Rupture de linge prévue sur # articles}}"
   },
   "agentToday": {
     "greeting": "Bonjour {name}",
@@ -215,7 +216,9 @@
     "durationMore": "Ajouter 15 min",
     "agentLoad": "{count, plural, one {# mission ce jour · {time}} other {# missions ce jour · {time}}}",
     "agentFree": "Libre ce jour",
-    "endAt": "fin prévue {time}"
+    "endAt": "fin prévue {time}",
+    "redoTrace": "Mission reprise : premier passage {time}",
+    "validatedAt": "Validée le {date}"
   },
   "source": {
     "manual": "Saisie manuelle",
@@ -737,7 +740,7 @@
     "sharedNotice": "Livret digital propulsé par HALO"
   },
   "linen": {
-    "subtitle": "Stock, blanchisserie, kits : chaque pièce suivie, aucune rupture.",
+    "subtitle": "Suivez chaque pièce, anticipez les ruptures.",
     "tabOverview": "Vue d'ensemble",
     "tabStock": "Stock",
     "tabLaundry": "Blanchisserie",
@@ -753,7 +756,7 @@
     "inProperties": "Dans les logements",
     "inPropertiesShort": "Logements",
     "shortageTitle": "{count, plural, one {Rupture prévue sur # article} other {Rupture prévue sur # articles}}",
-    "shortageLine": "manquera {day} : {need} nécessaires, {clean} propres",
+    "shortageLine": "manque {missing} le {day} ({need} nécessaires, {available} disponibles à temps)",
     "sendDirty": "Envoyer le sale",
     "buy": "Acheter",
     "allGood": "Stock suffisant pour les 7 prochains jours.",
@@ -782,7 +785,7 @@
     "countShort": "Inventaire",
     "buyTitle": "Acheter du linge",
     "qtyBought": "Quantité achetée",
-    "buyHint": "Coût : {cost}. Ajouté au stock propre.",
+    "buyHint": "Coût : {cost}. À enregistrer à la livraison : le linge entre alors dans le stock propre.",
     "confirmBuy": "Enregistrer l'achat",
     "bought": "{count, plural, one {# pièce ajoutée au stock.} other {# pièces ajoutées au stock.}}",
     "countTitle": "Inventaire",
@@ -857,7 +860,21 @@
     "laundryCost": "Lavage / pièce",
     "purchaseCost": "Achat / pièce",
     "activeItem": "Article actif",
-    "activeItemHint": "Inclus dans les kits et les prévisions."
+    "activeItemHint": "Inclus dans les kits et les prévisions.",
+    "returnRule": "un retour de blanchisserie ne compte que s'il arrive avant le ménage",
+    "need7": "Besoin 7 j",
+    "cleanNow": "Propre",
+    "dirtyToSend": "Sale à envoyer",
+    "atLaundryReturn": "En blanchisserie · retour",
+    "outcome": "Manque / surplus",
+    "missingQty": "Manque {count}",
+    "surplusQty": "+{count} en surplus",
+    "fromDay": "dès {day}",
+    "lateReturn": "en retard",
+    "lateOrders": "{count, plural, one {# bon de blanchisserie en retard : non compté dans le stock tant qu'il n'est pas réceptionné.} other {# bons de blanchisserie en retard : non comptés dans le stock tant qu'ils ne sont pas réceptionnés.}}",
+    "balanced": "À l'équilibre",
+    "returnShort": "retour",
+    "outcome7": "Bilan 7 j"
   },
   "linenCategory": {
     "bed": "Lit",

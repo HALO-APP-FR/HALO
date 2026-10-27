@@ -3,10 +3,10 @@
 import { useMemo } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { LinenLocationId, LinenType } from "@/lib/domain/types";
-import { forecastLinen, kitForTask, stockFromMovements } from "@/lib/engine/linen";
+import { forecastLinen, kitForTask, laundryReturns, stockFromMovements } from "@/lib/engine/linen";
 import { addDaysToKey, localDateKey } from "@/lib/engine/time";
 import { useHalo } from "@/lib/store/halo-store";
-import { byId, taskDayKey } from "@/lib/store/selectors";
+import { byId, taskAnchor, taskDayKey } from "@/lib/store/selectors";
 
 /** Nom affiché d'un article (traduit pour le catalogue HALO, libre sinon). */
 export function useLinenName() {
@@ -49,13 +49,12 @@ export function useLinenData(horizonDays = 7) {
       .filter((x) => x.type === "turnover" && ["unassigned", "assigned", "in_progress", "to_redo"].includes(x.status))
       .map((x) => {
         const p = props.get(x.propertyId);
-        return p ? { task: x, property: p, dayKey: taskDayKey(x, p), kit: kitForTask(x, p, types) } : null;
+        return p ? { task: x, property: p, dayKey: taskDayKey(x, p), start: taskAnchor(x), kit: kitForTask(x, p, types) } : null;
       })
       .filter((x): x is NonNullable<typeof x> => Boolean(x && x.dayKey >= todayKey && x.dayKey <= lastKey));
-    // Retour de blanchisserie : le plus tôt des bons envoyés
-    const sent = orders.filter((o) => o.status === "sent" && o.expectedAt);
-    const laundryReturnKey = sent.length ? sent.map((o) => localDateKey(new Date(o.expectedAt!), orgTz)).sort()[0] : undefined;
-    const forecast = forecastLinen({ tasks: upcoming, types, stock, todayKey, days: horizonDays, laundryReturnKey });
-    return { stock, upcoming, forecast, todayKey, laundryReturnKey, types, settings, orders };
+    // Retours de blanchisserie : chaque bon envoyé avec sa propre date prévue
+    const returns = laundryReturns(orders, new Date(), (iso) => localDateKey(new Date(iso), orgTz));
+    const forecast = forecastLinen({ tasks: upcoming, types, stock, todayKey, days: horizonDays, returns });
+    return { stock, upcoming, forecast, todayKey, returns, types, settings, orders };
   }, [movements, properties, orgTz, horizonDays, tasks, types, orders, settings]);
 }

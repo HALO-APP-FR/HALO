@@ -7,6 +7,7 @@ import {
   kitFor,
   laundryDiscrepancies,
   laundryReceiveMovements,
+  laundryReturns,
   laundrySendMovements,
   parLevelTarget,
   qtyAt,
@@ -82,25 +83,70 @@ describe("stock par emplacement", () => {
 });
 
 describe("prévision", () => {
-  it("annonce le jour de rupture et compte le retour de blanchisserie", () => {
-    const stock = stockFromMovements([
-      { id: "a", linenTypeId: "bath_towel", to: "clean", qty: 5, reason: "purchase", createdAt: NOW },
-      { id: "b", linenTypeId: "bath_towel", to: "laundry", qty: 4, reason: "adjustment", createdAt: NOW },
-    ]);
-    const kit = [{ linenTypeId: "bath_towel", qty: 3 }];
+  const stock = stockFromMovements([
+    { id: "a", linenTypeId: "bath_towel", to: "clean", qty: 5, reason: "purchase", createdAt: NOW },
+    { id: "b", linenTypeId: "bath_towel", to: "laundry", qty: 4, reason: "laundry_send", createdAt: NOW },
+  ]);
+  const kit = [{ linenTypeId: "bath_towel", qty: 3 }];
+  const tasks = [
+    { dayKey: "2026-11-01", start: "2026-11-01T10:00:00.000Z", kit },
+    { dayKey: "2026-11-02", start: "2026-11-02T10:00:00.000Z", kit },
+    { dayKey: "2026-11-04", start: "2026-11-04T10:00:00.000Z", kit },
+  ];
+  const ret = (at: string, qty: number, late = false) => ({ linenTypeId: "bath_towel", qty, at, dayKey: at.slice(0, 10), late });
+
+  it("un retour n'est disponible que pour les ménages qui commencent après lui", () => {
+    const rows = forecastLinen({ tasks, types, stock, todayKey: "2026-11-01", days: 7, returns: [ret("2026-11-03T09:00:00.000Z", 4)] });
+    const row = rows.find((r) => r.linenTypeId === "bath_towel")!;
+    expect(row.need).toBe(9);
+    expect(row.shortageDay).toBe("2026-11-02"); // 6 nécessaires, 5 propres : le retour du 3 arrive trop tard
+    expect(row.needAtShortage).toBe(6);
+    expect(row.availableAtShortage).toBe(5);
+    expect(row.available).toBe(9);
+    expect(row.gap).toBe(0); // manque temporaire, résorbé en fin de période
+  });
+  it("le même jour mais après le début du ménage : pas compté", () => {
+    const rows = forecastLinen({ tasks, types, stock, todayKey: "2026-11-01", days: 7, returns: [ret("2026-11-02T15:00:00.000Z", 4)] });
+    expect(rows[0].shortageDay).toBe("2026-11-02");
+    const ok = forecastLinen({ tasks, types, stock, todayKey: "2026-11-01", days: 7, returns: [ret("2026-11-02T08:00:00.000Z", 4)] });
+    expect(ok[0].shortageDay).toBeUndefined();
+  });
+  it("chaque bon garde sa propre date de retour", () => {
     const rows = forecastLinen({
-      tasks: [{ dayKey: "2026-11-01", kit }, { dayKey: "2026-11-02", kit }, { dayKey: "2026-11-04", kit }],
+      tasks,
       types,
       stock,
       todayKey: "2026-11-01",
       days: 7,
-      laundryReturnKey: "2026-11-03",
+      returns: [ret("2026-11-02T08:00:00.000Z", 1), ret("2026-11-06T08:00:00.000Z", 3)],
     });
-    const row = rows.find((r) => r.linenTypeId === "bath_towel")!;
-    expect(row.need).toBe(9);
-    expect(row.shortageDay).toBe("2026-11-02"); // 6 > 5 avant le retour du 3
-    expect(row.available).toBe(9); // 5 propres + 4 de retour
-    expect(row.gap).toBe(0);
+    const row = rows[0];
+    expect(row.shortageDay).toBe("2026-11-04"); // 9 > 5 + 1 (le second bon revient le 6)
+    expect(row.returns).toEqual([
+      { dayKey: "2026-11-02", qty: 1, late: false },
+      { dayKey: "2026-11-06", qty: 3, late: false },
+    ]);
+  });
+  it("un retour en retard n'est pas compté comme disponible", () => {
+    const rows = forecastLinen({ tasks, types, stock, todayKey: "2026-11-01", days: 7, returns: [ret("2026-10-30T08:00:00.000Z", 4, true)] });
+    expect(rows[0].incoming).toBe(0);
+    expect(rows[0].gap).toBe(-4);
+    expect(rows[0].returns[0].late).toBe(true);
+  });
+  it("laundryReturns : une ligne par article et par bon envoyé, retard détecté", () => {
+    const orders: LaundryOrder[] = [
+      { id: "o1", reference: "B-1", status: "sent", lines: [{ linenTypeId: "bath_towel", sent: 4 }], createdAt: NOW, expectedAt: "2026-10-31T10:00:00.000Z" },
+      { id: "o2", reference: "B-2", status: "draft", lines: [{ linenTypeId: "bath_towel", sent: 9 }], createdAt: NOW },
+    ];
+    const r = laundryReturns(orders, new Date(NOW), (iso) => iso.slice(0, 10));
+    expect(r).toEqual([{ linenTypeId: "bath_towel", qty: 4, at: "2026-10-31T10:00:00.000Z", dayKey: "2026-10-31", late: true }]);
+  });
+  it("un ménage ne pose jamais plus de linge que le stock propre", () => {
+    const small = stockFromMovements([{ id: "a", linenTypeId: "bath_towel", to: "clean", qty: 2, reason: "purchase", createdAt: NOW }]);
+    const mvs = turnoverMovements({ id: "t", propertyId: "p" }, [{ linenTypeId: "bath_towel", qty: 4 }], small, NOW, id);
+    const after = stockFromMovements([{ id: "a", linenTypeId: "bath_towel", to: "clean", qty: 2, reason: "purchase", createdAt: NOW }, ...mvs]);
+    expect(qtyAt(after, "clean", "bath_towel")).toBe(0);
+    expect(qtyAt(after, "property:p", "bath_towel")).toBe(2);
   });
 });
 

@@ -9,6 +9,7 @@ import {
   localDateKey,
   minutesBetween,
   turnoverPriority,
+  formatLocalRange,
 } from "@/lib/engine/time";
 
 describe("localDateKey", () => {
@@ -114,5 +115,24 @@ describe("helpers", () => {
   it("addDaysToKey traverse les fins de mois", () => {
     expect(addDaysToKey("2026-02-28", 1)).toBe("2026-03-01");
     expect(addDaysToKey("2026-12-31", 1)).toBe("2027-01-01");
+  });
+});
+
+describe("plage horaire d'une mission (heure locale du logement)", () => {
+  it("même jour : pas de date de fin", () => {
+    expect(formatLocalRange(new Date("2026-10-27T10:00:00Z"), new Date("2026-10-27T15:00:00Z"), "Europe/Paris", "fr")).toBe("11:00 → 16:00");
+  });
+  it("fenêtre qui traverse minuit : la date de fin est affichée", () => {
+    expect(formatLocalRange(new Date("2026-10-27T10:00:00Z"), new Date("2026-10-28T15:00:00Z"), "Europe/Paris", "fr")).toBe("11:00 → mer. 28 16:00");
+  });
+  it("logement dans un autre fuseau : heures du logement, pas du navigateur", () => {
+    expect(formatLocalRange(new Date("2026-10-27T11:00:00Z"), new Date("2026-10-27T15:00:00Z"), "Europe/Lisbon", "fr")).toBe("11:00 → 15:00");
+    // 23:30 → 00:30 à Lisbonne : deux jours locaux différents
+    expect(formatLocalRange(new Date("2026-10-27T23:30:00Z"), new Date("2026-10-28T00:30:00Z"), "Europe/Lisbon", "fr")).toBe("23:30 → mer. 28 0:30");
+  });
+  it("changement d'heure (passage à l'heure d'hiver le 25/10/2026)", () => {
+    // 11:00 heure d'été (UTC+2) → lendemain 16:00 heure d'hiver (UTC+1)
+    expect(formatLocalRange(new Date("2026-10-24T09:00:00Z"), new Date("2026-10-25T15:00:00Z"), "Europe/Paris", "fr")).toBe("11:00 → dim. 25 16:00");
+    expect(formatLocalRange(new Date("2026-10-25T10:00:00Z"), new Date("2026-10-25T15:00:00Z"), "Europe/Paris", "fr")).toBe("11:00 → 16:00");
   });
 });

@@ -104,7 +104,8 @@
     "emptyNoProperty": "Aggiungi un alloggio e le sue prenotazioni: le pulizie si creano da sole.",
     "alertsOpen": "{count, plural, one {# avviso aperto} other {# avvisi aperti}}",
     "alertsUrgent": "{count, plural, one {# avviso} other {# avvisi}}, {urgent} urgente/i",
-    "servicesRequested": "{count, plural, one {# richiesta di servizio da confermare} other {# richieste di servizio da confermare}}"
+    "servicesRequested": "{count, plural, one {# richiesta di servizio da confermare} other {# richieste di servizio da confermare}}",
+    "linenShortage": "{count, plural, one {Mancanza di biancheria prevista su # articolo} other {Mancanza di biancheria prevista su # articoli}}"
   },
   "agentToday": {
     "greeting": "Ciao {name}",
@@ -215,7 +216,9 @@
     "durationMore": "15 min in più",
     "agentLoad": "{count, plural, one {# missione quel giorno · {time}} other {# missioni quel giorno · {time}}}",
     "agentFree": "Libero quel giorno",
-    "endAt": "fine prevista {time}"
+    "endAt": "fine prevista {time}",
+    "redoTrace": "Missione ripresa: primo passaggio {time}",
+    "validatedAt": "Convalidata il {date}"
   },
   "source": {
     "manual": "Inserimento manuale",
@@ -737,7 +740,7 @@
     "sharedNotice": "Guida digitale by HALO"
   },
   "linen": {
-    "subtitle": "Scorte, lavanderia, kit: ogni capo tracciato, zero mancanze.",
+    "subtitle": "Segui ogni capo, anticipa le mancanze.",
     "tabOverview": "Panoramica",
     "tabStock": "Scorte",
     "tabLaundry": "Lavanderia",
@@ -753,7 +756,7 @@
     "inProperties": "Negli alloggi",
     "inPropertiesShort": "Alloggi",
     "shortageTitle": "{count, plural, one {Mancanza prevista su # articolo} other {Mancanza prevista su # articoli}}",
-    "shortageLine": "mancherà {day}: {need} necessari, {clean} puliti",
+    "shortageLine": "ne mancano {missing} {day} ({need} necessari, {available} disponibili in tempo)",
     "sendDirty": "Invia lo sporco",
     "buy": "Acquista",
     "allGood": "Scorte sufficienti per i prossimi 7 giorni.",
@@ -782,7 +785,7 @@
     "countShort": "Inventario",
     "buyTitle": "Acquista biancheria",
     "qtyBought": "Quantità acquistata",
-    "buyHint": "Costo: {cost}. Aggiunto alle scorte pulite.",
+    "buyHint": "Costo: {cost}. Registralo alla consegna: la biancheria entra nelle scorte pulite.",
     "confirmBuy": "Registra acquisto",
     "bought": "{count, plural, one {# capo aggiunto alle scorte.} other {# capi aggiunti alle scorte.}}",
     "countTitle": "Inventario",
@@ -857,7 +860,21 @@
     "laundryCost": "Lavaggio / capo",
     "purchaseCost": "Acquisto / capo",
     "activeItem": "Articolo attivo",
-    "activeItemHint": "Incluso in kit e previsioni."
+    "activeItemHint": "Incluso in kit e previsioni.",
+    "returnRule": "un rientro dalla lavanderia conta solo se arriva prima della pulizia",
+    "need7": "Fabbisogno 7 g",
+    "cleanNow": "Pulita",
+    "dirtyToSend": "Sporca da inviare",
+    "atLaundryReturn": "In lavanderia · rientro",
+    "outcome": "Mancanza / eccedenza",
+    "missingQty": "Mancano {count}",
+    "surplusQty": "+{count} in più",
+    "fromDay": "da {day}",
+    "lateReturn": "in ritardo",
+    "lateOrders": "{count, plural, one {# bolla lavanderia in ritardo: non conteggiata finché non è ricevuta.} other {# bolle lavanderia in ritardo: non conteggiate finché non sono ricevute.}}",
+    "balanced": "In pari",
+    "returnShort": "rientro",
+    "outcome7": "Bilancio 7 g"
   },
   "linenCategory": {
     "bed": "Letto",

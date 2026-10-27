@@ -500,7 +500,7 @@ function MyHours({ memberId }: { memberId: string }) {
         <Card className="mt-3 divide-y divide-line">
           {recent.map((x) => {
             const p = props.get(x.propertyId);
-            const real = actualMinutes(x) ?? 0;
+            const real = (actualMinutes(x) ?? 0) + (x.previousWorkMin ?? 0);
             return (
               <div key={x.id} className="flex items-center gap-3 px-4 py-3">
                 <span className="min-w-0 flex-1">

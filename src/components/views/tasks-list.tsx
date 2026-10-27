@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { ListChecks, Plus, Search } from "lucide-react";
 import { initialsOf, type TaskStatus, type TaskType } from "@/lib/domain/types";
-import { addDaysToKey, formatLocalTime, localDateKey } from "@/lib/engine/time";
+import { addDaysToKey, formatLocalTime, localDateKey, formatLocalRange } from "@/lib/engine/time";
 import { useHalo } from "@/lib/store/halo-store";
 import { byId, taskAnchor, taskDayKey } from "@/lib/store/selectors";
 import { Badge } from "@/components/ui/badge";
@@ -178,7 +178,7 @@ function TasksListInner({ initial }: { initial: TasksInitial }) {
                   <tr key={task.id} onClick={() => setOpenTask(task.id)} className="cursor-pointer border-b border-line last:border-b-0 hover:bg-surface-hover">
                     <td className="px-5 py-3 text-[14px] first-letter:uppercase">{when(taskAnchor(task), tz)}</td>
                     <td className="py-3 pe-4 text-[14px] font-semibold tabular">
-                      {formatLocalTime(new Date(task.windowStart), tz, locale)} → {formatLocalTime(new Date(task.windowEnd), tz, locale)}
+                      {formatLocalRange(new Date(task.windowStart), new Date(task.windowEnd), tz, locale)}
                     </td>
                     <td className="py-3 pe-4">
                       <button type="button" className="text-start text-[14px] font-medium hover:underline" onClick={(e) => { e.stopPropagation(); setOpenTask(task.id); }}>

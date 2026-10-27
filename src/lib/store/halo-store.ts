@@ -35,7 +35,7 @@ import {
   stockFromMovements,
   turnoverMovements,
 } from "@/lib/engine/linen";
-import { withLearnedDuration } from "@/lib/engine/learning";
+import { actualMinutes, withLearnedDuration } from "@/lib/engine/learning";
 import { planTasks } from "@/lib/engine/tasks";
 import { DEFAULT_LINEN_SETTINGS, applyPlan, buildDemoData, defaultGuide, defaultLinenTypes, newToken, type HaloData } from "./seed";
 
@@ -359,11 +359,17 @@ export const useHalo = create<HaloState>()(
           tasks: s.tasks.map((x) => {
             if (x.id !== id) return x;
             const stamp = new Date().toISOString();
+            // Reprise : le premier passage est conservé à part, un nouveau pointage commence
+            if (status === "in_progress" && x.status === "to_redo") {
+              const first = actualMinutes(x) ?? 0;
+              return { ...x, status, previousWorkMin: (x.previousWorkMin ?? 0) + first, startedAt: stamp, completedAt: undefined };
+            }
             return {
               ...x,
               status,
               startedAt: status === "in_progress" ? x.startedAt ?? stamp : x.startedAt,
               completedAt: status === "done" ? stamp : x.completedAt,
+              validatedAt: status === "validated" ? stamp : status === "to_redo" ? undefined : x.validatedAt,
             };
           }),
         })),

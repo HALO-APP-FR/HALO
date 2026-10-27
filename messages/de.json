@@ -104,7 +104,8 @@
     "emptyNoProperty": "Fügen Sie eine Unterkunft und ihre Buchungen hinzu: Reinigungen entstehen automatisch.",
     "alertsOpen": "{count, plural, one {# offene Meldung} other {# offene Meldungen}}",
     "alertsUrgent": "{count, plural, one {# Meldung} other {# Meldungen}}, davon {urgent} dringend",
-    "servicesRequested": "{count, plural, one {# Service-Anfrage zu bestätigen} other {# Service-Anfragen zu bestätigen}}"
+    "servicesRequested": "{count, plural, one {# Service-Anfrage zu bestätigen} other {# Service-Anfragen zu bestätigen}}",
+    "linenShortage": "{count, plural, one {Wäsche-Engpass erwartet bei # Artikel} other {Wäsche-Engpass erwartet bei # Artikeln}}"
   },
   "agentToday": {
     "greeting": "Hallo {name}",
@@ -215,7 +216,9 @@
     "durationMore": "15 Min. mehr",
     "agentLoad": "{count, plural, one {# Auftrag an dem Tag · {time}} other {# Aufträge an dem Tag · {time}}}",
     "agentFree": "An dem Tag frei",
-    "endAt": "Ende {time}"
+    "endAt": "Ende {time}",
+    "redoTrace": "Nachgebessert: erster Durchgang {time}",
+    "validatedAt": "Bestätigt am {date}"
   },
   "source": {
     "manual": "Manuelle Eingabe",
@@ -737,7 +740,7 @@
     "sharedNotice": "Digitale Gästemappe von HALO"
   },
   "linen": {
-    "subtitle": "Bestand, Wäscherei, Sets: jedes Teil erfasst, keine Engpässe.",
+    "subtitle": "Jedes Teil verfolgen, Engpässe vorhersehen.",
     "tabOverview": "Übersicht",
     "tabStock": "Bestand",
     "tabLaundry": "Wäscherei",
@@ -753,7 +756,7 @@
     "inProperties": "In Unterkünften",
     "inPropertiesShort": "Unterkünfte",
     "shortageTitle": "{count, plural, one {Engpass erwartet bei # Artikel} other {Engpass erwartet bei # Artikeln}}",
-    "shortageLine": "fehlt am {day}: {need} benötigt, {clean} sauber",
+    "shortageLine": "{missing} fehlen am {day} ({need} benötigt, {available} rechtzeitig verfügbar)",
     "sendDirty": "Schmutzwäsche senden",
     "buy": "Kaufen",
     "allGood": "Genug Bestand für die nächsten 7 Tage.",
@@ -782,7 +785,7 @@
     "countShort": "Inventur",
     "buyTitle": "Wäsche kaufen",
     "qtyBought": "Gekaufte Menge",
-    "buyHint": "Kosten: {cost}. Zum sauberen Bestand hinzugefügt.",
+    "buyHint": "Kosten: {cost}. Bei Lieferung erfassen: Die Wäsche kommt dann in den sauberen Bestand.",
     "confirmBuy": "Kauf erfassen",
     "bought": "{count, plural, one {# Teil zum Bestand hinzugefügt.} other {# Teile zum Bestand hinzugefügt.}}",
     "countTitle": "Inventur",
@@ -857,7 +860,21 @@
     "laundryCost": "Wäsche / Teil",
     "purchaseCost": "Kauf / Teil",
     "activeItem": "Artikel aktiv",
-    "activeItemHint": "In Sets und Prognosen enthalten."
+    "activeItemHint": "In Sets und Prognosen enthalten.",
+    "returnRule": "Wäscherei-Rückgabe zählt nur, wenn sie vor der Reinigung eintrifft",
+    "need7": "Bedarf 7 T",
+    "cleanNow": "Sauber",
+    "dirtyToSend": "Schmutzig zu senden",
+    "atLaundryReturn": "In Wäscherei · zurück",
+    "outcome": "Fehlmenge / Überschuss",
+    "missingQty": "Fehlen {count}",
+    "surplusQty": "+{count} übrig",
+    "fromDay": "ab {day}",
+    "lateReturn": "verspätet",
+    "lateOrders": "{count, plural, one {# Wäscheauftrag verspätet: zählt erst nach Empfang zum Bestand.} other {# Wäscheaufträge verspätet: zählen erst nach Empfang zum Bestand.}}",
+    "balanced": "Ausgeglichen",
+    "returnShort": "zurück",
+    "outcome7": "Bilanz 7 T"
   },
   "linenCategory": {
     "bed": "Bett",

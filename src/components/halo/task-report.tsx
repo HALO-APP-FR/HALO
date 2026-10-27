@@ -20,8 +20,10 @@ export const ROOM_STATUSES = Object.keys(ROOM_STATUS_META) as RoomStatus[];
 export function DurationCompare({ task, className }: { task: Task; className?: string }) {
   const t = useTranslations("mission");
   const locale = useLocale();
-  const real = actualMinutes(task);
-  if (real === null) return null;
+  const last = actualMinutes(task);
+  if (last === null) return null;
+  // Mission reprise : tous les passages comptent
+  const real = last + (task.previousWorkMin ?? 0);
   const gap = Math.round(((real - task.durationMin) / task.durationMin) * 100);
   return (
     <p className={cn("flex flex-wrap items-center gap-x-2 text-[14px]", className)}>

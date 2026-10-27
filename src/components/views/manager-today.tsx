@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { AlertTriangle, ArrowRight, CalendarPlus, CircleCheck, DoorClosed, KeyRound, Siren, Sparkles, UserRoundX, ConciergeBell } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarPlus, CircleCheck, DoorClosed, KeyRound, Siren, Sparkles, UserRoundX, ConciergeBell, BedDouble } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
 import { addDaysToKey, localDateKey } from "@/lib/engine/time";
+import { useLinenData } from "@/components/linen/use-linen";
 import { useHalo } from "@/lib/store/halo-store";
 import { activeAgents, arrivalsOfDay, departuresOfDay, tasksOfDay } from "@/lib/store/selectors";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,8 @@ function ManagerTodayInner() {
   const arrivals = arrivalsOfDay(reservations, properties, dayKey);
   const departures = departuresOfDay(reservations, properties, dayKey);
   const services = useHalo((s) => s.services);
+  const { forecast } = useLinenData(7);
+  const linenShortages = forecast.filter((r) => r.shortageDay);
   const requestedServices = services.filter((x) => x.status === "requested");
   const openAlerts = alerts.filter((a) => a.status !== "resolved");
   const urgentAlerts = openAlerts.filter((a) => a.urgent);
@@ -69,6 +72,15 @@ function ManagerTodayInner() {
       cta: t("managerToday.view"),
       onClick: () => router.push("/alerts"),
       primary: urgentAlerts.length > 0,
+    },
+    linenShortages.length > 0 && {
+      key: "linen",
+      icon: BedDouble,
+      tone: "text-danger bg-danger-soft",
+      label: t("managerToday.linenShortage", { count: linenShortages.length }),
+      cta: t("managerToday.view"),
+      onClick: () => router.push("/linen"),
+      primary: false,
     },
     requestedServices.length > 0 && {
       key: "services",

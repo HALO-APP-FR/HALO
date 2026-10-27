@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { CircleAlert } from "lucide-react";
 import { initialsOf, type Member, type Property, type Task } from "@/lib/domain/types";
-import { formatLocalTime } from "@/lib/engine/time";
+import { formatLocalRange } from "@/lib/engine/time";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "./avatar";
@@ -39,7 +39,7 @@ export function DayTable({
         task,
         property,
         agent: agents.find((a) => a.id === task.assigneeId),
-        time: `${formatLocalTime(new Date(task.windowStart), tz, locale)} → ${formatLocalTime(new Date(task.windowEnd), tz, locale)}`,
+        time: formatLocalRange(new Date(task.windowStart), new Date(task.windowEnd), tz, locale),
         otherTz: tz !== orgTimezone,
       };
     });

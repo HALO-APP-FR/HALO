@@ -104,7 +104,8 @@
     "emptyNoProperty": "Adicione um alojamento e as suas reservas: as limpezas são criadas sozinhas.",
     "alertsOpen": "{count, plural, one {# alerta aberto} other {# alertas abertos}}",
     "alertsUrgent": "{count, plural, one {# alerta} other {# alertas}}, {urgent} urgente(s)",
-    "servicesRequested": "{count, plural, one {# pedido de serviço por confirmar} other {# pedidos de serviço por confirmar}}"
+    "servicesRequested": "{count, plural, one {# pedido de serviço por confirmar} other {# pedidos de serviço por confirmar}}",
+    "linenShortage": "{count, plural, one {Rutura de roupa prevista em # artigo} other {Rutura de roupa prevista em # artigos}}"
   },
   "agentToday": {
     "greeting": "Olá {name}",
@@ -215,7 +216,9 @@
     "durationMore": "Mais 15 min",
     "agentLoad": "{count, plural, one {# missão nesse dia · {time}} other {# missões nesse dia · {time}}}",
     "agentFree": "Livre nesse dia",
-    "endAt": "fim previsto {time}"
+    "endAt": "fim previsto {time}",
+    "redoTrace": "Missão refeita: primeira passagem {time}",
+    "validatedAt": "Validada em {date}"
   },
   "source": {
     "manual": "Introdução manual",
@@ -737,7 +740,7 @@
     "sharedNotice": "Guia digital com HALO"
   },
   "linen": {
-    "subtitle": "Stock, lavandaria, kits: cada peça seguida, sem ruturas.",
+    "subtitle": "Acompanhe cada peça, antecipe as ruturas.",
     "tabOverview": "Visão geral",
     "tabStock": "Stock",
     "tabLaundry": "Lavandaria",
@@ -753,7 +756,7 @@
     "inProperties": "Nos alojamentos",
     "inPropertiesShort": "Alojamentos",
     "shortageTitle": "{count, plural, one {Rutura prevista em # artigo} other {Rutura prevista em # artigos}}",
-    "shortageLine": "faltará {day}: {need} necessárias, {clean} limpas",
+    "shortageLine": "faltam {missing} {day} ({need} necessárias, {available} disponíveis a tempo)",
     "sendDirty": "Enviar a suja",
     "buy": "Comprar",
     "allGood": "Stock suficiente para os próximos 7 dias.",
@@ -782,7 +785,7 @@
     "countShort": "Inventário",
     "buyTitle": "Comprar roupa",
     "qtyBought": "Quantidade comprada",
-    "buyHint": "Custo: {cost}. Adicionado ao stock limpo.",
+    "buyHint": "Custo: {cost}. Registe na entrega: a roupa entra então no stock limpo.",
     "confirmBuy": "Registar compra",
     "bought": "{count, plural, one {# peça adicionada ao stock.} other {# peças adicionadas ao stock.}}",
     "countTitle": "Inventário",
@@ -857,7 +860,21 @@
     "laundryCost": "Lavagem / peça",
     "purchaseCost": "Compra / peça",
     "activeItem": "Artigo ativo",
-    "activeItemHint": "Incluído em kits e previsões."
+    "activeItemHint": "Incluído em kits e previsões.",
+    "returnRule": "um regresso da lavandaria só conta se chegar antes da limpeza",
+    "need7": "Necessidade 7 d",
+    "cleanNow": "Limpa",
+    "dirtyToSend": "Suja a enviar",
+    "atLaundryReturn": "Na lavandaria · regresso",
+    "outcome": "Falta / excedente",
+    "missingQty": "Faltam {count}",
+    "surplusQty": "+{count} de sobra",
+    "fromDay": "a partir de {day}",
+    "lateReturn": "atrasado",
+    "lateOrders": "{count, plural, one {# guia de lavandaria atrasada: não conta no stock até ser recebida.} other {# guias de lavandaria atrasadas: não contam no stock até serem recebidas.}}",
+    "balanced": "Equilibrado",
+    "returnShort": "regresso",
+    "outcome7": "Balanço 7 d"
   },
   "linenCategory": {
     "bed": "Cama",

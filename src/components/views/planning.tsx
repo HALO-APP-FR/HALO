@@ -8,7 +8,7 @@ import { initialsOf, type Member, type Property, type Task } from "@/lib/domain/
 import { autoAssign, conflictsIfAssigned, detectConflicts } from "@/lib/engine/conflicts";
 import { formatDuration } from "@/lib/engine/learning";
 import { placeTask, SNAP_MIN } from "@/lib/engine/schedule";
-import { addDaysToKey, formatLocalTime, localDateKey, localMinutesOfDay } from "@/lib/engine/time";
+import { addDaysToKey, formatLocalTime, localDateKey, localMinutesOfDay, formatLocalRange } from "@/lib/engine/time";
 import { useHalo } from "@/lib/store/halo-store";
 import { activeAgents, byId, taskAnchor, tasksOfDay } from "@/lib/store/selectors";
 import { Badge } from "@/components/ui/badge";
@@ -382,7 +382,7 @@ function TaskChip({
           {task.vip && <VipBadge />}
         </span>
         <span className="block text-caption text-muted tabular">
-          {t(`taskType.${task.type}`)} · {formatDuration(task.durationMin, locale)} · {formatLocalTime(new Date(task.windowStart), tz, locale)} → {formatLocalTime(new Date(task.windowEnd), tz, locale)}
+          {t(`taskType.${task.type}`)} · {formatDuration(task.durationMin, locale)} · {formatLocalRange(new Date(task.windowStart), new Date(task.windowEnd), tz, locale)}
         </span>
       </span>
     </button>

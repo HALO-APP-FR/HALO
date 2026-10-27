@@ -91,57 +91,120 @@ export function turnoverMovements(
     if (qty > 0) out.push({ id: newId(), linenTypeId: typeId, from: loc, to: "dirty", qty, reason: "turnover_removed", taskId: task.id, createdAt: nowIso });
   }
   for (const line of kit) {
-    out.push({ id: newId(), linenTypeId: line.linenTypeId, from: "clean", to: loc, qty: line.qty, reason: "turnover_placed", taskId: task.id, createdAt: nowIso });
+    // On ne pose que ce qui existe en stock propre : sinon la même pièce serait comptée à deux endroits
+    const placed = Math.min(line.qty, Math.max(0, qtyAt(stock, "clean", line.linenTypeId)));
+    if (placed > 0) {
+      out.push({ id: newId(), linenTypeId: line.linenTypeId, from: "clean", to: loc, qty: placed, reason: "turnover_placed", taskId: task.id, createdAt: nowIso });
+    }
   }
   return out;
 }
 
 export interface ForecastRow {
   linenTypeId: string;
+  /** Besoin total des ménages de la période. */
   need: number;
-  available: number;
-  gap: number; // disponible − besoin (négatif = rupture)
-  /** Premier jour (AAAA-MM-JJ) où le besoin cumulé dépasse le stock propre. */
-  shortageDay?: string;
-  /** Quantité attendue en retour de blanchisserie pendant la période. */
+  /** Stock propre aujourd'hui (jamais négatif). */
+  clean: number;
+  /** Sale en attente d'envoi. */
+  dirty: number;
+  /** Actuellement chez la blanchisserie (tous bons confondus). */
+  atLaundry: number;
+  /** Retours datés attendus pendant la période (hors retards). */
   incoming: number;
+  /** Retours attendus, par date, pour l'affichage. */
+  returns: { dayKey: string; qty: number; late: boolean }[];
+  /** Propre + retours attendus dans la période. */
+  available: number;
+  /** Disponible − besoin en fin de période (négatif = manque). */
+  gap: number;
+  /** Premier jour où une mission manque de cet article (retours comptés seulement s'ils arrivent avant). */
+  shortageDay?: string;
+  /** Au premier manque : besoin cumulé et quantité réellement disponible à ce moment. */
+  needAtShortage?: number;
+  availableAtShortage?: number;
+}
+
+/** Retour de blanchisserie daté (une ligne de bon envoyé). */
+export interface LaundryReturn {
+  linenTypeId: string;
+  qty: number;
+  /** Instant prévu de retour. */
+  at: string;
+  dayKey: string;
+  /** Date prévue dépassée sans réception : pas compté comme disponible (rien n'est revenu). */
+  late: boolean;
+}
+
+/** Retours attendus depuis les bons envoyés (date prévue par bon, jamais une date commune). */
+export function laundryReturns(orders: LaundryOrder[], now: Date, dayKeyOf: (iso: string) => string): LaundryReturn[] {
+  const out: LaundryReturn[] = [];
+  for (const o of orders) {
+    if (o.status !== "sent" || !o.expectedAt) continue;
+    for (const l of o.lines) {
+      if (l.sent <= 0) continue;
+      out.push({ linenTypeId: l.linenTypeId, qty: l.sent, at: o.expectedAt, dayKey: dayKeyOf(o.expectedAt), late: new Date(o.expectedAt) < now });
+    }
+  }
+  return out;
 }
 
 /**
- * Prévision : besoins des ménages à venir (jour par jour) face au stock propre,
- * en comptant le linge actuellement chez la blanchisserie comme disponible au retour.
+ * Prévision mission par mission, dans l'ordre chronologique : chaque ménage consomme son kit ;
+ * un retour de blanchisserie n'est disponible que pour les ménages qui commencent après son heure de retour.
+ * Les retours en retard ne sont pas comptés (prudence : le linge n'est pas là).
  */
 export function forecastLinen(params: {
-  tasks: { dayKey: string; kit: KitLine[] }[];
+  tasks: { dayKey: string; start: string; kit: KitLine[] }[];
   types: LinenType[];
   stock: Stock;
   todayKey: string;
   days: number;
-  laundryReturnKey?: string;
+  returns: LaundryReturn[];
 }): ForecastRow[] {
-  const { tasks, types, stock, todayKey, days, laundryReturnKey } = params;
+  const { tasks, types, stock, todayKey, days, returns } = params;
   const lastKey = addDaysToKey(todayKey, days - 1);
+  const inPeriod = tasks.filter((t) => t.dayKey >= todayKey && t.dayKey <= lastKey).sort((a, b) => a.start.localeCompare(b.start));
   return types
     .filter((t) => t.active)
     .map((type) => {
-      const clean = qtyAt(stock, "clean", type.id);
-      const atLaundry = qtyAt(stock, "laundry", type.id);
-      const incoming = laundryReturnKey && laundryReturnKey <= lastKey ? atLaundry : 0;
+      const clean = Math.max(0, qtyAt(stock, "clean", type.id));
+      const dirty = Math.max(0, qtyAt(stock, "dirty", type.id));
+      const atLaundry = Math.max(0, qtyAt(stock, "laundry", type.id));
+      const mine = returns.filter((r) => r.linenTypeId === type.id);
+      const usable = mine.filter((r) => !r.late && r.dayKey <= lastKey);
+      const incoming = usable.reduce((n, r) => n + r.qty, 0);
       let cumulative = 0;
-      let shortageDay: string | undefined;
-      for (let i = 0; i < days; i++) {
-        const day = addDaysToKey(todayKey, i);
-        for (const t of tasks) {
-          if (t.dayKey !== day) continue;
-          cumulative += t.kit.find((l) => l.linenTypeId === type.id)?.qty ?? 0;
+      let shortage: Pick<ForecastRow, "shortageDay" | "needAtShortage" | "availableAtShortage"> = {};
+      for (const task of inPeriod) {
+        const qty = task.kit.find((l) => l.linenTypeId === type.id)?.qty ?? 0;
+        if (!qty) continue;
+        cumulative += qty;
+        const availableNow = clean + usable.filter((r) => r.at <= task.start).reduce((n, r) => n + r.qty, 0);
+        if (!shortage.shortageDay && cumulative > availableNow) {
+          shortage = { shortageDay: task.dayKey, needAtShortage: cumulative, availableAtShortage: availableNow };
         }
-        const availableThatDay = clean + (laundryReturnKey && day >= laundryReturnKey ? atLaundry : 0);
-        if (!shortageDay && cumulative > availableThatDay) shortageDay = day;
+      }
+      const byDay = new Map<string, { qty: number; late: boolean }>();
+      for (const r of mine) {
+        const cur = byDay.get(r.dayKey) ?? { qty: 0, late: r.late };
+        byDay.set(r.dayKey, { qty: cur.qty + r.qty, late: cur.late || r.late });
       }
       const available = clean + incoming;
-      return { linenTypeId: type.id, need: cumulative, available, gap: available - cumulative, shortageDay, incoming };
+      return {
+        linenTypeId: type.id,
+        need: cumulative,
+        clean,
+        dirty,
+        atLaundry,
+        incoming,
+        returns: [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([dayKey, v]) => ({ dayKey, ...v })),
+        available,
+        gap: available - cumulative,
+        ...shortage,
+      };
     })
-    .filter((r) => r.need > 0 || r.available > 0);
+    .filter((r) => r.need > 0 || r.available > 0 || r.dirty > 0 || r.atLaundry > 0);
 }
 
 /** Bon de blanchisserie suggéré : tout le linge sale disponible. */

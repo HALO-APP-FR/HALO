@@ -171,6 +171,10 @@ export interface Task {
   /** Pointage : début et fin réels de la mission par l'agent. */
   startedAt?: string;
   completedAt?: string;
+  /** Temps déjà pointé lors de passages précédents (mission reprise après une demande de reprise). */
+  previousWorkMin?: number;
+  /** Validation par le manager. */
+  validatedAt?: string;
   /** Rapport de l'agent : points cochés, photos, état et commentaire par pièce. */
   report?: TaskReport;
   createdAt: string;
