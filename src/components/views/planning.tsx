@@ -183,7 +183,7 @@ function PlanningInner({ initialDay }: { initialDay?: string }) {
   const { drag, begin } = useDragAssign(onDrop);
 
   const runAuto = () => {
-    const result = autoAssign(toAssign, agents.map((a) => a.id), tasks);
+    const result = autoAssign(toAssign, agents.map((a) => a.id), tasks, new Date());
     setProposal(result);
   };
 
@@ -382,7 +382,7 @@ function TaskChip({
           {task.vip && <VipBadge />}
         </span>
         <span className="block text-caption text-muted tabular">
-          {t(`taskType.${task.type}`)} · {formatDuration(task.durationMin, locale)} · {formatLocalRange(new Date(task.windowStart), new Date(task.windowEnd), tz, locale)}
+          {t(`taskType.${task.type}`)} · {t("timing.toPlan", { duration: formatDuration(task.durationMin, locale) })} · {t("timing.windowShort", { range: formatLocalRange(new Date(task.windowStart), new Date(task.windowEnd), tz, locale) })}
         </span>
       </span>
     </button>
@@ -492,7 +492,7 @@ function DayGrid({
                       </span>
                       {height > 40 && (
                         <span className="block truncate text-caption text-muted tabular">
-                          {formatLocalTime(new Date(taskAnchor(task)), tz, locale)} · {formatDuration(task.durationMin, locale)} · {t(`taskType.${task.type}`)}
+                          {formatLocalTime(new Date(taskAnchor(task)), tz, locale)}–{formatLocalTime(new Date(new Date(taskAnchor(task)).getTime() + task.durationMin * 60_000), tz, locale)} · {t(`taskType.${task.type}`)}
                         </span>
                       )}
                       {height > 64 && <StatusPill status={task.status} className="mt-1" />}
@@ -707,7 +707,8 @@ function WeekGrid({
                                 <span className={cn("absolute inset-y-0 start-0 w-1", TASK_TYPE_META[task.type].bar)} aria-hidden />
                                 <span className="block truncate font-semibold">{p?.name}</span>
                                 <span className="block truncate text-muted tabular">
-                                  {formatLocalTime(new Date(taskAnchor(task)), p?.timezone ?? "UTC", locale)} · {formatDuration(task.durationMin, locale)}
+                                  {formatLocalTime(new Date(taskAnchor(task)), p?.timezone ?? "UTC", locale)}–
+                                  {formatLocalTime(new Date(new Date(taskAnchor(task)).getTime() + task.durationMin * 60_000), p?.timezone ?? "UTC", locale)}
                                 </span>
                               </button>
                             </li>

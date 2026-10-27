@@ -90,7 +90,7 @@
     "view": "Ansehen",
     "timeline": "Tagesablauf",
     "allClear": "Alles unter Kontrolle.",
-    "colTime": "Zeit",
+    "colTime": "Zeitfenster",
     "colProperty": "Unterkunft",
     "colTask": "Einsatz",
     "colAgent": "Mitarbeiter",
@@ -197,7 +197,7 @@
     "redoToast": "Nacharbeit angefordert, der Mitarbeiter wurde benachrichtigt.",
     "cancelledToast": "Einsatz storniert.",
     "manual": "Manuell erstellt",
-    "window": "Zeitfenster",
+    "window": "Einsatzfenster",
     "guests": "Gäste",
     "departure": "Abreise: {name}",
     "arrival": "Anreise: {name}",
@@ -218,7 +218,11 @@
     "agentFree": "An dem Tag frei",
     "endAt": "Ende {time}",
     "redoTrace": "Nachgebessert: erster Durchgang {time}",
-    "validatedAt": "Bestätigt am {date}"
+    "validatedAt": "Bestätigt am {date}",
+    "deadline": "Fertig bis {date}",
+    "slot": "Geplanter Slot",
+    "notScheduled": "Nicht geplant",
+    "estimatedDuration": "Geschätzt {time}"
   },
   "source": {
     "manual": "Manuelle Eingabe",
@@ -296,11 +300,11 @@
     "bedSize": "Bettart",
     "bedLabel": "Raum",
     "bedLabelPlaceholder": "Schlafzimmer {n}",
-    "linenSoon": "Die Wäscheberechnung pro Bett kommt mit dem Modul Wäsche.",
     "learnDuration": "Dauer automatisch anpassen",
     "learnDurationHint": "HALO richtet kommende Reinigungen an den tatsächlich erfassten Zeiten aus.",
     "learnedValue": "Gelernte Dauer: {time} ({count} Reinigungen)",
-    "learnedNone": "{count} erfasste Reinigungen nötig, um die Dauer zu lernen."
+    "learnedNone": "{count} erfasste Reinigungen nötig, um die Dauer zu lernen.",
+    "linenFromBeds": "Das Wäscheset jeder Reinigung wird aus diesen Betten und den Regeln unter Wäsche › Artikel & Einstellungen berechnet (z. B. 1 Spannbettlaken 140 pro Doppelbett), plus Gäste und Babys."
   },
   "properties": {
     "free": "Frei",
@@ -351,7 +355,7 @@
     "error_too_large": "Dieser Kalender ist zu groß.",
     "error_not_ical": "Dieser Link liefert keinen iCal-Kalender.",
     "feeds": "Verbundene Kalender",
-    "feedsIntro": "Fügen Sie den iCal-Link von Airbnb, Booking, Vrbo oder Ihrer Software ein: Buchungen und Reinigungen kommen automatisch.",
+    "feedsIntro": "iCal-Link von Airbnb, Booking, Vrbo oder Ihrer Software einfügen und synchronisieren: importierte Aufenthalte erzeugen die Reinigungen. Die Synchronisierung ist manuell (noch nicht automatisch), die Daten bleiben auf diesem Gerät.",
     "syncNow": "Jetzt synchronisieren",
     "removeFeed": "Diesen Kalender trennen",
     "lastSync": "Synchronisiert am {date}",
@@ -422,7 +426,7 @@
     "nothingForAgent": "Keine Einsätze für diese Person",
     "unassignedRow": "Zuzuweisen",
     "autoTitle": "Verteilungsvorschlag",
-    "autoHint": "Dringendste zuerst, ohne Überschneidungen, ausgewogene Auslastung. Nichts wird vor Ihrer Bestätigung versendet.",
+    "autoHint": "Dringendste zuerst, keine überlappenden Zeitfenster (Start + Dauer), ausgeglichene Last. Fahrzeiten zwischen Unterkünften werden nicht berücksichtigt. Nichts wird vor Ihrer Bestätigung gesendet.",
     "autoNone": "Keine Verteilung möglich: Niemand ist in den Reinigungsfenstern verfügbar.",
     "autoNotPlaced": "{count, plural, one {# Einsatz konnte nicht eingeplant werden: bitte manuell zuweisen.} other {# Einsätze konnten nicht eingeplant werden: bitte manuell zuweisen.}}",
     "autoConfirm": "{count, plural, one {# Zuweisung bestätigen} other {# Zuweisungen bestätigen}}",
@@ -500,7 +504,7 @@
     "defaultTimezone": "Hauptzeitzone",
     "defaultTimezoneHint": "Wird für „heute“ verwendet und für neue Unterkünfte vorgeschlagen.",
     "demoTitle": "Daten",
-    "demoText": "Demomodus: Ihre Daten werden nur in diesem Browser gespeichert. Im nächsten Schritt wandern sie in Ihre sichere Datenbank.",
+    "demoText": "Demo-Modus: Daten werden nur in diesem Browser gespeichert. Keine Online-Sicherung, kein Geräteabgleich, keine sicheren Konten. Keine echten Daten (Gäste, Zugangscodes) eingeben, bis die Datenbank live ist.",
     "confirmReset": "Alle Daten durch die Demo ersetzen?",
     "confirmEmpty": "Alles löschen und neu beginnen?",
     "confirm": "Bestätigen",
@@ -668,19 +672,27 @@
     "item_coffee": "Kaffee / Tee",
     "item_soap": "Seife / Duschgel",
     "item_kitchen": "Küchenutensilien",
-    "item_other": "Etwas anderes"
+    "item_other": "Etwas anderes",
+    "histCreated": "Gemeldet {date} · {by}",
+    "hist_taken": "Übernommen {date} · {by}",
+    "hist_follow_up": "Einsatz geplant {date} · {by}",
+    "hist_resolved": "Erledigt {date} · {by}",
+    "hist_reopened": "Wieder geöffnet {date} · {by}",
+    "resolutionRequired": "Pflicht: was getan wurde (Reparatur, Austausch, Prüfung).",
+    "proofPhoto": "Nachweisfoto",
+    "followUpNotDone": "Der geplante Einsatz ist nicht abgeschlossen. Nur erledigen, wenn das Problem wirklich behoben ist."
   },
   "guide": {
     "title": "Gästemappe",
     "intro": "Ein Link und QR-Code pro Unterkunft: WLAN, Zugang, Regeln, Abreise. Gäste können auch Probleme melden.",
     "enabled": "Gästemappe aktiv",
-    "enabledHint": "Deaktivieren, um den Link zu sperren.",
+    "enabledHint": "Deaktiviert öffnet sich die Mappe auf diesem Gerät nicht mehr. Ein geteilter Link bleibt lesbar (ohne Zugangsdaten).",
     "welcome": "Begrüßung",
     "welcomeHint": "Ein paar herzliche Worte, oben angezeigt.",
     "wifiName": "WLAN-Name",
     "wifiPassword": "WLAN-Passwort",
     "accessInfo": "Zugang zur Unterkunft",
-    "accessInfoHint": "Türcode, Etage, Schlüsselbox… Für alle mit dem Link sichtbar.",
+    "accessInfoHint": "Türcode, Etage, Schlüsselbox… Nie im QR-Code oder geteilten Link enthalten.",
     "houseRules": "Hausregeln",
     "checkoutInstructions": "Hinweise zur Abreise",
     "parking": "Parken",
@@ -699,9 +711,9 @@
     "posterScan": "Scannen für WLAN, Mappe und Hilfe",
     "preview": "Vorschau",
     "regenerate": "Neuer Link",
-    "regenerated": "Neuer Link erstellt: der alte funktioniert nicht mehr.",
-    "securityNotice": "Link ändern, falls frühere Gäste ihn noch haben: Zugangscodes sind sichtbar.",
-    "demoNotice": "Die Mappe steckt im Link: Sie öffnet sich auf jedem Handy. Meldungen und Anfragen erreichen Sie, sobald die Datenbank live ist.",
+    "regenerated": "Neue Adresse erstellt. Bereits geteilte Links bleiben lesbar, ohne Zugangsdaten.",
+    "securityNotice": "„Neuer Link“ ändert die Adresse auf diesem Gerät, ein bereits geteilter Link/QR bleibt aber lesbar (ohne Zugangsdaten). Aufenthaltsgebundene Links kommen mit der Datenbank.",
+    "demoNotice": "Der Inhalt der Mappe steckt im Link, damit er auf jedem Handy öffnet. Der Link läuft nicht ab und ist nicht widerrufbar – er enthält daher nie Zugangsdaten. Meldungen und Anfragen erreichen Sie erst mit der Datenbank.",
     "scanToTest": "Mit dem Handy scannen zum Testen"
   },
   "guest": {
@@ -737,7 +749,8 @@
     "conciergeText": "Privatkoch, Restauranttisch, Fahrer… Wir kümmern uns um alles.",
     "conciergeVip": "Ihre persönliche Concierge erfüllt jeden Wunsch.",
     "otherRequest": "Andere Anfrage",
-    "sharedNotice": "Digitale Gästemappe von HALO"
+    "sharedNotice": "Digitale Gästemappe von HALO",
+    "accessByConcierge": "Die Zugangsdaten erhalten Sie direkt von Ihrer Concierge."
   },
   "linen": {
     "subtitle": "Jedes Teil verfolgen, Engpässe vorhersehen.",
@@ -868,13 +881,18 @@
     "atLaundryReturn": "In Wäscherei · zurück",
     "outcome": "Fehlmenge / Überschuss",
     "missingQty": "Fehlen {count}",
-    "surplusQty": "+{count} übrig",
+    "surplusQty": "+{count} übrig in 7 T",
     "fromDay": "ab {day}",
     "lateReturn": "verspätet",
     "lateOrders": "{count, plural, one {# Wäscheauftrag verspätet: zählt erst nach Empfang zum Bestand.} other {# Wäscheaufträge verspätet: zählen erst nach Empfang zum Bestand.}}",
     "balanced": "Ausgeglichen",
     "returnShort": "zurück",
-    "outcome7": "Bilanz 7 T"
+    "outcome7": "Bilanz 7 T",
+    "missing7": "{count} fehlen in 7 T",
+    "firstShortage": "Erste Fehlmenge: {count} · {day}",
+    "adviceSend": "→ Schmutzwäsche ({qty}) heute senden: zurück {day}, rechtzeitig.",
+    "adviceBuyLate": "→ Mindestens {missing} kaufen: heute gesendete Wäsche käme erst {day}, zu spät.",
+    "adviceBuy": "→ Mindestens {missing} kaufen: keine Schmutzwäsche und keine Rückgabe deckt das ab."
   },
   "linenCategory": {
     "bed": "Bett",
@@ -1012,7 +1030,7 @@
     "details": "Details",
     "detailsPlaceholder": "Allergien, Wünsche, Abholadresse…",
     "assignee": "Zugewiesen an",
-    "assigneeHint": "Die passende Funktion steht oben.",
+    "assigneeHint": "Nur Mitglieder mit der Funktion „{position}“ werden angezeigt.",
     "nobody": "Niemand",
     "provider": "Externer Partner",
     "providerPlaceholder": "Z. B. Restaurant Le Grand Véfour",
@@ -1032,6 +1050,23 @@
     "requestTitle": "Ihre Anfrage",
     "requestHint": "Ihre Concierge bestätigt in Kürze.",
     "sendRequest": "Anfrage senden",
-    "requestSent": "Anfrage gesendet! Ihre Concierge meldet sich."
+    "requestSent": "Anfrage gesendet! Ihre Concierge meldet sich.",
+    "modeTeam": "Team",
+    "modePartner": "Externer Partner",
+    "modeNone": "Nicht zugewiesen",
+    "member": "Teammitglied",
+    "chooseMember": "Auswählen…",
+    "noStaffForKind": "Kein Teammitglied hat die Funktion „{position}“. An einen externen Partner vergeben oder offen lassen."
+  },
+  "demo": {
+    "badge": "Demo",
+    "short": "Daten nur auf diesem Gerät",
+    "tooltip": "Demo-Modus: Daten bleiben in diesem Browser, ohne Online-Sicherung oder Geräteabgleich. Keine echten Daten eingeben."
+  },
+  "timing": {
+    "windowShort": "Fenster {range}",
+    "toPlan": "{duration} zu planen",
+    "toPlanShort": "zu planen",
+    "plannedSlot": "Geplant {slot} · {duration}"
   }
 }

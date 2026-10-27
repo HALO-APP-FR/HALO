@@ -290,7 +290,7 @@ export function PropertyBedsForm({ property }: { property: Property }) {
             ))}
           </ul>
         )}
-        <p className="mt-4 text-caption text-muted">{t("property.linenSoon")}</p>
+        <p className="mt-4 text-caption text-muted">{t("property.linenFromBeds")}</p>
         <SaveBar
           dirty={dirty}
           onReset={() => setBeds(property.beds)}

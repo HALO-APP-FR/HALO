@@ -236,8 +236,22 @@ export interface Alert {
   photoIds: string[];
   followUpTaskId?: string;
   resolution?: string;
+  /** Photos prouvant la résolution. */
+  resolutionPhotoIds?: string[];
   createdAt: string;
+  takenAt?: string;
+  takenBy?: string;
   resolvedAt?: string;
+  resolvedBy?: string;
+  /** Historique horodaté : qui a fait quoi, et quand. */
+  history?: AlertEvent[];
+}
+
+export interface AlertEvent {
+  at: string;
+  kind: "taken" | "follow_up" | "resolved" | "reopened";
+  by?: string;
+  note?: string;
 }
 
 /* ---------------- Prestations (conciergerie haut de gamme) ---------------- */

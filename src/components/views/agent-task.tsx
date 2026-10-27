@@ -21,6 +21,7 @@ import { ReportSheet } from "@/components/halo/report-sheet";
 import { StatusPill } from "@/components/halo/status-pill";
 import { directionsUrl, useDeadlineLabel } from "@/components/halo/task-card";
 import { DurationCompare, ROOM_STATUSES, ROOM_STATUS_META } from "@/components/halo/task-report";
+import { useTaskTiming } from "@/components/halo/task-timing";
 import { TASK_TYPE_META, TaskTypeIcon } from "@/components/halo/task-type";
 import { TaskLinenKit } from "@/components/linen/task-linen-kit";
 import { cn } from "@/lib/utils";
@@ -64,6 +65,7 @@ function AgentTaskInner({ taskId }: { taskId: string }) {
   const property = useHalo((s) => (task ? s.properties.find((p) => p.id === task.propertyId) : undefined));
   const me = useHalo((s) => s.members.find((m) => m.id === s.currentAgentId));
   const deadline = useDeadlineLabel();
+  const timing = useTaskTiming();
   const [reporting, setReporting] = useState(false);
   const [confirmUnchecked, setConfirmUnchecked] = useState(false);
 
@@ -128,6 +130,9 @@ function AgentTaskInner({ taskId }: { taskId: string }) {
         <p className="mt-0.5 text-[15px] text-muted">{[property.addressLine, property.area, property.city].filter(Boolean).join(" · ")}</p>
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className="text-[17px] font-semibold tabular">{deadline(task, property, new Date())}</span>
+          {timing.slot(task, property.timezone) && (
+            <span className="text-[15px] text-muted tabular">{t("timing.plannedSlot", { slot: timing.slot(task, property.timezone)!, duration: timing.duration(task) })}</span>
+          )}
           <GuestBadges guests={task.guestsCount} babies={task.babies} pets={task.pets} vip={task.vip} />
         </div>
       </header>

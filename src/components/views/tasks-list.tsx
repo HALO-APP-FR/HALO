@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { ListChecks, Plus, Search } from "lucide-react";
 import { initialsOf, type TaskStatus, type TaskType } from "@/lib/domain/types";
-import { addDaysToKey, formatLocalTime, localDateKey, formatLocalRange } from "@/lib/engine/time";
+import { addDaysToKey, localDateKey } from "@/lib/engine/time";
+import { TaskTimingCell, useTaskTiming } from "@/components/halo/task-timing";
 import { useHalo } from "@/lib/store/halo-store";
 import { byId, taskAnchor, taskDayKey } from "@/lib/store/selectors";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,7 @@ const PERIODS: Period[] = ["today", "week", "upcoming", "past"];
 function TasksListInner({ initial }: { initial: TasksInitial }) {
   const t = useTranslations();
   const locale = useLocale();
+  const timing = useTaskTiming();
   const tasks = useHalo((s) => s.tasks);
   const properties = useHalo((s) => s.properties);
   const members = useHalo((s) => s.members);
@@ -177,8 +179,8 @@ function TasksListInner({ initial }: { initial: TasksInitial }) {
                 return (
                   <tr key={task.id} onClick={() => setOpenTask(task.id)} className="cursor-pointer border-b border-line last:border-b-0 hover:bg-surface-hover">
                     <td className="px-5 py-3 text-[14px] first-letter:uppercase">{when(taskAnchor(task), tz)}</td>
-                    <td className="py-3 pe-4 text-[14px] font-semibold tabular">
-                      {formatLocalRange(new Date(task.windowStart), new Date(task.windowEnd), tz, locale)}
+                    <td className="py-3 pe-4">
+                      <TaskTimingCell task={task} tz={tz} />
                     </td>
                     <td className="py-3 pe-4">
                       <button type="button" className="text-start text-[14px] font-medium hover:underline" onClick={(e) => { e.stopPropagation(); setOpenTask(task.id); }}>
@@ -228,7 +230,7 @@ function TasksListInner({ initial }: { initial: TasksInitial }) {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[15px] font-semibold">{p?.name}</span>
                       <span className="mt-0.5 block truncate text-caption text-muted first-letter:uppercase">
-                        {when(taskAnchor(task), tz)} · {formatLocalTime(new Date(task.windowStart), tz, locale)}
+                        {when(taskAnchor(task), tz)} · {timing.slot(task, tz) ?? `${t("timing.windowShort", { range: timing.window(task, tz) })} · ${timing.duration(task)}`}
                       </span>
                       <span className="mt-1 block">
                         <StatusPill status={task.status} />

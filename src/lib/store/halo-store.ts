@@ -88,7 +88,11 @@ interface HaloState extends HaloData {
   addAlert: (input: NewAlert) => string;
   updateAlert: (id: string, patch: Partial<Alert>) => void;
   /** Crée une mission de suivi (intervention) liée à une alerte. */
-  createFollowUp: (alertId: string, windowStart: string, windowEnd: string) => string | null;
+  createFollowUp: (alertId: string, windowStart: string, windowEnd: string, by?: string) => string | null;
+  /** Prise en charge, résolution (note obligatoire) et réouverture, toutes tracées. */
+  takeChargeAlert: (id: string, by?: string) => void;
+  resolveAlert: (id: string, by: string | undefined, note: string, photoIds?: string[]) => boolean;
+  reopenAlert: (id: string, by?: string) => void;
   regenerateGuideToken: (propertyId: string) => void;
 
   addLinenType: (input: Omit<LinenType, "id">) => string;
@@ -446,7 +450,48 @@ export const useHalo = create<HaloState>()(
               : a,
           ),
         })),
-      createFollowUp: (alertId, windowStart, windowEnd) => {
+      takeChargeAlert: (id, by) => {
+        const at = new Date().toISOString();
+        set((s) => ({
+          alerts: s.alerts.map((a) =>
+            a.id === id && a.status === "open"
+              ? { ...a, status: "in_progress", takenAt: at, takenBy: by, history: [...(a.history ?? []), { at, kind: "taken", by }] }
+              : a,
+          ),
+        }));
+      },
+      resolveAlert: (id, by, note, photoIds = []) => {
+        // Une alerte n'est jamais « traitée » sans dire ce qui a été fait
+        if (!note.trim()) return false;
+        const at = new Date().toISOString();
+        set((s) => ({
+          alerts: s.alerts.map((a) =>
+            a.id === id
+              ? {
+                  ...a,
+                  status: "resolved",
+                  resolution: note.trim(),
+                  resolutionPhotoIds: photoIds,
+                  resolvedAt: at,
+                  resolvedBy: by,
+                  history: [...(a.history ?? []), { at, kind: "resolved", by, note: note.trim() }],
+                }
+              : a,
+          ),
+        }));
+        return true;
+      },
+      reopenAlert: (id, by) => {
+        const at = new Date().toISOString();
+        set((s) => ({
+          alerts: s.alerts.map((a) =>
+            a.id === id
+              ? { ...a, status: "in_progress", resolvedAt: undefined, resolvedBy: undefined, history: [...(a.history ?? []), { at, kind: "reopened", by }] }
+              : a,
+          ),
+        }));
+      },
+      createFollowUp: (alertId, windowStart, windowEnd, by) => {
         const alert = get().alerts.find((a) => a.id === alertId);
         if (!alert) return null;
         const taskId = get().addTask({
@@ -458,7 +503,21 @@ export const useHalo = create<HaloState>()(
           priority: alert.urgent ? "urgent" : "normal",
           notes: [alert.location?.label, alert.description].filter(Boolean).join(" — "),
         });
-        get().updateAlert(alertId, { followUpTaskId: taskId, status: "in_progress" });
+        const at = new Date().toISOString();
+        set((s) => ({
+          alerts: s.alerts.map((a) =>
+            a.id === alertId
+              ? {
+                  ...a,
+                  followUpTaskId: taskId,
+                  status: "in_progress",
+                  takenAt: a.takenAt ?? at,
+                  takenBy: a.takenBy ?? by,
+                  history: [...(a.history ?? []), { at, kind: "follow_up", by }],
+                }
+              : a,
+          ),
+        }));
         return taskId;
       },
       regenerateGuideToken: (propertyId) =>

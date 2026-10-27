@@ -14,7 +14,8 @@ import { Field, Select, Textarea } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Stepper } from "@/components/halo/property-create-sheet";
-import { SERVICE_ICON, SERVICE_KINDS, SERVICE_STATUS_TONE, staffFor } from "./service-meta";
+import { Segmented } from "@/components/ui/segmented";
+import { SERVICE_ICON, SERVICE_KINDS, SERVICE_POSITION, SERVICE_STATUS_TONE, staffFor } from "./service-meta";
 import { cn } from "@/lib/utils";
 
 const hhmm = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
@@ -161,7 +162,9 @@ function ServiceSheetInner({ service, onClose }: { service: ServiceRequest | "ne
     .filter((r) => r.propertyId === propertyId && r.status === "confirmed" && new Date(r.checkOutAt) > new Date(now.getTime() - 86_400_000))
     .sort((a, b) => a.checkInAt.localeCompare(b.checkInAt))
     .slice(0, 6);
+  // Seuls les membres dont le poste correspond à la prestation sont proposés
   const staff = staffFor(kind, activeStaff(members));
+  const [mode, setMode] = useState<"team" | "partner" | "none">(isNew ? "none" : service.assigneeId ? "team" : service.provider ? "partner" : "none");
   const stay = reservations.find((r) => r.id === reservationId);
   const fmtStay = (r: Reservation) =>
     `${r.guestName ?? t(`source.${r.source}`)} · ${new Intl.DateTimeFormat(locale, { timeZone: tz, day: "numeric", month: "short" }).format(new Date(r.checkInAt))} → ${new Intl.DateTimeFormat(locale, { timeZone: tz, day: "numeric", month: "short" }).format(new Date(r.checkOutAt))}${r.vip ? " · VIP" : ""}`;
@@ -174,8 +177,9 @@ function ServiceSheetInner({ service, onClose }: { service: ServiceRequest | "ne
     startAt: zonedTimeToUtc(date, time, tz).toISOString(),
     people,
     details: details.trim() || undefined,
-    assigneeId: assigneeId || undefined,
-    provider: provider.trim() || undefined,
+    // Un seul responsable : membre de l'équipe OU partenaire externe
+    assigneeId: mode === "team" && staff.some((m) => m.id === assigneeId) ? assigneeId : undefined,
+    provider: mode === "partner" ? provider.trim() || undefined : undefined,
     price: price.trim() ? Math.max(0, Number(price.replace(",", ".")) || 0) : undefined,
   });
 
@@ -183,8 +187,9 @@ function ServiceSheetInner({ service, onClose }: { service: ServiceRequest | "ne
   const save = (e?: React.FormEvent, status?: ServiceRequest["status"]) => {
     e?.preventDefault();
     if (!propertyId) return;
-    if (isNew) addService({ ...data(), source: "manager", status: status ?? (assigneeId || provider ? "confirmed" : "requested") });
-    else updateService(service.id, { ...data(), ...(status ? { status } : {}) });
+    const d = data();
+    if (isNew) addService({ ...d, source: "manager", status: status ?? (d.assigneeId || d.provider ? "confirmed" : "requested") });
+    else updateService(service.id, { ...d, ...(status ? { status } : {}) });
     toast(status ? t(`services.toast_${status}`) : t("form.saved"));
     onClose();
   };
@@ -245,24 +250,45 @@ function ServiceSheetInner({ service, onClose }: { service: ServiceRequest | "ne
           <Field label={t("services.details")} htmlFor="s-details">
             <Textarea id="s-details" value={details} onChange={(e) => setDetails(e.target.value)} placeholder={t("services.detailsPlaceholder")} />
           </Field>
-          <Field label={t("services.assignee")} htmlFor="s-who" hint={t("services.assigneeHint")}>
-            <Select id="s-who" value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
-              <option value="">{t("services.nobody")}</option>
-              {staff.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} — {t(`position.${m.position ?? "housekeeper"}`)}
-                </option>
+          <fieldset className="space-y-3">
+            <legend className="mb-2 text-[13px] font-medium text-muted">{t("services.assignee")}</legend>
+            <Segmented
+              label={t("services.assignee")}
+              value={mode}
+              onChange={setMode}
+              options={[
+                { value: "team", label: t("services.modeTeam") },
+                { value: "partner", label: t("services.modePartner") },
+                { value: "none", label: t("services.modeNone") },
+              ]}
+              className="flex w-full [&>*]:flex-1"
+            />
+            {mode === "team" &&
+              (staff.length === 0 ? (
+                <p className="rounded-lg bg-warning-soft p-3 text-[14px] text-warning">
+                  {t("services.noStaffForKind", { position: t(`position.${SERVICE_POSITION[kind]}`) })}
+                </p>
+              ) : (
+                <Field label={t("services.member")} htmlFor="s-who" hint={t("services.assigneeHint", { position: t(`position.${SERVICE_POSITION[kind]}`) })}>
+                  <Select id="s-who" value={staff.some((m) => m.id === assigneeId) ? assigneeId : ""} onChange={(e) => setAssigneeId(e.target.value)}>
+                    <option value="">{t("services.chooseMember")}</option>
+                    {staff.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} — {t(`position.${m.position ?? "housekeeper"}`)}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
               ))}
-            </Select>
+            {mode === "partner" && (
+              <Field label={t("services.provider")} htmlFor="s-provider">
+                <Input id="s-provider" value={provider} onChange={(e) => setProvider(e.target.value)} placeholder={t("services.providerPlaceholder")} />
+              </Field>
+            )}
+          </fieldset>
+          <Field label={`${t("services.price")} (${currency})`} htmlFor="s-price">
+            <Input id="s-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} className="w-40 tabular" />
           </Field>
-          <div className="grid grid-cols-[minmax(0,1fr)_120px] gap-3">
-            <Field label={t("services.provider")} htmlFor="s-provider">
-              <Input id="s-provider" value={provider} onChange={(e) => setProvider(e.target.value)} placeholder={t("services.providerPlaceholder")} />
-            </Field>
-            <Field label={`${t("services.price")} (${currency})`} htmlFor="s-price">
-              <Input id="s-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} className="tabular" />
-            </Field>
-          </div>
 
           {isNew ? (
             <Button type="submit" size="xl">

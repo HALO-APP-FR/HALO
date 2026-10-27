@@ -23,6 +23,10 @@ Pages utiles :
 | `npm run build` | Construit la version de production |
 | `npm run test:e2e` | Tests dans un vrai navigateur |
 
+## Statut : démonstration
+
+Toutes les données restent dans le navigateur (aucune sauvegarde en ligne, aucun compte réel, synchro iCal manuelle). Ne pas utiliser avec des données réelles. Prérequis de production et sécurité du livret : `docs/09-securite-production.md`.
+
 ## Documentation
 Tout est dans `docs/` (vision, parcours, données, moteur, design). Les règles pour Cursor sont dans `.cursor/rules/halo.mdc`.
 

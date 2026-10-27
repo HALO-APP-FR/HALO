@@ -5,9 +5,9 @@ import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { ArrowRight, CheckCircle2, Hammer, MapPin, Plus, RotateCcw, Siren, User, Wrench } from "lucide-react";
 import type { Alert, AlertStatus } from "@/lib/domain/types";
-import { addDaysToKey, localDateKey, zonedTimeToUtc } from "@/lib/engine/time";
+import { addDaysToKey, formatLocalTime, localDateKey, zonedTimeToUtc } from "@/lib/engine/time";
 import { useHalo } from "@/lib/store/halo-store";
-import { byId } from "@/lib/store/selectors";
+import { byId, currentManager } from "@/lib/store/selectors";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,7 +17,8 @@ import { Segmented } from "@/components/ui/segmented";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { EmptyState } from "@/components/halo/empty-state";
 import { PageHeader } from "@/components/halo/page-header";
-import { PhotoThumb } from "@/components/halo/photo-thumb";
+import { AddPhotoButton, PhotoThumb } from "@/components/halo/photo-thumb";
+import { StatusPill } from "@/components/halo/status-pill";
 import { ReadyGate } from "@/components/halo/ready-gate";
 import { ReportSheet } from "@/components/halo/report-sheet";
 import { cn } from "@/lib/utils";
@@ -219,6 +220,9 @@ function AlertSheetInner({ alertId, onClose }: { alertId: string; onClose: () =>
   const followUp = useHalo((s) => s.tasks.find((x) => x.id === alert?.followUpTaskId));
   const ago = useRelativeTime();
   const [resolution, setResolution] = useState("");
+  const [proof, setProof] = useState<string[]>([]);
+  const members = useHalo((s) => s.members);
+  const me = currentManager(members)?.name;
   const [resolving, setResolving] = useState(false);
   const [planning, setPlanning] = useState(false);
   const tz = property?.timezone ?? "UTC";
@@ -226,7 +230,10 @@ function AlertSheetInner({ alertId, onClose }: { alertId: string; onClose: () =>
   const [from, setFrom] = useState(alert?.urgent ? "14:00" : "09:00");
   const [to, setTo] = useState(alert?.urgent ? "18:00" : "12:00");
   if (!alert || !property) return null;
-  const { updateAlert, createFollowUp } = useHalo.getState();
+  const { createFollowUp, takeChargeAlert, resolveAlert, reopenAlert } = useHalo.getState();
+  const followUpOpen = followUp && followUp.status !== "done" && followUp.status !== "validated" && followUp.status !== "cancelled";
+  const stamp = (iso: string) =>
+    `${new Intl.DateTimeFormat(locale, { timeZone: tz, weekday: "short", day: "numeric", month: "short" }).format(new Date(iso))} ${formatLocalTime(new Date(iso), tz, locale)}`;
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()}>
@@ -254,18 +261,40 @@ function AlertSheetInner({ alertId, onClose }: { alertId: string; onClose: () =>
               ))}
             </div>
           )}
-          {alert.resolution && (
-            <p className="rounded-lg bg-success-soft p-3 text-[14px]">
-              <strong>{t("alerts.resolution")} :</strong> {alert.resolution}
-            </p>
+          {alert.resolution && alert.status === "resolved" && (
+            <div className="rounded-lg bg-success-soft p-3 text-[14px]">
+              <p>
+                <strong>{t("alerts.resolution")} :</strong> {alert.resolution}
+              </p>
+              {alert.resolutionPhotoIds && alert.resolutionPhotoIds.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {alert.resolutionPhotoIds.map((p) => (
+                    <PhotoThumb key={p} id={p} size="sm" />
+                  ))}
+                </div>
+              )}
+            </div>
           )}
+
+          {/* Suivi horodaté : qui, quoi, quand */}
+          <ol className="space-y-1.5 border-s-2 border-line ps-3 text-caption text-muted">
+            <li>{t("alerts.histCreated", { date: stamp(alert.createdAt), by: alert.reporterName ?? t(`alertSource.${alert.source}`) })}</li>
+            {(alert.history ?? []).map((h, i) => (
+              <li key={i} className={h.kind === "resolved" ? "font-medium text-success" : undefined}>
+                {t(`alerts.hist_${h.kind}`, { date: stamp(h.at), by: h.by ?? "—" })}
+              </li>
+            ))}
+          </ol>
 
           {followUp ? (
             <div className="flex items-center gap-2 rounded-lg border border-line p-3 text-[14px]">
               <Wrench className="size-4 text-muted" />
-              {t("alerts.followUpPlanned", {
-                date: new Intl.DateTimeFormat(locale, { timeZone: tz, weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(followUp.windowStart)),
-              })}
+              <span className="min-w-0 flex-1">
+                {t("alerts.followUpPlanned", {
+                  date: new Intl.DateTimeFormat(locale, { timeZone: tz, weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(followUp.windowStart)),
+                })}
+              </span>
+              <StatusPill status={followUp.status} />
             </div>
           ) : (
             alert.status !== "resolved" &&
@@ -277,7 +306,7 @@ function AlertSheetInner({ alertId, onClose }: { alertId: string; onClose: () =>
                   const start = zonedTimeToUtc(day, from, tz);
                   const end = zonedTimeToUtc(day, to, tz);
                   if (!(end > start)) return;
-                  createFollowUp(alert.id, start.toISOString(), end.toISOString());
+                  createFollowUp(alert.id, start.toISOString(), end.toISOString(), me);
                   toast(t("alerts.followUpCreated"));
                   setPlanning(false);
                 }}
@@ -306,7 +335,7 @@ function AlertSheetInner({ alertId, onClose }: { alertId: string; onClose: () =>
           )}
 
           {alert.status === "open" && (
-            <Button size="lg" className="w-full" onClick={() => updateAlert(alert.id, { status: "in_progress" })}>
+            <Button size="lg" className="w-full" onClick={() => takeChargeAlert(alert.id, me)}>
               {t("alerts.takeCharge")}
             </Button>
           )}
@@ -316,15 +345,23 @@ function AlertSheetInner({ alertId, onClose }: { alertId: string; onClose: () =>
                 className="space-y-3"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  updateAlert(alert.id, { status: "resolved", resolution: resolution.trim() || undefined });
+                  if (!resolveAlert(alert.id, me, resolution, proof)) return;
                   toast(t("alerts.resolvedToast"));
                   onClose();
                 }}
               >
-                <Field label={t("alerts.resolution")} htmlFor="res" hint={t("alerts.resolutionHint")}>
-                  <Textarea id="res" value={resolution} onChange={(e) => setResolution(e.target.value)} autoFocus />
+                {followUpOpen && <p className="rounded-lg bg-warning-soft p-3 text-[14px] text-warning">{t("alerts.followUpNotDone")}</p>}
+                <Field label={t("alerts.resolution")} htmlFor="res" hint={t("alerts.resolutionRequired")}>
+                  <Textarea id="res" required value={resolution} onChange={(e) => setResolution(e.target.value)} autoFocus />
                 </Field>
-                <Button type="submit" size="lg" className="w-full bg-success hover:bg-success hover:opacity-90">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {proof.map((p) => (
+                    <PhotoThumb key={p} id={p} size="sm" onRemove={() => setProof(proof.filter((x) => x !== p))} />
+                  ))}
+                  <AddPhotoButton compact className="size-12" label={t("alerts.proofPhoto")} onAdded={(id) => setProof((l) => [...l, id])} />
+                  <span className="text-caption text-muted">{t("alerts.proofPhoto")}</span>
+                </div>
+                <Button type="submit" size="lg" className="w-full bg-success hover:bg-success hover:opacity-90" disabled={!resolution.trim()}>
                   <CheckCircle2 />
                   {t("alerts.markResolved")}
                 </Button>
@@ -336,7 +373,7 @@ function AlertSheetInner({ alertId, onClose }: { alertId: string; onClose: () =>
               </Button>
             ))}
           {alert.status === "resolved" && (
-            <Button variant="ghost" className="w-full" onClick={() => updateAlert(alert.id, { status: "open" })}>
+            <Button variant="ghost" className="w-full" onClick={() => reopenAlert(alert.id, me)}>
               <RotateCcw />
               {t("alerts.reopen")}
             </Button>

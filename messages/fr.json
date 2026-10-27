@@ -90,7 +90,7 @@
     "view": "Voir",
     "timeline": "Journée",
     "allClear": "Tout est sous contrôle.",
-    "colTime": "Horaire",
+    "colTime": "Créneau / fenêtre",
     "colProperty": "Logement",
     "colTask": "Mission",
     "colAgent": "Agent",
@@ -197,7 +197,7 @@
     "redoToast": "Reprise demandée, l'agent est prévenu.",
     "cancelledToast": "Mission annulée.",
     "manual": "Créée à la main",
-    "window": "Fenêtre",
+    "window": "Fenêtre d'intervention",
     "guests": "Voyageurs",
     "departure": "Départ : {name}",
     "arrival": "Arrivée : {name}",
@@ -218,7 +218,11 @@
     "agentFree": "Libre ce jour",
     "endAt": "fin prévue {time}",
     "redoTrace": "Mission reprise : premier passage {time}",
-    "validatedAt": "Validée le {date}"
+    "validatedAt": "Validée le {date}",
+    "deadline": "À terminer avant {date}",
+    "slot": "Créneau planifié",
+    "notScheduled": "Non planifié",
+    "estimatedDuration": "Durée estimée {time}"
   },
   "source": {
     "manual": "Saisie manuelle",
@@ -296,11 +300,11 @@
     "bedSize": "Type de lit",
     "bedLabel": "Pièce",
     "bedLabelPlaceholder": "Chambre {n}",
-    "linenSoon": "Le calcul du linge par lit arrive avec le module Linge.",
     "learnDuration": "Ajuster la durée automatiquement",
     "learnDurationHint": "HALO cale les prochains ménages sur les durées réellement pointées par l'équipe.",
     "learnedValue": "Durée apprise : {time} (sur {count} ménages)",
-    "learnedNone": "Encore {count} ménages pointés nécessaires pour apprendre la durée."
+    "learnedNone": "Encore {count} ménages pointés nécessaires pour apprendre la durée.",
+    "linenFromBeds": "Le kit de linge de chaque ménage est calculé à partir de ces couchages et des règles de Linge › Articles et réglages (ex. 1 drap-housse 140 par lit double), plus les voyageurs et bébés du séjour."
   },
   "properties": {
     "free": "Libre",
@@ -351,7 +355,7 @@
     "error_too_large": "Ce calendrier est trop volumineux.",
     "error_not_ical": "Ce lien ne renvoie pas un calendrier iCal.",
     "feeds": "Calendriers connectés",
-    "feedsIntro": "Collez le lien iCal d'Airbnb, Booking, Vrbo ou de votre logiciel : les réservations et les ménages arrivent tout seuls.",
+    "feedsIntro": "Collez le lien iCal d'Airbnb, Booking, Vrbo ou de votre logiciel, puis synchronisez : les séjours importés créent les ménages. La synchronisation se lance à la main (pas encore automatique) et les données restent sur cet appareil.",
     "syncNow": "Synchroniser maintenant",
     "removeFeed": "Déconnecter ce calendrier",
     "lastSync": "Synchronisé le {date}",
@@ -422,7 +426,7 @@
     "nothingForAgent": "Aucune mission pour cette personne",
     "unassignedRow": "À assigner",
     "autoTitle": "Proposition de répartition",
-    "autoHint": "Les plus pressées d'abord, sans chevauchement, charge équilibrée. Rien n'est envoyé avant votre validation.",
+    "autoHint": "Les plus pressées d'abord, sans chevauchement de créneaux (début + durée), charge équilibrée. Les temps de trajet entre logements ne sont pas pris en compte. Rien n'est envoyé avant votre validation.",
     "autoNone": "Aucune répartition possible : personne n'est disponible dans les fenêtres de ménage.",
     "autoNotPlaced": "{count, plural, one {# mission n'a pas pu être placée : à assigner à la main.} other {# missions n'ont pas pu être placées : à assigner à la main.}}",
     "autoConfirm": "{count, plural, one {Valider # assignation} other {Valider # assignations}}",
@@ -500,7 +504,7 @@
     "defaultTimezone": "Fuseau horaire principal",
     "defaultTimezoneHint": "Utilisé pour « aujourd'hui » et proposé par défaut pour les nouveaux logements.",
     "demoTitle": "Données",
-    "demoText": "Mode démonstration : vos données sont enregistrées dans ce navigateur uniquement. Elles passeront dans votre base sécurisée à l'étape suivante.",
+    "demoText": "Mode démonstration : les données sont enregistrées uniquement dans ce navigateur. Il n'y a ni sauvegarde en ligne, ni partage entre appareils, ni comptes sécurisés. Ne saisissez pas de données réelles (clients, codes d'accès) avant la mise en service de la base de données.",
     "confirmReset": "Remplacer toutes les données par la démo ?",
     "confirmEmpty": "Tout effacer et repartir de zéro ?",
     "confirm": "Confirmer",
@@ -668,19 +672,27 @@
     "item_coffee": "Café / thé",
     "item_soap": "Savon / gel douche",
     "item_kitchen": "Ustensiles de cuisine",
-    "item_other": "Autre chose"
+    "item_other": "Autre chose",
+    "histCreated": "Signalée {date} · {by}",
+    "hist_taken": "Prise en charge {date} · {by}",
+    "hist_follow_up": "Intervention planifiée {date} · {by}",
+    "hist_resolved": "Résolue {date} · {by}",
+    "hist_reopened": "Rouverte {date} · {by}",
+    "resolutionRequired": "Obligatoire : ce qui a été fait (réparation, remplacement, constat).",
+    "proofPhoto": "Photo de preuve",
+    "followUpNotDone": "L'intervention planifiée n'est pas terminée. Ne résolvez que si le problème est réellement réglé."
   },
   "guide": {
     "title": "Livret voyageur",
     "intro": "Un lien et un QR code par logement : wifi, accès, règles, départ. Le voyageur peut aussi vous signaler un problème.",
     "enabled": "Livret activé",
-    "enabledHint": "Désactivez-le pour couper l'accès au lien.",
+    "enabledHint": "Désactivé, le livret ne s'ouvre plus depuis cet appareil. Un lien déjà diffusé reste lisible (sans infos d'accès).",
     "welcome": "Mot d'accueil",
     "welcomeHint": "Quelques mots chaleureux, affichés en haut du livret.",
     "wifiName": "Réseau wifi",
     "wifiPassword": "Mot de passe wifi",
     "accessInfo": "Accès au logement",
-    "accessInfoHint": "Digicode, étage, boîte à clés… Visible par toute personne qui a le lien.",
+    "accessInfoHint": "Digicode, étage, boîte à clés… Jamais intégré au QR code ni au lien partagé.",
     "houseRules": "Règles de la maison",
     "checkoutInstructions": "Consignes de départ",
     "parking": "Stationnement",
@@ -699,9 +711,9 @@
     "posterScan": "Scannez pour le wifi, le livret et l'aide",
     "preview": "Aperçu",
     "regenerate": "Nouveau lien",
-    "regenerated": "Nouveau lien créé : l'ancien ne fonctionne plus.",
-    "securityNotice": "Changez de lien si un ancien voyageur l'a encore : les codes d'accès y sont visibles.",
-    "demoNotice": "Le livret est contenu dans le lien : il s'ouvre sur n'importe quel téléphone. Les signalements et demandes des voyageurs vous parviendront dès la mise en service de la base de données.",
+    "regenerated": "Nouvelle adresse créée. Les liens déjà diffusés restent lisibles, sans les infos d'accès.",
+    "securityNotice": "« Nouveau lien » change l'adresse du livret sur cet appareil, mais un lien ou un QR déjà diffusé reste lisible (sans les infos d'accès). Les liens limités au séjour arriveront avec la base de données.",
+    "demoNotice": "Le contenu du livret est intégré au lien pour s'ouvrir sur n'importe quel téléphone. Ce lien n'expire pas et ne peut pas être révoqué : il ne contient donc jamais les informations d'accès. Les signalements et demandes des voyageurs ne vous parviendront qu'avec la base de données.",
     "scanToTest": "Scannez avec votre téléphone pour tester"
   },
   "guest": {
@@ -737,7 +749,8 @@
     "conciergeText": "Chef à domicile, table au restaurant, chauffeur… On s'occupe de tout.",
     "conciergeVip": "Votre concierge dédié est à votre disposition pour chaque envie.",
     "otherRequest": "Autre demande",
-    "sharedNotice": "Livret digital propulsé par HALO"
+    "sharedNotice": "Livret digital propulsé par HALO",
+    "accessByConcierge": "Les informations d'accès vous sont transmises directement par votre concierge."
   },
   "linen": {
     "subtitle": "Suivez chaque pièce, anticipez les ruptures.",
@@ -868,13 +881,18 @@
     "atLaundryReturn": "En blanchisserie · retour",
     "outcome": "Manque / surplus",
     "missingQty": "Manque {count}",
-    "surplusQty": "+{count} en surplus",
+    "surplusQty": "+{count} en surplus sur 7 j",
     "fromDay": "dès {day}",
     "lateReturn": "en retard",
     "lateOrders": "{count, plural, one {# bon de blanchisserie en retard : non compté dans le stock tant qu'il n'est pas réceptionné.} other {# bons de blanchisserie en retard : non comptés dans le stock tant qu'ils ne sont pas réceptionnés.}}",
     "balanced": "À l'équilibre",
     "returnShort": "retour",
-    "outcome7": "Bilan 7 j"
+    "outcome7": "Bilan 7 j",
+    "missing7": "Manque {count} sur 7 j",
+    "firstShortage": "1er manque : {count} · {day}",
+    "adviceSend": "→ Envoyer le sale ({qty}) aujourd'hui : retour prévu {day}, à temps.",
+    "adviceBuyLate": "→ Acheter au moins {missing} : le sale envoyé aujourd'hui ne reviendrait que {day}, trop tard.",
+    "adviceBuy": "→ Acheter au moins {missing} : aucun linge sale ni retour ne couvre ce manque."
   },
   "linenCategory": {
     "bed": "Lit",
@@ -1012,7 +1030,7 @@
     "details": "Détails",
     "detailsPlaceholder": "Allergies, préférences, adresse de prise en charge…",
     "assignee": "Confiée à",
-    "assigneeHint": "Le poste adapté est proposé en premier.",
+    "assigneeHint": "Seuls les membres au poste « {position} » sont proposés.",
     "nobody": "Personne",
     "provider": "Partenaire externe",
     "providerPlaceholder": "Ex. Restaurant Le Grand Véfour",
@@ -1032,6 +1050,23 @@
     "requestTitle": "Votre demande",
     "requestHint": "Votre concierge vous confirme au plus vite.",
     "sendRequest": "Envoyer la demande",
-    "requestSent": "Demande envoyée ! Votre concierge revient vers vous."
+    "requestSent": "Demande envoyée ! Votre concierge revient vers vous.",
+    "modeTeam": "Équipe",
+    "modePartner": "Partenaire externe",
+    "modeNone": "Non attribuée",
+    "member": "Membre de l'équipe",
+    "chooseMember": "Choisir…",
+    "noStaffForKind": "Aucun membre de l'équipe n'a le poste « {position} ». Confiez la prestation à un partenaire externe, ou laissez-la non attribuée."
+  },
+  "demo": {
+    "badge": "Démo",
+    "short": "Données sur cet appareil uniquement",
+    "tooltip": "Mode démonstration : les données restent dans ce navigateur, sans sauvegarde en ligne ni partage entre appareils. N'y saisissez pas de données réelles."
+  },
+  "timing": {
+    "windowShort": "fenêtre {range}",
+    "toPlan": "{duration} à planifier",
+    "toPlanShort": "à planif.",
+    "plannedSlot": "Prévu {slot} · {duration}"
   }
 }

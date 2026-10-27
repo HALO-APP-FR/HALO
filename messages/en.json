@@ -90,7 +90,7 @@
     "view": "View",
     "timeline": "Day",
     "allClear": "Everything is under control.",
-    "colTime": "Time",
+    "colTime": "Slot / window",
     "colProperty": "Property",
     "colTask": "Job",
     "colAgent": "Agent",
@@ -197,7 +197,7 @@
     "redoToast": "Redo requested, the agent has been notified.",
     "cancelledToast": "Job cancelled.",
     "manual": "Created manually",
-    "window": "Window",
+    "window": "Service window",
     "guests": "Guests",
     "departure": "Departure: {name}",
     "arrival": "Arrival: {name}",
@@ -218,7 +218,11 @@
     "agentFree": "Free that day",
     "endAt": "ends {time}",
     "redoTrace": "Redone job: first visit {time}",
-    "validatedAt": "Validated on {date}"
+    "validatedAt": "Validated on {date}",
+    "deadline": "Must be done by {date}",
+    "slot": "Planned slot",
+    "notScheduled": "Not scheduled",
+    "estimatedDuration": "Estimated {time}"
   },
   "source": {
     "manual": "Manual entry",
@@ -296,11 +300,11 @@
     "bedSize": "Bed type",
     "bedLabel": "Room",
     "bedLabelPlaceholder": "Bedroom {n}",
-    "linenSoon": "Linen per bed comes with the Linen module.",
     "learnDuration": "Adjust duration automatically",
     "learnDurationHint": "HALO sets upcoming cleanings to the durations your team actually clocks.",
     "learnedValue": "Learned duration: {time} (from {count} cleanings)",
-    "learnedNone": "{count} clocked cleanings needed to learn the duration."
+    "learnedNone": "{count} clocked cleanings needed to learn the duration.",
+    "linenFromBeds": "Each cleaning's linen kit is calculated from these beds and the rules in Linen › Items & settings (e.g. 1 fitted sheet 140 per double bed), plus the stay's guests and babies."
   },
   "properties": {
     "free": "Available",
@@ -351,7 +355,7 @@
     "error_too_large": "This calendar is too large.",
     "error_not_ical": "This link doesn't return an iCal calendar.",
     "feeds": "Connected calendars",
-    "feedsIntro": "Paste the iCal link from Airbnb, Booking, Vrbo or your software: bookings and cleanings come in automatically.",
+    "feedsIntro": "Paste the iCal link from Airbnb, Booking, Vrbo or your software, then sync: imported stays create the cleanings. Sync is manual (not automatic yet) and data stays on this device.",
     "syncNow": "Sync now",
     "removeFeed": "Disconnect this calendar",
     "lastSync": "Synced {date}",
@@ -422,7 +426,7 @@
     "nothingForAgent": "No jobs for this person",
     "unassignedRow": "To assign",
     "autoTitle": "Suggested assignment",
-    "autoHint": "Most urgent first, no overlaps, balanced workload. Nothing is sent until you approve.",
+    "autoHint": "Most urgent first, no overlapping slots (start + duration), balanced load. Travel time between properties is not taken into account. Nothing is sent before you confirm.",
     "autoNone": "No assignment possible: nobody is available within the cleaning windows.",
     "autoNotPlaced": "{count, plural, one {# job couldn't be placed: assign it manually.} other {# jobs couldn't be placed: assign them manually.}}",
     "autoConfirm": "{count, plural, one {Confirm # assignment} other {Confirm # assignments}}",
@@ -500,7 +504,7 @@
     "defaultTimezone": "Main time zone",
     "defaultTimezoneHint": "Used for “today” and suggested for new properties.",
     "demoTitle": "Data",
-    "demoText": "Demo mode: your data is saved in this browser only. It will move to your secure database in the next step.",
+    "demoText": "Demo mode: data is stored only in this browser. There is no online backup, no sharing between devices and no secure accounts. Don't enter real data (guests, access codes) until the database is live.",
     "confirmReset": "Replace all data with the demo?",
     "confirmEmpty": "Erase everything and start from scratch?",
     "confirm": "Confirm",
@@ -668,19 +672,27 @@
     "item_coffee": "Coffee / tea",
     "item_soap": "Soap / shower gel",
     "item_kitchen": "Kitchen items",
-    "item_other": "Something else"
+    "item_other": "Something else",
+    "histCreated": "Reported {date} · {by}",
+    "hist_taken": "Taken in charge {date} · {by}",
+    "hist_follow_up": "Visit scheduled {date} · {by}",
+    "hist_resolved": "Resolved {date} · {by}",
+    "hist_reopened": "Reopened {date} · {by}",
+    "resolutionRequired": "Required: what was done (repair, replacement, check).",
+    "proofPhoto": "Proof photo",
+    "followUpNotDone": "The scheduled visit isn't finished. Only resolve if the problem is really fixed."
   },
   "guide": {
     "title": "Guest guide",
     "intro": "One link and QR code per property: wifi, access, rules, check-out. Guests can also report a problem.",
     "enabled": "Guide enabled",
-    "enabledHint": "Turn off to disable the link.",
+    "enabledHint": "When off, the guide no longer opens from this device. A link already shared stays readable (without access details).",
     "welcome": "Welcome message",
     "welcomeHint": "A few warm words shown at the top.",
     "wifiName": "Wifi network",
     "wifiPassword": "Wifi password",
     "accessInfo": "Getting in",
-    "accessInfoHint": "Door code, floor, key box… Visible to anyone with the link.",
+    "accessInfoHint": "Door code, floor, key box… Never included in the QR code or shared link.",
     "houseRules": "House rules",
     "checkoutInstructions": "Check-out instructions",
     "parking": "Parking",
@@ -699,9 +711,9 @@
     "posterScan": "Scan for wifi, guide and help",
     "preview": "Preview",
     "regenerate": "New link",
-    "regenerated": "New link created: the old one no longer works.",
-    "securityNotice": "Change the link if a past guest still has it: access codes are visible.",
-    "demoNotice": "The guide lives inside the link: it opens on any phone. Guest reports and requests will reach you once the database is live.",
+    "regenerated": "New address created. Links already shared stay readable, without access details.",
+    "securityNotice": "\"New link\" changes the guide address on this device, but a link or QR already shared stays readable (without access details). Stay-limited links will come with the database.",
+    "demoNotice": "The guide content is embedded in the link so it opens on any phone. This link doesn't expire and can't be revoked, so it never contains access details. Guest reports and requests will only reach you once the database is live.",
     "scanToTest": "Scan with your phone to try it"
   },
   "guest": {
@@ -737,7 +749,8 @@
     "conciergeText": "Private chef, restaurant table, driver… We take care of everything.",
     "conciergeVip": "Your dedicated concierge is at your service for every wish.",
     "otherRequest": "Other request",
-    "sharedNotice": "Digital guide powered by HALO"
+    "sharedNotice": "Digital guide powered by HALO",
+    "accessByConcierge": "Access details are sent to you directly by your concierge."
   },
   "linen": {
     "subtitle": "Track every piece, anticipate shortages.",
@@ -868,13 +881,18 @@
     "atLaundryReturn": "At laundry · back",
     "outcome": "Shortfall / surplus",
     "missingQty": "Short {count}",
-    "surplusQty": "+{count} spare",
+    "surplusQty": "+{count} spare over 7 d",
     "fromDay": "from {day}",
     "lateReturn": "late",
     "lateOrders": "{count, plural, one {# laundry order is late: not counted in stock until received.} other {# laundry orders are late: not counted in stock until received.}}",
     "balanced": "Balanced",
     "returnShort": "back",
-    "outcome7": "7-day balance"
+    "outcome7": "7-day balance",
+    "missing7": "Short {count} over 7 d",
+    "firstShortage": "First shortfall: {count} · {day}",
+    "adviceSend": "→ Send the dirty linen ({qty}) today: back {day}, in time.",
+    "adviceBuyLate": "→ Buy at least {missing}: dirty linen sent today would only be back {day}, too late.",
+    "adviceBuy": "→ Buy at least {missing}: no dirty linen or return covers this shortfall."
   },
   "linenCategory": {
     "bed": "Bed",
@@ -1012,7 +1030,7 @@
     "details": "Details",
     "detailsPlaceholder": "Allergies, preferences, pick-up address…",
     "assignee": "Assigned to",
-    "assigneeHint": "The matching role is suggested first.",
+    "assigneeHint": "Only members with the “{position}” role are listed.",
     "nobody": "Nobody",
     "provider": "External partner",
     "providerPlaceholder": "E.g. Le Grand Véfour restaurant",
@@ -1032,6 +1050,23 @@
     "requestTitle": "Your request",
     "requestHint": "Your concierge will confirm shortly.",
     "sendRequest": "Send request",
-    "requestSent": "Request sent! Your concierge will get back to you."
+    "requestSent": "Request sent! Your concierge will get back to you.",
+    "modeTeam": "Team",
+    "modePartner": "External partner",
+    "modeNone": "Unassigned",
+    "member": "Team member",
+    "chooseMember": "Choose…",
+    "noStaffForKind": "No team member has the “{position}” role. Assign it to an external partner, or leave it unassigned."
+  },
+  "demo": {
+    "badge": "Demo",
+    "short": "Data on this device only",
+    "tooltip": "Demo mode: data stays in this browser, with no online backup or sharing between devices. Don't enter real data."
+  },
+  "timing": {
+    "windowShort": "window {range}",
+    "toPlan": "{duration} to schedule",
+    "toPlanShort": "to plan",
+    "plannedSlot": "Planned {slot} · {duration}"
   }
 }

@@ -215,11 +215,15 @@ function GuestGuideInner({ property, stay, shared = false }: { property: Propert
           </Section>
         )}
 
-        {g.accessInfo && (
+        {g.accessInfo ? (
           <Section icon={KeyRound} title={t("guest.access")}>
             <Para text={g.accessInfo} />
           </Section>
-        )}
+        ) : shared ? (
+          <Section icon={KeyRound} title={t("guest.access")}>
+            <p className="text-muted">{t("guest.accessByConcierge")}</p>
+          </Section>
+        ) : null}
 
         {(property.amenities.length > 0 || property.customAmenities.length > 0) && (
           <Section icon={Sparkles} title={t("guest.amenities")}>

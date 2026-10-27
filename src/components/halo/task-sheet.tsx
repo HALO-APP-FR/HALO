@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { AlertTriangle, Check, Clock, Minus, Plus, RotateCcw, Sparkles, Timer, Users, XCircle } from "lucide-react";
+import { AlertTriangle, CalendarClock, Check, Clock, Minus, Plus, RotateCcw, Sparkles, Timer, Users, XCircle } from "lucide-react";
 import { initialsOf, type Task, type TaskStatus } from "@/lib/domain/types";
 import { conflictsIfAssigned } from "@/lib/engine/conflicts";
 import { formatDuration, learnedCleaningDuration } from "@/lib/engine/learning";
@@ -19,6 +19,7 @@ import { TaskLinenKit } from "@/components/linen/task-linen-kit";
 import { GuestBadges } from "./guest-badges";
 import { StatusPill } from "./status-pill";
 import { TaskReportView } from "./task-report";
+import { useTaskTiming } from "./task-timing";
 import { VipBadge } from "./vip-badge";
 import { TaskTypeIcon } from "./task-type";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
   const reservations = useHalo((s) => s.reservations);
   const members = useHalo((s) => s.members);
   const { assignTask, setTaskStatus, updateTask, setTaskDuration } = useHalo.getState();
+  const timing = useTaskTiming();
 
   const task = tasks.find((x) => x.id === taskId);
   const property = task ? properties.find((p) => p.id === task.propertyId) : undefined;
@@ -104,13 +106,27 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
           </div>
 
           <dl className="grid grid-cols-2 gap-3">
-            <div className="rounded-lg bg-subtle p-3 dark:bg-surface-hover">
+            {/* Fenêtre d'intervention : quand la mission PEUT être faite (≠ durée du travail) */}
+            <div className="col-span-2 rounded-lg bg-subtle p-3 dark:bg-surface-hover">
               <dt className="flex items-center gap-1.5 text-caption text-muted">
                 <Clock className="size-3.5" /> {t("taskSheet.window")}
               </dt>
               <dd className="mt-1 text-[15px] font-semibold tabular">
                 {formatLocalRange(new Date(task.windowStart), new Date(task.windowEnd), tz, locale)}
               </dd>
+              <dd className="mt-0.5 text-caption text-muted first-letter:uppercase">
+                {t("taskSheet.deadline", {
+                  date: `${new Intl.DateTimeFormat(locale, { timeZone: tz, weekday: "long", day: "numeric", month: "long" }).format(new Date(task.windowEnd))} ${formatLocalTime(new Date(task.windowEnd), tz, locale)}`,
+                })}
+              </dd>
+            </div>
+            {/* Créneau planifié : ce que l'agent fait réellement (base des conflits) */}
+            <div className="rounded-lg bg-subtle p-3 dark:bg-surface-hover">
+              <dt className="flex items-center gap-1.5 text-caption text-muted">
+                <CalendarClock className="size-3.5" /> {t("taskSheet.slot")}
+              </dt>
+              <dd className="mt-1 text-[15px] font-semibold tabular">{timing.slot(task, tz) ?? t("taskSheet.notScheduled")}</dd>
+              <dd className="mt-0.5 text-caption text-muted">{t("taskSheet.estimatedDuration", { time: timing.duration(task) })}</dd>
             </div>
             <div className="rounded-lg bg-subtle p-3 dark:bg-surface-hover">
               <dt className="flex items-center gap-1.5 text-caption text-muted">

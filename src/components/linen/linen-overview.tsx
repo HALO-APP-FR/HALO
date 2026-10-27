@@ -2,7 +2,9 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { AlertTriangle, Building2, CheckCircle2, PackageCheck, ShoppingBag, Truck, WashingMachine } from "lucide-react";
-import { kitCost, qtyAt, qtyInProperties } from "@/lib/engine/linen";
+import { kitCost, parLevelTarget, qtyAt, qtyInProperties, type ForecastRow } from "@/lib/engine/linen";
+import { addDaysToKey } from "@/lib/engine/time";
+import { useHalo } from "@/lib/store/halo-store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,12 +23,36 @@ function Tile({ label, value, icon: Icon, tone, onClick }: { label: string; valu
   );
 }
 
+/** Deux horizons distincts : bilan sur 7 jours, et premier manque daté (ménage par ménage). */
+function Outcome({ r, fmtShort }: { r: ForecastRow; fmtShort: (k: string) => string }) {
+  const t = useTranslations();
+  return (
+    <>
+      {r.gap < 0 ? (
+        <Badge tone="danger">{t("linen.missing7", { count: -r.gap })}</Badge>
+      ) : (
+        <span className={cn("text-[14px] font-semibold tabular", r.gap > 0 ? "text-success" : "text-muted")}>
+          {r.gap > 0 ? t("linen.surplusQty", { count: r.gap }) : t("linen.balanced")}
+        </span>
+      )}
+      {r.shortageDay && (
+        <span className="mt-0.5 block text-caption font-medium text-danger">
+          {t("linen.firstShortage", { count: (r.needAtShortage ?? 0) - (r.availableAtShortage ?? 0), day: fmtShort(r.shortageDay) })}
+        </span>
+      )}
+    </>
+  );
+}
+
 export function LinenOverview({ goTo, onNewOrder }: { goTo: (tab: string) => void; onNewOrder: () => void }) {
   const t = useTranslations();
   const locale = useLocale();
   const name = useLinenName();
   const money = useMoney();
-  const { stock, forecast, upcoming, types, orders } = useLinenData(7);
+  const { stock, forecast, upcoming, types, orders, settings, todayKey } = useLinenData(7);
+  const properties = useHalo((s) => s.properties);
+  // Si le sale part aujourd'hui, il revient au plus tôt ce jour-là (délai de la blanchisserie)
+  const sendNowReturnKey = addDaysToKey(todayKey, settings.turnaroundDays);
 
   const sum = (loc: "clean" | "dirty" | "laundry") => types.reduce((n, ty) => n + Math.max(0, qtyAt(stock, loc, ty.id)), 0);
   const inProps = types.reduce((n, ty) => n + Math.max(0, qtyInProperties(stock, ty.id)), 0);
@@ -62,6 +88,14 @@ export function LinenOverview({ goTo, onNewOrder }: { goTo: (tab: string) => voi
                       need: r.needAtShortage ?? 0,
                       available: r.availableAtShortage ?? 0,
                     })}
+                    {/* Prochaine action réellement utile pour CE manque */}
+                    <span className="block text-[14px] text-muted">
+                      {r.dirty > 0 && sendNowReturnKey < r.shortageDay!
+                        ? t("linen.adviceSend", { qty: r.dirty, day: fmtShort(sendNowReturnKey) })
+                        : r.dirty > 0
+                          ? t("linen.adviceBuyLate", { missing: (r.needAtShortage ?? 0) - (r.availableAtShortage ?? 0), day: fmtShort(sendNowReturnKey) })
+                          : t("linen.adviceBuy", { missing: (r.needAtShortage ?? 0) - (r.availableAtShortage ?? 0) })}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -132,20 +166,11 @@ export function LinenOverview({ goTo, onNewOrder }: { goTo: (tab: string) => voi
                       <div className="flex items-start justify-between gap-3">
                         <span className="min-w-0 text-[15px] font-medium">{name(types.find((x) => x.id === r.linenTypeId))}</span>
                         <span className="shrink-0 text-end">
-                          {r.gap < 0 ? (
-                            <Badge tone="danger">{t("linen.missingQty", { count: -r.gap })}</Badge>
-                          ) : r.shortageDay ? (
-                            <Badge tone="warning">{t("linen.missingQty", { count: (r.needAtShortage ?? 0) - (r.availableAtShortage ?? 0) })}</Badge>
-                          ) : (
-                            <span className={cn("text-[14px] font-semibold tabular", r.gap > 0 ? "text-success" : "text-muted")}>
-                              {r.gap > 0 ? t("linen.surplusQty", { count: r.gap }) : t("linen.balanced")}
-                            </span>
-                          )}
-                          {r.shortageDay && <span className="block text-caption text-muted">{t("linen.fromDay", { day: fmtShort(r.shortageDay) })}</span>}
+                          <Outcome r={r} fmtShort={fmtShort} />
                         </span>
                       </div>
                       <p className="mt-0.5 text-caption text-muted tabular">
-                        {t("linen.need7")} {r.need} · {t("linen.cleanNow")} {r.clean}
+                        {t("linen.need7")} {r.need} · {t("linen.cleanNow")} {r.clean} · {t("linen.target")} {parLevelTarget(properties, types, r.linenTypeId)}
                         {r.dirty > 0 && ` · ${t("linen.dirtyToSend")} ${r.dirty}`}
                         {r.returns.map((ret) => ` · ${t("linen.returnShort")} ${ret.qty} ${ret.late ? t("linen.lateReturn") : fmtShort(ret.dayKey)}`).join("")}
                       </p>
@@ -161,6 +186,7 @@ export function LinenOverview({ goTo, onNewOrder }: { goTo: (tab: string) => voi
                       <th scope="col" className="py-2.5 pe-3 text-end font-semibold">{t("linen.cleanNow")}</th>
                       <th scope="col" className="py-2.5 pe-3 text-end font-semibold">{t("linen.dirtyToSend")}</th>
                       <th scope="col" className="py-2.5 pe-3 text-end font-semibold">{t("linen.atLaundryReturn")}</th>
+                      <th scope="col" className="py-2.5 pe-3 text-end font-semibold">{t("linen.target")}</th>
                       <th scope="col" className="py-2.5 text-end font-semibold">{t("linen.outcome7")}</th>
                     </tr>
                   </thead>
@@ -187,17 +213,9 @@ export function LinenOverview({ goTo, onNewOrder }: { goTo: (tab: string) => voi
                                 ))
                               )}
                             </td>
+                            <td className="py-2.5 pe-3 text-end tabular text-muted">{parLevelTarget(properties, types, r.linenTypeId)}</td>
                             <td className="py-2.5 text-end">
-                              {r.gap < 0 ? (
-                                <Badge tone="danger">{t("linen.missingQty", { count: -r.gap })}</Badge>
-                              ) : r.shortageDay ? (
-                                <Badge tone="warning">{t("linen.missingQty", { count: (r.needAtShortage ?? 0) - (r.availableAtShortage ?? 0) })}</Badge>
-                              ) : (
-                                <span className={cn("font-semibold tabular", r.gap > 0 ? "text-success" : "text-muted")}>
-                                  {r.gap > 0 ? t("linen.surplusQty", { count: r.gap }) : t("linen.balanced")}
-                                </span>
-                              )}
-                              {r.shortageDay && <span className="mt-0.5 block text-caption text-muted">{t("linen.fromDay", { day: fmtShort(r.shortageDay) })}</span>}
+                              <Outcome r={r} fmtShort={fmtShort} />
                             </td>
                           </tr>
                         );

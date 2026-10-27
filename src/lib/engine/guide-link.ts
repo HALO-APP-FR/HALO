@@ -1,9 +1,16 @@
 /**
  * Livret voyageur « autonome » : le contenu public du livret est compressé dans le lien
  * (après le #, jamais envoyé au serveur). Le QR code fonctionne ainsi sur n'importe quel
- * téléphone, même avant la base de données. Seules les infos choisies pour le voyageur y figurent.
+ * téléphone, même avant la base de données.
+ *
+ * SÉCURITÉ — ce contenu intégré n'est PAS révocable : un lien ou un QR déjà diffusé reste lisible
+ * même après « Nouveau lien » ou désactivation du livret. Il ne contient donc JAMAIS les informations
+ * d'accès au logement (digicode, boîte à clés…). Le jeton n'y figure pas non plus.
  */
 import type { GuestGuide, Property } from "@/lib/domain/types";
+
+/** Champs du livret jamais intégrés au lien partagé (non révocable). */
+export const NEVER_IN_LINK = ["accessInfo"] as const;
 
 export interface GuidePayload {
   v: 1;
@@ -15,13 +22,14 @@ export interface GuidePayload {
   out: string;
   amenities: string[];
   custom: string[];
-  guide: Omit<GuestGuide, "token" | "enabled">;
+  guide: Omit<GuestGuide, "token" | "enabled" | (typeof NEVER_IN_LINK)[number]>;
 }
 
 export function guidePayload(p: Property): GuidePayload {
-  const { token: _token, enabled: _enabled, ...guide } = p.guide;
+  const { token: _token, enabled: _enabled, accessInfo: _access, ...guide } = p.guide;
   void _token;
   void _enabled;
+  void _access;
   return {
     v: 1,
     name: p.name,

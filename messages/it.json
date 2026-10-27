@@ -90,7 +90,7 @@
     "view": "Vedi",
     "timeline": "Giornata",
     "allClear": "È tutto sotto controllo.",
-    "colTime": "Orario",
+    "colTime": "Fascia / finestra",
     "colProperty": "Alloggio",
     "colTask": "Lavoro",
     "colAgent": "Operatore",
@@ -197,7 +197,7 @@
     "redoToast": "Richiesta di ripresa inviata all'operatore.",
     "cancelledToast": "Lavoro annullato.",
     "manual": "Creato manualmente",
-    "window": "Finestra",
+    "window": "Finestra di intervento",
     "guests": "Ospiti",
     "departure": "Partenza: {name}",
     "arrival": "Arrivo: {name}",
@@ -218,7 +218,11 @@
     "agentFree": "Libero quel giorno",
     "endAt": "fine prevista {time}",
     "redoTrace": "Missione ripresa: primo passaggio {time}",
-    "validatedAt": "Convalidata il {date}"
+    "validatedAt": "Convalidata il {date}",
+    "deadline": "Da terminare entro {date}",
+    "slot": "Fascia pianificata",
+    "notScheduled": "Non pianificata",
+    "estimatedDuration": "Durata stimata {time}"
   },
   "source": {
     "manual": "Inserimento manuale",
@@ -296,11 +300,11 @@
     "bedSize": "Tipo di letto",
     "bedLabel": "Stanza",
     "bedLabelPlaceholder": "Camera {n}",
-    "linenSoon": "Il calcolo della biancheria per letto arriverà con il modulo Biancheria.",
     "learnDuration": "Regola la durata automaticamente",
     "learnDurationHint": "HALO adatta le prossime pulizie alle durate effettivamente registrate.",
     "learnedValue": "Durata appresa: {time} ({count} pulizie)",
-    "learnedNone": "Servono {count} pulizie registrate per apprendere la durata."
+    "learnedNone": "Servono {count} pulizie registrate per apprendere la durata.",
+    "linenFromBeds": "Il kit di ogni pulizia è calcolato da questi letti e dalle regole in Biancheria › Articoli e impostazioni (es. 1 lenzuolo 140 per letto matrimoniale), più ospiti e neonati del soggiorno."
   },
   "properties": {
     "free": "Libero",
@@ -351,7 +355,7 @@
     "error_too_large": "Questo calendario è troppo grande.",
     "error_not_ical": "Questo link non restituisce un calendario iCal.",
     "feeds": "Calendari collegati",
-    "feedsIntro": "Incolla il link iCal di Airbnb, Booking, Vrbo o del tuo software: prenotazioni e pulizie arrivano da sole.",
+    "feedsIntro": "Incolla il link iCal di Airbnb, Booking, Vrbo o del tuo software, poi sincronizza: i soggiorni importati creano le pulizie. La sincronizzazione è manuale (non ancora automatica) e i dati restano su questo dispositivo.",
     "syncNow": "Sincronizza ora",
     "removeFeed": "Scollega questo calendario",
     "lastSync": "Sincronizzato il {date}",
@@ -422,7 +426,7 @@
     "nothingForAgent": "Nessun lavoro per questa persona",
     "unassignedRow": "Da assegnare",
     "autoTitle": "Proposta di distribuzione",
-    "autoHint": "Prima i più urgenti, senza sovrapposizioni, carico bilanciato. Nulla viene inviato prima della tua conferma.",
+    "autoHint": "Prima le più urgenti, senza sovrapposizioni di fasce (inizio + durata), carico bilanciato. I tempi di spostamento tra alloggi non sono considerati. Nulla viene inviato prima della tua conferma.",
     "autoNone": "Distribuzione impossibile: nessuno è disponibile nelle finestre di pulizia.",
     "autoNotPlaced": "{count, plural, one {# lavoro non è stato collocato: assegnalo a mano.} other {# lavori non sono stati collocati: assegnali a mano.}}",
     "autoConfirm": "{count, plural, one {Conferma # assegnazione} other {Conferma # assegnazioni}}",
@@ -500,7 +504,7 @@
     "defaultTimezone": "Fuso orario principale",
     "defaultTimezoneHint": "Usato per «oggi» e proposto per i nuovi alloggi.",
     "demoTitle": "Dati",
-    "demoText": "Modalità demo: i tuoi dati sono salvati solo in questo browser. Passeranno nel tuo database sicuro nella prossima fase.",
+    "demoText": "Modalità demo: i dati sono salvati solo in questo browser. Nessun backup online, nessuna condivisione tra dispositivi, nessun account sicuro. Non inserire dati reali (clienti, codici) prima che il database sia attivo.",
     "confirmReset": "Sostituire tutti i dati con la demo?",
     "confirmEmpty": "Cancellare tutto e ripartire da zero?",
     "confirm": "Conferma",
@@ -668,19 +672,27 @@
     "item_coffee": "Caffè / tè",
     "item_soap": "Sapone / bagnoschiuma",
     "item_kitchen": "Utensili da cucina",
-    "item_other": "Altro"
+    "item_other": "Altro",
+    "histCreated": "Segnalato {date} · {by}",
+    "hist_taken": "Preso in carico {date} · {by}",
+    "hist_follow_up": "Intervento pianificato {date} · {by}",
+    "hist_resolved": "Risolto {date} · {by}",
+    "hist_reopened": "Riaperto {date} · {by}",
+    "resolutionRequired": "Obbligatorio: cosa è stato fatto (riparazione, sostituzione, verifica).",
+    "proofPhoto": "Foto di prova",
+    "followUpNotDone": "L'intervento pianificato non è terminato. Risolvi solo se il problema è davvero risolto."
   },
   "guide": {
     "title": "Guida ospiti",
     "intro": "Un link e un QR per alloggio: wifi, accesso, regole, partenza. L'ospite può anche segnalare un problema.",
     "enabled": "Guida attiva",
-    "enabledHint": "Disattivala per bloccare il link.",
+    "enabledHint": "Disattivata, la guida non si apre più da questo dispositivo. Un link già condiviso resta leggibile (senza accessi).",
     "welcome": "Messaggio di benvenuto",
     "welcomeHint": "Qualche parola calorosa, in cima alla guida.",
     "wifiName": "Rete wifi",
     "wifiPassword": "Password wifi",
     "accessInfo": "Accesso all'alloggio",
-    "accessInfoHint": "Codice, piano, cassetta chiavi… Visibile a chi ha il link.",
+    "accessInfoHint": "Codice, piano, cassetta chiavi… Mai incluso nel QR né nel link condiviso.",
     "houseRules": "Regole della casa",
     "checkoutInstructions": "Istruzioni per la partenza",
     "parking": "Parcheggio",
@@ -699,9 +711,9 @@
     "posterScan": "Scansiona per wifi, guida e assistenza",
     "preview": "Anteprima",
     "regenerate": "Nuovo link",
-    "regenerated": "Nuovo link creato: il vecchio non funziona più.",
-    "securityNotice": "Cambia link se un ospite precedente lo ha ancora: i codici sono visibili.",
-    "demoNotice": "La guida è nel link: si apre su qualsiasi telefono. Segnalazioni e richieste ti arriveranno con il database online.",
+    "regenerated": "Nuovo indirizzo creato. I link già condivisi restano leggibili, senza accessi.",
+    "securityNotice": "«Nuovo link» cambia l'indirizzo su questo dispositivo, ma un link o QR già condiviso resta leggibile (senza accessi). I link limitati al soggiorno arriveranno con il database.",
+    "demoNotice": "Il contenuto della guida è nel link per aprirsi su qualsiasi telefono. Il link non scade e non può essere revocato: non contiene quindi mai le informazioni di accesso. Segnalazioni e richieste arriveranno solo con il database.",
     "scanToTest": "Scansiona con il telefono per provare"
   },
   "guest": {
@@ -737,7 +749,8 @@
     "conciergeText": "Chef a domicilio, tavolo al ristorante, autista… Pensiamo a tutto noi.",
     "conciergeVip": "Il tuo concierge dedicato è a disposizione per ogni desiderio.",
     "otherRequest": "Altra richiesta",
-    "sharedNotice": "Guida digitale by HALO"
+    "sharedNotice": "Guida digitale by HALO",
+    "accessByConcierge": "Le informazioni di accesso ti vengono inviate direttamente dal concierge."
   },
   "linen": {
     "subtitle": "Segui ogni capo, anticipa le mancanze.",
@@ -868,13 +881,18 @@
     "atLaundryReturn": "In lavanderia · rientro",
     "outcome": "Mancanza / eccedenza",
     "missingQty": "Mancano {count}",
-    "surplusQty": "+{count} in più",
+    "surplusQty": "+{count} in più su 7 g",
     "fromDay": "da {day}",
     "lateReturn": "in ritardo",
     "lateOrders": "{count, plural, one {# bolla lavanderia in ritardo: non conteggiata finché non è ricevuta.} other {# bolle lavanderia in ritardo: non conteggiate finché non sono ricevute.}}",
     "balanced": "In pari",
     "returnShort": "rientro",
-    "outcome7": "Bilancio 7 g"
+    "outcome7": "Bilancio 7 g",
+    "missing7": "Mancano {count} su 7 g",
+    "firstShortage": "Prima mancanza: {count} · {day}",
+    "adviceSend": "→ Invia lo sporco ({qty}) oggi: rientro {day}, in tempo.",
+    "adviceBuyLate": "→ Acquista almeno {missing}: lo sporco inviato oggi rientrerebbe {day}, troppo tardi.",
+    "adviceBuy": "→ Acquista almeno {missing}: nessuno sporco né rientro copre questa mancanza."
   },
   "linenCategory": {
     "bed": "Letto",
@@ -1012,7 +1030,7 @@
     "details": "Dettagli",
     "detailsPlaceholder": "Allergie, preferenze, indirizzo di ritiro…",
     "assignee": "Affidato a",
-    "assigneeHint": "Il ruolo adatto è proposto per primo.",
+    "assigneeHint": "Sono proposti solo i membri con ruolo «{position}».",
     "nobody": "Nessuno",
     "provider": "Partner esterno",
     "providerPlaceholder": "Es. Ristorante Le Grand Véfour",
@@ -1032,6 +1050,23 @@
     "requestTitle": "La tua richiesta",
     "requestHint": "Il tuo concierge ti conferma al più presto.",
     "sendRequest": "Invia richiesta",
-    "requestSent": "Richiesta inviata! Il tuo concierge ti risponderà."
+    "requestSent": "Richiesta inviata! Il tuo concierge ti risponderà.",
+    "modeTeam": "Team",
+    "modePartner": "Partner esterno",
+    "modeNone": "Non assegnato",
+    "member": "Membro del team",
+    "chooseMember": "Scegli…",
+    "noStaffForKind": "Nessun membro ha il ruolo «{position}». Affidalo a un partner esterno o lascialo non assegnato."
+  },
+  "demo": {
+    "badge": "Demo",
+    "short": "Dati solo su questo dispositivo",
+    "tooltip": "Modalità demo: i dati restano in questo browser, senza backup online né condivisione tra dispositivi. Non inserire dati reali."
+  },
+  "timing": {
+    "windowShort": "finestra {range}",
+    "toPlan": "{duration} da pianificare",
+    "toPlanShort": "da pian.",
+    "plannedSlot": "Previsto {slot} · {duration}"
   }
 }

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TaskLinenKit } from "@/components/linen/task-linen-kit";
 import { GuestBadges } from "./guest-badges";
+import { useTaskTiming } from "./task-timing";
 import { StatusPill } from "./status-pill";
 import { TASK_TYPE_META, TaskTypeIcon } from "./task-type";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,8 @@ export function TaskCard({
 }) {
   const t = useTranslations();
   const deadline = useDeadlineLabel()(task, property, reference);
+  const timing = useTaskTiming();
+  const slot = timing.slot(task, property.timezone);
   const meta = TASK_TYPE_META[task.type];
   const started = task.status === "in_progress";
   const finished = task.status === "done" || task.status === "validated";
@@ -90,6 +93,10 @@ export function TaskCard({
           <time className="text-[19px] font-semibold tabular">{deadline}</time>
           <GuestBadges guests={task.guestsCount} vip={task.vip} />
         </div>
+        {/* Créneau prévu par le manager (la limite ci-dessus = fin de la fenêtre) */}
+        <p className="mt-1 text-[15px] text-muted tabular">
+          {slot ? t("timing.plannedSlot", { slot, duration: timing.duration(task) }) : t("timing.toPlan", { duration: timing.duration(task) })}
+        </p>
 
         {/* Préparation spécifique : bébé, animaux */}
         {(task.babies || task.pets) && task.type === "turnover" ? (

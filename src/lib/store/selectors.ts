@@ -51,3 +51,6 @@ export function currentOrNextStay(reservations: Reservation[], propertyId: strin
     .filter((r) => r.propertyId === propertyId && r.status === "confirmed" && new Date(r.checkOutAt) > now)
     .sort((a, b) => new Date(a.checkInAt).getTime() - new Date(b.checkInAt).getTime())[0];
 }
+
+/** Responsable connecté (mode démo : le propriétaire de l'organisation). */
+export const currentManager = (members: Member[]) => members.find((m) => m.role === "owner") ?? members.find((m) => m.role === "manager");

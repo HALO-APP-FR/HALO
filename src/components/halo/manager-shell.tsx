@@ -10,6 +10,7 @@ import { Logo } from "./logo";
 import { Avatar } from "./avatar";
 import { LocaleSwitcher } from "./locale-switcher";
 import { ThemeSwitcher } from "./theme-switcher";
+import { DemoBadge } from "./demo-badge";
 import { OfflineBanner } from "./offline-banner";
 import { isActive, managerMobileTabs, managerNav } from "./nav-config";
 import { usePersistedFlag } from "./use-persisted-flag";
@@ -108,10 +109,12 @@ export function ManagerShell({ children }: { children: React.ReactNode }) {
                   <PanelLeftOpen className="size-[18px] rtl:-scale-x-100" />
                 </button>
               </Tooltip>
+              <DemoBadge variant="icon" />
               <Avatar initials="MD" size="md" color="#0B0B0C" label="Mathieu D." />
             </>
           ) : (
             <>
+              <DemoBadge variant="row" />
               <Link
                 href="/a/today"
                 className="flex h-9 items-center gap-3 rounded-md px-3 text-[13px] font-medium text-muted hover:bg-subtle hover:text-fg dark:hover:bg-surface-hover"
@@ -140,7 +143,10 @@ export function ManagerShell({ children }: { children: React.ReactNode }) {
         {/* En-tête mobile */}
         <div className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-line bg-canvas/85 px-4 backdrop-blur-xl md:hidden">
           <Logo />
-          <Avatar initials="MD" size="md" color="#0B0B0C" className="dark:!bg-line" label="Mathieu D." />
+          <span className="flex items-center gap-2">
+            <DemoBadge />
+            <Avatar initials="MD" size="md" color="#0B0B0C" className="dark:!bg-line" label="Mathieu D." />
+          </span>
         </div>
         <main className="mx-auto w-full max-w-[1280px] px-4 pb-32 pt-6 md:px-8 md:pb-16 md:pt-10">{children}</main>
       </div>

@@ -42,10 +42,10 @@ export const SERVICE_POSITION: Record<ServiceKind, StaffPosition> = {
   other: "concierge",
 };
 
-/** Personnel trié : poste adapté d'abord. */
+/** Membres dont le poste correspond à la prestation (aucune compétence supposée au-delà du poste). */
 export function staffFor(kind: ServiceKind, staff: Member[]) {
   const best = SERVICE_POSITION[kind];
-  return [...staff].sort((a, b) => Number(b.position === best) - Number(a.position === best) || a.name.localeCompare(b.name));
+  return staff.filter((m) => m.position === best).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function ServiceIcon({ kind, className }: { kind: ServiceKind; className?: string }) {

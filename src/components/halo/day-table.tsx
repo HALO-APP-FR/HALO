@@ -1,9 +1,9 @@
 "use client";
 
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { CircleAlert } from "lucide-react";
 import { initialsOf, type Member, type Property, type Task } from "@/lib/domain/types";
-import { formatLocalRange } from "@/lib/engine/time";
+import { TaskTimingCell, useTaskTiming } from "./task-timing";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "./avatar";
@@ -30,7 +30,7 @@ export function DayTable({
   onOpen: (taskId: string) => void;
 }) {
   const t = useTranslations();
-  const locale = useLocale();
+  const timing = useTaskTiming();
   const rows = [...tasks]
     .map((task) => {
       const property = properties.find((p) => p.id === task.propertyId)!;
@@ -39,7 +39,7 @@ export function DayTable({
         task,
         property,
         agent: agents.find((a) => a.id === task.assigneeId),
-        time: formatLocalRange(new Date(task.windowStart), new Date(task.windowEnd), tz, locale),
+        tz,
         otherTz: tz !== orgTimezone,
       };
     });
@@ -64,7 +64,7 @@ export function DayTable({
       <table className="hidden w-full text-start md:table">
         <thead>
           <tr className="border-b border-line text-micro text-muted">
-            <th scope="col" className="w-[140px] py-2.5 pe-4 text-start font-semibold">{t("managerToday.colTime")}</th>
+            <th scope="col" className="w-[190px] py-2.5 pe-4 text-start font-semibold">{t("managerToday.colTime")}</th>
             <th scope="col" className="py-2.5 pe-4 text-start font-semibold">{t("managerToday.colProperty")}</th>
             <th scope="col" className="py-2.5 pe-4 text-start font-semibold">{t("managerToday.colTask")}</th>
             <th scope="col" className="py-2.5 pe-4 text-start font-semibold">{t("managerToday.colAgent")}</th>
@@ -72,14 +72,14 @@ export function DayTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map(({ task, property, agent, time, otherTz }) => (
+          {rows.map(({ task, property, agent, tz, otherTz }) => (
             <tr
               key={task.id}
               onClick={() => onOpen(task.id)}
               className="cursor-pointer border-b border-line transition-colors last:border-b-0 hover:bg-surface-hover"
             >
               <td className="py-3 pe-4 align-middle">
-                <span className="text-[14px] font-semibold tabular">{time}</span>
+                <TaskTimingCell task={task} tz={tz} />
                 {otherTz && <span className="block text-caption text-muted">{property.city}</span>}
               </td>
               <td className="py-3 pe-4 align-middle">
@@ -127,8 +127,9 @@ export function DayTable({
 
       {/* Téléphone : liste compacte — nom du logement sur toute la largeur, rien ne passe à la ligne */}
       <ul className="divide-y divide-line md:hidden">
-        {rows.map(({ task, property, agent, time, otherTz }) => {
-          const [start, end] = time.split(" → ");
+        {rows.map(({ task, property, agent, tz, otherTz }) => {
+          const slot = timing.slot(task, tz);
+          const [start, end] = slot ? slot.split(" → ") : [timing.duration(task), t("timing.toPlanShort")];
           return (
             <li key={task.id}>
               <div role="button" tabIndex={0} onClick={() => onOpen(task.id)} onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen(task.id)} className="flex cursor-pointer items-center gap-3 py-3">
@@ -149,6 +150,7 @@ export function DayTable({
                 <div className="mt-1 flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-caption text-muted">
                   <span className="truncate">
                     {t(`taskType.${task.type}`)}
+                    {` · ${t("timing.windowShort", { range: timing.window(task, tz) })}`}
                     {otherTz && ` · ${property.city}`}
                   </span>
                   {agent && <StatusPill status={task.status} className="shrink-0" />}

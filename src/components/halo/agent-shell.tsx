@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
+import { DemoBadge } from "./demo-badge";
 import { OfflineBanner } from "./offline-banner";
 import { agentNav, isActive } from "./nav-config";
 
@@ -14,7 +15,10 @@ export function AgentShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh bg-subtle">
       <OfflineBanner />
-      <main className="mx-auto w-full max-w-xl px-4 pb-32 pt-[max(env(safe-area-inset-top),24px)]">{children}</main>
+      <main className="relative mx-auto w-full max-w-xl px-4 pb-32 pt-[max(env(safe-area-inset-top),24px)]">
+        <DemoBadge className="absolute end-4 top-[max(env(safe-area-inset-top),20px)]" />
+        {children}
+      </main>
       <nav
         aria-label={t("mainNavigation")}
         className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-canvas/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"

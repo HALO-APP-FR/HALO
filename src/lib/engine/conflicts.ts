@@ -15,19 +15,27 @@ export interface Conflict {
   otherTaskId?: string;
 }
 
-/** Créneau occupé : [début planifié (ou début de fenêtre) ; + durée]. */
-export function occupancy(task: Pick<Task, "scheduledStart" | "windowStart" | "durationMin">) {
-  const start = new Date(task.scheduledStart ?? task.windowStart).getTime();
+/**
+ * Créneau occupé : [début planifié ; + durée estimée] — jamais toute la fenêtre d'intervention.
+ * Mission en cours : à partir de son démarrage réel.
+ */
+export function occupancy(task: Pick<Task, "scheduledStart" | "windowStart" | "durationMin"> & Partial<Pick<Task, "status" | "startedAt">>) {
+  const from = task.status === "in_progress" && task.startedAt ? task.startedAt : task.scheduledStart ?? task.windowStart;
+  const start = new Date(from).getTime();
   return { start, end: start + task.durationMin * MINUTE };
 }
+
+/** Missions qui occupent encore l'agenda d'un agent (terminées, validées et annulées exclues). */
+const BLOCKING: Task["status"][] = ["assigned", "in_progress", "to_redo"];
+const isBlocking = (task: Task) => Boolean(task.assigneeId) && BLOCKING.includes(task.status);
 
 /** Conflits d'une liste de tâches (toutes les tâches ouvertes de l'organisation). */
 export function detectConflicts(tasks: Task[]): Conflict[] {
   const conflicts: Conflict[] = [];
-  const active = tasks.filter((x) => x.status !== "cancelled" && x.status !== "validated");
+  const active = tasks.filter(isBlocking);
 
   for (const task of active) {
-    if (!task.assigneeId) continue;
+    if (task.status === "in_progress") continue; // déjà démarrée : la fenêtre n'est plus une question de planning
     const { start, end } = occupancy(task);
     const ws = new Date(task.windowStart).getTime();
     const we = new Date(task.windowEnd).getTime();
@@ -35,10 +43,7 @@ export function detectConflicts(tasks: Task[]): Conflict[] {
   }
 
   const byAgent = new Map<string, Task[]>();
-  for (const task of active) {
-    if (!task.assigneeId) continue;
-    byAgent.set(task.assigneeId, [...(byAgent.get(task.assigneeId) ?? []), task]);
-  }
+  for (const task of active) byAgent.set(task.assigneeId!, [...(byAgent.get(task.assigneeId!) ?? []), task]);
   for (const list of byAgent.values()) {
     const sorted = [...list].sort((a, b) => occupancy(a).start - occupancy(b).start);
     for (let i = 0; i < sorted.length; i++) {
@@ -72,23 +77,30 @@ export interface AutoAssignment {
  * tâches triées par fin de fenêtre (les plus pressées d'abord), chacune donnée à l'agent
  * qui peut la commencer le plus tôt dans sa fenêtre sans chevauchement, à charge égale
  * l'agent le moins chargé. Une tâche impossible à placer reste non assignée.
+ * Les conflits sont calculés sur les créneaux (début + durée), jamais sur les fenêtres.
+ * Limite : AUCUN temps de trajet entre logements n'est pris en compte.
  */
-export function autoAssign(unassigned: Task[], agentIds: string[], existing: Task[]): AutoAssignment[] {
+export function autoAssign(unassigned: Task[], agentIds: string[], existing: Task[], now?: Date): AutoAssignment[] {
   const result: AutoAssignment[] = [];
   const busy = new Map<string, { start: number; end: number }[]>();
   for (const id of agentIds) busy.set(id, []);
   for (const task of existing) {
     if (!task.assigneeId || !busy.has(task.assigneeId)) continue;
-    if (task.status === "cancelled" || task.status === "validated") continue;
-    busy.get(task.assigneeId)!.push(occupancy(task));
+    if (isBlocking(task)) busy.get(task.assigneeId)!.push(occupancy(task));
+    // Mission terminée : seules ses heures réellement pointées occupent l'agenda (jamais un créneau futur théorique)
+    else if ((task.status === "done" || task.status === "validated") && task.startedAt && task.completedAt) {
+      busy.get(task.assigneeId)!.push({ start: new Date(task.startedAt).getTime(), end: new Date(task.completedAt).getTime() });
+    }
   }
+  // Jamais de créneau proposé dans le passé (arrondi au quart d'heure suivant)
+  const earliest = now ? Math.ceil(now.getTime() / (15 * MINUTE)) * 15 * MINUTE : -Infinity;
 
   const queue = [...unassigned].sort(
     (a, b) => new Date(a.windowEnd).getTime() - new Date(b.windowEnd).getTime(),
   );
 
   for (const task of queue) {
-    const ws = new Date(task.windowStart).getTime();
+    const ws = Math.max(new Date(task.windowStart).getTime(), earliest);
     const we = new Date(task.windowEnd).getTime();
     const dur = task.durationMin * MINUTE;
     let best: { agentId: string; start: number; load: number } | null = null;

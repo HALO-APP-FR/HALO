@@ -142,6 +142,7 @@ function MyServicesToday() {
   const services = useHalo((s) => s.services);
   const properties = useHalo((s) => s.properties);
   const meId = useHalo((s) => s.currentAgentId);
+  const reservations = useHalo((s) => s.reservations);
   const props = byId(properties);
   const now = new Date();
   const mine = services
@@ -160,7 +161,7 @@ function MyServicesToday() {
       <ol className="space-y-3">
         {mine.map((x) => (
           <li key={x.id}>
-            <ServiceAgentCard service={x} property={props.get(x.propertyId)} locale={locale} />
+            <ServiceAgentCard service={x} property={props.get(x.propertyId)} locale={locale} vip={Boolean(reservations.find((r) => r.id === x.reservationId)?.vip)} />
           </li>
         ))}
       </ol>
@@ -168,7 +169,7 @@ function MyServicesToday() {
   );
 }
 
-function ServiceAgentCard({ service, property, locale }: { service: ServiceRequest; property?: Property; locale: string }) {
+function ServiceAgentCard({ service, property, locale, vip }: { service: ServiceRequest; property?: Property; locale: string; vip: boolean }) {
   const t = useTranslations();
   const tz = property?.timezone ?? "UTC";
   const when = `${new Intl.DateTimeFormat(locale, { timeZone: tz, weekday: "short", day: "numeric" }).format(new Date(service.startAt))} · ${formatLocalTime(new Date(service.startAt), tz, locale)}`;
@@ -186,7 +187,7 @@ function ServiceAgentCard({ service, property, locale }: { service: ServiceReque
             {property?.name}
             {service.guestName && <span>· {service.guestName}</span>}
             {service.people ? <span>· {t("task.guests", { count: service.people })}</span> : null}
-            <VipBadge />
+            {vip && <VipBadge />}
           </p>
           {service.details && <p className="mt-2 text-[15px]">{service.details}</p>}
         </div>
@@ -353,7 +354,10 @@ function TaskRow({ task, property }: { task: Task; property?: Property }) {
   return (
     <Link href={`/a/task/${task.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors active:bg-surface-hover">
       <span className={cn("h-10 w-1 shrink-0 rounded-full", TASK_TYPE_META[task.type].bar)} aria-hidden />
-      <span className="w-12 shrink-0 text-[15px] font-semibold tabular">{formatLocalTime(new Date(taskAnchor(task)), tz, locale)}</span>
+      <span className="w-12 shrink-0 tabular">
+        <span className="block text-[15px] font-semibold leading-5">{formatLocalTime(new Date(taskAnchor(task)), tz, locale)}</span>
+        <span className="block text-caption text-muted">{formatLocalTime(new Date(new Date(taskAnchor(task)).getTime() + task.durationMin * 60_000), tz, locale)}</span>
+      </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-1.5">
           <span className="truncate text-[15px] font-semibold">{property?.name}</span>

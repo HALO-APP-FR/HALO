@@ -90,7 +90,7 @@
     "view": "Ver",
     "timeline": "Jornada",
     "allClear": "Todo está bajo control.",
-    "colTime": "Horario",
+    "colTime": "Franja / ventana",
     "colProperty": "Alojamiento",
     "colTask": "Trabajo",
     "colAgent": "Agente",
@@ -197,7 +197,7 @@
     "redoToast": "Repetición solicitada, el agente ha sido avisado.",
     "cancelledToast": "Trabajo cancelado.",
     "manual": "Creado manualmente",
-    "window": "Franja",
+    "window": "Ventana de intervención",
     "guests": "Huéspedes",
     "departure": "Salida: {name}",
     "arrival": "Llegada: {name}",
@@ -218,7 +218,11 @@
     "agentFree": "Libre ese día",
     "endAt": "fin prevista {time}",
     "redoTrace": "Misión repetida: primer paso {time}",
-    "validatedAt": "Validada el {date}"
+    "validatedAt": "Validada el {date}",
+    "deadline": "Terminar antes de {date}",
+    "slot": "Franja planificada",
+    "notScheduled": "Sin planificar",
+    "estimatedDuration": "Duración estimada {time}"
   },
   "source": {
     "manual": "Entrada manual",
@@ -296,11 +300,11 @@
     "bedSize": "Tipo de cama",
     "bedLabel": "Habitación",
     "bedLabelPlaceholder": "Habitación {n}",
-    "linenSoon": "El cálculo de ropa por cama llegará con el módulo Ropa.",
     "learnDuration": "Ajustar la duración automáticamente",
     "learnDurationHint": "HALO ajusta las próximas limpiezas a las duraciones reales fichadas.",
     "learnedValue": "Duración aprendida: {time} ({count} limpiezas)",
-    "learnedNone": "Se necesitan {count} limpiezas fichadas para aprender la duración."
+    "learnedNone": "Se necesitan {count} limpiezas fichadas para aprender la duración.",
+    "linenFromBeds": "El kit de cada limpieza se calcula con estas camas y las reglas de Ropa › Artículos y ajustes (ej. 1 bajera 140 por cama doble), más los huéspedes y bebés de la estancia."
   },
   "properties": {
     "free": "Libre",
@@ -351,7 +355,7 @@
     "error_too_large": "Este calendario es demasiado grande.",
     "error_not_ical": "Este enlace no devuelve un calendario iCal.",
     "feeds": "Calendarios conectados",
-    "feedsIntro": "Pega el enlace iCal de Airbnb, Booking, Vrbo o de tu software: las reservas y las limpiezas llegan solas.",
+    "feedsIntro": "Pega el enlace iCal de Airbnb, Booking, Vrbo o tu software y sincroniza: las estancias importadas crean las limpiezas. La sincronización es manual (aún no automática) y los datos se quedan en este dispositivo.",
     "syncNow": "Sincronizar ahora",
     "removeFeed": "Desconectar este calendario",
     "lastSync": "Sincronizado el {date}",
@@ -422,7 +426,7 @@
     "nothingForAgent": "Ningún trabajo para esta persona",
     "unassignedRow": "Por asignar",
     "autoTitle": "Propuesta de reparto",
-    "autoHint": "Primero los más urgentes, sin solapamientos, carga equilibrada. No se envía nada antes de tu validación.",
+    "autoHint": "Las más urgentes primero, sin solapar franjas (inicio + duración), carga equilibrada. No se tienen en cuenta los trayectos entre alojamientos. Nada se envía antes de tu validación.",
     "autoNone": "Reparto imposible: nadie está disponible en las franjas de limpieza.",
     "autoNotPlaced": "{count, plural, one {# trabajo no se pudo colocar: asígnalo a mano.} other {# trabajos no se pudieron colocar: asígnalos a mano.}}",
     "autoConfirm": "{count, plural, one {Validar # asignación} other {Validar # asignaciones}}",
@@ -500,7 +504,7 @@
     "defaultTimezone": "Zona horaria principal",
     "defaultTimezoneHint": "Se usa para «hoy» y se propone para los nuevos alojamientos.",
     "demoTitle": "Datos",
-    "demoText": "Modo demostración: tus datos se guardan solo en este navegador. Pasarán a tu base segura en el siguiente paso.",
+    "demoText": "Modo demo: los datos se guardan solo en este navegador. No hay copia en línea, ni uso compartido entre dispositivos, ni cuentas seguras. No introduzcas datos reales (clientes, códigos) hasta que la base de datos esté activa.",
     "confirmReset": "¿Reemplazar todos los datos por la demo?",
     "confirmEmpty": "¿Borrarlo todo y empezar de cero?",
     "confirm": "Confirmar",
@@ -668,19 +672,27 @@
     "item_coffee": "Café / té",
     "item_soap": "Jabón / gel",
     "item_kitchen": "Utensilios de cocina",
-    "item_other": "Otra cosa"
+    "item_other": "Otra cosa",
+    "histCreated": "Reportada {date} · {by}",
+    "hist_taken": "Asumida {date} · {by}",
+    "hist_follow_up": "Intervención planificada {date} · {by}",
+    "hist_resolved": "Resuelta {date} · {by}",
+    "hist_reopened": "Reabierta {date} · {by}",
+    "resolutionRequired": "Obligatorio: qué se hizo (reparación, sustitución, constatación).",
+    "proofPhoto": "Foto de prueba",
+    "followUpNotDone": "La intervención planificada no ha terminado. Resuelve solo si el problema está realmente solucionado."
   },
   "guide": {
     "title": "Guía del huésped",
     "intro": "Un enlace y un QR por alojamiento: wifi, acceso, normas, salida. El huésped también puede reportar un problema.",
     "enabled": "Guía activada",
-    "enabledHint": "Desactívala para cortar el acceso al enlace.",
+    "enabledHint": "Desactivada, la guía ya no se abre desde este dispositivo. Un enlace ya compartido sigue legible (sin accesos).",
     "welcome": "Mensaje de bienvenida",
     "welcomeHint": "Unas palabras cálidas, arriba de la guía.",
     "wifiName": "Red wifi",
     "wifiPassword": "Contraseña wifi",
     "accessInfo": "Acceso al alojamiento",
-    "accessInfoHint": "Código, planta, caja de llaves… Visible para quien tenga el enlace.",
+    "accessInfoHint": "Código, planta, caja de llaves… Nunca se incluye en el QR ni en el enlace compartido.",
     "houseRules": "Normas de la casa",
     "checkoutInstructions": "Instrucciones de salida",
     "parking": "Aparcamiento",
@@ -699,9 +711,9 @@
     "posterScan": "Escanea para wifi, guía y ayuda",
     "preview": "Vista previa",
     "regenerate": "Nuevo enlace",
-    "regenerated": "Nuevo enlace creado: el anterior ya no funciona.",
-    "securityNotice": "Cambia el enlace si un antiguo huésped lo conserva: los códigos son visibles.",
-    "demoNotice": "La guía va dentro del enlace: se abre en cualquier móvil. Las incidencias y solicitudes te llegarán cuando la base de datos esté activa.",
+    "regenerated": "Nueva dirección creada. Los enlaces ya compartidos siguen legibles, sin información de acceso.",
+    "securityNotice": "«Nuevo enlace» cambia la dirección en este dispositivo, pero un enlace o QR ya compartido sigue legible (sin información de acceso). Los enlaces limitados a la estancia llegarán con la base de datos.",
+    "demoNotice": "El contenido de la guía va dentro del enlace para abrirse en cualquier móvil. Este enlace no caduca ni se puede revocar: por eso nunca contiene la información de acceso. Las incidencias y solicitudes solo te llegarán con la base de datos.",
     "scanToTest": "Escanéalo con tu móvil para probar"
   },
   "guest": {
@@ -737,7 +749,8 @@
     "conciergeText": "Chef a domicilio, mesa en restaurante, chófer… Nos ocupamos de todo.",
     "conciergeVip": "Tu conserje dedicado está a tu disposición para cada deseo.",
     "otherRequest": "Otra solicitud",
-    "sharedNotice": "Guía digital con HALO"
+    "sharedNotice": "Guía digital con HALO",
+    "accessByConcierge": "Tu conserje te envía directamente la información de acceso."
   },
   "linen": {
     "subtitle": "Sigue cada pieza, anticipa las roturas.",
@@ -868,13 +881,18 @@
     "atLaundryReturn": "En lavandería · vuelta",
     "outcome": "Falta / excedente",
     "missingQty": "Faltan {count}",
-    "surplusQty": "+{count} de sobra",
+    "surplusQty": "+{count} de sobra en 7 d",
     "fromDay": "desde el {day}",
     "lateReturn": "con retraso",
     "lateOrders": "{count, plural, one {# orden de lavandería con retraso: no cuenta en el stock hasta recibirla.} other {# órdenes de lavandería con retraso: no cuentan en el stock hasta recibirlas.}}",
     "balanced": "Justo",
     "returnShort": "vuelta",
-    "outcome7": "Balance 7 d"
+    "outcome7": "Balance 7 d",
+    "missing7": "Faltan {count} en 7 d",
+    "firstShortage": "Primera falta: {count} · {day}",
+    "adviceSend": "→ Envía la sucia ({qty}) hoy: vuelve el {day}, a tiempo.",
+    "adviceBuyLate": "→ Compra al menos {missing}: la sucia enviada hoy volvería el {day}, demasiado tarde.",
+    "adviceBuy": "→ Compra al menos {missing}: ninguna ropa sucia ni retorno cubre esta falta."
   },
   "linenCategory": {
     "bed": "Cama",
@@ -1012,7 +1030,7 @@
     "details": "Detalles",
     "detailsPlaceholder": "Alergias, preferencias, dirección de recogida…",
     "assignee": "Asignado a",
-    "assigneeHint": "El puesto adecuado aparece primero.",
+    "assigneeHint": "Solo aparecen los miembros con el puesto «{position}».",
     "nobody": "Nadie",
     "provider": "Socio externo",
     "providerPlaceholder": "Ej. Restaurante Le Grand Véfour",
@@ -1032,6 +1050,23 @@
     "requestTitle": "Tu solicitud",
     "requestHint": "Tu conserje te confirmará enseguida.",
     "sendRequest": "Enviar solicitud",
-    "requestSent": "¡Solicitud enviada! Tu conserje te responderá."
+    "requestSent": "¡Solicitud enviada! Tu conserje te responderá.",
+    "modeTeam": "Equipo",
+    "modePartner": "Socio externo",
+    "modeNone": "Sin asignar",
+    "member": "Miembro del equipo",
+    "chooseMember": "Elegir…",
+    "noStaffForKind": "Ningún miembro tiene el puesto «{position}». Asígnalo a un socio externo o déjalo sin asignar."
+  },
+  "demo": {
+    "badge": "Demo",
+    "short": "Datos solo en este dispositivo",
+    "tooltip": "Modo demo: los datos se quedan en este navegador, sin copia en línea ni uso compartido entre dispositivos. No introduzcas datos reales."
+  },
+  "timing": {
+    "windowShort": "ventana {range}",
+    "toPlan": "{duration} por planificar",
+    "toPlanShort": "por plan.",
+    "plannedSlot": "Previsto {slot} · {duration}"
   }
 }
