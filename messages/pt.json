@@ -106,7 +106,8 @@
     "alertsUrgent": "{count, plural, one {# alerta} other {# alertas}}, {urgent} urgente(s)",
     "servicesRequested": "{count, plural, one {# pedido de serviço por tratar} other {# pedidos de serviço por tratar}}",
     "linenShortage": "{count, plural, one {Rutura de roupa prevista em # artigo} other {Rutura de roupa prevista em # artigos}}",
-    "blocked": "{count, plural, one {# missão atrasada ou inviável na janela} other {# missões atrasadas ou inviáveis na janela}}"
+    "blocked": "{count, plural, one {# missão atrasada ou inviável na janela} other {# missões atrasadas ou inviáveis na janela}}",
+    "arrivalsNotReady": "{count, plural, one {# chegada de hoje a desbloquear} other {# chegadas de hoje a desbloquear}}"
   },
   "agentToday": {
     "greeting": "Olá {name}",
@@ -1205,5 +1206,16 @@
     "complete": "Provas fotográficas: {count}/{count} recebidas",
     "none": "Em falta",
     "cannotValidate": "Validação impossível: faltam {count} prova(s) fotográfica(s) obrigatória(s). Peça uma correção."
+  },
+  "readiness": {
+    "ready": "Pronto",
+    "awaiting_validation": "Limpeza a validar",
+    "in_progress": "Limpeza em curso",
+    "correction": "Correção pedida",
+    "scheduled": "Limpeza planeada",
+    "unassigned": "Limpeza sem agente",
+    "at_risk": "Em risco",
+    "no_cleaning": "Sem limpeza associada: verificar",
+    "incident": "incidente urgente aberto"
   }
 }

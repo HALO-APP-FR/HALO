@@ -106,7 +106,8 @@
     "alertsUrgent": "{count, plural, one {# Meldung} other {# Meldungen}}, davon {urgent} dringend",
     "servicesRequested": "{count, plural, one {# Leistungsanfrage zu bearbeiten} other {# Leistungsanfragen zu bearbeiten}}",
     "linenShortage": "{count, plural, one {Wäsche-Engpass erwartet bei # Artikel} other {Wäsche-Engpass erwartet bei # Artikeln}}",
-    "blocked": "{count, plural, one {# Auftrag überfällig oder nicht machbar} other {# Aufträge überfällig oder nicht machbar}}"
+    "blocked": "{count, plural, one {# Auftrag überfällig oder nicht machbar} other {# Aufträge überfällig oder nicht machbar}}",
+    "arrivalsNotReady": "{count, plural, one {# Anreise heute braucht Handlung} other {# Anreisen heute brauchen Handlung}}"
   },
   "agentToday": {
     "greeting": "Hallo {name}",
@@ -1205,5 +1206,16 @@
     "complete": "Fotonachweise: {count}/{count} erhalten",
     "none": "Fehlt",
     "cannotValidate": "Bestätigung nicht möglich: {count} Pflicht-Fotonachweis(e) fehlen. Fordern Sie eine Korrektur an."
+  },
+  "readiness": {
+    "ready": "Bereit",
+    "awaiting_validation": "Reinigung zu prüfen",
+    "in_progress": "Reinigung läuft",
+    "correction": "Korrektur angefordert",
+    "scheduled": "Reinigung geplant",
+    "unassigned": "Reinigung ohne Mitarbeiter",
+    "at_risk": "Gefährdet",
+    "no_cleaning": "Keine Reinigung verknüpft: prüfen",
+    "incident": "dringender Vorfall offen"
   }
 }

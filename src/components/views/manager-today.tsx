@@ -10,6 +10,7 @@ import { useLinenData } from "@/components/linen/use-linen";
 import { infeasibility } from "@/lib/engine/conflicts";
 import { useHalo } from "@/lib/store/halo-store";
 import { isPendingService } from "@/components/services/service-meta";
+import { needsAttention, readinessFor } from "@/lib/engine/readiness";
 import { activeAgents, arrivalsOfDay, departuresOfDay, tasksOfDay } from "@/lib/store/selectors";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,7 +69,19 @@ function ManagerTodayInner() {
     new Date(`${dayKey}T12:00:00Z`),
   );
 
+  // Arrivées du jour pas encore prêtes (ménage non validé, en retard, sans agent, incident urgent…)
+  const notReady = arrivals.filter((r) => needsAttention(readinessFor(r, tasks, alerts, nowDate)));
+
   const actions = [
+    notReady.length > 0 && {
+      key: "readiness",
+      icon: KeyRound,
+      tone: "text-danger bg-danger-soft",
+      label: t("managerToday.arrivalsNotReady", { count: notReady.length }),
+      cta: t("managerToday.view"),
+      onClick: () => setStaysOpen("arrivals"),
+      primary: true,
+    },
     openAlerts.length > 0 && {
       key: "alerts",
       icon: Siren,

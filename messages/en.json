@@ -106,7 +106,8 @@
     "alertsUrgent": "{count, plural, one {# alert} other {# alerts}}, {urgent} urgent",
     "servicesRequested": "{count, plural, one {# service request to handle} other {# service requests to handle}}",
     "linenShortage": "{count, plural, one {Linen shortage expected on # item} other {Linen shortage expected on # items}}",
-    "blocked": "{count, plural, one {# job overdue or not fitting its window} other {# jobs overdue or not fitting their window}}"
+    "blocked": "{count, plural, one {# job overdue or not fitting its window} other {# jobs overdue or not fitting their window}}",
+    "arrivalsNotReady": "{count, plural, one {# arrival today needs action} other {# arrivals today need action}}"
   },
   "agentToday": {
     "greeting": "Hello {name}",
@@ -1205,5 +1206,16 @@
     "complete": "Photo proof: {count}/{count} received",
     "none": "Missing",
     "cannotValidate": "Can't approve: {count} required photo proof(s) missing. Request a correction."
+  },
+  "readiness": {
+    "ready": "Ready",
+    "awaiting_validation": "Cleaning to review",
+    "in_progress": "Cleaning in progress",
+    "correction": "Correction requested",
+    "scheduled": "Cleaning scheduled",
+    "unassigned": "Cleaning unassigned",
+    "at_risk": "At risk",
+    "no_cleaning": "No linked cleaning: check",
+    "incident": "urgent incident open"
   }
 }

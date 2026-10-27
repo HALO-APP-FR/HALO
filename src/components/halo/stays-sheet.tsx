@@ -10,6 +10,8 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { EmptyState } from "./empty-state";
 import { GuestBadges } from "./guest-badges";
 import { CalendarX } from "lucide-react";
+import { useHalo } from "@/lib/store/halo-store";
+import { READINESS_TONE, readinessFor } from "@/lib/engine/readiness";
 
 /** Arrivées ou départs du jour : qui, combien, bébés, animaux, à quelle heure. */
 export function StaysSheet({
@@ -27,7 +29,10 @@ export function StaysSheet({
 }) {
   const t = useTranslations();
   const locale = useLocale();
+  const tasks = useHalo((s) => s.tasks);
+  const alerts = useHalo((s) => s.alerts);
   if (!kind) return null;
+  const now = new Date();
   const at = (r: Reservation) => (kind === "arrivals" ? r.checkInAt : r.checkOutAt);
   const sorted = [...stays].sort((a, b) => at(a).localeCompare(at(b)));
   return (
@@ -48,6 +53,16 @@ export function StaysSheet({
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="text-[15px] font-semibold">{r.guestName ?? t(`source.${r.source}`)}</span>
                         {r.source !== "manual" && <Badge>{t(`source.${r.source}`)}</Badge>}
+                        {kind === "arrivals" &&
+                          (() => {
+                            const ready = readinessFor(r, tasks, alerts, now);
+                            return (
+                              <Badge tone={READINESS_TONE[ready.level]} data-testid="readiness">
+                                {t(`readiness.${ready.level}`)}
+                                {ready.urgentIncident && ready.level !== "ready" ? ` · ${t("readiness.incident")}` : ""}
+                              </Badge>
+                            );
+                          })()}
                         {kind === "departures" && r.departedAt && (
                           <Badge tone="success">
                             <LogOut className="size-3" />

@@ -106,7 +106,8 @@
     "alertsUrgent": "{count, plural, one {# alerte} other {# alertes}} dont {urgent} urgente(s)",
     "servicesRequested": "{count, plural, one {# demande de prestation à traiter} other {# demandes de prestation à traiter}}",
     "linenShortage": "{count, plural, one {Rupture de linge prévue sur # article} other {Rupture de linge prévue sur # articles}}",
-    "blocked": "{count, plural, one {# mission en retard ou impossible dans sa fenêtre} other {# missions en retard ou impossibles dans leur fenêtre}}"
+    "blocked": "{count, plural, one {# mission en retard ou impossible dans sa fenêtre} other {# missions en retard ou impossibles dans leur fenêtre}}",
+    "arrivalsNotReady": "{count, plural, one {# arrivée du jour à débloquer} other {# arrivées du jour à débloquer}}"
   },
   "agentToday": {
     "greeting": "Bonjour {name}",
@@ -1205,5 +1206,16 @@
     "complete": "Preuves photo : {count}/{count} reçues",
     "none": "Manquante",
     "cannotValidate": "Validation impossible : {count} preuve(s) photo exigée(s) manquante(s). Demandez une correction."
+  },
+  "readiness": {
+    "ready": "Prêt",
+    "awaiting_validation": "Ménage à valider",
+    "in_progress": "Ménage en cours",
+    "correction": "Correction demandée",
+    "scheduled": "Ménage planifié",
+    "unassigned": "Ménage sans agent",
+    "at_risk": "À risque",
+    "no_cleaning": "Aucun ménage relié : à vérifier",
+    "incident": "incident urgent ouvert"
   }
 }
