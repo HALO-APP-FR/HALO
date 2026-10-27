@@ -98,6 +98,9 @@ export interface Property {
   postalCode?: string;
   countryCode: string;
   timezone: string; // IANA
+  /** Coordonnées facultatives (itinéraires plus précis, notamment Waze). */
+  lat?: number;
+  lng?: number;
   capacity: number;
   beds: Bed[];
   defaultCheckIn: string; // "16:00"
@@ -300,7 +303,14 @@ export type ServiceKind =
   | "experience"
   | "flowers"
   | "other";
-export type ServiceStatus = "requested" | "confirmed" | "done" | "cancelled";
+/** requested / info_requested : en attente de traitement ; declined : refusée ; cancelled : annulée après acceptation. */
+export type ServiceStatus = "requested" | "info_requested" | "confirmed" | "declined" | "done" | "cancelled";
+export interface ServiceEvent {
+  at: string;
+  status: ServiceStatus;
+  by?: string;
+  note?: string;
+}
 
 export interface ServiceRequest {
   id: string;
@@ -319,6 +329,9 @@ export interface ServiceRequest {
   price?: number;
   source: "guest" | "manager";
   guestName?: string;
+  /** Question posée ou motif du refus (dernier changement de statut). */
+  statusNote?: string;
+  history?: ServiceEvent[];
   createdAt: string;
 }
 

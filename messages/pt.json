@@ -1019,10 +1019,12 @@
     "other": "Outro"
   },
   "serviceStatus": {
-    "requested": "Por confirmar",
+    "requested": "Pedida",
     "confirmed": "Confirmado",
     "done": "Realizado",
-    "cancelled": "Cancelado"
+    "cancelled": "Cancelado",
+    "info_requested": "Detalhes pedidos",
+    "declined": "Recusada"
   },
   "services": {
     "subtitle": "Concierge de luxo: cada pedido acompanhado até ao fim.",
@@ -1031,7 +1033,7 @@
     "kpiRequested": "Pedidos por confirmar",
     "kpiWeek": "Previstos em 7 dias",
     "kpiRevenue": "Valor do mês",
-    "filterTodo": "Por confirmar",
+    "filterTodo": "Serviços pedidos",
     "filterUpcoming": "Próximos",
     "filterDone": "Passados",
     "empty": "Nenhum serviço aqui",
@@ -1056,7 +1058,7 @@
     "markDone": "Marcar realizado",
     "cancel": "Cancelar serviço",
     "doneToast": "Serviço realizado.",
-    "toast_confirmed": "Serviço confirmado.",
+    "toast_confirmed": "Pedido aceite.",
     "toast_done": "Serviço realizado.",
     "toast_cancelled": "Serviço cancelado.",
     "toast_requested": "Pedido guardado.",
@@ -1072,7 +1074,16 @@
     "modeNone": "Não atribuído",
     "member": "Membro da equipa",
     "chooseMember": "Escolher…",
-    "noStaffForKind": "Nenhum membro tem a função «{position}». Atribua a um parceiro externo ou deixe por atribuir."
+    "noStaffForKind": "Nenhum membro tem a função «{position}». Atribua a um parceiro externo ou deixe por atribuir.",
+    "accept": "Aceitar o pedido",
+    "askInfo": "Pedir detalhes",
+    "decline": "Recusar",
+    "saveNote": "Guardar",
+    "noteLabel_info_requested": "Detalhes a obter do hóspede",
+    "noteLabel_declined": "Motivo da recusa",
+    "guestNotNotified": "O hóspede não é avisado automaticamente: contacte-o diretamente.",
+    "toast_info_requested": "Detalhes anotados no pedido.",
+    "toast_declined": "Pedido recusado."
   },
   "demo": {
     "badge": "Demo",
@@ -1127,5 +1138,29 @@
     "settingsHint": "Escolha os tipos de missão que aguardam a sua validação. Os outros são validados assim que o agente os conclui, para evitar estrangulamentos.",
     "ruleOn": "Validação por um responsável",
     "ruleOff": "Validada automaticamente no fim"
+  },
+  "directions": {
+    "openWith": "Abrir o itinerário com",
+    "openIn": "Itinerário no {app}",
+    "other": "Escolher outra aplicação",
+    "default": "predefinida",
+    "approximate": "Morada incompleta: o destino será aproximado (nome do alojamento e cidade).",
+    "app": {
+      "apple": "Mapas da Apple",
+      "google": "Google Maps",
+      "waze": "Waze"
+    },
+    "ask": "Perguntar sempre",
+    "defaultApp": "Aplicação de itinerários",
+    "privacy": "O HALO apenas abre a morada do alojamento na aplicação escolhida. A sua localização nunca é seguida."
+  },
+  "spaces": {
+    "title": "Escolha o seu espaço",
+    "subtitle": "Escolher um espaço não altera os seus direitos.",
+    "manager": "Espaço Manager",
+    "managerText": "Planeamento, missões, equipa, alojamentos, serviços.",
+    "agent": "Espaço Agente",
+    "agentText": "As minhas missões do dia, no terreno.",
+    "demoNotice": "Demo sem contas: os dois espaços estão abertos. Com o início de sessão real, cada pessoa entra diretamente no seu espaço, e um agente não pode abrir o espaço Manager nem usar as suas funções, mesmo por um endereço direto."
   }
 }

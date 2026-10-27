@@ -184,3 +184,7 @@ end $$;
 
 revoke all on function public.validate_task(uuid, uuid), public.request_correction(uuid, uuid, text) from public, anon;
 grant execute on function public.validate_task(uuid, uuid), public.request_correction(uuid, uuid, text) to authenticated;
+
+-- ---------- Préférence d'itinéraire (par personne) ----------
+-- Application ouverte par défaut par le bouton « Itinéraire » ; null = demander à chaque fois.
+alter table public.profiles add column maps_app text check (maps_app in ('apple', 'google', 'waze'));

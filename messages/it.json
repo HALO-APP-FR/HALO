@@ -1019,10 +1019,12 @@
     "other": "Altro"
   },
   "serviceStatus": {
-    "requested": "Da confermare",
+    "requested": "Richiesta",
     "confirmed": "Confermato",
     "done": "Eseguito",
-    "cancelled": "Annullato"
+    "cancelled": "Annullato",
+    "info_requested": "Dettagli richiesti",
+    "declined": "Rifiutata"
   },
   "services": {
     "subtitle": "Concierge di alta gamma: ogni richiesta seguita fino in fondo.",
@@ -1031,7 +1033,7 @@
     "kpiRequested": "Richieste da confermare",
     "kpiWeek": "Previsti in 7 giorni",
     "kpiRevenue": "Importo del mese",
-    "filterTodo": "Da confermare",
+    "filterTodo": "Servizi richiesti",
     "filterUpcoming": "In arrivo",
     "filterDone": "Passati",
     "empty": "Nessun servizio qui",
@@ -1056,7 +1058,7 @@
     "markDone": "Segna come eseguito",
     "cancel": "Annulla servizio",
     "doneToast": "Servizio eseguito.",
-    "toast_confirmed": "Servizio confermato.",
+    "toast_confirmed": "Richiesta accettata.",
     "toast_done": "Servizio eseguito.",
     "toast_cancelled": "Servizio annullato.",
     "toast_requested": "Richiesta salvata.",
@@ -1072,7 +1074,16 @@
     "modeNone": "Non assegnato",
     "member": "Membro del team",
     "chooseMember": "Scegli…",
-    "noStaffForKind": "Nessun membro ha il ruolo «{position}». Affidalo a un partner esterno o lascialo non assegnato."
+    "noStaffForKind": "Nessun membro ha il ruolo «{position}». Affidalo a un partner esterno o lascialo non assegnato.",
+    "accept": "Accetta la richiesta",
+    "askInfo": "Chiedi dettagli",
+    "decline": "Rifiuta",
+    "saveNote": "Salva",
+    "noteLabel_info_requested": "Dettagli da ottenere dall'ospite",
+    "noteLabel_declined": "Motivo del rifiuto",
+    "guestNotNotified": "L'ospite non viene avvisato automaticamente: contattalo direttamente.",
+    "toast_info_requested": "Dettagli annotati sulla richiesta.",
+    "toast_declined": "Richiesta rifiutata."
   },
   "demo": {
     "badge": "Demo",
@@ -1127,5 +1138,29 @@
     "settingsHint": "Scegli quali tipi di missione attendono la tua validazione. Gli altri sono validati appena l'agente li termina, per evitare colli di bottiglia.",
     "ruleOn": "Validazione da un responsabile",
     "ruleOff": "Validata automaticamente alla fine"
+  },
+  "directions": {
+    "openWith": "Apri il percorso con",
+    "openIn": "Percorso in {app}",
+    "other": "Scegli un'altra app",
+    "default": "predefinita",
+    "approximate": "Indirizzo incompleto: la destinazione sarà approssimativa (nome dell'alloggio e città).",
+    "app": {
+      "apple": "Mappe di Apple",
+      "google": "Google Maps",
+      "waze": "Waze"
+    },
+    "ask": "Chiedi ogni volta",
+    "defaultApp": "App per i percorsi",
+    "privacy": "HALO apre solo l'indirizzo dell'alloggio nell'app scelta. La tua posizione non viene mai tracciata."
+  },
+  "spaces": {
+    "title": "Scegli il tuo spazio",
+    "subtitle": "La scelta dello spazio non cambia i tuoi permessi.",
+    "manager": "Spazio Manager",
+    "managerText": "Planning, missioni, team, alloggi, servizi.",
+    "agent": "Spazio Agente",
+    "agentText": "Le mie missioni di oggi, sul campo.",
+    "demoNotice": "Demo senza account: entrambi gli spazi sono aperti. Con l'accesso reale, ognuno arriva direttamente nel proprio spazio e un agente non può aprire lo spazio Manager né usarne le funzioni, nemmeno con un link diretto."
   }
 }

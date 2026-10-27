@@ -1019,10 +1019,12 @@
     "other": "Autre"
   },
   "serviceStatus": {
-    "requested": "À confirmer",
+    "requested": "Demandée",
     "confirmed": "Confirmée",
     "done": "Réalisée",
-    "cancelled": "Annulée"
+    "cancelled": "Annulée",
+    "info_requested": "Précisions demandées",
+    "declined": "Refusée"
   },
   "services": {
     "subtitle": "Conciergerie haut de gamme : chaque demande suivie jusqu'au bout.",
@@ -1031,7 +1033,7 @@
     "kpiRequested": "Demandes à confirmer",
     "kpiWeek": "Prévues sur 7 jours",
     "kpiRevenue": "Montant du mois",
-    "filterTodo": "À confirmer",
+    "filterTodo": "Prestations demandées",
     "filterUpcoming": "À venir",
     "filterDone": "Passées",
     "empty": "Aucune prestation ici",
@@ -1056,7 +1058,7 @@
     "markDone": "Marquer réalisée",
     "cancel": "Annuler la prestation",
     "doneToast": "Prestation réalisée.",
-    "toast_confirmed": "Prestation confirmée.",
+    "toast_confirmed": "Demande acceptée.",
     "toast_done": "Prestation réalisée.",
     "toast_cancelled": "Prestation annulée.",
     "toast_requested": "Demande enregistrée.",
@@ -1072,7 +1074,16 @@
     "modeNone": "Non attribuée",
     "member": "Membre de l'équipe",
     "chooseMember": "Choisir…",
-    "noStaffForKind": "Aucun membre de l'équipe n'a le poste « {position} ». Confiez la prestation à un partenaire externe, ou laissez-la non attribuée."
+    "noStaffForKind": "Aucun membre de l'équipe n'a le poste « {position} ». Confiez la prestation à un partenaire externe, ou laissez-la non attribuée.",
+    "accept": "Accepter la demande",
+    "askInfo": "Demander des précisions",
+    "decline": "Refuser",
+    "saveNote": "Enregistrer",
+    "noteLabel_info_requested": "Précisions à obtenir du voyageur",
+    "noteLabel_declined": "Motif du refus",
+    "guestNotNotified": "Le voyageur n'est pas prévenu automatiquement : contactez-le directement.",
+    "toast_info_requested": "Précisions notées sur la demande.",
+    "toast_declined": "Demande refusée."
   },
   "demo": {
     "badge": "Démo",
@@ -1127,5 +1138,29 @@
     "settingsHint": "Choisissez les types de mission qui attendent votre validation. Les autres sont validés dès que l'agent les termine, pour éviter un goulot.",
     "ruleOn": "Validation par un responsable",
     "ruleOff": "Validée automatiquement à la fin"
+  },
+  "directions": {
+    "openWith": "Ouvrir l'itinéraire avec",
+    "openIn": "Itinéraire dans {app}",
+    "other": "Choisir une autre application",
+    "default": "par défaut",
+    "approximate": "Adresse incomplète : la destination sera approximative (nom du logement et ville).",
+    "app": {
+      "apple": "Apple Plans",
+      "google": "Google Maps",
+      "waze": "Waze"
+    },
+    "ask": "Demander à chaque fois",
+    "defaultApp": "Application d'itinéraire",
+    "privacy": "HALO ouvre seulement l'adresse du logement dans l'application choisie. Votre position n'est jamais suivie."
+  },
+  "spaces": {
+    "title": "Choisissez votre espace",
+    "subtitle": "Le choix de l'espace ne change pas vos droits.",
+    "manager": "Espace Manager",
+    "managerText": "Planning, missions, équipe, logements, prestations.",
+    "agent": "Espace Agent",
+    "agentText": "Mes missions du jour, sur le terrain.",
+    "demoNotice": "Démo sans compte : les deux espaces sont ouverts. Avec la connexion réelle, chacun arrive directement dans son espace, et un agent ne peut ni ouvrir l'espace Manager ni utiliser ses fonctions, même par une adresse directe."
   }
 }

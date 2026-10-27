@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, Check, ChevronDown, KeyRound, Navigation, Play, Siren, Square, Timer } from "lucide-react";
+import { ArrowLeft, Camera, Check, ChevronDown, KeyRound, Play, Siren, Square, Timer } from "lucide-react";
 import type { ChecklistRoom, RoomStatus, Task } from "@/lib/domain/types";
 import { formatDuration } from "@/lib/engine/learning";
 import { formatLocalTime } from "@/lib/engine/time";
@@ -19,7 +19,8 @@ import { AddPhotoButton, PhotoThumb } from "@/components/halo/photo-thumb";
 import { ReadyGate } from "@/components/halo/ready-gate";
 import { ReportSheet } from "@/components/halo/report-sheet";
 import { StatusPill } from "@/components/halo/status-pill";
-import { directionsUrl, useDeadlineLabel } from "@/components/halo/task-card";
+import { useDeadlineLabel } from "@/components/halo/task-card";
+import { DirectionsButton } from "@/components/halo/directions-button";
 import { canStart as canStartTask, checklistApplies, missingRequiredPhotos } from "@/lib/engine/mission-cycle";
 import { DurationCompare, ROOM_STATUSES, ROOM_STATUS_META } from "@/components/halo/task-report";
 import { useTaskTiming } from "@/components/halo/task-timing";
@@ -216,12 +217,7 @@ function AgentTaskInner({ taskId }: { taskId: string }) {
             </div>
           </Card>
         ) : null}
-        <Button asChild size="xl" variant="secondary" className={cn("h-auto min-h-14 bg-surface px-4 shadow-card hover:bg-surface-hover", started && property.access.type !== "in_person" ? "w-auto shrink-0" : "w-auto flex-1")}>
-          <a href={directionsUrl(property)} target="_blank" rel="noreferrer">
-            <Navigation />
-            {t("task.directions")}
-          </a>
-        </Button>
+        <DirectionsButton property={property} className={started && property.access.type !== "in_person" ? "shrink-0" : "flex-1"} />
       </div>
 
       {property.instructions && <p className="rounded-lg bg-surface p-4 text-[15px] shadow-card">{property.instructions}</p>}

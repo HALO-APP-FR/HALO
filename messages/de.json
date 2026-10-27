@@ -1019,10 +1019,12 @@
     "other": "Sonstiges"
   },
   "serviceStatus": {
-    "requested": "Zu bestätigen",
+    "requested": "Angefragt",
     "confirmed": "Bestätigt",
     "done": "Erledigt",
-    "cancelled": "Storniert"
+    "cancelled": "Storniert",
+    "info_requested": "Rückfrage gestellt",
+    "declined": "Abgelehnt"
   },
   "services": {
     "subtitle": "Gehobener Concierge-Service: jede Anfrage bis zum Ende begleitet.",
@@ -1031,7 +1033,7 @@
     "kpiRequested": "Zu bestätigende Anfragen",
     "kpiWeek": "Geplant in 7 Tagen",
     "kpiRevenue": "Summe des Monats",
-    "filterTodo": "Zu bestätigen",
+    "filterTodo": "Angefragte Leistungen",
     "filterUpcoming": "Anstehend",
     "filterDone": "Vergangen",
     "empty": "Keine Services hier",
@@ -1056,7 +1058,7 @@
     "markDone": "Als erledigt markieren",
     "cancel": "Service stornieren",
     "doneToast": "Service erledigt.",
-    "toast_confirmed": "Service bestätigt.",
+    "toast_confirmed": "Anfrage angenommen.",
     "toast_done": "Service erledigt.",
     "toast_cancelled": "Service storniert.",
     "toast_requested": "Anfrage gespeichert.",
@@ -1072,7 +1074,16 @@
     "modeNone": "Nicht zugewiesen",
     "member": "Teammitglied",
     "chooseMember": "Auswählen…",
-    "noStaffForKind": "Kein Teammitglied hat die Funktion „{position}“. An einen externen Partner vergeben oder offen lassen."
+    "noStaffForKind": "Kein Teammitglied hat die Funktion „{position}“. An einen externen Partner vergeben oder offen lassen.",
+    "accept": "Anfrage annehmen",
+    "askInfo": "Rückfrage stellen",
+    "decline": "Ablehnen",
+    "saveNote": "Speichern",
+    "noteLabel_info_requested": "Vom Gast benötigte Angaben",
+    "noteLabel_declined": "Grund der Ablehnung",
+    "guestNotNotified": "Der Gast wird nicht automatisch benachrichtigt: Kontaktieren Sie ihn direkt.",
+    "toast_info_requested": "Rückfrage an der Anfrage vermerkt.",
+    "toast_declined": "Anfrage abgelehnt."
   },
   "demo": {
     "badge": "Demo",
@@ -1127,5 +1138,29 @@
     "settingsHint": "Wählen Sie, welche Einsatztypen auf Ihre Bestätigung warten. Die anderen werden bestätigt, sobald der Mitarbeiter sie abschließt, um Engpässe zu vermeiden.",
     "ruleOn": "Bestätigung durch einen Verantwortlichen",
     "ruleOff": "Beim Abschluss automatisch bestätigt"
+  },
+  "directions": {
+    "openWith": "Route öffnen mit",
+    "openIn": "Route in {app}",
+    "other": "Andere App wählen",
+    "default": "Standard",
+    "approximate": "Unvollständige Adresse: Das Ziel ist ungefähr (Name der Unterkunft und Stadt).",
+    "app": {
+      "apple": "Apple Karten",
+      "google": "Google Maps",
+      "waze": "Waze"
+    },
+    "ask": "Jedes Mal fragen",
+    "defaultApp": "Navigations-App",
+    "privacy": "HALO öffnet nur die Adresse der Unterkunft in der gewählten App. Ihr Standort wird nie verfolgt."
+  },
+  "spaces": {
+    "title": "Wählen Sie Ihren Bereich",
+    "subtitle": "Die Wahl des Bereichs ändert Ihre Rechte nicht.",
+    "manager": "Manager-Bereich",
+    "managerText": "Planung, Einsätze, Team, Unterkünfte, Leistungen.",
+    "agent": "Mitarbeiter-Bereich",
+    "agentText": "Meine heutigen Einsätze vor Ort.",
+    "demoNotice": "Demo ohne Konten: Beide Bereiche sind offen. Mit der echten Anmeldung landet jeder direkt in seinem Bereich, und ein Mitarbeiter kann den Manager-Bereich weder öffnen noch dessen Funktionen nutzen, auch nicht über einen direkten Link."
   }
 }

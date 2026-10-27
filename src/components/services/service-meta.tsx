@@ -57,4 +57,14 @@ export function ServiceIcon({ kind, className }: { kind: ServiceKind; className?
   );
 }
 
-export const SERVICE_STATUS_TONE = { requested: "warning", confirmed: "accent", done: "success", cancelled: "neutral" } as const;
+export const SERVICE_STATUS_TONE = {
+  requested: "warning",
+  info_requested: "warning",
+  confirmed: "accent",
+  declined: "neutral",
+  done: "success",
+  cancelled: "neutral",
+} as const;
+
+/** Demande encore à traiter par un responsable (jamais un incident). */
+export const isPendingService = (x: { status: string }) => x.status === "requested" || x.status === "info_requested";

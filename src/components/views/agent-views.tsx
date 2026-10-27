@@ -28,6 +28,7 @@ import { ReportSheet } from "@/components/halo/report-sheet";
 import { TaskCard } from "@/components/halo/task-card";
 import { CorrectionNotice } from "@/components/views/agent-task";
 import { ThemeSwitcher } from "@/components/halo/theme-switcher";
+import { MapsAppSelect } from "@/components/halo/directions-button";
 
 function vibrate(ms: number) {
   try {
@@ -573,6 +574,13 @@ function AgentProfileInner() {
         <div className="py-4">
           <div className="mb-3 text-[17px]">{t("theme.label")}</div>
           <ThemeSwitcher className="flex w-full" />
+        </div>
+        <div className="py-4">
+          <label htmlFor="maps-app" className="mb-3 block text-[17px]">
+            {t("directions.defaultApp")}
+          </label>
+          <MapsAppSelect className="h-12 text-[16px]" />
+          <p className="mt-2 text-caption text-muted">{t("directions.privacy")}</p>
         </div>
       </Card>
 

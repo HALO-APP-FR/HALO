@@ -16,6 +16,7 @@ import { LocaleSwitcher } from "@/components/halo/locale-switcher";
 import { PageHeader } from "@/components/halo/page-header";
 import { ReadyGate } from "@/components/halo/ready-gate";
 import { ThemeSwitcher } from "@/components/halo/theme-switcher";
+import { MapsAppSelect } from "@/components/halo/directions-button";
 
 export function Settings() {
   return (
@@ -125,6 +126,12 @@ function SettingsInner() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="text-[15px]">{t("theme.label")}</span>
               <ThemeSwitcher />
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <label htmlFor="maps-app" className="text-[15px]">
+                {t("directions.defaultApp")}
+              </label>
+              <MapsAppSelect className="w-56" />
             </div>
           </CardContent>
         </Card>

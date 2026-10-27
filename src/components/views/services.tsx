@@ -17,7 +17,7 @@ import { KpiCard } from "@/components/halo/kpi-card";
 import { PageHeader } from "@/components/halo/page-header";
 import { ReadyGate } from "@/components/halo/ready-gate";
 import { VipBadge } from "@/components/halo/vip-badge";
-import { SERVICE_STATUS_TONE, ServiceIcon } from "@/components/services/service-meta";
+import { isPendingService, SERVICE_STATUS_TONE, ServiceIcon } from "@/components/services/service-meta";
 import { ServiceSheet } from "@/components/services/service-sheet";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +50,7 @@ function ServicesInner() {
   const todayKey = localDateKey(now, orgTz);
   const in7 = addDaysToKey(todayKey, 7);
   const dayOf = (x: ServiceRequest) => localDateKey(new Date(x.startAt), props.get(x.propertyId)?.timezone ?? orgTz);
-  const requested = services.filter((x) => x.status === "requested");
+  const requested = services.filter(isPendingService);
   const week = services.filter((x) => x.status !== "cancelled" && dayOf(x) >= todayKey && dayOf(x) <= in7);
   const monthRevenue = services
     .filter((x) => (x.status === "confirmed" || x.status === "done") && dayOf(x).slice(0, 7) === todayKey.slice(0, 7))
@@ -60,11 +60,11 @@ function ServicesInner() {
   const list = services
     .filter((x) =>
       filter === "todo"
-        ? x.status === "requested"
+        ? isPendingService(x)
         : filter === "upcoming"
           ? x.status === "confirmed" && dayOf(x) >= todayKey
           : filter === "done"
-            ? x.status === "done" || x.status === "cancelled"
+            ? x.status === "done" || x.status === "cancelled" || x.status === "declined"
             : true,
     )
     .sort((a, b) => (filter === "done" ? b.startAt.localeCompare(a.startAt) : a.startAt.localeCompare(b.startAt)));
@@ -132,7 +132,7 @@ function ServicesInner() {
                       key={x.id}
                       type="button"
                       onClick={() => setEditing(x)}
-                      className={cn("flex w-full items-center gap-3 px-4 py-3.5 text-start transition-colors hover:bg-surface-hover md:px-5", x.status === "cancelled" && "opacity-50")}
+                      className={cn("flex w-full items-center gap-3 px-4 py-3.5 text-start transition-colors hover:bg-surface-hover md:px-5", (x.status === "cancelled" || x.status === "declined") && "opacity-50")}
                     >
                       <ServiceIcon kind={x.kind} />
                       <span className="min-w-0 flex-1">

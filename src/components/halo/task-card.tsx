@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowRight, Baby, Check, ChevronRight, KeyRound, Navigation, PawPrint, Siren } from "lucide-react";
+import { ArrowRight, Baby, Check, ChevronRight, KeyRound, PawPrint, Siren } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import type { Property, Task } from "@/lib/domain/types";
 import { formatLocalTime, isSameLocalDay } from "@/lib/engine/time";
@@ -11,6 +11,7 @@ import { TaskLinenKit } from "@/components/linen/task-linen-kit";
 import { GuestBadges } from "./guest-badges";
 import { useTaskTiming } from "./task-timing";
 import { StatusPill } from "./status-pill";
+import { DirectionsButton } from "./directions-button";
 import { TASK_TYPE_META, TaskTypeIcon } from "./task-type";
 import { cn } from "@/lib/utils";
 
@@ -27,10 +28,6 @@ export function useDeadlineLabel() {
   };
 }
 
-export function directionsUrl(property: Property) {
-  const q = [property.addressLine, property.postalCode, property.city].filter(Boolean).join(", ") || property.name;
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}`;
-}
 
 /** Carte de mission côté agent : lisible en 3 secondes, utilisable d'une main. */
 export function TaskCard({
@@ -150,11 +147,7 @@ export function TaskCard({
                 <ArrowRight className="rtl:-scale-x-100" />
               </Button>
             )}
-            <Button asChild size="xl" variant="secondary" className="w-14 flex-none px-0">
-              <a href={directionsUrl(property)} target="_blank" rel="noreferrer" aria-label={t("task.directions")}>
-                <Navigation />
-              </a>
-            </Button>
+            <DirectionsButton property={property} label={false} className="relative z-10 w-auto flex-none" />
           </div>
         )}
         {onReport && started && (

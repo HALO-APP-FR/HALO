@@ -11,6 +11,7 @@ import { Avatar } from "./avatar";
 import { LocaleSwitcher } from "./locale-switcher";
 import { ThemeSwitcher } from "./theme-switcher";
 import { DemoBadge } from "./demo-badge";
+import { isPendingService } from "@/components/services/service-meta";
 import { OfflineBanner } from "./offline-banner";
 import { isActive, managerMobileTabs, managerNav } from "./nav-config";
 import { usePersistedFlag } from "./use-persisted-flag";
@@ -36,7 +37,7 @@ export function ManagerShell({ children }: { children: React.ReactNode }) {
   const alerts = useHalo((s) => s.alerts);
   const openAlerts = alerts.filter((a) => a.status !== "resolved").length;
   const services = useHalo((s) => s.services);
-  const requestedServices = services.filter((x) => x.status === "requested").length;
+  const requestedServices = services.filter(isPendingService).length;
   const badge = (key: string) => (key === "alerts" ? openAlerts : key === "services" ? requestedServices : 0);
 
   return (

@@ -39,6 +39,7 @@ import {
 } from "@/lib/engine/linen";
 import { actualMinutes, withLearnedDuration } from "@/lib/engine/learning";
 import { planTasks } from "@/lib/engine/tasks";
+import type { MapsApp } from "@/lib/engine/directions";
 import {
   canRequestCorrection,
   canStart,
@@ -103,6 +104,8 @@ interface HaloState extends HaloData {
 
   addService: (input: NewService) => string;
   updateService: (id: string, patch: Partial<ServiceRequest>) => void;
+  /** Accepter, refuser, demander des précisions, réaliser, annuler : tracé avec l'auteur et la note. */
+  setServiceStatus: (id: string, status: ServiceRequest["status"], by?: string, note?: string) => void;
 
   addAlert: (input: NewAlert) => string;
   updateAlert: (id: string, patch: Partial<Alert>) => void;
@@ -130,6 +133,9 @@ interface HaloState extends HaloData {
   addMember: (input: Omit<Member, "id" | "active">) => string;
   updateMember: (id: string, patch: Partial<Member>) => void;
   setCurrentAgent: (id: string) => void;
+  /** Application d'itinéraire par défaut de la personne (démo : cet appareil). Vide = demander. */
+  mapsApp?: MapsApp;
+  setMapsApp: (app: MapsApp | undefined) => void;
 }
 
 /** Stockage du navigateur protégé : en navigation privée ou bloqué, on garde en mémoire. */
@@ -521,6 +527,19 @@ export const useHalo = create<HaloState>()(
         return id;
       },
       updateService: (id, patch) => set((s) => ({ services: s.services.map((x) => (x.id === id ? { ...x, ...patch } : x)) })),
+      setServiceStatus: (id, status, by, note) =>
+        set((s) => ({
+          services: s.services.map((x) =>
+            x.id === id
+              ? {
+                  ...x,
+                  status,
+                  statusNote: note?.trim() || undefined,
+                  history: [...(x.history ?? []), { at: new Date().toISOString(), status, by, ...(note?.trim() ? { note: note.trim() } : {}) }],
+                }
+              : x,
+          ),
+        })),
 
       addAlert: (input) => {
         const id = newId("alert");
@@ -705,6 +724,7 @@ export const useHalo = create<HaloState>()(
       },
       updateMember: (id, patch) => set((s) => ({ members: s.members.map((m) => (m.id === id ? { ...m, ...patch } : m)) })),
       setCurrentAgent: (id) => set({ currentAgentId: id }),
+      setMapsApp: (app) => set({ mapsApp: app }),
     }),
     {
       name: "halo-demo-v1",
@@ -754,6 +774,7 @@ export const useHalo = create<HaloState>()(
         linenSettings: s.linenSettings,
         services: s.services,
         currentAgentId: s.currentAgentId,
+        mapsApp: s.mapsApp,
       }),
     },
   ),

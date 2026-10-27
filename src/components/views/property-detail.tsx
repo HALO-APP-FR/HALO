@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Link } from "@/i18n/navigation";
 import { timezoneLabel } from "@/lib/domain/geo";
 import { useHalo } from "@/lib/store/halo-store";
+import { DirectionsButton } from "@/components/halo/directions-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -69,6 +70,8 @@ function PropertyDetailInner({ id }: { id: string }) {
             {property.timezone !== orgTz && ` · ${timezoneLabel(property.timezone, locale)}`}
           </p>
         </div>
+        <div className="flex items-center gap-2">
+        <DirectionsButton property={property} size="md" />
         <Button
           variant="outline"
           size="sm"
@@ -80,6 +83,7 @@ function PropertyDetailInner({ id }: { id: string }) {
           {property.archived ? <ArchiveRestore /> : <Archive />}
           {property.archived ? t("propertyDetail.restore") : t("propertyDetail.archive")}
         </Button>
+        </div>
       </header>
 
       <Tabs defaultValue="calendar">

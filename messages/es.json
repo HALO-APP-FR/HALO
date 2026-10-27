@@ -1019,10 +1019,12 @@
     "other": "Otro"
   },
   "serviceStatus": {
-    "requested": "Por confirmar",
+    "requested": "Solicitada",
     "confirmed": "Confirmado",
     "done": "Realizado",
-    "cancelled": "Cancelado"
+    "cancelled": "Cancelado",
+    "info_requested": "Detalles solicitados",
+    "declined": "Rechazada"
   },
   "services": {
     "subtitle": "Conserjería de alta gama: cada solicitud seguida hasta el final.",
@@ -1031,7 +1033,7 @@
     "kpiRequested": "Solicitudes por confirmar",
     "kpiWeek": "Previstos en 7 días",
     "kpiRevenue": "Importe del mes",
-    "filterTodo": "Por confirmar",
+    "filterTodo": "Servicios solicitados",
     "filterUpcoming": "Próximos",
     "filterDone": "Pasados",
     "empty": "Ningún servicio aquí",
@@ -1056,7 +1058,7 @@
     "markDone": "Marcar realizado",
     "cancel": "Cancelar servicio",
     "doneToast": "Servicio realizado.",
-    "toast_confirmed": "Servicio confirmado.",
+    "toast_confirmed": "Solicitud aceptada.",
     "toast_done": "Servicio realizado.",
     "toast_cancelled": "Servicio cancelado.",
     "toast_requested": "Solicitud guardada.",
@@ -1072,7 +1074,16 @@
     "modeNone": "Sin asignar",
     "member": "Miembro del equipo",
     "chooseMember": "Elegir…",
-    "noStaffForKind": "Ningún miembro tiene el puesto «{position}». Asígnalo a un socio externo o déjalo sin asignar."
+    "noStaffForKind": "Ningún miembro tiene el puesto «{position}». Asígnalo a un socio externo o déjalo sin asignar.",
+    "accept": "Aceptar la solicitud",
+    "askInfo": "Pedir detalles",
+    "decline": "Rechazar",
+    "saveNote": "Guardar",
+    "noteLabel_info_requested": "Detalles que pedir al huésped",
+    "noteLabel_declined": "Motivo del rechazo",
+    "guestNotNotified": "El huésped no recibe aviso automático: contáctalo directamente.",
+    "toast_info_requested": "Detalles anotados en la solicitud.",
+    "toast_declined": "Solicitud rechazada."
   },
   "demo": {
     "badge": "Demo",
@@ -1127,5 +1138,29 @@
     "settingsHint": "Elige qué tipos de misión esperan tu validación. Los demás se validan en cuanto el agente los termina, para evitar cuellos de botella.",
     "ruleOn": "Validación por un responsable",
     "ruleOff": "Validada automáticamente al terminar"
+  },
+  "directions": {
+    "openWith": "Abrir la ruta con",
+    "openIn": "Ruta en {app}",
+    "other": "Elegir otra aplicación",
+    "default": "predeterminada",
+    "approximate": "Dirección incompleta: el destino será aproximado (nombre del alojamiento y ciudad).",
+    "app": {
+      "apple": "Mapas de Apple",
+      "google": "Google Maps",
+      "waze": "Waze"
+    },
+    "ask": "Preguntar cada vez",
+    "defaultApp": "Aplicación de rutas",
+    "privacy": "HALO solo abre la dirección del alojamiento en la aplicación elegida. Tu ubicación nunca se rastrea."
+  },
+  "spaces": {
+    "title": "Elige tu espacio",
+    "subtitle": "Elegir un espacio no cambia tus permisos.",
+    "manager": "Espacio Manager",
+    "managerText": "Planificación, misiones, equipo, alojamientos, servicios.",
+    "agent": "Espacio Agente",
+    "agentText": "Mis misiones del día, sobre el terreno.",
+    "demoNotice": "Demo sin cuentas: ambos espacios están abiertos. Con el inicio de sesión real, cada uno llega directamente a su espacio y un agente no puede abrir el espacio Manager ni usar sus funciones, ni siquiera con un enlace directo."
   }
 }

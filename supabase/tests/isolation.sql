@@ -490,6 +490,11 @@ select t.is('historique : une modification directe du manager est aussi tracée'
   t.dml('a_manager', format('update public.tasks set status = ''cancelled'' where id = %L', t.id('TC2'))) || '/' ||
   (select count(*)::text from public.task_events where task_id = t.id('TC2') and kind = 'cancelled'), '1/0');
 
+-- 3.5 Préférence d'itinéraire : chacun la sienne
+select t.is('itinéraire : chacun règle son application par défaut', t.dml('a_agent', format('update public.profiles set maps_app = ''waze'' where id = %L', t.id('a_agent'))), '1');
+select t.deny('itinéraire : pas celle d''un collègue', t.dml('a_manager', format('update public.profiles set maps_app = ''waze'' where id = %L', t.id('a_agent'))));
+select t.err('itinéraire : valeur inconnue refusée', t.dml('a_agent', format('update public.profiles set maps_app = ''autre'' where id = %L', t.id('a_agent'))), '23514');
+
 -- 3.4 Mission sans validation requise : validée automatiquement à la soumission
 select t.is('auto : démarrer un accueil', t.keep('a_agent2', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC2'))), 'applied');
 select t.is('auto : soumettre', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC2'))), 'applied');

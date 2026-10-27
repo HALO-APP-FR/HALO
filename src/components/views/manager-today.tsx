@@ -9,6 +9,7 @@ import { addDaysToKey, localDateKey } from "@/lib/engine/time";
 import { useLinenData } from "@/components/linen/use-linen";
 import { infeasibility } from "@/lib/engine/conflicts";
 import { useHalo } from "@/lib/store/halo-store";
+import { isPendingService } from "@/components/services/service-meta";
 import { activeAgents, arrivalsOfDay, departuresOfDay, tasksOfDay } from "@/lib/store/selectors";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,7 +61,7 @@ function ManagerTodayInner() {
     .filter((x) => infeasibility(x, nowDate))
     .sort((a, b) => a.windowEnd.localeCompare(b.windowEnd));
   const linenShortages = forecast.filter((r) => r.shortageDay);
-  const requestedServices = services.filter((x) => x.status === "requested");
+  const requestedServices = services.filter(isPendingService);
   const openAlerts = alerts.filter((a) => a.status !== "resolved");
   const urgentAlerts = openAlerts.filter((a) => a.urgent);
   const dateLabel = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(
@@ -103,7 +104,7 @@ function ManagerTodayInner() {
       tone: "text-vip bg-vip-soft",
       label: t("managerToday.servicesRequested", { count: requestedServices.length }),
       cta: t("managerToday.view"),
-      onClick: () => router.push("/services"),
+      onClick: () => router.push("/services?filter=todo"),
       primary: false,
     },
     unassigned.length > 0 && {

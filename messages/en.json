@@ -1019,10 +1019,12 @@
     "other": "Other"
   },
   "serviceStatus": {
-    "requested": "To confirm",
+    "requested": "Requested",
     "confirmed": "Confirmed",
     "done": "Done",
-    "cancelled": "Cancelled"
+    "cancelled": "Cancelled",
+    "info_requested": "Details requested",
+    "declined": "Declined"
   },
   "services": {
     "subtitle": "High-end concierge: every request followed through.",
@@ -1031,7 +1033,7 @@
     "kpiRequested": "Requests to confirm",
     "kpiWeek": "Planned in 7 days",
     "kpiRevenue": "This month's total",
-    "filterTodo": "To confirm",
+    "filterTodo": "Requested services",
     "filterUpcoming": "Upcoming",
     "filterDone": "Past",
     "empty": "No services here",
@@ -1056,7 +1058,7 @@
     "markDone": "Mark as done",
     "cancel": "Cancel service",
     "doneToast": "Service done.",
-    "toast_confirmed": "Service confirmed.",
+    "toast_confirmed": "Request accepted.",
     "toast_done": "Service done.",
     "toast_cancelled": "Service cancelled.",
     "toast_requested": "Request saved.",
@@ -1072,7 +1074,16 @@
     "modeNone": "Unassigned",
     "member": "Team member",
     "chooseMember": "Choose…",
-    "noStaffForKind": "No team member has the “{position}” role. Assign it to an external partner, or leave it unassigned."
+    "noStaffForKind": "No team member has the “{position}” role. Assign it to an external partner, or leave it unassigned.",
+    "accept": "Accept the request",
+    "askInfo": "Ask for details",
+    "decline": "Decline",
+    "saveNote": "Save",
+    "noteLabel_info_requested": "Details to get from the guest",
+    "noteLabel_declined": "Reason for declining",
+    "guestNotNotified": "The guest isn't notified automatically: contact them directly.",
+    "toast_info_requested": "Details noted on the request.",
+    "toast_declined": "Request declined."
   },
   "demo": {
     "badge": "Demo",
@@ -1127,5 +1138,29 @@
     "settingsHint": "Choose which job types wait for your approval. Others are approved as soon as the agent finishes, to avoid a bottleneck.",
     "ruleOn": "Approved by a manager",
     "ruleOff": "Approved automatically when done"
+  },
+  "directions": {
+    "openWith": "Open directions with",
+    "openIn": "Directions in {app}",
+    "other": "Choose another app",
+    "default": "default",
+    "approximate": "Incomplete address: the destination will be approximate (property name and city).",
+    "app": {
+      "apple": "Apple Maps",
+      "google": "Google Maps",
+      "waze": "Waze"
+    },
+    "ask": "Ask every time",
+    "defaultApp": "Directions app",
+    "privacy": "HALO only opens the property address in the chosen app. Your location is never tracked."
+  },
+  "spaces": {
+    "title": "Choose your space",
+    "subtitle": "Choosing a space doesn't change your rights.",
+    "manager": "Manager space",
+    "managerText": "Planning, jobs, team, properties, services.",
+    "agent": "Agent space",
+    "agentText": "My jobs for today, in the field.",
+    "demoNotice": "Demo without accounts: both spaces are open. With real sign-in, everyone lands in their own space, and an agent can neither open the Manager space nor use its functions, even with a direct link."
   }
 }
