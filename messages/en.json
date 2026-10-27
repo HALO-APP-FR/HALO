@@ -53,10 +53,10 @@
   },
   "taskStatus": {
     "unassigned": "Unassigned",
-    "assigned": "Assigned",
+    "assigned": "To do",
     "in_progress": "In progress",
-    "done": "To review",
-    "to_redo": "Redo",
+    "done": "Done, to review",
+    "to_redo": "Correction requested",
     "validated": "Approved",
     "cancelled": "Cancelled"
   },
@@ -194,8 +194,8 @@
   "taskSheet": {
     "assignedTo": "Assigned to {name}.",
     "unassignedToast": "Job unassigned.",
-    "validatedToast": "Cleaning approved.",
-    "redoToast": "Redo requested: it shows at the top of the agent app (same device in demo, no notification).",
+    "validatedToast": "Job approved.",
+    "redoToast": "Correction requested. The first report is kept. The agent sees it at the top of their space (demo: same device, no notification sent).",
     "cancelledToast": "Job cancelled.",
     "manual": "Created manually",
     "window": "Service window",
@@ -205,9 +205,9 @@
     "assign": "Assign",
     "startAt": "Planned start",
     "validate": "Approve",
-    "redo": "Request a redo",
-    "redoReason": "What needs to be redone?",
-    "sendRedo": "Request a redo",
+    "redo": "Request a correction",
+    "redoReason": "Reason for the correction (required)",
+    "sendRedo": "Send the correction request",
     "cancelTask": "Cancel this job",
     "duration": "Planned duration",
     "durationLearned": "{count, plural, one {Learned from # clocked cleaning} other {Learned from # clocked cleanings}}",
@@ -492,7 +492,16 @@
     "groupConcierge": "Concierge & services",
     "position": "Role",
     "positionHint": "Cleaning, QA, maintenance and greeters appear in the schedule; drivers and chefs receive services.",
-    "hoursWeek": "clocked this week"
+    "hoursWeek": "clocked this week",
+    "collaboration": "Working arrangement",
+    "collaborationHint": "For reference only: it grants no rights in HALO. Access depends only on the role.",
+    "collaborationUnset": "Not specified",
+    "roleHint": "The role decides access: an agent only sees their own jobs.",
+    "edit": "Edit",
+    "editTitle": "Edit {name}",
+    "call": "Call {phone}",
+    "noPhone": "No phone number",
+    "statusActive": "Yes"
   },
   "role": {
     "owner": "Owner",
@@ -977,7 +986,13 @@
     "checkedCount": "{done}/{total} items checked",
     "photosTaken": "{count, plural, one {# photo taken} other {# photos taken}}",
     "realTime": "Actual {time}",
-    "plannedTime": "planned {time}"
+    "plannedTime": "planned {time}",
+    "notYours": "This job isn't assigned to your account.",
+    "cannotSubmit": "This job can't be submitted in its current state.",
+    "submittedToast": "Job done: it's waiting for your manager's approval.",
+    "awaitingValidation": "Waiting for your manager's approval.",
+    "validatedNote": "Job approved.",
+    "correctionRequested": "Correction requested"
   },
   "agentCalendar": {
     "next7": "7 days",
@@ -1089,5 +1104,28 @@
     "optTellGuest": "inform the guest if their arrival is affected;",
     "assignRisk": "Any assignment as things stand will overrun the window.",
     "noAgentFree": "no team member free for a long enough slot"
+  },
+  "collaboration": {
+    "internal": "Employee",
+    "freelance": "Freelancer",
+    "partner_company": "Partner company"
+  },
+  "cycle": {
+    "willNeedValidation": "Once done, this job will wait for your approval.",
+    "autoValidated": "This job type is approved automatically when the agent finishes it (can be changed in Settings).",
+    "history": "History",
+    "event": {
+      "started": "Started",
+      "submitted": "Done, sent for review",
+      "validated": "Approved",
+      "auto_validated": "Done and approved automatically",
+      "correction_requested": "Correction requested",
+      "cancelled": "Cancelled"
+    },
+    "archivedReport": "Report #{n} (submitted {date}), kept",
+    "settingsTitle": "Job approval",
+    "settingsHint": "Choose which job types wait for your approval. Others are approved as soon as the agent finishes, to avoid a bottleneck.",
+    "ruleOn": "Approved by a manager",
+    "ruleOff": "Approved automatically when done"
   }
 }

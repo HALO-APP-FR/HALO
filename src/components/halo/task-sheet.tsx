@@ -8,7 +8,8 @@ import { initialsOf, type Task, type TaskStatus } from "@/lib/domain/types";
 import { conflictsIfAssigned } from "@/lib/engine/conflicts";
 import { formatDuration, learnedCleaningDuration } from "@/lib/engine/learning";
 import { formatLocalTime, isSameLocalDay, formatLocalRange } from "@/lib/engine/time";
-import { activeAgents, taskDayKey } from "@/lib/store/selectors";
+import { activeAgents, currentManager, taskDayKey } from "@/lib/store/selectors";
+import { needsValidation } from "@/lib/engine/mission-cycle";
 import { useHalo } from "@/lib/store/halo-store";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,8 @@ import { TaskLinenKit } from "@/components/linen/task-linen-kit";
 import { GuestBadges } from "./guest-badges";
 import { StatusPill } from "./status-pill";
 import { TaskReportView } from "./task-report";
+import { ArchivedReports, TaskHistory } from "./task-history";
+import { CorrectionNotice } from "@/components/views/agent-task";
 import { FeasibilityBadge, FeasibilityExplain, useTaskTiming } from "./task-timing";
 import { VipBadge } from "./vip-badge";
 import { TaskTypeIcon } from "./task-type";
@@ -42,10 +45,12 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
   const t = useTranslations();
   const locale = useLocale();
   const tasks = useHalo((s) => s.tasks);
+  const validationTypes = useHalo((s) => s.org.validationTaskTypes);
   const properties = useHalo((s) => s.properties);
   const reservations = useHalo((s) => s.reservations);
   const members = useHalo((s) => s.members);
-  const { assignTask, setTaskStatus, updateTask, setTaskDuration } = useHalo.getState();
+  const { assignTask, setTaskStatus, updateTask, setTaskDuration, validateTask, requestCorrection } = useHalo.getState();
+  const manager = currentManager(members);
   const timing = useTaskTiming();
 
   const task = tasks.find((x) => x.id === taskId);
@@ -89,7 +94,7 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
   };
 
   const status = (s: TaskStatus, message: string) => {
-    setTaskStatus(task.id, s);
+    setTaskStatus(task.id, s, manager?.name);
     toast(message);
   };
 
@@ -269,26 +274,28 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
             </div>
           )}
 
-          <TaskReportView task={task} property={property} />
+          {task.status === "to_redo" && <CorrectionNotice task={task} />}
 
-          {/* Traçabilité : reprise et validation */}
-          {(task.previousWorkMin || task.validatedAt) && (
-            <ul className="space-y-1 text-caption text-muted">
-              {task.previousWorkMin ? <li>{t("taskSheet.redoTrace", { time: formatDuration(task.previousWorkMin, locale) })}</li> : null}
-              {task.validatedAt && (
-                <li>
-                  {t("taskSheet.validatedAt", {
-                    date: `${new Intl.DateTimeFormat(locale, { timeZone: tz, weekday: "short", day: "numeric", month: "short" }).format(new Date(task.validatedAt))} ${formatLocalTime(new Date(task.validatedAt), tz, locale)}`,
-                  })}
-                </li>
-              )}
-            </ul>
+          <TaskReportView task={task} property={property} />
+          <ArchivedReports task={task} property={property} />
+
+          {task.previousWorkMin ? <p className="text-caption text-muted">{t("taskSheet.redoTrace", { time: formatDuration(task.previousWorkMin, locale) })}</p> : null}
+          <TaskHistory task={task} tz={tz} />
+          {(task.status === "assigned" || task.status === "in_progress") && (
+            <p className="text-caption text-muted">
+              {needsValidation(task.type, validationTypes) ? t("cycle.willNeedValidation") : t("cycle.autoValidated")}
+            </p>
           )}
 
           {/* Contrôle qualité */}
           {task.status === "done" && !showRedo && (
             <div className="grid grid-cols-2 gap-2">
-              <Button size="lg" onClick={() => status("validated", t("taskSheet.validatedToast"))}>
+              <Button
+                size="lg"
+                onClick={() => {
+                  if (validateTask(task.id, manager?.id).ok) toast(t("taskSheet.validatedToast"));
+                }}
+              >
                 <Check />
                 {t("taskSheet.validate")}
               </Button>
@@ -303,10 +310,10 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
               className="space-y-3"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!redoReason.trim()) return;
-                updateTask(task.id, { status: "to_redo", notes: redoReason.trim() });
+                if (!requestCorrection(task.id, manager?.id, redoReason).ok) return;
                 toast(t("taskSheet.redoToast"));
                 setShowRedo(false);
+                setRedoReason("");
               }}
             >
               <Field label={t("taskSheet.redoReason")} htmlFor="redo">
@@ -318,7 +325,7 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
             </form>
           )}
 
-          {task.notes && task.status !== "done" && (
+          {task.notes && task.status !== "done" && task.notes !== task.correctionReason && (
             <p className="rounded-lg bg-warning-soft p-3 text-[14px] text-fg">{task.notes}</p>
           )}
 

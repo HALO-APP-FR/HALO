@@ -126,6 +126,9 @@ insert into public.files (organization_id, kind, task_id, property_id, path, mim
   (t.id('B'), 'task_photo', t.id('TB1'), t.id('PB1'), t.id('B') || '/task/' || t.id('TB1') || '/fb1.jpg', 'image/jpeg', 1000, t.id('b_agent'));
 insert into storage.objects (bucket_id, name, owner) select 'org-files', path, created_by from public.files;
 
+insert into public.task_report_versions (organization_id, task_id, checked, rooms) values
+  (t.id('A'), t.id('TA2'), '[]', '{}'), (t.id('B'), t.id('TB1'), '[]', '{}');
+
 -- Une ligne témoin par table et par organisation, pour les essais d'écriture croisée
 do $$
 declare tbl text; o text;
@@ -424,6 +427,74 @@ select t.is('organisation : un utilisateur crée la sienne et en devient owner',
    where o.name = 'Conciergerie C' and m.user_id = t.id('b_agent')), 'owner');
 select t.is('organisation : il ne voit que C (il a quitté B)', t.q('b_agent', 'select string_agg(name, ''|'') from public.organizations'), 'Conciergerie C');
 select t.err('organisation : anonyme ne crée rien', t.q(null, 'select public.create_organization(''X'')'), '42501');
+
+
+-- =====================================================================
+-- 3. Fiches équipe et cycle de fin de mission (migration 2)
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['TC1', 'TC2', 'roomA2', 'itemA2']) k;
+insert into public.checklist_rooms (id, organization_id, property_id, name) values (t.id('roomA2'), t.id('A'), t.id('PA2'), 'Salle de bain');
+insert into public.checklist_items (id, organization_id, room_id, label, photo_required) values (t.id('itemA2'), t.id('A'), t.id('roomA2'), 'Douche', true);
+insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, window_start, window_end, duration_min) values
+  (t.id('TC1'), t.id('A'), t.id('PA2'), 'turnover', 'assigned', t.id('a_agent2'), now() - interval '1 hour', now() + interval '3 hours', 60),
+  (t.id('TC2'), t.id('A'), t.id('PA2'), 'check_in', 'assigned', t.id('a_agent2'), now() - interval '1 hour', now() + interval '3 hours', 30);
+
+-- 3.1 Type de collaboration : information, modifiable selon les rôles existants
+select t.is('collaboration : manager renseigne celle d''un agent', t.dml('a_manager', format('update public.memberships set collaboration = ''freelance'' where organization_id = %L and user_id = %L', t.id('A'), t.id('a_agent2'))), '1');
+select t.deny('collaboration : manager ne modifie pas celle du owner', t.dml('a_manager', format('update public.memberships set collaboration = ''freelance'' where user_id = %L', t.id('a_owner'))));
+select t.deny('collaboration : agent ne modifie pas la sienne', t.dml('a_agent2', format('update public.memberships set collaboration = ''internal'' where user_id = %L', t.id('a_agent2'))));
+select t.deny('collaboration : manager de B ne touche pas A', t.dml('b_manager', format('update public.memberships set collaboration = ''internal'' where organization_id = %L', t.id('A'))));
+
+-- 3.2 Règle de validation : réglée par les managers de l'organisation
+select t.deny('règle : agent ne change pas la règle de validation', t.dml('a_agent2', format('update public.organizations set validation_task_types = ''{}'' where id = %L', t.id('A'))));
+select t.deny('règle : manager de B ne change pas celle de A', t.dml('b_manager', format('update public.organizations set validation_task_types = ''{}'' where id = %L', t.id('A'))));
+select t.is('règle : manager de A la change', t.dml('a_manager', format('update public.organizations set validation_task_types = ''{turnover,inspection}'' where id = %L', t.id('A'))), '1');
+
+-- 3.3 Cycle complet avec photo obligatoire, correction et validation
+select t.is('cycle : démarrer', t.keep('a_agent2', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC1'))), 'applied');
+select t.is('cycle : soumission refusée sans la photo obligatoire', t.keep('a_agent2', format('select public.finish_task(%L, %L, %L)', t.id('A'), t.id('TC1'), '22222222-2222-2222-2222-222222222222')), 'missing_photos');
+select t.is('cycle : la mission reste en cours', (select status::text from public.tasks where id = t.id('TC1')), 'in_progress');
+select t.is('cycle : le refus n''est pas mémorisé (l''action pourra être rejouée)', (select count(*)::text from public.task_actions where id = '22222222-2222-2222-2222-222222222222'), '0');
+select t.check('cycle : photo du point obligatoire réservée',
+  t.keep('a_agent2', format('select public.begin_upload(%L, ''task_photo'', ''image/jpeg'', 900, %L, null, %L)', t.id('A'), t.id('TC1'), t.id('itemA2'))), true);
+select t.is('cycle : même action rejouée, cette fois acceptée', t.keep('a_agent2', format('select public.finish_task(%L, %L, %L)', t.id('A'), t.id('TC1'), '22222222-2222-2222-2222-222222222222')), 'applied');
+select t.is('cycle : terminée, à valider (ménage)', (select status::text from public.tasks where id = t.id('TC1')), 'done');
+select t.err('cycle : agent ne valide pas', t.q('a_agent2', format('select public.validate_task(%L, %L)', t.id('A'), t.id('TC1'))), '42501');
+select t.err('cycle : agent ne demande pas de correction', t.q('a_agent2', format('select public.request_correction(%L, %L, ''x'')', t.id('A'), t.id('TC1'))), '42501');
+select t.err('cycle : manager de B ne valide pas une mission de A', t.q('b_manager', format('select public.validate_task(%L, %L)', t.id('A'), t.id('TC1'))), '42501');
+select t.err('cycle : manager de B, mission de A annoncée en B', t.q('b_manager', format('select public.validate_task(%L, %L)', t.id('B'), t.id('TC1'))), 'P0002');
+select t.err('cycle : correction sans motif refusée', t.q('a_manager', format('select public.request_correction(%L, %L, ''  '')', t.id('A'), t.id('TC1'))), '22023');
+select t.err('cycle : correction directe sans motif refusée', t.dml('a_manager', format('update public.tasks set status = ''to_redo'' where id = %L', t.id('TC1'))), '23514');
+select t.is('cycle : correction demandée', t.keep('a_manager', format('select public.request_correction(%L, %L, ''Douche à reprendre'')', t.id('A'), t.id('TC1'))), 'applied');
+select t.is('cycle : statut et motif', (select status || ' / ' || correction_reason from public.tasks where id = t.id('TC1')), 'to_redo / Douche à reprendre');
+select t.is('cycle : le premier compte rendu est conservé, visible par l''agent', t.q('a_agent2', format('select count(*) from public.task_report_versions where task_id = %L', t.id('TC1'))), '1');
+select t.is('cycle : invisible pour un autre agent', t.q('a_agent', format('select count(*) from public.task_report_versions where task_id = %L', t.id('TC1'))), '0');
+select t.is('cycle : l''agent reprend', t.keep('a_agent2', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC1'))), 'applied');
+select t.is('cycle : il resoumet', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC1'))), 'applied');
+select t.is('cycle : le manager valide', t.keep('a_manager', format('select public.validate_task(%L, %L)', t.id('A'), t.id('TC1'))), 'applied');
+select t.is('cycle : validée par le manager', (select status || ' / ' || (validated_by = t.id('a_manager'))::text from public.tasks where id = t.id('TC1')), 'validated / true');
+select t.is('cycle : valider deux fois = conflit sans effet', t.q('a_manager', format('select public.validate_task(%L, %L)', t.id('A'), t.id('TC1'))), 'conflict:validated');
+select t.is('historique : toutes les étapes, dans l''ordre',
+  (select string_agg(kind, ',' order by id) from public.task_events where task_id = t.id('TC1')),
+  'created,started,submitted,correction_requested,started,submitted,validated');
+select t.is('historique : auteur de chaque étape',
+  (select string_agg(case actor_id when t.id('a_agent2') then 'agent' when t.id('a_manager') then 'manager' else 'système' end, ',' order by id) from public.task_events where task_id = t.id('TC1')),
+  'système,agent,agent,manager,agent,agent,manager');
+select t.is('historique : motif de correction conservé', (select note from public.task_events where task_id = t.id('TC1') and kind = 'correction_requested'), 'Douche à reprendre');
+select t.is('historique : lisible par l''agent de la mission', t.q('a_agent2', format('select count(*) from public.task_events where task_id = %L', t.id('TC1'))), '7');
+select t.is('historique : invisible pour un autre agent', t.q('a_agent', format('select count(*) from public.task_events where task_id = %L', t.id('TC1'))), '0');
+select t.is('historique : invisible pour l''autre organisation', t.q('b_owner', format('select count(*) from public.task_events where task_id = %L', t.id('TC1'))), '0');
+select t.err('historique : personne n''écrit directement', t.dml('a_owner', format('insert into public.task_events (organization_id, task_id, kind) values (%L, %L, ''validated'')', t.id('A'), t.id('TC1'))), '42501');
+select t.deny('historique : personne ne l''efface', t.dml('a_owner', format('delete from public.task_events where task_id = %L', t.id('TC1'))));
+select t.is('historique : une modification directe du manager est aussi tracée',
+  t.dml('a_manager', format('update public.tasks set status = ''cancelled'' where id = %L', t.id('TC2'))) || '/' ||
+  (select count(*)::text from public.task_events where task_id = t.id('TC2') and kind = 'cancelled'), '1/0');
+
+-- 3.4 Mission sans validation requise : validée automatiquement à la soumission
+select t.is('auto : démarrer un accueil', t.keep('a_agent2', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC2'))), 'applied');
+select t.is('auto : soumettre', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC2'))), 'applied');
+select t.is('auto : validée sans passer par le manager', (select status::text from public.tasks where id = t.id('TC2')), 'validated');
+select t.is('auto : tracée comme validation automatique', (select kind from public.task_events where task_id = t.id('TC2') order by id desc limit 1), 'auto_validated');
 
 -- =====================================================================
 -- Bilan

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Phone, Plus, UserRound, Users } from "lucide-react";
-import { initialsOf, type Member, type MemberRole, type StaffPosition } from "@/lib/domain/types";
+import { Briefcase, Pencil, Phone, Plus, UserRound, Users } from "lucide-react";
+import { COLLABORATIONS, initialsOf, type Collaboration, type Member, type MemberRole, type StaffPosition } from "@/lib/domain/types";
 import { formatDuration, workedMinutes } from "@/lib/engine/learning";
 import { addDaysToKey, localDateKey, zonedTimeToUtc } from "@/lib/engine/time";
 import { useHalo } from "@/lib/store/halo-store";
@@ -103,6 +103,12 @@ function TeamInner() {
                       <span className="flex items-center gap-2">
                         <span className="truncate text-[15px] font-semibold">{m.name}</span>
                         <Badge>{m.role === "agent" ? t(`position.${m.position ?? "housekeeper"}`) : t(`role.${m.role}`)}</Badge>
+                        {m.collaboration && m.collaboration !== "internal" && (
+                          <Badge className="hidden sm:inline-flex">
+                            <Briefcase className="size-3" />
+                            {t(`collaboration.${m.collaboration}`)}
+                          </Badge>
+                        )}
                         {!m.active && <Badge tone="warning">{t("team.inactive")}</Badge>}
                       </span>
                       {m.phone && (
@@ -141,7 +147,76 @@ function MemberSheet({ member, onClose }: { member: Member | "new" | null; onClo
   return <MemberSheetInner key={member === "new" ? "new" : member.id} member={member} onClose={onClose} />;
 }
 
+/** Lien d'appel : numéro nettoyé (chiffres et +), seulement s'il est plausible. */
+export function telHref(phone?: string) {
+  if (!phone || !isPlausiblePhone(phone)) return undefined;
+  return `tel:${phone.replace(/[^\d+]/g, "")}`;
+}
+
 function MemberSheetInner({ member, onClose }: { member: Member | "new"; onClose: () => void }) {
+  // Une fiche existante s'ouvre en consultation : la modification demande une action explicite
+  const [editing, setEditing] = useState(member === "new");
+  const t = useTranslations();
+  if (member !== "new" && !editing) {
+    return (
+      <Sheet open onOpenChange={(o) => !o && onClose()}>
+        <SheetContent title={member.name} closeLabel={t("common.close")}>
+          <MemberView member={member} onEdit={() => setEditing(true)} />
+        </SheetContent>
+      </Sheet>
+    );
+  }
+  return <MemberForm member={member} onClose={onClose} onCancel={member === "new" ? onClose : () => setEditing(false)} />;
+}
+
+function MemberView({ member, onEdit }: { member: Member; onEdit: () => void }) {
+  const t = useTranslations();
+  const tel = telHref(member.phone);
+  const rows: { label: string; value: string }[] = [
+    { label: t("team.role"), value: t(`role.${member.role}`) },
+    ...(member.role === "agent" ? [{ label: t("team.position"), value: t(`position.${member.position ?? "housekeeper"}`) }] : []),
+    ...(member.collaboration ? [{ label: t("team.collaboration"), value: t(`collaboration.${member.collaboration}`) }] : []),
+    { label: t("team.active"), value: member.active ? t("team.statusActive") : t("team.inactive") },
+  ];
+  return (
+    <div className="space-y-5 pt-2">
+      <div className="flex flex-col items-center gap-2 py-2 text-center">
+        <Avatar initials={initialsOf(member.name)} color={member.color} size="lg" className="size-16 text-[22px] ring-0" />
+        <span className="text-title-3">{member.name}</span>
+      </div>
+      {member.phone ? (
+        tel ? (
+          <a
+            href={tel}
+            className="flex h-12 items-center justify-center gap-2 rounded-lg bg-accent-soft text-[16px] font-semibold text-accent-text tabular"
+          >
+            <Phone className="size-4" />
+            {t("team.call", { phone: member.phone })}
+          </a>
+        ) : (
+          <p className="text-center text-[15px] text-muted tabular">{member.phone}</p>
+        )
+      ) : (
+        <p className="text-center text-caption text-muted">{t("team.noPhone")}</p>
+      )}
+      <dl className="divide-y divide-line rounded-lg border border-line">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-center justify-between gap-3 px-3 py-2.5">
+            <dt className="text-[14px] text-muted">{r.label}</dt>
+            <dd className="text-[15px] font-medium">{r.value}</dd>
+          </div>
+        ))}
+      </dl>
+      {member.collaboration && <p className="text-caption text-muted">{t("team.collaborationHint")}</p>}
+      <Button type="button" size="xl" variant="secondary" onClick={onEdit}>
+        <Pencil />
+        {t("team.edit")}
+      </Button>
+    </div>
+  );
+}
+
+function MemberForm({ member, onClose, onCancel }: { member: Member | "new"; onClose: () => void; onCancel: () => void }) {
   const t = useTranslations();
   const count = useHalo((s) => s.members.length);
   const isNew = member === "new";
@@ -149,6 +224,7 @@ function MemberSheetInner({ member, onClose }: { member: Member | "new"; onClose
   const [phone, setPhone] = useState(isNew ? "" : member.phone ?? "");
   const [role, setRole] = useState<MemberRole>(isNew ? "agent" : member.role);
   const [position, setPosition] = useState<StaffPosition>(isNew ? "housekeeper" : member.position ?? "housekeeper");
+  const [collaboration, setCollaboration] = useState<Collaboration | "">(isNew ? "internal" : member.collaboration ?? "");
   const [color, setColor] = useState(isNew ? PALETTE[count % PALETTE.length] : member.color);
   const [active, setActive] = useState(isNew ? true : member.active);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -161,8 +237,9 @@ function MemberSheetInner({ member, onClose }: { member: Member | "new"; onClose
     setErrors(err);
     if (Object.keys(err).length) return;
     const { addMember, updateMember } = useHalo.getState();
+    const collab = collaboration || undefined;
     if (isNew) {
-      addMember({ name: name.trim(), phone: phone.trim() || undefined, role, color, position: role === "agent" ? position : undefined });
+      addMember({ name: name.trim(), phone: phone.trim() || undefined, role, color, position: role === "agent" ? position : undefined, collaboration: collab });
       toast(t("team.added", { name: name.trim() }));
     } else {
       updateMember(member.id, {
@@ -170,6 +247,7 @@ function MemberSheetInner({ member, onClose }: { member: Member | "new"; onClose
         phone: phone.trim() || undefined,
         role: member.role === "owner" ? "owner" : role,
         position: role === "agent" ? position : undefined,
+        collaboration: collab,
         color,
         active,
       });
@@ -180,7 +258,7 @@ function MemberSheetInner({ member, onClose }: { member: Member | "new"; onClose
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()}>
-      <SheetContent title={isNew ? t("team.add") : name || t("team.member")} closeLabel={t("common.close")}>
+      <SheetContent title={isNew ? t("team.add") : t("team.editTitle", { name: member.name })} closeLabel={t("common.close")}>
         <form onSubmit={submit} noValidate className="space-y-4 pt-2">
           <div className="flex justify-center py-2">
             <Avatar initials={name ? initialsOf(name) : "?"} color={color} size="lg" className="size-16 text-[22px] ring-0" />
@@ -192,7 +270,7 @@ function MemberSheetInner({ member, onClose }: { member: Member | "new"; onClose
             <Input id="m-phone" type="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t("auth.phonePlaceholder")} className="tabular" />
           </Field>
           {(isNew || member.role !== "owner") && (
-            <Field label={t("team.role")} htmlFor="m-role">
+            <Field label={t("team.role")} htmlFor="m-role" hint={t("team.roleHint")}>
               <Select id="m-role" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
                 <option value="agent">{t("role.agent")}</option>
                 <option value="manager">{t("role.manager")}</option>
@@ -210,6 +288,16 @@ function MemberSheetInner({ member, onClose }: { member: Member | "new"; onClose
               </Select>
             </Field>
           )}
+          <Field label={t("team.collaboration")} htmlFor="m-collab" hint={t("team.collaborationHint")}>
+            <Select id="m-collab" value={collaboration} onChange={(e) => setCollaboration(e.target.value as Collaboration | "")}>
+              <option value="">{t("team.collaborationUnset")}</option>
+              {COLLABORATIONS.map((c) => (
+                <option key={c} value={c}>
+                  {t(`collaboration.${c}`)}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <fieldset>
             <legend className="mb-2 text-[13px] font-medium text-muted">{t("team.color")}</legend>
             <div className="flex flex-wrap gap-2">
@@ -235,9 +323,14 @@ function MemberSheetInner({ member, onClose }: { member: Member | "new"; onClose
               {t("team.inviteSoon")}
             </p>
           )}
-          <Button type="submit" size="xl">
-            {isNew ? t("team.add") : t("form.save")}
-          </Button>
+          <div className="grid gap-2">
+            <Button type="submit" size="xl">
+              {isNew ? t("team.add") : t("form.save")}
+            </Button>
+            <Button type="button" size="lg" variant="ghost" onClick={onCancel}>
+              {t("form.cancel")}
+            </Button>
+          </div>
         </form>
       </SheetContent>
     </Sheet>

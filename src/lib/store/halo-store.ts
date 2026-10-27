@@ -23,6 +23,8 @@ import type {
   ServiceRequest,
   Task,
   TaskReport,
+  TaskEvent,
+  TaskEventKind,
   TaskStatus,
 } from "@/lib/domain/types";
 import { newId } from "@/lib/domain/templates";
@@ -37,6 +39,17 @@ import {
 } from "@/lib/engine/linen";
 import { actualMinutes, withLearnedDuration } from "@/lib/engine/learning";
 import { planTasks } from "@/lib/engine/tasks";
+import {
+  canRequestCorrection,
+  canStart,
+  canSubmit,
+  canValidate,
+  checklistApplies,
+  needsValidation,
+  type ReviewCheck,
+  type StartCheck,
+  type SubmitCheck,
+} from "@/lib/engine/mission-cycle";
 import { DEFAULT_LINEN_SETTINGS, applyPlan, buildDemoData, defaultGuide, defaultLinenTypes, newToken, type HaloData } from "./seed";
 
 export type NewProperty = Omit<Property, "id" | "createdAt" | "archived" | "feeds" | "guide" | "linenParLevel" | "amenities" | "customAmenities"> &
@@ -73,14 +86,20 @@ interface HaloState extends HaloData {
   addTask: (input: NewTask) => string;
   updateTask: (id: string, patch: Partial<Task>) => void;
   assignTask: (id: string, agentId: string | undefined, scheduledStart?: string) => void;
-  setTaskStatus: (id: string, status: TaskStatus) => void;
+  /** Changement de statut bas niveau, toujours tracé dans l'historique. */
+  setTaskStatus: (id: string, status: TaskStatus, by?: string) => void;
+  /** Cycle de mission : chaque action vérifie qui agit et dans quel état est la mission. */
+  startTask: (id: string, memberId: string | undefined) => StartCheck;
+  submitTask: (id: string, memberId: string | undefined) => SubmitCheck & { alerts?: number; status?: TaskStatus };
+  validateTask: (id: string, managerId: string | undefined) => ReviewCheck;
+  requestCorrection: (id: string, managerId: string | undefined, reason: string) => ReviewCheck;
   applyAssignments: (list: { taskId: string; agentId: string; scheduledStart: string }[]) => void;
   /** Durée prévue fixée à la main (le moteur ne la recalcule plus). */
   setTaskDuration: (id: string, minutes: number) => void;
   /** Met à jour le rapport de mission de l'agent (cases cochées, photos, état des pièces). */
   updateTaskReport: (id: string, update: (report: TaskReport) => TaskReport) => void;
-  /** Fin de mission : pointage, pièces sans état → RAS, chaque anomalie devient une alerte. */
-  finishTask: (id: string, reporterName?: string) => number;
+  /** Fin de mission (interne, appelée par submitTask) : pièces sans état → RAS, chaque anomalie devient une alerte. */
+  finishTask: (id: string, reporterName?: string, finalStatus?: TaskStatus) => number;
 
   addService: (input: NewService) => string;
   updateService: (id: string, patch: Partial<ServiceRequest>) => void;
@@ -164,6 +183,21 @@ const ROOM_ALERT: Record<Exclude<RoomStatus, "ok">, Alert["category"]> = {
   dirty: "cleanliness",
   other: "other",
 };
+
+const EVENT_FOR: Partial<Record<TaskStatus, TaskEventKind>> = {
+  in_progress: "started",
+  done: "submitted",
+  validated: "validated",
+  to_redo: "correction_requested",
+  cancelled: "cancelled",
+};
+
+function withEvent(task: Task, status: TaskStatus, by?: string, note?: string): TaskEvent[] | undefined {
+  if (task.status === status) return task.events;
+  const kind: TaskEventKind | undefined = status === "validated" && task.status === "in_progress" ? "auto_validated" : EVENT_FOR[status];
+  if (!kind) return task.events;
+  return [...(task.events ?? []), { at: new Date().toISOString(), kind, by, ...(note ? { note } : {}) }];
+}
 
 function regenerate(state: HaloData, propertyIds?: string[]): Pick<HaloData, "tasks"> {
   const now = new Date();
@@ -346,13 +380,13 @@ export const useHalo = create<HaloState>()(
             return { ...x, assigneeId: agentId, scheduledStart: agentId ? scheduledStart ?? x.scheduledStart : undefined, status };
           }),
         })),
-      setTaskStatus: (id, status) =>
+      setTaskStatus: (id, status, by) =>
         set((s) => ({
           linenMovements: (() => {
             // Fin d'un ménage : le linge du logement part au sale, le kit neuf est posé (une seule fois)
             const task = s.tasks.find((x) => x.id === id);
             const property = task && s.properties.find((p) => p.id === task.propertyId);
-            if (!task || !property || status !== "done" || task.type !== "turnover") return s.linenMovements;
+            if (!task || !property || (status !== "done" && status !== "validated") || task.type !== "turnover") return s.linenMovements;
             if (s.linenMovements.some((m) => m.taskId === id)) return s.linenMovements;
             const kit = kitForTask(task, property, s.linenTypes);
             return [
@@ -363,16 +397,19 @@ export const useHalo = create<HaloState>()(
           tasks: s.tasks.map((x) => {
             if (x.id !== id) return x;
             const stamp = new Date().toISOString();
+            const events = withEvent(x, status, by);
             // Reprise : le premier passage est conservé à part, un nouveau pointage commence
             if (status === "in_progress" && x.status === "to_redo") {
               const first = actualMinutes(x) ?? 0;
-              return { ...x, status, previousWorkMin: (x.previousWorkMin ?? 0) + first, startedAt: stamp, completedAt: undefined };
+              return { ...x, status, events, previousWorkMin: (x.previousWorkMin ?? 0) + first, startedAt: stamp, completedAt: undefined };
             }
+            const submitted = (status === "done" || status === "validated") && x.status === "in_progress";
             return {
               ...x,
               status,
+              events,
               startedAt: status === "in_progress" ? x.startedAt ?? stamp : x.startedAt,
-              completedAt: status === "done" ? stamp : x.completedAt,
+              completedAt: submitted ? stamp : x.completedAt,
               validatedAt: status === "validated" ? stamp : status === "to_redo" ? undefined : x.validatedAt,
             };
           }),
@@ -391,14 +428,68 @@ export const useHalo = create<HaloState>()(
         })),
       updateTaskReport: (id, update) =>
         set((s) => ({ tasks: s.tasks.map((x) => (x.id === id ? { ...x, report: update(x.report ?? emptyReport()) } : x)) })),
-      finishTask: (id, reporterName) => {
+      startTask: (id, memberId) => {
+        const task = get().tasks.find((x) => x.id === id);
+        if (!task) return { ok: false, reason: "bad_status" };
+        const check = canStart(task, memberId);
+        if (!check.ok) return check;
+        get().setTaskStatus(id, "in_progress", get().members.find((m) => m.id === memberId)?.name);
+        return check;
+      },
+      submitTask: (id, memberId) => {
+        const s0 = get();
+        const task = s0.tasks.find((x) => x.id === id);
+        const property = task && s0.properties.find((p) => p.id === task.propertyId);
+        if (!task || !property) return { ok: false, reason: "bad_status" };
+        const check = canSubmit(task, property, memberId);
+        if (!check.ok) return check;
+        const status: TaskStatus = needsValidation(task.type, s0.org.validationTaskTypes) ? "done" : "validated";
+        const name = s0.members.find((m) => m.id === memberId)?.name;
+        const alerts = get().finishTask(id, name, status);
+        return { ok: true, alerts, status };
+      },
+      validateTask: (id, managerId) => {
+        const task = get().tasks.find((x) => x.id === id);
+        const by = get().members.find((m) => m.id === managerId);
+        if (!task) return { ok: false, reason: "bad_status" };
+        const check = canValidate(task, by);
+        if (!check.ok) return check;
+        get().setTaskStatus(id, "validated", by?.name);
+        return check;
+      },
+      requestCorrection: (id, managerId, reason) => {
+        const task = get().tasks.find((x) => x.id === id);
+        const by = get().members.find((m) => m.id === managerId);
+        if (!task) return { ok: false, reason: "bad_status" };
+        const check = canRequestCorrection(task, by, reason);
+        if (!check.ok) return check;
+        const note = reason.trim();
+        const at = new Date().toISOString();
+        set((s) => ({
+          tasks: s.tasks.map((x) =>
+            x.id === id
+              ? {
+                  ...x,
+                  status: "to_redo" as const,
+                  correctionReason: note,
+                  validatedAt: undefined,
+                  events: withEvent(x, "to_redo", by?.name, note),
+                  // Le compte rendu soumis est conservé tel quel ; l'agent repart de cette base
+                  reportHistory: [...(x.reportHistory ?? []), { report: x.report ?? emptyReport(), startedAt: x.startedAt, completedAt: x.completedAt, archivedAt: at }],
+                }
+              : x,
+          ),
+        }));
+        return check;
+      },
+      finishTask: (id, reporterName, finalStatus = "done") => {
         const task = get().tasks.find((x) => x.id === id);
         const property = task && get().properties.find((p) => p.id === task.propertyId);
         if (!task || !property) return 0;
         const report = task.report ?? emptyReport();
         const rooms = { ...report.rooms };
         let created = 0;
-        for (const room of property.checklist) {
+        for (const room of checklistApplies(task) ? property.checklist : []) {
           const r = rooms[room.id] ?? {};
           if (!r.status) {
             rooms[room.id] = { ...r, status: "ok" };
@@ -420,7 +511,7 @@ export const useHalo = create<HaloState>()(
           created += 1;
         }
         get().updateTaskReport(id, () => ({ ...report, rooms }));
-        get().setTaskStatus(id, "done");
+        get().setTaskStatus(id, finalStatus, reporterName);
         return created;
       },
 
@@ -617,7 +708,7 @@ export const useHalo = create<HaloState>()(
     }),
     {
       name: "halo-demo-v1",
-      version: 3,
+      version: 4,
       // v1 → v2 : équipements, livret voyageur, alertes, linge
       migrate: (persisted, version) => {
         const data = persisted as Partial<HaloData> & { seeded?: boolean };
@@ -639,6 +730,11 @@ export const useHalo = create<HaloState>()(
         if (version < 3) {
           data.members = (data.members ?? []).map((m) => (m.role === "agent" && !m.position ? { ...m, position: "housekeeper" as const } : m));
           data.services = data.services ?? [];
+        }
+        // v3 → v4 : cycle de mission (validation configurable, motif de correction séparé)
+        if (version < 4) {
+          data.org = { ...(data.org ?? EMPTY.org), validationTaskTypes: data.org?.validationTaskTypes ?? ["turnover"] };
+          data.tasks = (data.tasks ?? []).map((x) => (x.status === "to_redo" && x.notes && !x.correctionReason ? { ...x, correctionReason: x.notes } : x));
         }
         return data as HaloState;
       },

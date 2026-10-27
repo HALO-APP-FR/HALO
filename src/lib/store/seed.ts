@@ -74,14 +74,14 @@ export function buildDemoData(now: Date, locale: string): HaloData {
   const nowIso = now.toISOString();
   const members: Member[] = [
     { id: "m_owner", name: "Mathieu D.", role: "owner", color: "#0B0B0C", active: true },
-    { id: "m_ines", name: "Inès Moreau", role: "agent", position: "housekeeper", phone: "+33 6 12 34 56 78", color: "#0055FF", active: true },
-    { id: "m_karim", name: "Karim Benali", role: "agent", position: "housekeeper", phone: "+33 6 98 76 54 32", color: "#1F9D55", active: true },
-    { id: "m_lucia", name: "Lucía Gómez", role: "agent", position: "housekeeper", phone: "+351 912 345 678", color: "#8E4EC6", active: true },
-    { id: "m_tomas", name: "Tomás Silva", role: "agent", position: "housekeeper", phone: "+351 913 222 111", color: "#B86E00", active: true },
-    { id: "m_hugo", name: "Hugo Lefèvre", role: "agent", position: "maintenance", phone: "+33 6 45 12 78 90", color: "#4E5D6C", active: true },
-    { id: "m_camille", name: "Camille Bernard", role: "agent", position: "concierge", phone: "+33 6 77 21 43 65", color: "#C2185B", active: true },
-    { id: "m_sofiane", name: "Sofiane Haddad", role: "agent", position: "driver", phone: "+33 6 31 54 76 98", color: "#0E7C86", active: true },
-    { id: "m_julien", name: "Julien Roux", role: "agent", position: "chef", phone: "+33 6 58 90 12 34", color: "#7A5C3E", active: true },
+    { id: "m_ines", collaboration: "internal", name: "Inès Moreau", role: "agent", position: "housekeeper", phone: "+33 6 12 34 56 78", color: "#0055FF", active: true },
+    { id: "m_karim", collaboration: "internal", name: "Karim Benali", role: "agent", position: "housekeeper", phone: "+33 6 98 76 54 32", color: "#1F9D55", active: true },
+    { id: "m_lucia", collaboration: "internal", name: "Lucía Gómez", role: "agent", position: "housekeeper", phone: "+351 912 345 678", color: "#8E4EC6", active: true },
+    { id: "m_tomas", collaboration: "freelance", name: "Tomás Silva", role: "agent", position: "housekeeper", phone: "+351 913 222 111", color: "#B86E00", active: true },
+    { id: "m_hugo", collaboration: "partner_company", name: "Hugo Lefèvre", role: "agent", position: "maintenance", phone: "+33 6 45 12 78 90", color: "#4E5D6C", active: true },
+    { id: "m_camille", collaboration: "internal", name: "Camille Bernard", role: "agent", position: "concierge", phone: "+33 6 77 21 43 65", color: "#C2185B", active: true },
+    { id: "m_sofiane", collaboration: "freelance", name: "Sofiane Haddad", role: "agent", position: "driver", phone: "+33 6 31 54 76 98", color: "#0E7C86", active: true },
+    { id: "m_julien", collaboration: "freelance", name: "Julien Roux", role: "agent", position: "chef", phone: "+33 6 58 90 12 34", color: "#7A5C3E", active: true },
   ];
 
   const base = (over: Partial<Property> & Pick<Property, "id" | "name" | "area" | "city" | "timezone" | "countryCode">, template: string): Property => ({
@@ -357,7 +357,7 @@ export function buildDemoData(now: Date, locale: string): HaloData {
   ];
 
   return {
-    org: { name: "HALO Demo", countryCode: "FR", timezone: "Europe/Paris" },
+    org: { name: "HALO Demo", countryCode: "FR", timezone: "Europe/Paris", validationTaskTypes: ["turnover"] },
     members,
     properties,
     reservations,

@@ -53,10 +53,10 @@
   },
   "taskStatus": {
     "unassigned": "Nicht zugewiesen",
-    "assigned": "Zugewiesen",
+    "assigned": "Zu erledigen",
     "in_progress": "In Arbeit",
-    "done": "Zu prüfen",
-    "to_redo": "Nacharbeit",
+    "done": "Erledigt, zu prüfen",
+    "to_redo": "Korrektur angefordert",
     "validated": "Freigegeben",
     "cancelled": "Storniert"
   },
@@ -194,8 +194,8 @@
   "taskSheet": {
     "assignedTo": "{name} zugewiesen.",
     "unassignedToast": "Zuweisung aufgehoben.",
-    "validatedToast": "Reinigung freigegeben.",
-    "redoToast": "Nachbesserung angefordert: oben in der Agenten-App (im Demo gleiches Gerät, keine Benachrichtigung).",
+    "validatedToast": "Einsatz bestätigt.",
+    "redoToast": "Korrektur angefordert. Der erste Bericht bleibt erhalten. Der Mitarbeiter sieht sie oben in seinem Bereich (Demo: gleiches Gerät, keine Benachrichtigung gesendet).",
     "cancelledToast": "Einsatz storniert.",
     "manual": "Manuell erstellt",
     "window": "Einsatzfenster",
@@ -205,9 +205,9 @@
     "assign": "Zuweisen",
     "startAt": "Geplanter Beginn",
     "validate": "Freigeben",
-    "redo": "Nacharbeit anfordern",
-    "redoReason": "Was muss nachgearbeitet werden?",
-    "sendRedo": "Nachbesserung anfordern",
+    "redo": "Korrektur anfordern",
+    "redoReason": "Grund der Korrektur (Pflicht)",
+    "sendRedo": "Korrekturanfrage senden",
     "cancelTask": "Diesen Einsatz stornieren",
     "duration": "Geplante Dauer",
     "durationLearned": "{count, plural, one {Gelernt aus # erfasster Reinigung} other {Gelernt aus # erfassten Reinigungen}}",
@@ -492,7 +492,16 @@
     "groupConcierge": "Concierge & Services",
     "position": "Funktion",
     "positionHint": "Reinigung, Kontrolle, Technik und Empfang erscheinen im Plan; Fahrer und Köche erhalten Services.",
-    "hoursWeek": "diese Woche erfasst"
+    "hoursWeek": "diese Woche erfasst",
+    "collaboration": "Art der Zusammenarbeit",
+    "collaborationHint": "Nur zur Information: gewährt keine Rechte in HALO. Der Zugriff hängt nur von der Rolle ab.",
+    "collaborationUnset": "Nicht angegeben",
+    "roleHint": "Die Rolle bestimmt den Zugriff: Ein Mitarbeiter sieht nur seine Einsätze.",
+    "edit": "Bearbeiten",
+    "editTitle": "{name} bearbeiten",
+    "call": "{phone} anrufen",
+    "noPhone": "Keine Telefonnummer",
+    "statusActive": "Ja"
   },
   "role": {
     "owner": "Inhaber",
@@ -977,7 +986,13 @@
     "checkedCount": "{done}/{total} Punkte abgehakt",
     "photosTaken": "{count, plural, one {# Foto aufgenommen} other {# Fotos aufgenommen}}",
     "realTime": "Tatsächlich {time}",
-    "plannedTime": "geplant {time}"
+    "plannedTime": "geplant {time}",
+    "notYours": "Dieser Einsatz ist Ihrem Konto nicht zugewiesen.",
+    "cannotSubmit": "Dieser Einsatz kann im aktuellen Zustand nicht abgeschlossen werden.",
+    "submittedToast": "Einsatz erledigt: wartet auf die Bestätigung Ihres Verantwortlichen.",
+    "awaitingValidation": "Wartet auf Bestätigung durch Ihren Verantwortlichen.",
+    "validatedNote": "Einsatz bestätigt.",
+    "correctionRequested": "Korrektur angefordert"
   },
   "agentCalendar": {
     "next7": "7 Tage",
@@ -1089,5 +1104,28 @@
     "optTellGuest": "Gast informieren, falls die Anreise betroffen ist;",
     "assignRisk": "Jede Zuweisung überschreitet so das Fenster.",
     "noAgentFree": "niemand frei für ein ausreichendes Zeitfenster"
+  },
+  "collaboration": {
+    "internal": "Angestellt",
+    "freelance": "Freiberuflich",
+    "partner_company": "Partnerunternehmen"
+  },
+  "cycle": {
+    "willNeedValidation": "Nach Abschluss wartet dieser Einsatz auf Ihre Bestätigung.",
+    "autoValidated": "Dieser Einsatztyp wird automatisch bestätigt, wenn der Mitarbeiter ihn abschließt (in den Einstellungen änderbar).",
+    "history": "Verlauf",
+    "event": {
+      "started": "Begonnen",
+      "submitted": "Erledigt, zur Prüfung gesendet",
+      "validated": "Bestätigt",
+      "auto_validated": "Erledigt und automatisch bestätigt",
+      "correction_requested": "Korrektur angefordert",
+      "cancelled": "Storniert"
+    },
+    "archivedReport": "Bericht Nr. {n} (eingereicht {date}), aufbewahrt",
+    "settingsTitle": "Bestätigung von Einsätzen",
+    "settingsHint": "Wählen Sie, welche Einsatztypen auf Ihre Bestätigung warten. Die anderen werden bestätigt, sobald der Mitarbeiter sie abschließt, um Engpässe zu vermeiden.",
+    "ruleOn": "Bestätigung durch einen Verantwortlichen",
+    "ruleOff": "Beim Abschluss automatisch bestätigt"
   }
 }

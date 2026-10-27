@@ -26,6 +26,7 @@ import { LocaleSwitcher } from "@/components/halo/locale-switcher";
 import { ReadyGate } from "@/components/halo/ready-gate";
 import { ReportSheet } from "@/components/halo/report-sheet";
 import { TaskCard } from "@/components/halo/task-card";
+import { CorrectionNotice } from "@/components/views/agent-task";
 import { ThemeSwitcher } from "@/components/halo/theme-switcher";
 
 function vibrate(ms: number) {
@@ -58,7 +59,7 @@ function AgentTodayInner() {
   const locale = useLocale();
   const { me, mine, props } = useMyTasks();
   const router = useRouter();
-  const { setTaskStatus } = useHalo.getState();
+  const { startTask, submitTask } = useHalo.getState();
   const [reportFor, setReportFor] = useState<string | null>(null);
   const now = new Date();
   const todayTasks = mine
@@ -90,23 +91,27 @@ function AgentTodayInner() {
             if (!property) return null;
             return (
               <li key={task.id}>
-                {task.status === "to_redo" && task.notes && (
-                  <p className="mb-2 rounded-lg bg-danger-soft px-4 py-3 text-[15px] text-danger">{task.notes}</p>
-                )}
+                {task.status === "to_redo" && <CorrectionNotice task={task} className="mb-2" />}
                 <TaskCard
                   task={task}
                   property={property}
                   reference={now}
                   href={`/a/task/${task.id}`}
                   onStart={() => {
+                    if (!startTask(task.id, me?.id).ok) return;
                     vibrate(10);
-                    setTaskStatus(task.id, "in_progress");
                     router.push(`/a/task/${task.id}`);
                   }}
                   onFinish={() => {
+                    // Même règle que l'écran mission : photos obligatoires d'abord
+                    const res = submitTask(task.id, me?.id);
+                    if (!res.ok) {
+                      if (res.reason === "missing_photos") toast(t("mission.photosMissing", { count: res.missing ?? 0 }));
+                      router.push(`/a/task/${task.id}`);
+                      return;
+                    }
                     vibrate(20);
-                    setTaskStatus(task.id, "done");
-                    toast(t("agentToday.doneToast"));
+                    toast(res.status === "done" ? t("mission.submittedToast") : t("agentToday.doneToast"));
                   }}
                   onReport={() => setReportFor(task.id)}
                 />

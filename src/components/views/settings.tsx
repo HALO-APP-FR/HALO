@@ -5,6 +5,8 @@ import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { RotateCcw, Trash2 } from "lucide-react";
 import { allTimezones, COUNTRY_TZ, sortedCountries, timezoneLabel } from "@/lib/domain/geo";
+import { DEFAULT_VALIDATION_TYPES, TASK_TYPES, type TaskType } from "@/lib/domain/types";
+import { SwitchRow } from "@/components/ui/switch";
 import { useHalo } from "@/lib/store/halo-store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,6 +82,34 @@ function SettingsInner() {
                 </Button>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>{t("cycle.settingsTitle")}</CardTitle>
+              <p className="mt-1 text-caption text-muted">{t("cycle.settingsHint")}</p>
+            </div>
+          </CardHeader>
+          <CardContent className="divide-y divide-line">
+            {TASK_TYPES.map((type) => {
+              const rules = org.validationTaskTypes ?? DEFAULT_VALIDATION_TYPES;
+              return (
+                <SwitchRow
+                  key={type}
+                  id={`val-${type}`}
+                  label={t(`taskType.${type}`)}
+                  description={rules.includes(type) ? t("cycle.ruleOn") : t("cycle.ruleOff")}
+                  checked={rules.includes(type)}
+                  onCheckedChange={(on) => {
+                    const next: TaskType[] = on ? [...rules.filter((x) => x !== type), type] : rules.filter((x) => x !== type);
+                    useHalo.getState().updateOrg({ validationTaskTypes: next });
+                    setDraft((d) => ({ ...d, validationTaskTypes: next }));
+                  }}
+                />
+              );
+            })}
           </CardContent>
         </Card>
 

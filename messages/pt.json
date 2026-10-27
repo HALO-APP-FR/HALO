@@ -53,10 +53,10 @@
   },
   "taskStatus": {
     "unassigned": "Não atribuída",
-    "assigned": "Atribuída",
+    "assigned": "A fazer",
     "in_progress": "Em curso",
-    "done": "Por validar",
-    "to_redo": "Refazer",
+    "done": "Concluída, a validar",
+    "to_redo": "Correção pedida",
     "validated": "Validada",
     "cancelled": "Cancelada"
   },
@@ -194,8 +194,8 @@
   "taskSheet": {
     "assignedTo": "Atribuído a {name}.",
     "unassignedToast": "Trabalho sem atribuição.",
-    "validatedToast": "Limpeza validada.",
-    "redoToast": "Repetição pedida: aparece no topo da app do agente (mesmo dispositivo em demo, sem aviso).",
+    "validatedToast": "Missão validada.",
+    "redoToast": "Correção pedida. O primeiro relatório é mantido. O agente vê-a no topo do seu espaço (demo: mesmo dispositivo, nenhuma notificação enviada).",
     "cancelledToast": "Trabalho cancelado.",
     "manual": "Criado manualmente",
     "window": "Janela de intervenção",
@@ -205,9 +205,9 @@
     "assign": "Atribuir",
     "startAt": "Início previsto",
     "validate": "Validar",
-    "redo": "Pedir para refazer",
-    "redoReason": "O que é preciso refazer?",
-    "sendRedo": "Pedir repetição",
+    "redo": "Pedir correção",
+    "redoReason": "Motivo da correção (obrigatório)",
+    "sendRedo": "Enviar o pedido de correção",
     "cancelTask": "Cancelar este trabalho",
     "duration": "Duração prevista",
     "durationLearned": "{count, plural, one {Aprendida de # limpeza registada} other {Aprendida de # limpezas registadas}}",
@@ -492,7 +492,16 @@
     "groupConcierge": "Concierge e serviços",
     "position": "Função",
     "positionHint": "Limpeza, controlo, manutenção e receção aparecem no planeamento; motoristas e chefs recebem serviços.",
-    "hoursWeek": "registadas esta sem."
+    "hoursWeek": "registadas esta sem.",
+    "collaboration": "Tipo de colaboração",
+    "collaborationHint": "Apenas informativo: não concede nenhum direito no HALO. O acesso depende apenas da função.",
+    "collaborationUnset": "Não especificado",
+    "roleHint": "A função define o acesso: um agente só vê as suas missões.",
+    "edit": "Editar",
+    "editTitle": "Editar {name}",
+    "call": "Ligar para {phone}",
+    "noPhone": "Sem número registado",
+    "statusActive": "Sim"
   },
   "role": {
     "owner": "Proprietário",
@@ -977,7 +986,13 @@
     "checkedCount": "{done}/{total} itens marcados",
     "photosTaken": "{count, plural, one {# foto tirada} other {# fotos tiradas}}",
     "realTime": "Real {time}",
-    "plannedTime": "previsto {time}"
+    "plannedTime": "previsto {time}",
+    "notYours": "Esta missão não está atribuída à sua conta.",
+    "cannotSubmit": "Esta missão não pode ser submetida no estado atual.",
+    "submittedToast": "Missão concluída: aguarda a validação do seu responsável.",
+    "awaitingValidation": "A aguardar validação do seu responsável.",
+    "validatedNote": "Missão validada.",
+    "correctionRequested": "Correção pedida"
   },
   "agentCalendar": {
     "next7": "7 dias",
@@ -1089,5 +1104,28 @@
     "optTellGuest": "avisar o hóspede se a chegada for afetada;",
     "assignRisk": "Qualquer atribuição assim ultrapassará a janela.",
     "noAgentFree": "nenhum agente livre num horário suficiente"
+  },
+  "collaboration": {
+    "internal": "Funcionário",
+    "freelance": "Independente",
+    "partner_company": "Empresa parceira"
+  },
+  "cycle": {
+    "willNeedValidation": "Depois de concluída, esta missão aguardará a sua validação.",
+    "autoValidated": "Este tipo de missão é validado automaticamente quando o agente a conclui (alterável nas Definições).",
+    "history": "Histórico",
+    "event": {
+      "started": "Iniciada",
+      "submitted": "Concluída, enviada para validação",
+      "validated": "Validada",
+      "auto_validated": "Concluída e validada automaticamente",
+      "correction_requested": "Correção pedida",
+      "cancelled": "Cancelada"
+    },
+    "archivedReport": "Relatório n.º {n} (submetido {date}), guardado",
+    "settingsTitle": "Validação das missões",
+    "settingsHint": "Escolha os tipos de missão que aguardam a sua validação. Os outros são validados assim que o agente os conclui, para evitar estrangulamentos.",
+    "ruleOn": "Validação por um responsável",
+    "ruleOff": "Validada automaticamente no fim"
   }
 }

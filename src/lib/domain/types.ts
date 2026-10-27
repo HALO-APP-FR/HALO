@@ -31,6 +31,9 @@ export type MemberRole = "owner" | "manager" | "agent";
 /** Poste occupé sur le terrain (le rôle, lui, règle les droits d'accès). */
 export type StaffPosition = "housekeeper" | "inspector" | "maintenance" | "laundry" | "concierge" | "driver" | "chef" | "other";
 /** Postes qui reçoivent des missions logistiques (ménages, accueils, interventions) dans le planning. */
+/** Type de collaboration : information opérationnelle, sans aucun effet sur les droits. */
+export type Collaboration = "internal" | "freelance" | "partner_company";
+export const COLLABORATIONS: Collaboration[] = ["internal", "freelance", "partner_company"];
 export const FIELD_POSITIONS: StaffPosition[] = ["housekeeper", "inspector", "maintenance", "laundry", "concierge", "other"];
 
 export interface Bed {
@@ -177,8 +180,35 @@ export interface Task {
   validatedAt?: string;
   /** Rapport de l'agent : points cochés, photos, état et commentaire par pièce. */
   report?: TaskReport;
+  /** Motif de la dernière demande de correction (distinct des consignes de la mission). */
+  correctionReason?: string;
+  /** Comptes rendus soumis puis renvoyés en correction, conservés tels quels. */
+  reportHistory?: ArchivedReport[];
+  /** Historique des changements importants (statut), avec auteur et heure. */
+  events?: TaskEvent[];
   createdAt: string;
 }
+
+export type TaskEventKind = "started" | "submitted" | "validated" | "auto_validated" | "correction_requested" | "cancelled";
+export interface TaskEvent {
+  at: string;
+  kind: TaskEventKind;
+  /** Nom de la personne (mode démo : pas encore de compte). */
+  by?: string;
+  note?: string;
+}
+export interface ArchivedReport {
+  report: TaskReport;
+  startedAt?: string;
+  completedAt?: string;
+  archivedAt: string;
+}
+
+export const TASK_TYPES: TaskType[] = ["turnover", "check_in", "check_out", "inspection", "linen_delivery", "linen_pickup", "other"];
+/** Types de mission qui suivent la checklist du logement (photos et contrôles obligatoires). */
+export const CHECKLIST_TASK_TYPES: TaskType[] = ["turnover", "inspection"];
+/** Par défaut, seuls les ménages attendent une validation manager. */
+export const DEFAULT_VALIDATION_TYPES: TaskType[] = ["turnover"];
 
 /** État constaté d'une pièce en fin de mission. */
 export type RoomStatus = "ok" | "damage" | "missing" | "dirty" | "other";
@@ -198,6 +228,8 @@ export interface Member {
   phone?: string;
   /** Poste sur le terrain (agents uniquement). */
   position?: StaffPosition;
+  /** Salarié, indépendant ou entreprise partenaire (ne donne aucun droit). */
+  collaboration?: Collaboration;
   color: string;
   active: boolean;
 }
@@ -206,6 +238,8 @@ export interface Organization {
   name: string;
   countryCode: string;
   timezone: string;
+  /** Types de mission soumis à validation manager ; les autres sont validés à la soumission. */
+  validationTaskTypes?: TaskType[];
 }
 
 /* ---------------- Alertes ---------------- */

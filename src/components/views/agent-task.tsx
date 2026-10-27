@@ -20,6 +20,7 @@ import { ReadyGate } from "@/components/halo/ready-gate";
 import { ReportSheet } from "@/components/halo/report-sheet";
 import { StatusPill } from "@/components/halo/status-pill";
 import { directionsUrl, useDeadlineLabel } from "@/components/halo/task-card";
+import { canStart as canStartTask, checklistApplies, missingRequiredPhotos } from "@/lib/engine/mission-cycle";
 import { DurationCompare, ROOM_STATUSES, ROOM_STATUS_META } from "@/components/halo/task-report";
 import { useTaskTiming } from "@/components/halo/task-timing";
 import { TASK_TYPE_META, TaskTypeIcon } from "@/components/halo/task-type";
@@ -72,21 +73,23 @@ function AgentTaskInner({ taskId }: { taskId: string }) {
   const started = task?.status === "in_progress";
   const elapsed = useElapsed(task?.startedAt, started);
 
-  if (!task || !property) {
+  // Une mission qui n'est pas assignée à l'agent connecté ne s'affiche pas (en production : refus de la base)
+  if (!task || !property || task.assigneeId !== me?.id || task.status === "cancelled") {
     return (
       <>
         <BackLink />
-        <EmptyState icon={Square} title={t("mission.notFound")} />
+        <EmptyState icon={Square} title={t("mission.notFound")} text={task ? t("mission.notYours") : undefined} />
       </>
     );
   }
 
   const finished = task.status === "done" || task.status === "validated";
-  const canStart = task.status === "assigned" || task.status === "unassigned" || task.status === "to_redo";
+  const canStart = canStartTask(task, me?.id).ok;
   const report = task.report;
-  const items = property.checklist.flatMap((r) => r.items);
+  const checklist = checklistApplies(task) ? property.checklist : [];
+  const items = checklist.flatMap((r) => r.items);
   const checkedCount = items.filter((i) => report?.checked.includes(i.id)).length;
-  const missingPhotos = items.filter((i) => i.photoRequired && !(report?.photos[i.id]?.length));
+  const missingPhotos = missingRequiredPhotos(task, property);
   const unchecked = items.length - checkedCount;
   const estimatedSec = task.durationMin * 60;
   const progress = Math.min(1, elapsed / estimatedSec);
@@ -94,7 +97,7 @@ function AgentTaskInner({ taskId }: { taskId: string }) {
 
   const start = () => {
     vibrate(10);
-    useHalo.getState().setTaskStatus(task.id, "in_progress");
+    if (!useHalo.getState().startTask(task.id, me?.id).ok) return;
     toast(t("mission.startedToast", { time: formatLocalTime(new Date(), property.timezone, locale) }));
   };
 
@@ -104,9 +107,14 @@ function AgentTaskInner({ taskId }: { taskId: string }) {
       setConfirmUnchecked(true);
       return;
     }
+    const res = useHalo.getState().submitTask(task.id, me?.id);
+    if (!res.ok) {
+      toast(res.reason === "missing_photos" ? t("mission.photosMissing", { count: res.missing ?? 0 }) : t("mission.cannotSubmit"));
+      return;
+    }
     vibrate(20);
-    const alerts = useHalo.getState().finishTask(task.id, me?.name);
-    toast(t("agentToday.doneToast"), { description: alerts > 0 ? t("mission.alertsSent", { count: alerts }) : undefined });
+    const description = res.alerts ? t("mission.alertsSent", { count: res.alerts }) : undefined;
+    toast(res.status === "done" ? t("mission.submittedToast") : t("agentToday.doneToast"), { description });
     router.push("/a/today");
   };
 
@@ -137,7 +145,7 @@ function AgentTaskInner({ taskId }: { taskId: string }) {
         </div>
       </header>
 
-      {task.status === "to_redo" && task.notes && <p className="rounded-lg bg-danger-soft px-4 py-3 text-[15px] text-danger">{task.notes}</p>}
+      {task.status === "to_redo" && <CorrectionNotice task={task} />}
       {task.vip && task.type === "turnover" && (
         <p className="rounded-lg bg-vip-soft px-4 py-3 text-[15px] font-medium text-vip">{t("mission.vipPrep")}</p>
       )}
@@ -152,6 +160,7 @@ function AgentTaskInner({ taskId }: { taskId: string }) {
             <div>
               <p className="text-[17px] font-semibold">{t("mission.finishedAt", { time: task.completedAt ? formatLocalTime(new Date(task.completedAt), property.timezone, locale) : "—" })}</p>
               <DurationCompare task={task} className="mt-0.5" />
+              <p className="mt-1 text-caption text-muted">{task.status === "done" ? t("mission.awaitingValidation") : t("mission.validatedNote")}</p>
             </div>
           </div>
         ) : started ? (
@@ -220,7 +229,7 @@ function AgentTaskInner({ taskId }: { taskId: string }) {
       <TaskLinenKit task={task} property={property} className="bg-surface shadow-card dark:bg-surface" />
 
       {/* Checklist par pièce */}
-      {property.checklist.length > 0 && (
+      {checklist.length > 0 && (
         <section>
           <div className="mb-2 flex items-baseline justify-between">
             <h2 className="text-title-3">{t("mission.checklist")}</h2>
@@ -230,7 +239,7 @@ function AgentTaskInner({ taskId }: { taskId: string }) {
           </div>
           {!started && !finished && <p className="mb-3 text-[14px] text-muted">{t("mission.startToCheck")}</p>}
           <div className="space-y-3">
-            {property.checklist.map((room) => (
+            {checklist.map((room) => (
               <RoomCard key={room.id} room={room} task={task} editable={started} />
             ))}
           </div>
@@ -455,5 +464,17 @@ function RoomCard({ room, task, editable }: { room: ChecklistRoom; task: Task; e
         </div>
       )}
     </Card>
+  );
+}
+
+/** Motif de correction, distinct des consignes de la mission. */
+export function CorrectionNotice({ task, className }: { task: Task; className?: string }) {
+  const t = useTranslations();
+  const reason = task.correctionReason ?? task.notes;
+  return (
+    <div className={cn("rounded-lg bg-danger-soft px-4 py-3 text-danger", className)}>
+      <p className="text-[13px] font-semibold uppercase tracking-wide">{t("mission.correctionRequested")}</p>
+      {reason && <p className="mt-0.5 text-[15px]">{reason}</p>}
+    </div>
   );
 }

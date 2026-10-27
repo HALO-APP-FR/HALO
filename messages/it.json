@@ -53,10 +53,10 @@
   },
   "taskStatus": {
     "unassigned": "Non assegnata",
-    "assigned": "Assegnata",
+    "assigned": "Da fare",
     "in_progress": "In corso",
-    "done": "Da verificare",
-    "to_redo": "Da rifare",
+    "done": "Terminata, da validare",
+    "to_redo": "Correzione richiesta",
     "validated": "Approvata",
     "cancelled": "Annullata"
   },
@@ -194,8 +194,8 @@
   "taskSheet": {
     "assignedTo": "Assegnato a {name}.",
     "unassignedToast": "Lavoro non più assegnato.",
-    "validatedToast": "Pulizia approvata.",
-    "redoToast": "Ripresa richiesta: appare in cima all'app dell'agente (stesso dispositivo in demo, nessuna notifica).",
+    "validatedToast": "Missione validata.",
+    "redoToast": "Correzione richiesta. Il primo resoconto è conservato. L'agente la vede in cima al suo spazio (demo: stesso dispositivo, nessuna notifica inviata).",
     "cancelledToast": "Lavoro annullato.",
     "manual": "Creato manualmente",
     "window": "Finestra di intervento",
@@ -205,9 +205,9 @@
     "assign": "Assegna",
     "startAt": "Inizio previsto",
     "validate": "Approva",
-    "redo": "Chiedi di rifare",
-    "redoReason": "Cosa bisogna rifare?",
-    "sendRedo": "Richiedi ripresa",
+    "redo": "Chiedi una correzione",
+    "redoReason": "Motivo della correzione (obbligatorio)",
+    "sendRedo": "Invia la richiesta di correzione",
     "cancelTask": "Annulla questo lavoro",
     "duration": "Durata prevista",
     "durationLearned": "{count, plural, one {Appresa da # pulizia registrata} other {Appresa da # pulizie registrate}}",
@@ -492,7 +492,16 @@
     "groupConcierge": "Concierge e servizi",
     "position": "Ruolo",
     "positionHint": "Pulizie, controllo, manutenzione e accoglienza compaiono nel planning; autisti e chef ricevono i servizi.",
-    "hoursWeek": "registrate questa sett."
+    "hoursWeek": "registrate questa sett.",
+    "collaboration": "Tipo di collaborazione",
+    "collaborationHint": "Solo informativo: non concede alcun diritto in HALO. L'accesso dipende solo dal ruolo.",
+    "collaborationUnset": "Non specificato",
+    "roleHint": "Il ruolo decide gli accessi: un agente vede solo le sue missioni.",
+    "edit": "Modifica",
+    "editTitle": "Modifica {name}",
+    "call": "Chiama {phone}",
+    "noPhone": "Nessun numero registrato",
+    "statusActive": "Sì"
   },
   "role": {
     "owner": "Titolare",
@@ -977,7 +986,13 @@
     "checkedCount": "{done}/{total} punti spuntati",
     "photosTaken": "{count, plural, one {# foto scattata} other {# foto scattate}}",
     "realTime": "Reale {time}",
-    "plannedTime": "previsto {time}"
+    "plannedTime": "previsto {time}",
+    "notYours": "Questa missione non è assegnata al tuo account.",
+    "cannotSubmit": "Questa missione non può essere inviata nello stato attuale.",
+    "submittedToast": "Missione terminata: attende la validazione del responsabile.",
+    "awaitingValidation": "In attesa di validazione del responsabile.",
+    "validatedNote": "Missione validata.",
+    "correctionRequested": "Correzione richiesta"
   },
   "agentCalendar": {
     "next7": "7 giorni",
@@ -1089,5 +1104,28 @@
     "optTellGuest": "avvisare l'ospite se l'arrivo è coinvolto;",
     "assignRisk": "Qualsiasi assegnazione così supererà la finestra.",
     "noAgentFree": "nessun agente libero per una fascia sufficiente"
+  },
+  "collaboration": {
+    "internal": "Dipendente",
+    "freelance": "Libero professionista",
+    "partner_company": "Azienda partner"
+  },
+  "cycle": {
+    "willNeedValidation": "Una volta terminata, questa missione attenderà la tua validazione.",
+    "autoValidated": "Questo tipo di missione è validato automaticamente quando l'agente la termina (modificabile nelle Impostazioni).",
+    "history": "Cronologia",
+    "event": {
+      "started": "Avviata",
+      "submitted": "Terminata, inviata in validazione",
+      "validated": "Validata",
+      "auto_validated": "Terminata e validata automaticamente",
+      "correction_requested": "Correzione richiesta",
+      "cancelled": "Annullata"
+    },
+    "archivedReport": "Resoconto n. {n} (inviato {date}), conservato",
+    "settingsTitle": "Validazione delle missioni",
+    "settingsHint": "Scegli quali tipi di missione attendono la tua validazione. Gli altri sono validati appena l'agente li termina, per evitare colli di bottiglia.",
+    "ruleOn": "Validazione da un responsabile",
+    "ruleOff": "Validata automaticamente alla fine"
   }
 }
