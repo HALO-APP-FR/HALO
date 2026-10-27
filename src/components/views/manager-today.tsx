@@ -7,6 +7,7 @@ import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
 import { addDaysToKey, localDateKey } from "@/lib/engine/time";
 import { useLinenData } from "@/components/linen/use-linen";
+import { infeasibility } from "@/lib/engine/conflicts";
 import { useHalo } from "@/lib/store/halo-store";
 import { activeAgents, arrivalsOfDay, departuresOfDay, tasksOfDay } from "@/lib/store/selectors";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,11 @@ function ManagerTodayInner() {
   const departures = departuresOfDay(reservations, properties, dayKey);
   const services = useHalo((s) => s.services);
   const { forecast } = useLinenData(7);
+  // Missions en retard ou qui ne tiennent pas dans leur fenêtre (à décider par un responsable)
+  const nowDate = new Date();
+  const blocked = tasks
+    .filter((x) => infeasibility(x, nowDate))
+    .sort((a, b) => a.windowEnd.localeCompare(b.windowEnd));
   const linenShortages = forecast.filter((r) => r.shortageDay);
   const requestedServices = services.filter((x) => x.status === "requested");
   const openAlerts = alerts.filter((a) => a.status !== "resolved");
@@ -72,6 +78,15 @@ function ManagerTodayInner() {
       cta: t("managerToday.view"),
       onClick: () => router.push("/alerts"),
       primary: urgentAlerts.length > 0,
+    },
+    blocked.length > 0 && {
+      key: "blocked",
+      icon: AlertTriangle,
+      tone: "text-danger bg-danger-soft",
+      label: t("managerToday.blocked", { count: blocked.length }),
+      cta: t("managerToday.view"),
+      onClick: () => setOpenTask(blocked[0].id),
+      primary: true,
     },
     linenShortages.length > 0 && {
       key: "linen",

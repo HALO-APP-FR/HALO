@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { ListChecks, Plus, Search } from "lucide-react";
 import { initialsOf, type TaskStatus, type TaskType } from "@/lib/domain/types";
 import { addDaysToKey, localDateKey } from "@/lib/engine/time";
-import { TaskTimingCell, useTaskTiming } from "@/components/halo/task-timing";
+import { FeasibilityBadge, TaskTimingCell, useTaskTiming } from "@/components/halo/task-timing";
 import { useHalo } from "@/lib/store/halo-store";
 import { byId, taskAnchor, taskDayKey } from "@/lib/store/selectors";
 import { Badge } from "@/components/ui/badge";
@@ -210,6 +210,7 @@ function TasksListInner({ initial }: { initial: TasksInitial }) {
                     </td>
                     <td className="py-3 pe-5">
                       <StatusPill status={task.status} />
+                      <FeasibilityBadge task={task} className="ms-2" />
                     </td>
                   </tr>
                 );
@@ -234,6 +235,7 @@ function TasksListInner({ initial }: { initial: TasksInitial }) {
                       </span>
                       <span className="mt-1 block">
                         <StatusPill status={task.status} />
+                        <FeasibilityBadge task={task} className="ms-2" />
                       </span>
                     </span>
                     {a ? <Avatar initials={initialsOf(a.name)} color={a.color} size="md" label={a.name} /> : <span className="size-8 shrink-0 rounded-full border border-dashed border-danger/60" aria-label={t("task.unassigned")} />}

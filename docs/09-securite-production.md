@@ -27,6 +27,10 @@
 5. Supprimer le mode « contenu dans le lien » (`#d=`) dès que le serveur répond, ou le restreindre aux champs non sensibles.
 6. Signalements et demandes de prestation du voyageur : insertion via RPC liée au jeton de séjour (pas d'accès direct aux tables), limitée en débit, avec photos dans un bucket privé.
 
+## 2 bis. Messages honnêtes en mode démo (27/10/2026)
+
+Signalements (agent, voyageur), demandes de prestation, départ « Je pars », demande de reprise : l'interface indique au moment de l'action que l'enregistrement est **local à cet appareil** et qu'**aucune notification** n'est envoyée. Aucun faux système de notification n'existe dans le code.
+
 ## 3. Ce qui manque avant toute donnée opérationnelle réelle
 
 - **Base de données et comptes** (Supabase prévu, docs/03) : aujourd'hui tout est en `localStorage` + IndexedDB d'un seul navigateur ; aucune sauvegarde, aucun partage entre manager, agents et voyageurs.
@@ -35,4 +39,6 @@
 - **Photos** : stockées en local (IndexedDB) ; non visibles par le manager depuis un autre appareil.
 - **Notifications** (agents, voyageurs) : inexistantes.
 - **Temps de trajet** : non pris en compte par la répartition automatique (signalé dans l'interface).
+- **Horaires de travail des agents** : aucun modèle de disponibilité ; la répartition peut proposer un créneau en soirée si la fenêtre le permet.
+- **Mission plus longue que sa fenêtre** : détectée et expliquée (il manque X min), jamais placée automatiquement ; la décision (durée, horaires du séjour, renfort) reste humaine.
 - **Région d'hébergement** : Vercel `iad1` (États-Unis) ; à passer en `cdg1` avec la base pour des données européennes (RGPD).

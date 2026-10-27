@@ -127,3 +127,37 @@ export function autoAssign(unassigned: Task[], agentIds: string[], existing: Tas
   }
   return result;
 }
+
+/* ---------------- Faisabilité d'une mission dans sa fenêtre ---------------- */
+
+/** Minutes de travail qui ne tiennent pas dans la fenêtre d'intervention complète (0 = tient). */
+export function windowShortfallMin(task: Pick<Task, "windowStart" | "windowEnd" | "durationMin">) {
+  const windowMin = (new Date(task.windowEnd).getTime() - new Date(task.windowStart).getTime()) / MINUTE;
+  return Math.max(0, Math.round(task.durationMin - windowMin));
+}
+
+/** Statuts d'une mission encore à faire et pas démarrée. */
+const NOT_STARTED: Task["status"][] = ["unassigned", "assigned", "to_redo"];
+
+/** Mission non démarrée dont la fenêtre est terminée : en retard. */
+export function isOverdue(task: Pick<Task, "status" | "windowEnd">, now: Date) {
+  return NOT_STARTED.includes(task.status) && new Date(task.windowEnd).getTime() < now.getTime();
+}
+
+export type Infeasibility = "window_too_short" | "window_passed" | "too_late_today" | null;
+
+/**
+ * Pourquoi une mission ne peut pas (ou plus) être planifiée, dans l'état courant :
+ * - window_too_short : la durée estimée dépasse la fenêtre entière ;
+ * - window_passed : la fenêtre est terminée ;
+ * - too_late_today : il ne reste plus assez de temps dans la fenêtre à partir de maintenant.
+ */
+export function infeasibility(task: Pick<Task, "status" | "windowStart" | "windowEnd" | "durationMin">, now: Date): Infeasibility {
+  if (!NOT_STARTED.includes(task.status)) return null;
+  if (windowShortfallMin(task) > 0) return "window_too_short";
+  const end = new Date(task.windowEnd).getTime();
+  if (end < now.getTime()) return "window_passed";
+  const start = Math.max(new Date(task.windowStart).getTime(), now.getTime());
+  if (start + task.durationMin * MINUTE > end) return "too_late_today";
+  return null;
+}

@@ -34,12 +34,13 @@ export function formatLocalTime(instant: Date, timeZone: string, locale: string)
  * « 11:00 → mer. 28 16:00 » quand la fin tombe un autre jour (fenêtre qui traverse minuit).
  * Seule source de formatage des fenêtres de mission : liste, fiche, planning et accueil l'utilisent.
  */
-export function formatLocalRange(start: Date, end: Date, timeZone: string, locale: string): string {
-  const from = formatLocalTime(start, timeZone, locale);
+export function formatLocalRange(start: Date, end: Date, timeZone: string, locale: string, referenceDayKey?: string): string {
+  const day = (d: Date) => new Intl.DateTimeFormat(locale, { timeZone, weekday: "short", day: "numeric" }).format(d);
+  // Début daté s'il ne tombe pas le jour affiché (fenêtre ouverte depuis la veille, par exemple)
+  const from = referenceDayKey && localDateKey(start, timeZone) !== referenceDayKey ? `${day(start)} ${formatLocalTime(start, timeZone, locale)}` : formatLocalTime(start, timeZone, locale);
   const to = formatLocalTime(end, timeZone, locale);
   if (isSameLocalDay(start, end, timeZone)) return `${from} → ${to}`;
-  const day = new Intl.DateTimeFormat(locale, { timeZone, weekday: "short", day: "numeric" }).format(end);
-  return `${from} → ${day} ${to}`;
+  return `${from} → ${day(end)} ${to}`;
 }
 
 /** Durée en minutes entre deux instants (arrondie à la minute inférieure). */

@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { CircleAlert } from "lucide-react";
 import { initialsOf, type Member, type Property, type Task } from "@/lib/domain/types";
-import { TaskTimingCell, useTaskTiming } from "./task-timing";
+import { FeasibilityBadge, TaskTimingCell, useTaskTiming } from "./task-timing";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "./avatar";
@@ -119,6 +119,7 @@ export function DayTable({
               </td>
               <td className="py-3 align-middle">
                 <StatusPill status={task.status} />
+                <FeasibilityBadge task={task} className="mt-1" />
               </td>
             </tr>
           ))}
@@ -154,6 +155,7 @@ export function DayTable({
                     {otherTz && ` · ${property.city}`}
                   </span>
                   {agent && <StatusPill status={task.status} className="shrink-0" />}
+                  <FeasibilityBadge task={task} className="shrink-0" />
                 </div>
               </div>
               {agent ? <Avatar initials={initialsOf(agent.name)} color={agent.color} size="md" label={agent.name} /> : assignButton(task.id)}

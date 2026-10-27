@@ -6,12 +6,21 @@ import { localDateKey } from "@/lib/engine/time";
 
 export const byId = <T extends { id: string }>(list: T[]) => new Map(list.map((x) => [x.id, x]));
 
-/** Instant de référence d'une tâche : son heure planifiée, sinon le début de sa fenêtre. */
-export const taskAnchor = (task: Task) => task.scheduledStart ?? task.windowStart;
+/**
+ * Instant de référence d'une tâche : son heure planifiée, sinon le début de sa fenêtre.
+ * Exception : une mission NON ASSIGNÉE dont la fenêtre est déjà ouverte est à faire maintenant —
+ * elle apparaît aujourd'hui (et non au jour du départ, déjà passé), dans toutes les vues.
+ */
+export function taskAnchor(task: Task, now: Date = new Date()) {
+  if (task.scheduledStart) return task.scheduledStart;
+  const nowIso = now.toISOString();
+  if (task.status === "unassigned" && task.windowStart < nowIso && task.windowEnd > nowIso) return nowIso;
+  return task.windowStart;
+}
 
 /** Jour local (fuseau du logement) d'une tâche. */
-export function taskDayKey(task: Task, property: Property | undefined) {
-  return localDateKey(new Date(taskAnchor(task)), property?.timezone ?? "UTC");
+export function taskDayKey(task: Task, property: Property | undefined, now: Date = new Date()) {
+  return localDateKey(new Date(taskAnchor(task, now)), property?.timezone ?? "UTC");
 }
 
 /** Tâches d'un jour donné (AAAA-MM-JJ, heure locale de chaque logement), hors annulées. */

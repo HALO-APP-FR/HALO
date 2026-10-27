@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { AlertTriangle, GripVertical, Hand, Sparkles, Wand2 } from "lucide-react";
 import { initialsOf, type Member, type Property, type Task } from "@/lib/domain/types";
-import { autoAssign, conflictsIfAssigned, detectConflicts } from "@/lib/engine/conflicts";
+import { autoAssign, conflictsIfAssigned, detectConflicts, infeasibility, windowShortfallMin } from "@/lib/engine/conflicts";
 import { formatDuration } from "@/lib/engine/learning";
 import { placeTask, SNAP_MIN } from "@/lib/engine/schedule";
 import { addDaysToKey, formatLocalTime, localDateKey, localMinutesOfDay, formatLocalRange } from "@/lib/engine/time";
@@ -25,6 +25,7 @@ import { StatusPill } from "@/components/halo/status-pill";
 import { TASK_TYPE_META } from "@/components/halo/task-type";
 import { TaskSheet } from "@/components/halo/task-sheet";
 import { VipBadge } from "@/components/halo/vip-badge";
+import { FeasibilityBadge } from "@/components/halo/task-timing";
 import { cn } from "@/lib/utils";
 
 const START_H = 7;
@@ -317,7 +318,7 @@ function PlanningInner({ initialDay }: { initialDay?: string }) {
       <TaskSheet taskId={openTask} onClose={() => setOpenTask(null)} />
       <AutoAssignSheet
         proposal={proposal}
-        total={toAssign.length}
+        pending={toAssign}
         tasks={tasks}
         properties={properties}
         members={members}
@@ -380,6 +381,7 @@ function TaskChip({
         <span className="flex items-center gap-1.5 text-[14px] font-semibold">
           {property?.name}
           {task.vip && <VipBadge />}
+          <FeasibilityBadge task={task} />
         </span>
         <span className="block text-caption text-muted tabular">
           {t(`taskType.${task.type}`)} · {t("timing.toPlan", { duration: formatDuration(task.durationMin, locale) })} · {t("timing.windowShort", { range: formatLocalRange(new Date(task.windowStart), new Date(task.windowEnd), tz, locale) })}
@@ -585,7 +587,9 @@ function DayListMobile({
             return (
               <button key={task.id} type="button" onClick={() => onOpen(task.id)} className="flex w-full items-center gap-3 px-4 py-3 text-start">
                 <span className={cn("h-10 w-1 shrink-0 rounded-full", TASK_TYPE_META[task.type].bar)} aria-hidden />
-                <span className="w-12 shrink-0 text-[15px] font-semibold tabular">{formatLocalTime(new Date(taskAnchor(task)), tz, locale)}</span>
+                <span className="w-12 shrink-0 text-[15px] font-semibold tabular">
+                  {task.scheduledStart ? formatLocalTime(new Date(task.scheduledStart), tz, locale) : <span className="text-caption font-medium text-muted">{formatDuration(task.durationMin, locale)}</span>}
+                </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5">
                     <span className="truncate text-[15px] font-semibold">{p?.name}</span>
@@ -593,6 +597,7 @@ function DayListMobile({
                   </span>
                   <span className="mt-0.5 flex items-center gap-1.5 text-caption text-muted">
                     {t(`taskType.${task.type}`)} · <StatusPill status={task.status} />
+                    <FeasibilityBadge task={task} />
                   </span>
                 </span>
               </button>
@@ -705,10 +710,20 @@ function WeekGrid({
                                 )}
                               >
                                 <span className={cn("absolute inset-y-0 start-0 w-1", TASK_TYPE_META[task.type].bar)} aria-hidden />
-                                <span className="block truncate font-semibold">{p?.name}</span>
+                                <span className="flex items-center gap-1 truncate font-semibold">
+                                  <span className="truncate">{p?.name}</span>
+                                  {infeasibility(task, new Date()) && <AlertTriangle className="size-3 shrink-0 text-danger" aria-label={t("feasibility.issue")} />}
+                                </span>
                                 <span className="block truncate text-muted tabular">
-                                  {formatLocalTime(new Date(taskAnchor(task)), p?.timezone ?? "UTC", locale)}–
-                                  {formatLocalTime(new Date(new Date(taskAnchor(task)).getTime() + task.durationMin * 60_000), p?.timezone ?? "UTC", locale)}
+                                  {task.scheduledStart ? (
+                                    <>
+                                      {formatLocalTime(new Date(task.scheduledStart), p?.timezone ?? "UTC", locale)}–
+                                      {formatLocalTime(new Date(new Date(task.scheduledStart).getTime() + task.durationMin * 60_000), p?.timezone ?? "UTC", locale)}
+                                    </>
+                                  ) : (
+                                    // Non planifiée : pas de faux créneau, seulement la durée à placer
+                                    t("timing.toPlan", { duration: formatDuration(task.durationMin, locale) })
+                                  )}
                                 </span>
                               </button>
                             </li>
@@ -814,7 +829,7 @@ function MonthGrid({
 /* ---------- Aperçu de la répartition automatique ---------- */
 function AutoAssignSheet({
   proposal,
-  total,
+  pending,
   tasks,
   properties,
   members,
@@ -822,7 +837,7 @@ function AutoAssignSheet({
   onConfirm,
 }: {
   proposal: ReturnType<typeof autoAssign> | null;
-  total: number;
+  pending: Task[];
   tasks: Task[];
   properties: Property[];
   members: Member[];
@@ -834,7 +849,9 @@ function AutoAssignSheet({
   if (!proposal) return null;
   const props = byId(properties);
   const people = byId(members);
-  const notPlaced = total - proposal.length;
+  const now = new Date();
+  // Chaque mission non placée avec sa vraie raison (aucune n'est déclarée réalisable à tort)
+  const notPlaced = pending.filter((x) => !proposal.some((a) => a.taskId === x.id));
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()}>
@@ -864,7 +881,26 @@ function AutoAssignSheet({
               })}
             </ul>
           )}
-          {notPlaced > 0 && <p className="text-[14px] text-warning">{t("planning.autoNotPlaced", { count: notPlaced })}</p>}
+          {notPlaced.length > 0 && (
+            <div className="rounded-lg bg-warning-soft p-3 text-[14px]">
+              <p className="font-medium text-warning">{t("planning.autoNotPlaced", { count: notPlaced.length })}</p>
+              <ul className="mt-1.5 space-y-1">
+                {notPlaced.map((x) => {
+                  const p = props.get(x.propertyId);
+                  const why = infeasibility(x, now);
+                  return (
+                    <li key={x.id}>
+                      <strong>{p?.name}</strong> — {why === "window_too_short"
+                        ? t("feasibility.tooShortBadge", { missing: formatDuration(windowShortfallMin(x), locale) })
+                        : why
+                          ? t(`feasibility.${why}Title`)
+                          : t("feasibility.noAgentFree")}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
           <div className="flex gap-2">
             <Button variant="secondary" size="lg" onClick={onClose}>
               {t("form.cancel")}
