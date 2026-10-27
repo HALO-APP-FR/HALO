@@ -40,6 +40,7 @@ import {
 import { actualMinutes, withLearnedDuration } from "@/lib/engine/learning";
 import { planTasks } from "@/lib/engine/tasks";
 import type { MapsApp } from "@/lib/engine/directions";
+import { CRITICAL_KINDS, type NotificationKind } from "@/lib/engine/notifications";
 import {
   canRequestCorrection,
   canStart,
@@ -136,6 +137,11 @@ interface HaloState extends HaloData {
   /** Application d'itinéraire par défaut de la personne (démo : cet appareil). Vide = demander. */
   mapsApp?: MapsApp;
   setMapsApp: (app: MapsApp | undefined) => void;
+  /** Notifications dans l'application : clés déjà lues et types désactivés (démo : cet appareil). */
+  inboxRead: string[];
+  markRead: (keys: string[]) => void;
+  notificationMuted: NotificationKind[];
+  setNotificationMuted: (kind: NotificationKind, muted: boolean) => void;
 }
 
 /** Stockage du navigateur protégé : en navigation privée ou bloqué, on garde en mémoire. */
@@ -725,6 +731,20 @@ export const useHalo = create<HaloState>()(
       updateMember: (id, patch) => set((s) => ({ members: s.members.map((m) => (m.id === id ? { ...m, ...patch } : m)) })),
       setCurrentAgent: (id) => set({ currentAgentId: id }),
       setMapsApp: (app) => set({ mapsApp: app }),
+      inboxRead: [],
+      markRead: (keys) =>
+        set((s) => {
+          const next = new Set(s.inboxRead);
+          for (const k of keys) next.add(k);
+          // On garde les 500 dernières clés : les plus anciennes ne correspondent plus à rien d'actif
+          return { inboxRead: [...next].slice(-500) };
+        }),
+      notificationMuted: [],
+      setNotificationMuted: (kind, muted) =>
+        set((s) => ({
+          // Les alertes critiques ne peuvent pas être rendues silencieuses
+          notificationMuted: CRITICAL_KINDS.includes(kind) ? s.notificationMuted : muted ? [...new Set([...s.notificationMuted, kind])] : s.notificationMuted.filter((k) => k !== kind),
+        })),
     }),
     {
       name: "halo-demo-v1",
@@ -775,6 +795,8 @@ export const useHalo = create<HaloState>()(
         services: s.services,
         currentAgentId: s.currentAgentId,
         mapsApp: s.mapsApp,
+        inboxRead: s.inboxRead,
+        notificationMuted: s.notificationMuted,
       }),
     },
   ),

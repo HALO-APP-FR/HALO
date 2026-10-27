@@ -104,7 +104,7 @@
     "emptyNoProperty": "Add a property and its bookings: cleanings are created automatically.",
     "alertsOpen": "{count, plural, one {# open alert} other {# open alerts}}",
     "alertsUrgent": "{count, plural, one {# alert} other {# alerts}}, {urgent} urgent",
-    "servicesRequested": "{count, plural, one {# service request to confirm} other {# service requests to confirm}}",
+    "servicesRequested": "{count, plural, one {# service request to handle} other {# service requests to handle}}",
     "linenShortage": "{count, plural, one {Linen shortage expected on # item} other {Linen shortage expected on # items}}",
     "blocked": "{count, plural, one {# job overdue or not fitting its window} other {# jobs overdue or not fitting their window}}"
   },
@@ -1030,7 +1030,7 @@
     "subtitle": "High-end concierge: every request followed through.",
     "new": "New service",
     "newHint": "For a guest, with your team or a partner.",
-    "kpiRequested": "Requests to confirm",
+    "kpiRequested": "Requests to handle",
     "kpiWeek": "Planned in 7 days",
     "kpiRevenue": "This month's total",
     "filterTodo": "Requested services",
@@ -1078,12 +1078,13 @@
     "accept": "Accept the request",
     "askInfo": "Ask for details",
     "decline": "Decline",
-    "saveNote": "Save",
     "noteLabel_info_requested": "Details to get from the guest",
     "noteLabel_declined": "Reason for declining",
     "guestNotNotified": "The guest isn't notified automatically: contact them directly.",
     "toast_info_requested": "Details noted on the request.",
-    "toast_declined": "Request declined."
+    "toast_declined": "Request declined.",
+    "confirmDecline": "Confirm decline",
+    "saveInfo": "Log the request for details"
   },
   "demo": {
     "badge": "Demo",
@@ -1162,5 +1163,38 @@
     "agent": "Agent space",
     "agentText": "My jobs for today, in the field.",
     "demoNotice": "Demo without accounts: both spaces are open. With real sign-in, everyone lands in their own space, and an agent can neither open the Manager space nor use its functions, even with a direct link."
+  },
+  "inbox": {
+    "title": "Notifications",
+    "scope": "In the app only: no email, push or SMS is sent for now.",
+    "open": "Notifications ({count} unread)",
+    "empty": "Nothing to report.",
+    "markAll": "Mark all as read",
+    "unread": "Unread",
+    "kind": {
+      "alert_urgent": "Urgent incident reported",
+      "service_requested": "New service request: {kind}",
+      "task_to_validate": "{type} done, to review",
+      "task_correction": "Correction requested: {reason}",
+      "task_blocked": "{type}: {reason}",
+      "task_unassigned": "{type} not assigned within 24 h",
+      "linen_shortage": "Linen: {item} expected to run out on {day}"
+    },
+    "settingsTitle": "Notifications",
+    "settingsHint": "Choose what shows in the app's bell.",
+    "type": {
+      "alert_urgent": "Urgent incident",
+      "service_requested": "New service request",
+      "task_to_validate": "Job done, to review",
+      "task_blocked": "Late or unfeasible job",
+      "task_unassigned": "Unassigned job",
+      "linen_shortage": "Linen or stock alert"
+    },
+    "criticalLocked": "Critical: always shown, can't be turned off.",
+    "inApp": "In the app",
+    "channelInApp": "In the app: available (on this device in demo).",
+    "channelEmail": "Email: not available yet, needs the server and a sending service.",
+    "channelPush": "Push: not available yet, needs the server and your consent on the device.",
+    "channelSms": "SMS: not planned until the provider, cost and consent are decided."
   }
 }

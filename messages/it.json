@@ -104,7 +104,7 @@
     "emptyNoProperty": "Aggiungi un alloggio e le sue prenotazioni: le pulizie si creano da sole.",
     "alertsOpen": "{count, plural, one {# avviso aperto} other {# avvisi aperti}}",
     "alertsUrgent": "{count, plural, one {# avviso} other {# avvisi}}, {urgent} urgente/i",
-    "servicesRequested": "{count, plural, one {# richiesta di servizio da confermare} other {# richieste di servizio da confermare}}",
+    "servicesRequested": "{count, plural, one {# richiesta di servizio da gestire} other {# richieste di servizio da gestire}}",
     "linenShortage": "{count, plural, one {Mancanza di biancheria prevista su # articolo} other {Mancanza di biancheria prevista su # articoli}}",
     "blocked": "{count, plural, one {# missione in ritardo o irrealizzabile} other {# missioni in ritardo o irrealizzabili}}"
   },
@@ -1030,7 +1030,7 @@
     "subtitle": "Concierge di alta gamma: ogni richiesta seguita fino in fondo.",
     "new": "Nuovo servizio",
     "newHint": "Per un ospite, con il tuo team o un partner.",
-    "kpiRequested": "Richieste da confermare",
+    "kpiRequested": "Richieste da gestire",
     "kpiWeek": "Previsti in 7 giorni",
     "kpiRevenue": "Importo del mese",
     "filterTodo": "Servizi richiesti",
@@ -1078,12 +1078,13 @@
     "accept": "Accetta la richiesta",
     "askInfo": "Chiedi dettagli",
     "decline": "Rifiuta",
-    "saveNote": "Salva",
     "noteLabel_info_requested": "Dettagli da ottenere dall'ospite",
     "noteLabel_declined": "Motivo del rifiuto",
     "guestNotNotified": "L'ospite non viene avvisato automaticamente: contattalo direttamente.",
     "toast_info_requested": "Dettagli annotati sulla richiesta.",
-    "toast_declined": "Richiesta rifiutata."
+    "toast_declined": "Richiesta rifiutata.",
+    "confirmDecline": "Conferma il rifiuto",
+    "saveInfo": "Annota la richiesta di dettagli"
   },
   "demo": {
     "badge": "Demo",
@@ -1162,5 +1163,38 @@
     "agent": "Spazio Agente",
     "agentText": "Le mie missioni di oggi, sul campo.",
     "demoNotice": "Demo senza account: entrambi gli spazi sono aperti. Con l'accesso reale, ognuno arriva direttamente nel proprio spazio e un agente non può aprire lo spazio Manager né usarne le funzioni, nemmeno con un link diretto."
+  },
+  "inbox": {
+    "title": "Notifiche",
+    "scope": "Solo nell'app: per ora non viene inviata alcuna e-mail, push o SMS.",
+    "open": "Notifiche ({count} non lette)",
+    "empty": "Niente da segnalare.",
+    "markAll": "Segna tutto come letto",
+    "unread": "Non letta",
+    "kind": {
+      "alert_urgent": "Incidente urgente segnalato",
+      "service_requested": "Nuova richiesta di servizio: {kind}",
+      "task_to_validate": "{type} terminata, da validare",
+      "task_correction": "Correzione richiesta: {reason}",
+      "task_blocked": "{type}: {reason}",
+      "task_unassigned": "{type} non assegnato nelle prossime 24 h",
+      "linen_shortage": "Biancheria: {item} in esaurimento previsto il {day}"
+    },
+    "settingsTitle": "Notifiche",
+    "settingsHint": "Scegli cosa appare nella campanella dell'app.",
+    "type": {
+      "alert_urgent": "Incidente urgente",
+      "service_requested": "Nuovo servizio richiesto",
+      "task_to_validate": "Missione terminata, da validare",
+      "task_blocked": "Missione in ritardo o irrealizzabile",
+      "task_unassigned": "Missione non assegnata",
+      "linen_shortage": "Avviso biancheria o scorte"
+    },
+    "criticalLocked": "Critica: sempre visibile, non disattivabile.",
+    "inApp": "Nell'app",
+    "channelInApp": "Nell'app: disponibile (su questo dispositivo nella demo).",
+    "channelEmail": "E-mail: non ancora disponibile, richiede il server e un servizio di invio.",
+    "channelPush": "Push: non ancora disponibile, richiede il server e il tuo consenso sul dispositivo.",
+    "channelSms": "SMS: non previsto senza decisione su fornitore, costo e consenso."
   }
 }

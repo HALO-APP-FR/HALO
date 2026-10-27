@@ -17,6 +17,7 @@ import { PageHeader } from "@/components/halo/page-header";
 import { ReadyGate } from "@/components/halo/ready-gate";
 import { ThemeSwitcher } from "@/components/halo/theme-switcher";
 import { MapsAppSelect } from "@/components/halo/directions-button";
+import { CRITICAL_KINDS, KIND_AUDIENCE, NOTIFICATION_KINDS } from "@/lib/engine/notifications";
 
 export function Settings() {
   return (
@@ -114,6 +115,8 @@ function SettingsInner() {
           </CardContent>
         </Card>
 
+        <NotificationSettings />
+
         <Card>
           <CardHeader>
             <CardTitle>{t("profile.preferences")}</CardTitle>
@@ -180,3 +183,45 @@ function SettingsInner() {
     </>
   );
 }
+
+/** Préférences de notification : seuls les canaux réellement disponibles sont activables. */
+function NotificationSettings() {
+  const t = useTranslations();
+  const muted = useHalo((s) => s.notificationMuted);
+  const kinds = NOTIFICATION_KINDS.filter((k) => KIND_AUDIENCE[k] === "manager");
+  return (
+    <Card>
+      <CardHeader>
+        <div>
+          <CardTitle>{t("inbox.settingsTitle")}</CardTitle>
+          <p className="mt-1 text-caption text-muted">{t("inbox.settingsHint")}</p>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="divide-y divide-line">
+          {kinds.map((k) => {
+            const critical = CRITICAL_KINDS.includes(k);
+            return (
+              <SwitchRow
+                key={k}
+                id={`notif-${k}`}
+                label={t(`inbox.type.${k}`)}
+                description={critical ? t("inbox.criticalLocked") : t("inbox.inApp")}
+                checked={critical || !muted.includes(k)}
+                disabled={critical}
+                onCheckedChange={(on) => useHalo.getState().setNotificationMuted(k, !on)}
+              />
+            );
+          })}
+        </div>
+        <ul className="space-y-1 rounded-lg bg-subtle p-3 text-caption text-muted dark:bg-surface-hover">
+          <li>{t("inbox.channelInApp")}</li>
+          <li>{t("inbox.channelEmail")}</li>
+          <li>{t("inbox.channelPush")}</li>
+          <li>{t("inbox.channelSms")}</li>
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+

@@ -63,12 +63,12 @@ export function TaskCard({
     <article className={cn("relative overflow-hidden rounded-xl border border-line bg-surface shadow-card", finished && "opacity-60")}>
       <span className={cn("absolute inset-y-0 start-0 w-1", meta.bar)} aria-hidden />
       <div className="p-5 ps-6">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <span className={cn("flex items-center gap-2 text-[15px] font-semibold", meta.text)}>
             <TaskTypeIcon type={task.type} size="sm" />
             {t(`taskType.${task.type}`)}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {task.priority !== "normal" && <Badge tone="danger">{t(`priority.${task.priority}`)}</Badge>}
             {task.status !== "assigned" && <StatusPill status={task.status} />}
           </div>

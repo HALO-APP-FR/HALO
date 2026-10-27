@@ -104,7 +104,7 @@
     "emptyNoProperty": "Fügen Sie eine Unterkunft und ihre Buchungen hinzu: Reinigungen entstehen automatisch.",
     "alertsOpen": "{count, plural, one {# offene Meldung} other {# offene Meldungen}}",
     "alertsUrgent": "{count, plural, one {# Meldung} other {# Meldungen}}, davon {urgent} dringend",
-    "servicesRequested": "{count, plural, one {# Service-Anfrage zu bestätigen} other {# Service-Anfragen zu bestätigen}}",
+    "servicesRequested": "{count, plural, one {# Leistungsanfrage zu bearbeiten} other {# Leistungsanfragen zu bearbeiten}}",
     "linenShortage": "{count, plural, one {Wäsche-Engpass erwartet bei # Artikel} other {Wäsche-Engpass erwartet bei # Artikeln}}",
     "blocked": "{count, plural, one {# Auftrag überfällig oder nicht machbar} other {# Aufträge überfällig oder nicht machbar}}"
   },
@@ -1030,7 +1030,7 @@
     "subtitle": "Gehobener Concierge-Service: jede Anfrage bis zum Ende begleitet.",
     "new": "Neuer Service",
     "newHint": "Für einen Gast, mit Ihrem Team oder einem Partner.",
-    "kpiRequested": "Zu bestätigende Anfragen",
+    "kpiRequested": "Zu bearbeitende Anfragen",
     "kpiWeek": "Geplant in 7 Tagen",
     "kpiRevenue": "Summe des Monats",
     "filterTodo": "Angefragte Leistungen",
@@ -1078,12 +1078,13 @@
     "accept": "Anfrage annehmen",
     "askInfo": "Rückfrage stellen",
     "decline": "Ablehnen",
-    "saveNote": "Speichern",
     "noteLabel_info_requested": "Vom Gast benötigte Angaben",
     "noteLabel_declined": "Grund der Ablehnung",
     "guestNotNotified": "Der Gast wird nicht automatisch benachrichtigt: Kontaktieren Sie ihn direkt.",
     "toast_info_requested": "Rückfrage an der Anfrage vermerkt.",
-    "toast_declined": "Anfrage abgelehnt."
+    "toast_declined": "Anfrage abgelehnt.",
+    "confirmDecline": "Ablehnung bestätigen",
+    "saveInfo": "Rückfrage vermerken"
   },
   "demo": {
     "badge": "Demo",
@@ -1162,5 +1163,38 @@
     "agent": "Mitarbeiter-Bereich",
     "agentText": "Meine heutigen Einsätze vor Ort.",
     "demoNotice": "Demo ohne Konten: Beide Bereiche sind offen. Mit der echten Anmeldung landet jeder direkt in seinem Bereich, und ein Mitarbeiter kann den Manager-Bereich weder öffnen noch dessen Funktionen nutzen, auch nicht über einen direkten Link."
+  },
+  "inbox": {
+    "title": "Benachrichtigungen",
+    "scope": "Nur in der App: Derzeit werden keine E-Mails, Push-Nachrichten oder SMS gesendet.",
+    "open": "Benachrichtigungen ({count} ungelesen)",
+    "empty": "Nichts zu melden.",
+    "markAll": "Alle als gelesen markieren",
+    "unread": "Ungelesen",
+    "kind": {
+      "alert_urgent": "Dringender Vorfall gemeldet",
+      "service_requested": "Neue Leistungsanfrage: {kind}",
+      "task_to_validate": "{type} erledigt, zu prüfen",
+      "task_correction": "Korrektur angefordert: {reason}",
+      "task_blocked": "{type}: {reason}",
+      "task_unassigned": "{type} in den nächsten 24 h nicht zugewiesen",
+      "linen_shortage": "Wäsche: Engpass bei {item} erwartet am {day}"
+    },
+    "settingsTitle": "Benachrichtigungen",
+    "settingsHint": "Wählen Sie, was in der Glocke der App erscheint.",
+    "type": {
+      "alert_urgent": "Dringender Vorfall",
+      "service_requested": "Neue Leistungsanfrage",
+      "task_to_validate": "Einsatz erledigt, zu prüfen",
+      "task_blocked": "Verspäteter oder undurchführbarer Einsatz",
+      "task_unassigned": "Nicht zugewiesener Einsatz",
+      "linen_shortage": "Wäsche- oder Bestandswarnung"
+    },
+    "criticalLocked": "Kritisch: wird immer angezeigt, kann nicht deaktiviert werden.",
+    "inApp": "In der App",
+    "channelInApp": "In der App: verfügbar (in der Demo auf diesem Gerät).",
+    "channelEmail": "E-Mail: noch nicht verfügbar, erfordert den Server und einen Versanddienst.",
+    "channelPush": "Push: noch nicht verfügbar, erfordert den Server und Ihre Zustimmung auf dem Gerät.",
+    "channelSms": "SMS: nicht vorgesehen, solange Anbieter, Kosten und Einwilligung nicht entschieden sind."
   }
 }

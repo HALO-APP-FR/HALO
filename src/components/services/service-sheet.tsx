@@ -339,7 +339,7 @@ function ServiceSheetInner({ service, onClose }: { service: ServiceRequest | "ne
                       {t("form.cancel")}
                     </Button>
                     <Button type="button" disabled={!note.trim()} onClick={() => save(undefined, noteFor, note)}>
-                      {t("services.saveNote")}
+                      {noteFor === "declined" ? t("services.confirmDecline") : t("services.saveInfo")}
                     </Button>
                   </div>
                 </div>

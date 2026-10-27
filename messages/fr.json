@@ -104,7 +104,7 @@
     "emptyNoProperty": "Ajoutez un logement et ses réservations : les ménages se créent tout seuls.",
     "alertsOpen": "{count, plural, one {# alerte ouverte} other {# alertes ouvertes}}",
     "alertsUrgent": "{count, plural, one {# alerte} other {# alertes}} dont {urgent} urgente(s)",
-    "servicesRequested": "{count, plural, one {# demande de prestation à confirmer} other {# demandes de prestation à confirmer}}",
+    "servicesRequested": "{count, plural, one {# demande de prestation à traiter} other {# demandes de prestation à traiter}}",
     "linenShortage": "{count, plural, one {Rupture de linge prévue sur # article} other {Rupture de linge prévue sur # articles}}",
     "blocked": "{count, plural, one {# mission en retard ou impossible dans sa fenêtre} other {# missions en retard ou impossibles dans leur fenêtre}}"
   },
@@ -1030,7 +1030,7 @@
     "subtitle": "Conciergerie haut de gamme : chaque demande suivie jusqu'au bout.",
     "new": "Nouvelle prestation",
     "newHint": "Pour un voyageur, avec votre équipe ou un partenaire.",
-    "kpiRequested": "Demandes à confirmer",
+    "kpiRequested": "Demandes à traiter",
     "kpiWeek": "Prévues sur 7 jours",
     "kpiRevenue": "Montant du mois",
     "filterTodo": "Prestations demandées",
@@ -1078,12 +1078,13 @@
     "accept": "Accepter la demande",
     "askInfo": "Demander des précisions",
     "decline": "Refuser",
-    "saveNote": "Enregistrer",
     "noteLabel_info_requested": "Précisions à obtenir du voyageur",
     "noteLabel_declined": "Motif du refus",
     "guestNotNotified": "Le voyageur n'est pas prévenu automatiquement : contactez-le directement.",
     "toast_info_requested": "Précisions notées sur la demande.",
-    "toast_declined": "Demande refusée."
+    "toast_declined": "Demande refusée.",
+    "confirmDecline": "Confirmer le refus",
+    "saveInfo": "Noter la demande de précisions"
   },
   "demo": {
     "badge": "Démo",
@@ -1162,5 +1163,38 @@
     "agent": "Espace Agent",
     "agentText": "Mes missions du jour, sur le terrain.",
     "demoNotice": "Démo sans compte : les deux espaces sont ouverts. Avec la connexion réelle, chacun arrive directement dans son espace, et un agent ne peut ni ouvrir l'espace Manager ni utiliser ses fonctions, même par une adresse directe."
+  },
+  "inbox": {
+    "title": "Notifications",
+    "scope": "Dans l'application uniquement : aucun e-mail, push ou SMS n'est envoyé pour l'instant.",
+    "open": "Notifications ({count} non lues)",
+    "empty": "Rien à signaler.",
+    "markAll": "Tout marquer comme lu",
+    "unread": "Non lue",
+    "kind": {
+      "alert_urgent": "Incident urgent signalé",
+      "service_requested": "Nouvelle demande de prestation : {kind}",
+      "task_to_validate": "{type} terminé, à valider",
+      "task_correction": "Correction demandée : {reason}",
+      "task_blocked": "{type} : {reason}",
+      "task_unassigned": "{type} non attribué dans les 24 h",
+      "linen_shortage": "Linge : {item} en rupture prévue le {day}"
+    },
+    "settingsTitle": "Notifications",
+    "settingsHint": "Choisissez ce qui apparaît dans la cloche de l'application.",
+    "type": {
+      "alert_urgent": "Incident urgent",
+      "service_requested": "Nouvelle prestation demandée",
+      "task_to_validate": "Mission terminée, à valider",
+      "task_blocked": "Mission en retard ou irréalisable",
+      "task_unassigned": "Mission non attribuée",
+      "linen_shortage": "Alerte linge ou stock"
+    },
+    "criticalLocked": "Critique : toujours affiché, ne peut pas être désactivé.",
+    "inApp": "Dans l'application",
+    "channelInApp": "Dans l'application : disponible (sur cet appareil en démo).",
+    "channelEmail": "E-mail : pas encore disponible, nécessite le serveur et un service d'envoi.",
+    "channelPush": "Push : pas encore disponible, nécessite le serveur et votre accord sur l'appareil.",
+    "channelSms": "SMS : non prévu sans décision sur le fournisseur, le coût et le consentement."
   }
 }

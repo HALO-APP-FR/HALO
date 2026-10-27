@@ -136,8 +136,12 @@ export function windowShortfallMin(task: Pick<Task, "windowStart" | "windowEnd" 
   return Math.max(0, Math.round(task.durationMin - windowMin));
 }
 
-/** Statuts d'une mission encore à faire et pas démarrée. */
-const NOT_STARTED: Task["status"][] = ["unassigned", "assigned", "to_redo"];
+/**
+ * Statuts d'une mission encore à faire et jamais démarrée.
+ * Une mission en « Correction demandée » a déjà été faite une fois : elle est suivie
+ * par le cycle de validation, pas signalée comme « non faite ».
+ */
+const NOT_STARTED: Task["status"][] = ["unassigned", "assigned"];
 
 /** Mission non démarrée dont la fenêtre est terminée : en retard. */
 export function isOverdue(task: Pick<Task, "status" | "windowEnd">, now: Date) {

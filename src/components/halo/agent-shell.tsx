@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import { DemoBadge } from "./demo-badge";
+import { InboxButton } from "./inbox";
 import { OfflineBanner } from "./offline-banner";
 import { agentNav, isActive } from "./nav-config";
 
@@ -16,7 +17,10 @@ export function AgentShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-dvh bg-subtle">
       <OfflineBanner />
       <main className="relative mx-auto w-full max-w-xl px-4 pb-32 pt-[max(env(safe-area-inset-top),24px)]">
-        <DemoBadge className="absolute end-4 top-[max(env(safe-area-inset-top),20px)]" />
+        <div className="absolute end-4 top-[max(env(safe-area-inset-top),16px)] flex items-center gap-1">
+          <InboxButton audience="agent" />
+          <DemoBadge />
+        </div>
         {children}
       </main>
       <nav

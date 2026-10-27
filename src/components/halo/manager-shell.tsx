@@ -11,6 +11,7 @@ import { Avatar } from "./avatar";
 import { LocaleSwitcher } from "./locale-switcher";
 import { ThemeSwitcher } from "./theme-switcher";
 import { DemoBadge } from "./demo-badge";
+import { InboxButton } from "./inbox";
 import { isPendingService } from "@/components/services/service-meta";
 import { OfflineBanner } from "./offline-banner";
 import { isActive, managerMobileTabs, managerNav } from "./nav-config";
@@ -54,6 +55,8 @@ export function ManagerShell({ children }: { children: React.ReactNode }) {
             <Logo compact={collapsed} />
           </Link>
           {!collapsed && (
+            <span className="flex items-center gap-1">
+            <InboxButton audience="manager" className="size-8" />
             <button
               onClick={() => setCollapsed(true)}
               className="grid size-8 place-items-center rounded-sm text-faint transition-colors hover:bg-subtle hover:text-fg dark:hover:bg-surface-hover"
@@ -61,6 +64,7 @@ export function ManagerShell({ children }: { children: React.ReactNode }) {
             >
               <PanelLeftClose className="size-[18px] rtl:-scale-x-100" />
             </button>
+            </span>
           )}
         </div>
 
@@ -110,6 +114,7 @@ export function ManagerShell({ children }: { children: React.ReactNode }) {
                   <PanelLeftOpen className="size-[18px] rtl:-scale-x-100" />
                 </button>
               </Tooltip>
+              <InboxButton audience="manager" />
               <DemoBadge variant="icon" />
               <Avatar initials="MD" size="md" color="#0B0B0C" label="Mathieu D." />
             </>
@@ -146,6 +151,7 @@ export function ManagerShell({ children }: { children: React.ReactNode }) {
           <Logo />
           <span className="flex items-center gap-2">
             <DemoBadge />
+            <InboxButton audience="manager" />
             <Avatar initials="MD" size="md" color="#0B0B0C" className="dark:!bg-line" label="Mathieu D." />
           </span>
         </div>

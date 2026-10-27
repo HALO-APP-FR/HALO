@@ -25,12 +25,14 @@ export function SwitchRow({
   description,
   checked,
   onCheckedChange,
+  disabled,
 }: {
   id: string;
   label: string;
   description?: string;
   checked: boolean;
   onCheckedChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-4 py-3">
@@ -38,7 +40,7 @@ export function SwitchRow({
         <span className="block text-[15px] font-medium">{label}</span>
         {description && <span className="mt-0.5 block text-caption text-muted">{description}</span>}
       </label>
-      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
+      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { Member, Property, Task } from "@/lib/domain/types";
 import { canRequestCorrection, canStart, canSubmit, canValidate, missingRequiredPhotos, needsValidation } from "@/lib/engine/mission-cycle";
 import { useHalo } from "@/lib/store/halo-store";
+import { infeasibility } from "@/lib/engine/conflicts";
 
 const property = {
   id: "p1",
@@ -39,6 +40,10 @@ describe("cycle de mission : règles", () => {
     expect(canSubmit(task({ report: { checked: [], photos: { i1: ["ph1"] }, rooms: {} } }), property, "a1").ok).toBe(true);
     // Un accueil ne suit pas la checklist de ménage
     expect(missingRequiredPhotos(task({ type: "check_in" }), property)).toEqual([]);
+  });
+  it("une correction demandée après la fenêtre n'est pas affichée comme « mission non faite »", () => {
+    expect(infeasibility(task({ status: "to_redo" }), new Date("2026-10-29T00:00:00Z"))).toBeNull();
+    expect(infeasibility(task({ status: "assigned" }), new Date("2026-10-29T00:00:00Z"))).toBe("window_passed");
   });
   it("validation configurable par type de mission", () => {
     expect(needsValidation("turnover", undefined)).toBe(true);
