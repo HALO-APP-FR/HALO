@@ -4,6 +4,8 @@ Statut au 27/10/2026 : **étape 1.1 réalisée** (schéma, règles et tests sur 
 
 **Règle ferme** : aucune vraie donnée client dans HALO avant que la connexion, le cloisonnement des organisations et l'accès aux photos soient en place et vérifiés sur l'environnement réel (fin de l'étape 1.5).
 
+> **Révisé** : voir `13-revision-avant-etape-1-2.md` (liens invités avant tout voyageur, codes en ligne uniquement, conflits hors ligne conservés, projet de test dédié, réglages Vercel, connexion e-mail). Ce document-là fait foi en cas de différence.
+
 Décisions déjà validées : on garde Next.js et Vercel ; la base est PostgreSQL (Supabase) ; une conciergerie = une organisation ; le cloisonnement est appliqué par la base et par le stockage. Ce document remplace le plan de migration du §6 de `10-architecture-saas.md`.
 
 ---
