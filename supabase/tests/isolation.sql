@@ -137,6 +137,15 @@ insert into public.guest_guides (organization_id, property_id, welcome, wifi_pas
 insert into public.guest_links (organization_id, reservation_id, token_hash, valid_from, valid_until) values
   (t.id('A'), t.id('RA2'), 'fixture-a', now() - interval '1 day', now() + interval '2 days'),
   (t.id('B'), t.id('RB2'), 'fixture-b', now() - interval '1 day', now() + interval '2 days');
+insert into public.service_requests (id, organization_id, reservation_id, property_id, kind, start_at, source) values
+  (gen_random_uuid(), t.id('A'), t.id('RA2'), t.id('PA1'), 'private_chef', now() + interval '1 day', 'guest'),
+  (gen_random_uuid(), t.id('B'), t.id('RB2'), t.id('PB1'), 'driver', now() + interval '1 day', 'guest');
+insert into public.service_events (organization_id, service_id, kind, body, visibility, author_kind)
+  select organization_id, id, 'internal_note', 'note interne fixture', 'internal', 'member' from public.service_requests;
+insert into public.stay_messages (organization_id, reservation_id, author_kind, body) values
+  (t.id('A'), t.id('RA2'), 'guest', 'message A'), (t.id('B'), t.id('RB2'), 'guest', 'message B');
+insert into public.notification_outbox (organization_id, recipient, template) values
+  (t.id('A'), 'a@guest.test', 'fixture'), (t.id('B'), 'b@guest.test', 'fixture');
 insert into public.task_report_versions (organization_id, task_id, checked, rooms) values
   (t.id('A'), t.id('TA2'), '[]', '{}'), (t.id('B'), t.id('TB1'), '[]', '{}');
 
@@ -174,9 +183,10 @@ where n.nspname = 'public' and c.relkind = 'r' group by c.relname;
 
 select t.check('aucune fonction exécutable par anon (hors exception invité) : ' || p.proname, p.proname, false)
 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute') and p.proname <> 'get_guest_stay';
-select t.is('exception anonyme unique : get_guest_stay', (select string_agg(p.proname, ',') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'get_guest_stay');
+where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')
+  and p.proname not in ('get_guest_stay', 'guest_request_service', 'guest_reply_service', 'guest_send_message');
+select t.is('exceptions anonymes : uniquement la porte d''entrée voyageur (lien de séjour)', (select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'get_guest_stay,guest_reply_service,guest_request_service,guest_send_message');
 
 select t.check('fonction security definer avec search_path fixé : ' || p.proname,
   coalesce(array_to_string(p.proconfig, ','), 'aucun'), coalesce(array_to_string(p.proconfig, ','), '') like '%search_path=%')
@@ -595,6 +605,93 @@ select t.is('invité : séjour annulé', t.dml('a_manager', format('update publi
 update public.reservations set status = 'cancelled' where id = t.id('RA2');
 select t.is('invité : séjour annulé = lien révoqué automatiquement', t.guest(t.tk('A2b')), 'unavailable');
 select t.is('invité : motif tracé', (select revoke_reason from public.guest_links where token_hash = encode(extensions.digest(t.tk('A2b'), 'sha256'), 'hex')), 'stay_cancelled');
+
+-- =====================================================================
+-- 5. Espace voyageur : prestations, réponses, messages, notifications (migration 4)
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['RA4', 'RB4']) k;
+insert into public.reservations (id, organization_id, property_id, guest_name, guest_email, check_in_at, check_out_at) values
+  (t.id('RA4'), t.id('A'), t.id('PA2'), 'Voyageur A4', 'a4@guest.test', now() - interval '1 day', now() + interval '2 days'),
+  (t.id('RB4'), t.id('B'), t.id('PB1'), 'Voyageur B4', null, now() - interval '1 day', now() + interval '2 days');
+do $$ begin
+  insert into t.tok values ('GA', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('RA4'))));
+  insert into t.tok values ('GB', t.keep('b_manager', format('select public.create_guest_link(%L, %L)', t.id('B'), t.id('RB4'))));
+end $$;
+create table t.svc (name text primary key, id uuid);
+do $$ begin
+  insert into t.svc values ('SA', (t.keep(null, format('select public.guest_request_service(%L, ''private_chef'', now() + interval ''1 day'', 4, ''Dîner'')', t.tk('GA')))::jsonb ->> 'id')::uuid);
+  insert into t.svc values ('SB', (t.keep(null, format('select public.guest_request_service(%L, ''driver'', now() + interval ''1 day'', 2, null)', t.tk('GB')))::jsonb ->> 'id')::uuid);
+end $$;
+create function t.sv(n text) returns uuid language sql stable as $$ select id from t.svc where name = n $$;
+
+select t.check('voyageur : demande créée sans compte, via son lien', t.sv('SA')::text, t.sv('SA') is not null);
+select t.is('voyageur : accusé de réception mis en file (adresse connue)', (select count(*)::text from public.notification_outbox where service_id = t.sv('SA') and template = 'service_received'), '1');
+select t.is('voyageur : pas d''e-mail sans adresse (rien n''est simulé)', (select count(*)::text from public.notification_outbox where service_id = t.sv('SB')), '0');
+select t.is('voyageur : sa demande apparaît dans son espace', t.guest(t.tk('GA'), '{services,0,status}'), 'requested');
+select t.is('voyageur : il ne voit pas la demande de B', t.q(null, format('select jsonb_array_length(public.get_guest_stay(%L) -> ''services'')', t.tk('GA'))), '1');
+select t.is('voyageur : lien faux = aucune création', (t.q(null, format('select public.guest_request_service(%L, ''spa'', now(), 1, null)', repeat('0', 64)))::jsonb ->> 'status'), 'unavailable');
+select t.is('voyageur : ne répond pas à la demande d''un autre séjour', (t.q(null, format('select public.guest_reply_service(%L, %L, ''x'')', t.tk('GA'), t.sv('SB')))::jsonb ->> 'status'), 'unavailable');
+select t.err('voyageur : aucune lecture directe des demandes sans compte', t.q(null, 'select count(*) from public.service_requests'), '42501');
+
+select t.is('équipe : le manager de A voit la demande, signalée non lue', t.q('a_manager', format('select manager_unread::text from public.service_requests where id = %L', t.sv('SA'))), 'true');
+select t.is('équipe : le manager de B ne la voit pas', t.q('b_manager', format('select count(*) from public.service_requests where id = %L', t.sv('SA'))), '0');
+select t.is('équipe : un agent non chargé ne la voit pas', t.q('a_agent', format('select count(*) from public.service_requests where id = %L', t.sv('SA'))), '0');
+select t.err('équipe : le manager de B ne décide pas pour A', t.q('b_manager', format('select public.decide_service(%L, %L, ''confirmed'')', t.id('A'), t.sv('SA'))), '42501');
+select t.err('équipe : un agent ne décide pas', t.q('a_agent', format('select public.decide_service(%L, %L, ''confirmed'')', t.id('A'), t.sv('SA'))), '42501');
+select t.err('équipe : statut modifiable seulement par la fonction de décision', t.dml('a_manager', format('update public.service_requests set status = ''confirmed'' where id = %L', t.sv('SA'))), '42501');
+select t.err('précisions : la question est obligatoire', t.q('a_manager', format('select public.decide_service(%L, %L, ''info_requested'', ''  '')', t.id('A'), t.sv('SA'))), '22023');
+select t.is('précisions : demandées avec une question et une note interne',
+  (t.keep('a_manager', format('select public.decide_service(%L, %L, ''info_requested'', ''Des allergies ?'', ''Client exigeant'')', t.id('A'), t.sv('SA')))::jsonb ->> 'email_queued'), 'true');
+select t.is('précisions : le voyageur voit la question', t.guest(t.tk('GA'), '{services,0,events,1,body}'), 'Des allergies ?');
+select t.check('précisions : la note interne n''apparaît jamais côté voyageur', t.q(null, format('select public.get_guest_stay(%L)::text', t.tk('GA'))),
+  t.q(null, format('select public.get_guest_stay(%L)::text', t.tk('GA'))) not like '%Client exigeant%' and t.q(null, format('select public.get_guest_stay(%L)::text', t.tk('GA'))) not like '%note interne%');
+select t.is('précisions : la réponse du voyageur revient au dossier', (t.keep(null, format('select public.guest_reply_service(%L, %L, ''Pas d''''arachides'')', t.tk('GA'), t.sv('SA')))::jsonb ->> 'status'), 'ok');
+select t.is('précisions : la demande repasse « à traiter », signalée à l''équipe', t.q('a_manager', format('select status || ''/'' || manager_unread from public.service_requests where id = %L', t.sv('SA'))), 'requested/true');
+select t.is('équipe : la réponse du voyageur est dans l''historique', t.q('a_manager', format('select body from public.service_events where service_id = %L and kind = ''guest_message''', t.sv('SA'))), 'Pas d''arachides');
+select t.is('acceptation : confirmée', (t.keep('a_manager', format('select public.decide_service(%L, %L, ''confirmed'', ''Réservé pour 20 h'')', t.id('A'), t.sv('SA')))::jsonb ->> 'status'), 'ok');
+select t.is('acceptation : le voyageur voit la confirmation', t.guest(t.tk('GA'), '{services,0,status}'), 'confirmed');
+select t.is('acceptation : un e-mail par étape, état « en attente » tant qu''il n''est pas parti',
+  (select string_agg(template || ':' || status, ',' order by created_at) from public.notification_outbox where service_id = t.sv('SA')),
+  'service_received:pending,service_info_requested:pending,service_confirmed:pending');
+select t.is('historique : chaque étape horodatée', t.q('a_manager', format('select string_agg(kind || coalesce('':'' || status, ''''), '','' order by id) from public.service_events where service_id = %L', t.sv('SA'))),
+  'created:requested,status:info_requested,internal_note,guest_message,status:requested,status:confirmed');
+select t.err('modification : le manager de B ne modifie pas une demande de A', t.q('b_manager', format('select public.update_service(%L, %L, now() + interval ''3 days'', 4)', t.id('A'), t.sv('SA'))), '42501');
+select t.err('modification : un agent ne modifie pas', t.q('a_agent', format('select public.update_service(%L, %L, now() + interval ''3 days'', 4)', t.id('A'), t.sv('SA'))), '42501');
+select t.is('modification : le manager déplace la prestation', (t.keep('a_manager', format('select public.update_service(%L, %L, (select start_at + interval ''1 hour'' from public.service_requests where id = %L), 4, ''Décalé à 21 h'')', t.id('A'), t.sv('SA'), t.sv('SA')))::jsonb ->> 'status'), 'ok');
+select t.is('modification : le voyageur voit le changement', t.guest(t.tk('GA'), '{services,0,events,-1,body}'), 'Décalé à 21 h');
+select t.is('modification : e-mail mis en file', (select count(*)::text from public.notification_outbox where service_id = t.sv('SA') and template = 'service_updated'), '1');
+select t.is('transition impossible refusée (confirmée → précisions)', (t.q('a_manager', format('select public.decide_service(%L, %L, ''info_requested'', ''x'')', t.id('A'), t.sv('SA')))::jsonb ->> 'status'), 'conflict');
+select t.is('refus : avec motif communicable, sans e-mail faute d''adresse', (t.keep('b_manager', format('select public.decide_service(%L, %L, ''declined'', ''Indisponible à cette date'')', t.id('B'), t.sv('SB')))::jsonb ->> 'email_queued'), 'false');
+select t.is('refus : le voyageur de B voit le motif', t.guest(t.tk('GB'), '{services,0,events,1,body}'), 'Indisponible à cette date');
+
+-- Messages du séjour
+select t.is('messages : le voyageur écrit à l''équipe', (t.keep(null, format('select public.guest_send_message(%L, ''Le code wifi ne marche pas'')', t.tk('GA')))::jsonb ->> 'status'), 'ok');
+select t.is('messages : le manager de A le lit', t.q('a_manager', format('select count(*) from public.stay_messages where reservation_id = %L', t.id('RA4'))), '1');
+select t.is('messages : le manager de B ne le voit pas', t.q('b_manager', format('select count(*) from public.stay_messages where reservation_id = %L', t.id('RA4'))), '0');
+select t.is('messages : un agent ne le voit pas', t.q('a_agent', format('select count(*) from public.stay_messages where reservation_id = %L', t.id('RA4'))), '0');
+select t.is('messages : le manager répond', (t.keep('a_manager', format('select public.reply_stay_message(%L, %L, ''Redémarrez la box'')', t.id('A'), t.id('RA4')))::jsonb ->> 'status'), 'ok');
+select t.err('messages : le manager de B ne répond pas au séjour de A', t.q('b_manager', format('select public.reply_stay_message(%L, %L, ''x'')', t.id('A'), t.id('RA4'))), '42501');
+select t.is('messages : le voyageur voit la réponse', t.guest(t.tk('GA'), '{messages,1,body}'), 'Redémarrez la box');
+select t.is('messages : le voyageur de B ne voit pas ceux de A', t.q(null, format('select jsonb_array_length(public.get_guest_stay(%L) -> ''messages'')', t.tk('GB'))), '0');
+
+-- File d'envoi
+select t.err('envoi : personne ne marque un e-mail « envoyé » à la main', t.dml('a_owner', format('update public.notification_outbox set status = ''sent'' where organization_id = %L', t.id('A'))), '42501');
+select t.is('envoi : le manager de B ne voit pas la file de A', t.q('b_manager', format('select count(*) from public.notification_outbox where organization_id = %L', t.id('A'))), '0');
+update public.notification_outbox set status = 'failed', last_error = 'smtp down' where service_id = t.sv('SA') and template = 'service_confirmed';
+select t.err('envoi : le manager de B ne relance pas un envoi de A', t.q('b_manager', format('select public.retry_notification(%L, (select id from public.notification_outbox where service_id = %L and template = ''service_confirmed''))', t.id('A'), t.sv('SA'))), '42501');
+select t.is('envoi : le manager de A relance un envoi en échec', t.keep('a_manager', format('select public.retry_notification(%L, (select id from public.notification_outbox where service_id = %L and template = ''service_confirmed''))', t.id('A'), t.sv('SA'))), '');
+select t.is('envoi : de nouveau « en attente »', (select status from public.notification_outbox where service_id = t.sv('SA') and template = 'service_confirmed'), 'pending');
+
+-- Lien révoqué : plus aucune action voyageur
+select t.keep('a_manager', format('select public.revoke_guest_link(%L, (select id from public.guest_links where reservation_id = %L and revoked_at is null))', t.id('A'), t.id('RA4')));
+select t.is('révocation : plus de demande possible', (t.q(null, format('select public.guest_request_service(%L, ''spa'', now(), 1, null)', t.tk('GA')))::jsonb ->> 'status'), 'unavailable');
+select t.is('révocation : plus de message possible', (t.q(null, format('select public.guest_send_message(%L, ''x'')', t.tk('GA')))::jsonb ->> 'status'), 'unavailable');
+select t.is('révocation : plus de réponse possible', (t.q(null, format('select public.guest_reply_service(%L, %L, ''x'')', t.tk('GA'), t.sv('SA')))::jsonb ->> 'status'), 'unavailable');
+
+-- Onboarding : réponses enregistrées par les responsables de l'organisation seulement
+select t.is('onboarding : le manager enregistre les réponses', t.dml('a_manager', format('update public.organizations set activity_type = ''concierge'', onboarding = ''{"step": 2}'' where id = %L', t.id('A'))), '1');
+select t.deny('onboarding : un agent ne modifie pas l''organisation', t.dml('a_agent', format('update public.organizations set activity_type = ''independent_hotel'' where id = %L', t.id('A'))));
+select t.err('onboarding : type d''activité inconnu refusé', t.dml('a_manager', format('update public.organizations set activity_type = ''casino'' where id = %L', t.id('A'))), '23514');
 
 -- =====================================================================
 -- Bilan

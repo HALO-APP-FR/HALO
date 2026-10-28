@@ -1167,7 +1167,9 @@
     "managerText": "Planning, jobs, team, properties, services.",
     "agent": "Agent space",
     "agentText": "My jobs for today, in the field.",
-    "demoNotice": "Demo without accounts: both spaces are open. With real sign-in, everyone lands in their own space, and an agent can neither open the Manager space nor use its functions, even with a direct link."
+    "demoNotice": "Demo without accounts: both spaces are open. With real sign-in, everyone lands in their own space, and an agent can neither open the Manager space nor use its functions, even with a direct link.",
+    "connected": "Connected environment",
+    "connectedText": "Secure account, data saved online and shared across devices."
   },
   "inbox": {
     "title": "Notifications",
@@ -1252,5 +1254,629 @@
       "open_service": "Handle the request",
       "open_linen": "See linen"
     }
+  },
+  "connected": {
+    "notConfigured": "The connected environment isn't configured here yet. Use the demo, or add the pre-production Supabase variables.",
+    "signOut": "Sign out",
+    "nav": {
+      "label": "Navigation",
+      "home": "Home",
+      "stays": "Stays",
+      "services": "Services",
+      "missions": "Missions",
+      "properties": "Properties",
+      "team": "Team",
+      "setup": "Setup"
+    },
+    "env": {
+      "demo": "Demo",
+      "demoHint": "Demo: sample data stored in this browser only.",
+      "preprod-local": "Local pre-prod",
+      "preprod-localHint": "Connected test environment on this machine: real database, sample data.",
+      "preprod": "Pre-production",
+      "preprodHint": "Connected test environment: real saved database, sample data only.",
+      "production": "Connected",
+      "productionHint": "Production environment: your real data."
+    },
+    "signIn": {
+      "title": "Sign in to HALO",
+      "subtitle": "No password: we email you a link and a code.",
+      "email": "Work email",
+      "emailHint": "An account is created on first sign-in.",
+      "send": "Send my link",
+      "code": "6-digit code",
+      "codeSent": "Email sent to {email}. Open the link, or enter the code here.",
+      "verify": "Sign in",
+      "changeEmail": "Use another email",
+      "errors": {
+        "invalid_email": "Invalid email address.",
+        "send_failed": "The email couldn't be sent. Try again shortly.",
+        "invalid_code": "Wrong or expired code.",
+        "rate_limited": "Too many attempts. Wait a minute.",
+        "link": "This sign-in link is no longer valid. Request a new one."
+      }
+    },
+    "createOrg": {
+      "title": "Create your workspace",
+      "text": "The name of your concierge business or property. You can change it later.",
+      "name": "Trading name",
+      "submit": "Create and set up"
+    },
+    "errors": {
+      "not_signed_in": "Your session has expired. Sign in again.",
+      "forbidden": "This action isn't allowed for your role.",
+      "duplicate": "This item already exists.",
+      "invalid": "Some information isn't valid. Check the form.",
+      "not_found": "Item not found or not accessible.",
+      "server": "The server couldn't save. Nothing was changed; try again.",
+      "unknown": "Unexpected error. Nothing was changed.",
+      "network": "Couldn't reach the server. Check your network; nothing was saved.",
+      "conflict": "This item changed in the meantime. The page now shows its actual state.",
+      "invalid_dates": "Check-out must be after check-in.",
+      "stay_ended": "This stay has ended: no link can be created.",
+      "stay_not_confirmed": "The stay isn't confirmed: no guest link possible.",
+      "question_required": "Write the question for the guest.",
+      "missing_photos": "Required photos are missing: the mission can't be finished.",
+      "already_member": "You're already a member of this organisation.",
+      "invalid_invitation": "Invalid, expired or already used invitation.",
+      "unchanged": "No change to save."
+    },
+    "home": {
+      "subtitle": "What needs your attention.",
+      "onboardingTitle": "Finish setting up HALO",
+      "onboardingResume": "Pick up where you left off, your answers are saved.",
+      "onboardingStart": "3 to 5 minutes to a useful first setup.",
+      "services": "{count, plural, =0 {No service request to handle} one {# service request to handle} other {# service requests to handle}}",
+      "messages": "{count, plural, =0 {No unread guest message} one {# unread guest message} other {# unread guest messages}}",
+      "unassigned": "{count, plural, =0 {No mission without an agent} one {# mission without an agent} other {# missions without an agent}}",
+      "emails": "{count, plural, =0 {No failed guest email} one {# guest email not sent} other {# guest emails not sent}}",
+      "stays7": "{count, plural, =0 {No arrival in the next 7 days} one {# arrival in the next 7 days} other {# arrivals in the next 7 days}}"
+    },
+    "onb": {
+      "progress": "Step {n} of {total}",
+      "later": "Finish later",
+      "skip": "Skip",
+      "next": "Continue",
+      "back": "Back",
+      "optional": "Optional",
+      "profile": {
+        "title": "About you",
+        "text": "So your team knows who's contacting them.",
+        "known": "Signed in as {email}: no need to enter it again.",
+        "fullName": "Full name",
+        "jobTitle": "Job title",
+        "phone": "Work phone",
+        "phoneHint": "Optional. Visible to your team only."
+      },
+      "organization": {
+        "title": "Your organisation",
+        "text": "The minimum to identify you. Everything else is optional.",
+        "name": "Trading name",
+        "legalName": "Legal name",
+        "country": "Country",
+        "address": "Address",
+        "postalCode": "Postal code",
+        "city": "City",
+        "noLegal": "No legal documents are needed to start. Billing details will only be asked once billing is enabled."
+      },
+      "countries": {
+        "FR": "France",
+        "BE": "Belgium",
+        "CH": "Switzerland",
+        "LU": "Luxembourg",
+        "MC": "Monaco",
+        "ES": "Spain",
+        "PT": "Portugal",
+        "IT": "Italy",
+        "DE": "Germany",
+        "GB": "United Kingdom",
+        "US": "United States",
+        "CA": "Canada",
+        "MA": "Morocco"
+      },
+      "activity": {
+        "title": "Your business",
+        "text": "The next questions adapt to your answer.",
+        "label": "Business type",
+        "concierge": "Concierge service",
+        "short_term_rental": "Short-term rental",
+        "residence": "Residence",
+        "aparthotel": "Aparthotel",
+        "independent_hotel": "Independent hotel",
+        "unitCount": "Number of units",
+        "roomCount": "Number of rooms",
+        "approx": "A rough figure is enough."
+      },
+      "operations": {
+        "title": "How you operate",
+        "text": "To set up missions, validation and linen."
+      },
+      "cleaning": {
+        "label": "Who does the cleaning?",
+        "internal": "In-house team",
+        "providers": "Contractors",
+        "both": "Both"
+      },
+      "linen": {
+        "label": "And the linen?",
+        "internal": "In-house stock",
+        "laundry": "External laundry",
+        "both": "Both",
+        "none": "Not managed"
+      },
+      "validation": {
+        "label": "Should missions be checked before closing?",
+        "all": "All of them",
+        "turnover": "Only cleanings",
+        "none": "No"
+      },
+      "roomInspection": {
+        "label": "Are rooms inspected after cleaning?"
+      },
+      "welcome": {
+        "label": "Do you welcome guests (key handover, walkthrough)?"
+      },
+      "yesNo": {
+        "label": "Answer",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "services": {
+        "title": "Services offered",
+        "text": "Guests will be able to request them from their space."
+      },
+      "issues": {
+        "title": "Most frequent issues",
+        "text": "HALO uses this to suggest checks and alerts.",
+        "late_cleaning": "Late cleanings",
+        "missing_linen": "Missing linen",
+        "damage": "Unreported damage",
+        "guest_complaints": "Guest complaints",
+        "staff_no_show": "Staff no-shows",
+        "late_checkout": "Late check-outs",
+        "room_not_ready": "Rooms not ready on arrival",
+        "housekeeping_control": "Room quality control",
+        "key_handover": "Key handover",
+        "access_problems": "Problems accessing the property"
+      },
+      "channels": {
+        "title": "Your booking channels",
+        "text": "To prepare importing your calendars.",
+        "airbnb": "Airbnb",
+        "booking": "Booking.com",
+        "vrbo": "Vrbo",
+        "direct": "Direct bookings",
+        "notConnected": "Automatic calendar import isn't wired to the connected environment yet: your answers help prepare it, nothing is synced for now."
+      },
+      "proposals": {
+        "title": "Suggested setup",
+        "text": "Prepared automatically from your answers, using rules explained for each item. Nothing is saved until you confirm.",
+        "alreadyDone": "A setup was already saved. Confirming again only replaces the items you accept or modify.",
+        "accept": "Accept",
+        "modify": "Edit",
+        "ignore": "Ignore",
+        "summary": "Before saving",
+        "summaryText": "{kept} of {total} items will be saved. Ignored items change nothing.",
+        "decideAll": "Choose Accept, Edit or Ignore for each item.",
+        "next": "Next step: create your first property, then invite your team.",
+        "confirm": "Confirm and save",
+        "photo": "photo",
+        "room": "Room",
+        "item": "Check item",
+        "remove": "Remove",
+        "task_types": {
+          "title": "Mission categories"
+        },
+        "checklist": {
+          "title": "Standard checklist"
+        },
+        "validation": {
+          "title": "Validation rules",
+          "none": "No validation: missions close when finished."
+        },
+        "alerts": {
+          "title": "Home alerts"
+        },
+        "linen": {
+          "title": "Linen tracking",
+          "value": "Planned turnaround of {days} day(s) between pickup and clean linen return.",
+          "days": "Turnaround days"
+        }
+      },
+      "alerts": {
+        "unassigned_missions": "Missions without an agent",
+        "pending_services": "Service requests to handle",
+        "unread_messages": "Unread guest messages",
+        "failed_emails": "Guest emails not sent",
+        "upcoming_stays": "Arrivals in the next 7 days"
+      },
+      "why": {
+        "turnover_always": "Cleaning between stays is the basis of every turnover.",
+        "welcome_service": "You welcome guests: arrivals and departures become missions.",
+        "issue_key_handover": "You flagged key handover issues: an arrival mission makes them visible.",
+        "linen_missions": "External laundry: linen deliveries and pickups become tracked missions.",
+        "room_inspection": "You inspect rooms: an inspection follows each cleaning.",
+        "issue_control": "You flagged a need for quality control.",
+        "checklist_hotel": "Hotel room checklist, suited to your business.",
+        "checklist_apartment": "Apartment checklist by room, with a photo per key room as proof.",
+        "issue_damage": "You flagged unreported damage: a general check photo is added.",
+        "issue_missing_linen": "You flagged missing linen: a count is added in the bedroom.",
+        "validation_all": "You want to check every mission.",
+        "validation_turnover": "You want to check cleanings.",
+        "validation_none": "You don't want validation: missions close as soon as they're finished.",
+        "validation_providers": "You work with contractors: checking cleanings lets you verify before paying.",
+        "alerts_guest": "Guest requests and messages need a quick answer.",
+        "issue_late_cleaning": "You flagged delays or no-shows: missions without an agent are highlighted.",
+        "alerts_volume": "With several units or late check-outs, seeing upcoming arrivals helps plan ahead.",
+        "linen_internal": "In-house stock: short one-day turnaround.",
+        "linen_laundry": "External laundry: typical 3-day delay between pickup and return.",
+        "linen_both": "Stock and laundry: the laundry's 3-day delay is used to be safe."
+      },
+      "labels": {
+        "room": {
+          "living": "Living room",
+          "kitchen": "Kitchen",
+          "bedroom": "Bedroom",
+          "bathroom": "Bathroom",
+          "general": "General check"
+        },
+        "check": {
+          "bed_made": "Bed made",
+          "dust": "Dusting",
+          "minibar": "Minibar checked",
+          "amenities": "Amenities",
+          "bathroom_clean": "Bathroom clean",
+          "towels": "Towels",
+          "toiletries": "Bathroom consumables",
+          "living_tidy": "Living room tidy",
+          "windows": "Windows",
+          "kitchen_clean": "Kitchen clean",
+          "dishes": "Dishes put away",
+          "fridge_empty": "Fridge emptied",
+          "consumables": "Kitchen consumables",
+          "linen_changed": "Linen changed",
+          "damage_check": "No damage found",
+          "linen_count": "Linen counted"
+        }
+      }
+    },
+    "properties": {
+      "title": "Properties",
+      "subtitle": "Your properties and their guest guide.",
+      "afterOnboarding": "Setup saved. Now create your first property: the confirmed checklist will be applied.",
+      "loadError": "Couldn't load properties.",
+      "empty": "No property yet.",
+      "new": "New property",
+      "name": "Name",
+      "address": "Address",
+      "postalCode": "Postal code",
+      "city": "City",
+      "checkIn": "Usual check-in",
+      "checkOut": "Usual check-out",
+      "cleaningDuration": "Cleaning time (min)",
+      "create": "Create property",
+      "noAddress": "No address",
+      "checklist": "Cleaning checklist",
+      "noChecklist": "No checklist: it comes from the confirmed setup."
+    },
+    "guide": {
+      "title": "Guest guide",
+      "text": "What the guest sees in their space. Leave blank what doesn't apply.",
+      "fields": {
+        "welcome": "Welcome note",
+        "house_rules": "House rules",
+        "checkout_instructions": "Check-out instructions",
+        "wifi_name": "Wi-Fi network",
+        "wifi_password": "Wi-Fi password",
+        "parking": "Parking",
+        "trash": "Waste and recycling",
+        "emergency_phone": "Emergency phone",
+        "recommendations": "Our recommendations"
+      },
+      "noAccessCodes": "Don't put any access code here: the guide is shareable by link.",
+      "saved": "Guide saved.",
+      "save": "Save guide"
+    },
+    "stays": {
+      "title": "Stays",
+      "subtitle": "Current and upcoming stays, guest access and messages.",
+      "loadError": "Couldn't load stays.",
+      "empty": "No current or upcoming stay.",
+      "unnamed": "Unnamed guest",
+      "newMessage": "New message",
+      "status": {
+        "cancelled": "Cancelled",
+        "blocked": "Blocked",
+        "confirmed": "Confirmed"
+      },
+      "needProperty": "Create a property first to add a stay.",
+      "new": "New stay",
+      "property": "Property",
+      "guestName": "Guest name",
+      "guestEmail": "Guest email",
+      "guestEmailHint": "Optional. Only used to notify them of replies.",
+      "checkIn": "Check-in",
+      "checkOut": "Check-out",
+      "adults": "Guests",
+      "guestLocale": "Email language",
+      "create": "Create stay",
+      "services": "Stay services",
+      "noServices": "No request for this stay.",
+      "missions": "Generated missions",
+      "noMissions": "No mission yet."
+    },
+    "link": {
+      "title": "Guest access",
+      "text": "A personal link, limited to this stay. It opens 72 h before check-in and expires at check-out. It contains no access code.",
+      "status": {
+        "active": "Active until {until}",
+        "scheduled": "Scheduled: opens on {from}",
+        "expired": "Expired on {until}",
+        "revoked": "Revoked"
+      },
+      "opened": "opened {at}",
+      "notOpened": "not opened yet",
+      "none": "No active link.",
+      "copyOnce": "Copy this link now: for security it won't be shown again.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "renew": "Create a new link",
+      "create": "Create guest link",
+      "extend": "Extend to 7 days after check-out",
+      "revoke": "Revoke",
+      "renewHint": "Creating a new link immediately disables the old one."
+    },
+    "messages": {
+      "title": "Messages with the guest",
+      "visibleToGuest": "Everything written here is visible to the guest.",
+      "fromGuest": "Guest",
+      "fromTeam": "Team",
+      "seen": "seen",
+      "empty": "No message.",
+      "replyLabel": "Reply to the guest",
+      "replyHintEmail": "Visible in their space, and emailed if sending is configured.",
+      "replyHintNoEmail": "Visible in their space. No email: no address known.",
+      "postedEmailQueued": "Posted in the guest space. The email's actual status is shown under “Emails”.",
+      "postedSpaceOnly": "Posted in the guest space only (no email address).",
+      "send": "Send"
+    },
+    "outbox": {
+      "title": "Emails",
+      "to": "Recipient: {email}",
+      "noEmail": "No email address: the guest is notified in their space only.",
+      "empty": "No email.",
+      "attempts": "{n} attempts",
+      "status": {
+        "pending": "Waiting to send",
+        "sent": "Sent",
+        "failed": "Failed",
+        "not_configured": "Not sent: no email provider configured"
+      },
+      "retry": "Retry",
+      "template": {
+        "service_received": "Request received",
+        "service_confirmed": "Request accepted",
+        "service_declined": "Request declined",
+        "service_info_requested": "More details requested",
+        "service_done": "Service completed",
+        "service_cancelled": "Request cancelled",
+        "service_updated": "Request changed",
+        "stay_message": "Message from the team"
+      }
+    },
+    "services": {
+      "title": "Services",
+      "subtitle": "Guest requests and team replies.",
+      "loadError": "Couldn't load requests.",
+      "group": {
+        "todo": "To handle",
+        "waiting": "Waiting for the guest",
+        "confirmed": "Confirmed",
+        "closed": "Closed"
+      },
+      "none": "Nothing here.",
+      "noGuest": "No stay",
+      "new": "New",
+      "unread": "Unread",
+      "people": "{n} people",
+      "details": "Guest's details",
+      "openStay": "Open the stay"
+    },
+    "decide": {
+      "title": "Reply to the request",
+      "closed": "Request closed ({status}).",
+      "action": {
+        "confirmed": "Accept",
+        "info_requested": "Ask for details",
+        "declined": "Decline",
+        "cancelled": "Cancel",
+        "done": "Mark as done"
+      },
+      "question": "Question for the guest",
+      "questionHint": "Required. The guest can answer from their space.",
+      "guestMessage": "Message to the guest",
+      "messageHint": {
+        "confirmed": "Optional: useful details (time, place, contact).",
+        "declined": "Optional: a reason you're happy to share.",
+        "cancelled": "Optional: explanation for the guest.",
+        "done": "Optional: a follow-up note."
+      },
+      "internalNote": "Internal note",
+      "internalHint": "Never shared with the guest. Managers only.",
+      "previewTitle": "What the guest will see",
+      "noMessage": "The new status only, no message.",
+      "channelEmail": "In their guest space, and by email to {email} if sending is configured.",
+      "channelSpace": "In their guest space only (no email address).",
+      "notePrivate": "The internal note stays in the team history.",
+      "confirm": "Confirm and notify the guest",
+      "doneEmail": "Saved. The guest sees it in their space; the email status is shown alongside.",
+      "doneSpace": "Saved. The guest sees it in their space (no email: no address).",
+      "edit": "Change date or number of people",
+      "when": "Date and time",
+      "people": "People",
+      "editHint": "Optional: explain the change. The guest is notified.",
+      "cancelEdit": "Cancel",
+      "saveEdit": "Save and notify"
+    },
+    "history": {
+      "title": "History",
+      "legend": "Solid border: visible to the guest. Dashed: internal to the team.",
+      "internal": "Internal",
+      "guestVisible": "Visible to the guest",
+      "author": {
+        "guest": "Guest",
+        "member": "Team",
+        "system": "HALO"
+      },
+      "kind": {
+        "created": "Request received",
+        "status": "New status",
+        "guest_message": "Guest message",
+        "team_message": "Team message",
+        "internal_note": "Internal note",
+        "updated": "Request changed"
+      }
+    },
+    "missions": {
+      "assignee": "Agent",
+      "unassigned": "Unassigned",
+      "start": "Start",
+      "finish": "Finish",
+      "title": "Missions",
+      "subtitle": "Generated automatically from stays.",
+      "mineTitle": "My missions",
+      "mineSubtitle": "Only the missions assigned to you.",
+      "loadError": "Couldn't load missions.",
+      "empty": "No upcoming mission.",
+      "mineEmpty": "No mission assigned to you yet.",
+      "noName": "No name"
+    },
+    "team": {
+      "title": "Team",
+      "subtitle": "Your organisation's members and roles.",
+      "noName": "Incomplete profile",
+      "inactive": "deactivated",
+      "roles": {
+        "owner": "Owner",
+        "manager": "Manager",
+        "agent": "Agent"
+      },
+      "invite": "Invite someone",
+      "inviteText": "A personal link valid for 7 days. They sign in with their own email.",
+      "role": "Role",
+      "createLink": "Create invitation link",
+      "copyOnce": "Send this link to them. It won't be shown again.",
+      "accept": "Join the organisation",
+      "inviteTitle": "You're invited to HALO",
+      "inviteSignedAs": "Signed in as {email}."
+    }
+  },
+  "email": {
+    "footer": "See the details and reply from your guest space (the link you received for your stay). This is an automatic email.",
+    "service_received": {
+      "subject": "{org} — request received: {kind}",
+      "body": "We've received your “{kind}” request. It's waiting for the team's reply."
+    },
+    "service_confirmed": {
+      "subject": "{org} — request accepted: {kind}",
+      "body": "Good news: your “{kind}” request is accepted."
+    },
+    "service_declined": {
+      "subject": "{org} — request declined: {kind}",
+      "body": "Unfortunately we can't fulfil your “{kind}” request."
+    },
+    "service_info_requested": {
+      "subject": "{org} — a question about your request: {kind}",
+      "body": "To handle your “{kind}” request, the team needs a detail. You can reply from your guest space."
+    },
+    "service_done": {
+      "subject": "{org} — service completed: {kind}",
+      "body": "Your “{kind}” service is marked as completed."
+    },
+    "service_cancelled": {
+      "subject": "{org} — request cancelled: {kind}",
+      "body": "Your “{kind}” request has been cancelled."
+    },
+    "service_updated": {
+      "subject": "{org} — request changed: {kind}",
+      "body": "Your “{kind}” request was changed by the team. Details are in your guest space."
+    },
+    "stay_message": {
+      "subject": "{org} — new message about your stay",
+      "body": "The team wrote to you:"
+    }
+  },
+  "guestSpace": {
+    "errors": {
+      "unavailable": "This link is no longer active. Contact your host.",
+      "empty": "Write a message.",
+      "invalid": "Check what you entered.",
+      "server": "Couldn't send right now. Nothing was sent; try again."
+    },
+    "request": {
+      "title": "Request a service",
+      "text": "The team replies here. You can follow your request without calling.",
+      "kind": "Service",
+      "when": "Preferred date and time",
+      "people": "People",
+      "details": "Details",
+      "detailsPlaceholder": "Allergies, preferences, pickup address…",
+      "sent": "Request sent. It now appears above with its status.",
+      "send": "Send request"
+    },
+    "reply": {
+      "answer": "Your answer",
+      "add": "Add a detail",
+      "send": "Send"
+    },
+    "contact": {
+      "title": "Contact the team",
+      "label": "Your message",
+      "hint": "For an emergency, call the number in the guide.",
+      "send": "Send",
+      "you": "You",
+      "team": "Team"
+    },
+    "error": {
+      "title": "Service temporarily unavailable",
+      "text": "Try again in a moment."
+    },
+    "unavailable": {
+      "title": "Link unavailable",
+      "text": "This link isn't open yet, has expired or was replaced. Contact your host for a new one."
+    },
+    "hello": "Hello {name}",
+    "helloAnon": "Welcome",
+    "news": "{count, plural, one {# update since your last visit} other {# updates since your last visit}}",
+    "guide": "Stay guide",
+    "guideFields": {
+      "welcome": "Welcome",
+      "house_rules": "House rules",
+      "checkout_instructions": "Before you leave",
+      "wifi_name": "Wi-Fi",
+      "wifi_password": "Wi-Fi password",
+      "parking": "Parking",
+      "trash": "Waste",
+      "recommendations": "Our recommendations",
+      "emergency_phone": "Emergency"
+    },
+    "guideEmpty": "Your host will complete the guide soon.",
+    "times": "Check-in from {in} · check-out by {out}",
+    "myRequests": "My requests",
+    "noRequests": "No request yet.",
+    "status": {
+      "requested": "Received, pending",
+      "info_requested": "Question for you",
+      "confirmed": "Accepted",
+      "declined": "Declined",
+      "done": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "event": {
+      "you": "Your message",
+      "received": "Request received",
+      "updated": "Request changed by the team"
+    },
+    "linkValid": "This personal link is valid until {until}. Don't share it."
   }
 }

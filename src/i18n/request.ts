@@ -8,6 +8,8 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   return {
     locale,
+    // Les serveurs (Vercel) tournent en UTC : heures affichées dans le fuseau des logements (Paris par défaut)
+    timeZone: "Europe/Paris",
     messages: (await import(`../../messages/${locale}.json`)).default,
   };
 });

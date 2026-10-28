@@ -1167,7 +1167,9 @@
     "managerText": "Planeamento, missões, equipa, alojamentos, serviços.",
     "agent": "Espaço Agente",
     "agentText": "As minhas missões do dia, no terreno.",
-    "demoNotice": "Demo sem contas: os dois espaços estão abertos. Com o início de sessão real, cada pessoa entra diretamente no seu espaço, e um agente não pode abrir o espaço Manager nem usar as suas funções, mesmo por um endereço direto."
+    "demoNotice": "Demo sem contas: os dois espaços estão abertos. Com o início de sessão real, cada pessoa entra diretamente no seu espaço, e um agente não pode abrir o espaço Manager nem usar as suas funções, mesmo por um endereço direto.",
+    "connected": "Ambiente conectado",
+    "connectedText": "Conta segura, dados guardados online e partilhados entre dispositivos."
   },
   "inbox": {
     "title": "Notificações",
@@ -1252,5 +1254,629 @@
       "open_service": "Tratar o pedido",
       "open_linen": "Ver a roupa"
     }
+  },
+  "connected": {
+    "notConfigured": "O ambiente conectado ainda não está configurado aqui. Use a demo ou adicione as variáveis Supabase de pré-produção.",
+    "signOut": "Terminar sessão",
+    "nav": {
+      "label": "Navegação",
+      "home": "Início",
+      "stays": "Estadias",
+      "services": "Serviços",
+      "missions": "Missões",
+      "properties": "Alojamentos",
+      "team": "Equipa",
+      "setup": "Configuração"
+    },
+    "env": {
+      "demo": "Demo",
+      "demoHint": "Demo: dados fictícios guardados apenas neste navegador.",
+      "preprod-local": "Pré-prod. local",
+      "preprod-localHint": "Ambiente conectado de teste nesta máquina: base real, dados fictícios.",
+      "preprod": "Pré-produção",
+      "preprodHint": "Ambiente conectado de teste: base real guardada, apenas dados fictícios.",
+      "production": "Ligado",
+      "productionHint": "Ambiente de produção: os seus dados reais."
+    },
+    "signIn": {
+      "title": "Entrar no HALO",
+      "subtitle": "Sem palavra-passe: enviamos-lhe um link e um código por e-mail.",
+      "email": "E-mail profissional",
+      "emailHint": "É criada uma conta no primeiro acesso.",
+      "send": "Receber o meu link",
+      "code": "Código de 6 dígitos",
+      "codeSent": "E-mail enviado para {email}. Abra o link ou introduza o código aqui.",
+      "verify": "Entrar",
+      "changeEmail": "Alterar e-mail",
+      "errors": {
+        "invalid_email": "E-mail inválido.",
+        "send_failed": "Não foi possível enviar o e-mail. Tente novamente daqui a pouco.",
+        "invalid_code": "Código incorreto ou expirado.",
+        "rate_limited": "Demasiadas tentativas. Aguarde um minuto.",
+        "link": "Este link já não é válido. Peça um novo."
+      }
+    },
+    "createOrg": {
+      "title": "Crie o seu espaço",
+      "text": "O nome da sua concierge ou estabelecimento. Pode alterá-lo depois.",
+      "name": "Nome comercial",
+      "submit": "Criar e configurar"
+    },
+    "errors": {
+      "not_signed_in": "A sua sessão expirou. Entre novamente.",
+      "forbidden": "Ação não permitida para a sua função.",
+      "duplicate": "Este item já existe.",
+      "invalid": "Alguns dados não são válidos. Verifique o formulário.",
+      "not_found": "Item não encontrado ou inacessível.",
+      "server": "O servidor não conseguiu guardar. Nada foi alterado; tente novamente.",
+      "unknown": "Erro inesperado. Nada foi alterado.",
+      "network": "Não foi possível contactar o servidor. Verifique a rede; nada foi guardado.",
+      "conflict": "Este item mudou entretanto. A página mostra o estado real.",
+      "invalid_dates": "A saída deve ser depois da chegada.",
+      "stay_ended": "Esta estadia terminou: não é possível criar um link.",
+      "stay_not_confirmed": "A estadia não está confirmada: link impossível.",
+      "question_required": "Escreva a pergunta para o hóspede.",
+      "missing_photos": "Faltam fotos obrigatórias: a missão não pode ser concluída.",
+      "already_member": "Já faz parte desta organização.",
+      "invalid_invitation": "Convite inválido, expirado ou já usado.",
+      "unchanged": "Sem alterações para guardar."
+    },
+    "home": {
+      "subtitle": "O que precisa da sua atenção.",
+      "onboardingTitle": "Conclua a configuração do HALO",
+      "onboardingResume": "Retome onde parou; as suas respostas estão guardadas.",
+      "onboardingStart": "3 a 5 minutos para uma primeira configuração útil.",
+      "services": "{count, plural, =0 {Nenhum pedido de serviço pendente} one {# pedido de serviço pendente} other {# pedidos de serviço pendentes}}",
+      "messages": "{count, plural, =0 {Nenhuma mensagem de hóspede por ler} one {# mensagem de hóspede por ler} other {# mensagens de hóspedes por ler}}",
+      "unassigned": "{count, plural, =0 {Nenhuma missão sem agente} one {# missão sem agente} other {# missões sem agente}}",
+      "emails": "{count, plural, =0 {Nenhum e-mail falhado} one {# e-mail ao hóspede não enviado} other {# e-mails a hóspedes não enviados}}",
+      "stays7": "{count, plural, =0 {Nenhuma chegada nos próximos 7 dias} one {# chegada nos próximos 7 dias} other {# chegadas nos próximos 7 dias}}"
+    },
+    "onb": {
+      "progress": "Passo {n} de {total}",
+      "later": "Terminar mais tarde",
+      "skip": "Saltar",
+      "next": "Continuar",
+      "back": "Voltar",
+      "optional": "Opcional",
+      "profile": {
+        "title": "Você",
+        "text": "Para que a sua equipa saiba quem a contacta.",
+        "known": "Ligado com {email}: não precisa de o voltar a escrever.",
+        "fullName": "Nome completo",
+        "jobTitle": "Função",
+        "phone": "Telefone profissional",
+        "phoneHint": "Opcional. Visível apenas para a sua equipa."
+      },
+      "organization": {
+        "title": "A sua organização",
+        "text": "O mínimo para o identificar. O resto é opcional.",
+        "name": "Nome comercial",
+        "legalName": "Denominação social",
+        "country": "País",
+        "address": "Morada",
+        "postalCode": "Código postal",
+        "city": "Cidade",
+        "noLegal": "Não é pedido nenhum documento legal para começar. Os dados de faturação só serão pedidos quando forem ativados."
+      },
+      "countries": {
+        "FR": "França",
+        "BE": "Bélgica",
+        "CH": "Suíça",
+        "LU": "Luxemburgo",
+        "MC": "Mónaco",
+        "ES": "Espanha",
+        "PT": "Portugal",
+        "IT": "Itália",
+        "DE": "Alemanha",
+        "GB": "Reino Unido",
+        "US": "Estados Unidos",
+        "CA": "Canadá",
+        "MA": "Marrocos"
+      },
+      "activity": {
+        "title": "A sua atividade",
+        "text": "As próximas perguntas adaptam-se à sua resposta.",
+        "label": "Tipo de atividade",
+        "concierge": "Concierge",
+        "short_term_rental": "Alojamento de curta duração",
+        "residence": "Residência",
+        "aparthotel": "Apart-hotel",
+        "independent_hotel": "Hotel independente",
+        "unitCount": "Número de alojamentos",
+        "roomCount": "Número de quartos",
+        "approx": "Basta um valor aproximado."
+      },
+      "operations": {
+        "title": "A sua organização diária",
+        "text": "Para preparar missões, validação e roupa."
+      },
+      "cleaning": {
+        "label": "Quem faz a limpeza?",
+        "internal": "Equipa interna",
+        "providers": "Prestadores",
+        "both": "Ambos"
+      },
+      "linen": {
+        "label": "E a roupa?",
+        "internal": "Stock interno",
+        "laundry": "Lavandaria externa",
+        "both": "Ambos",
+        "none": "Não gerido"
+      },
+      "validation": {
+        "label": "As missões devem ser validadas antes de fechar?",
+        "all": "Todas",
+        "turnover": "Apenas as limpezas",
+        "none": "Não"
+      },
+      "roomInspection": {
+        "label": "Os quartos são verificados após a limpeza?"
+      },
+      "welcome": {
+        "label": "Recebe os hóspedes (entrega de chaves, vistoria)?"
+      },
+      "yesNo": {
+        "label": "Resposta",
+        "yes": "Sim",
+        "no": "Não"
+      },
+      "services": {
+        "title": "Serviços oferecidos",
+        "text": "Os hóspedes poderão pedi-los no seu espaço."
+      },
+      "issues": {
+        "title": "Problemas mais frequentes",
+        "text": "O HALO usa isto para propor verificações e alertas.",
+        "late_cleaning": "Limpezas atrasadas",
+        "missing_linen": "Roupa em falta",
+        "damage": "Danos não comunicados",
+        "guest_complaints": "Reclamações de hóspedes",
+        "staff_no_show": "Faltas da equipa",
+        "late_checkout": "Saídas tardias",
+        "room_not_ready": "Quartos não prontos à chegada",
+        "housekeeping_control": "Controlo de qualidade dos quartos",
+        "key_handover": "Entrega de chaves",
+        "access_problems": "Problemas de acesso ao alojamento"
+      },
+      "channels": {
+        "title": "Os seus canais de reserva",
+        "text": "Para preparar a importação dos seus calendários.",
+        "airbnb": "Airbnb",
+        "booking": "Booking.com",
+        "vrbo": "Vrbo",
+        "direct": "Reservas diretas",
+        "notConnected": "A importação automática ainda não está ligada: as respostas servem para a preparar, nada é sincronizado por agora."
+      },
+      "proposals": {
+        "title": "Configuração proposta",
+        "text": "Preparada automaticamente a partir das respostas, com regras explicadas em cada ponto. Nada é guardado até confirmar.",
+        "alreadyDone": "Já foi guardada uma configuração. Confirmar de novo só substitui os pontos aceites ou alterados.",
+        "accept": "Aceitar",
+        "modify": "Alterar",
+        "ignore": "Ignorar",
+        "summary": "Antes de guardar",
+        "summaryText": "Serão guardados {kept} de {total} pontos. Os ignorados não mudam nada.",
+        "decideAll": "Escolha Aceitar, Alterar ou Ignorar em cada ponto.",
+        "next": "Próximo passo: criar o primeiro alojamento e depois convidar a equipa.",
+        "confirm": "Confirmar e guardar",
+        "photo": "foto",
+        "room": "Divisão",
+        "item": "Ponto de verificação",
+        "remove": "Remover",
+        "task_types": {
+          "title": "Categorias de missões"
+        },
+        "checklist": {
+          "title": "Checklist padrão"
+        },
+        "validation": {
+          "title": "Regras de validação",
+          "none": "Sem validação: as missões fecham ao terminar."
+        },
+        "alerts": {
+          "title": "Alertas no início"
+        },
+        "linen": {
+          "title": "Acompanhamento da roupa",
+          "value": "Rotação prevista de {days} dia(s) entre recolha e devolução.",
+          "days": "Dias de rotação"
+        }
+      },
+      "alerts": {
+        "unassigned_missions": "Missões sem agente",
+        "pending_services": "Pedidos pendentes",
+        "unread_messages": "Mensagens por ler",
+        "failed_emails": "E-mails não enviados",
+        "upcoming_stays": "Chegadas em 7 dias"
+      },
+      "why": {
+        "turnover_always": "A limpeza entre estadias é a base de qualquer rotação.",
+        "welcome_service": "Recebe os hóspedes: chegadas e saídas passam a ser missões.",
+        "issue_key_handover": "Indicou problemas com chaves: uma missão de chegada torna-os visíveis.",
+        "linen_missions": "Lavandaria externa: entregas e recolhas passam a ser missões.",
+        "room_inspection": "Verifica os quartos: um controlo segue cada limpeza.",
+        "issue_control": "Indicou necessidade de controlo de qualidade.",
+        "checklist_hotel": "Checklist de quarto de hotel, adaptada à sua atividade.",
+        "checklist_apartment": "Checklist de apartamento por divisão, com uma foto por divisão-chave.",
+        "issue_damage": "Indicou danos não comunicados: é adicionada uma foto de controlo geral.",
+        "issue_missing_linen": "Indicou roupa em falta: é adicionada uma contagem.",
+        "validation_all": "Pretende validar todas as missões.",
+        "validation_turnover": "Pretende validar as limpezas.",
+        "validation_none": "Não pretende validação: as missões fecham ao terminar.",
+        "validation_providers": "Trabalha com prestadores: validar as limpezas permite verificar antes de pagar.",
+        "alerts_guest": "Pedidos e mensagens precisam de resposta rápida.",
+        "issue_late_cleaning": "Indicou atrasos ou faltas: as missões sem agente ficam em destaque.",
+        "alerts_volume": "Com vários alojamentos ou saídas tardias, ver as chegadas ajuda a antecipar.",
+        "linen_internal": "Stock interno: rotação curta de um dia.",
+        "linen_laundry": "Lavandaria externa: prazo habitual de 3 dias.",
+        "linen_both": "Stock e lavandaria: usa-se o prazo da lavandaria (3 dias) por prudência."
+      },
+      "labels": {
+        "room": {
+          "living": "Sala",
+          "kitchen": "Cozinha",
+          "bedroom": "Quarto",
+          "bathroom": "Casa de banho",
+          "general": "Controlo geral"
+        },
+        "check": {
+          "bed_made": "Cama feita",
+          "dust": "Pó",
+          "minibar": "Minibar verificado",
+          "amenities": "Amenities",
+          "bathroom_clean": "Casa de banho limpa",
+          "towels": "Toalhas",
+          "toiletries": "Consumíveis de casa de banho",
+          "living_tidy": "Sala arrumada",
+          "windows": "Vidros",
+          "kitchen_clean": "Cozinha limpa",
+          "dishes": "Loiça arrumada",
+          "fridge_empty": "Frigorífico vazio",
+          "consumables": "Consumíveis de cozinha",
+          "linen_changed": "Roupa trocada",
+          "damage_check": "Sem danos",
+          "linen_count": "Roupa contada"
+        }
+      }
+    },
+    "properties": {
+      "title": "Alojamentos",
+      "subtitle": "Os seus alojamentos e o guia.",
+      "afterOnboarding": "Configuração guardada. Crie agora o primeiro alojamento: a checklist confirmada será aplicada.",
+      "loadError": "Não foi possível carregar os alojamentos.",
+      "empty": "Nenhum alojamento ainda.",
+      "new": "Novo alojamento",
+      "name": "Nome",
+      "address": "Morada",
+      "postalCode": "Código postal",
+      "city": "Cidade",
+      "checkIn": "Chegada habitual",
+      "checkOut": "Saída habitual",
+      "cleaningDuration": "Duração da limpeza (min)",
+      "create": "Criar alojamento",
+      "noAddress": "Sem morada",
+      "checklist": "Checklist de limpeza",
+      "noChecklist": "Sem checklist: vem da configuração confirmada."
+    },
+    "guide": {
+      "title": "Guia do hóspede",
+      "text": "O que o hóspede vê no seu espaço. Deixe vazio o que não se aplica.",
+      "fields": {
+        "welcome": "Boas-vindas",
+        "house_rules": "Regras da casa",
+        "checkout_instructions": "Instruções de saída",
+        "wifi_name": "Rede Wi-Fi",
+        "wifi_password": "Palavra-passe Wi-Fi",
+        "parking": "Estacionamento",
+        "trash": "Lixo e reciclagem",
+        "emergency_phone": "Telefone de emergência",
+        "recommendations": "As nossas recomendações"
+      },
+      "noAccessCodes": "Não indique códigos de acesso aqui: o guia é partilhável por link.",
+      "saved": "Guia guardado.",
+      "save": "Guardar guia"
+    },
+    "stays": {
+      "title": "Estadias",
+      "subtitle": "Estadias atuais e futuras, acesso e mensagens.",
+      "loadError": "Não foi possível carregar as estadias.",
+      "empty": "Nenhuma estadia atual ou futura.",
+      "unnamed": "Hóspede sem nome",
+      "newMessage": "Nova mensagem",
+      "status": {
+        "cancelled": "Cancelada",
+        "blocked": "Bloqueada",
+        "confirmed": "Confirmada"
+      },
+      "needProperty": "Crie primeiro um alojamento.",
+      "new": "Nova estadia",
+      "property": "Alojamento",
+      "guestName": "Nome do hóspede",
+      "guestEmail": "E-mail do hóspede",
+      "guestEmailHint": "Opcional. Só para o avisar das respostas.",
+      "checkIn": "Chegada",
+      "checkOut": "Saída",
+      "adults": "Hóspedes",
+      "guestLocale": "Idioma dos e-mails",
+      "create": "Criar estadia",
+      "services": "Serviços da estadia",
+      "noServices": "Nenhum pedido.",
+      "missions": "Missões geradas",
+      "noMissions": "Nenhuma missão ainda."
+    },
+    "link": {
+      "title": "Acesso do hóspede",
+      "text": "Um link pessoal, limitado a esta estadia. Abre 72 h antes e expira na saída. Não contém códigos.",
+      "status": {
+        "active": "Ativo até {until}",
+        "scheduled": "Programado: abre em {from}",
+        "expired": "Expirado em {until}",
+        "revoked": "Revogado"
+      },
+      "opened": "aberto em {at}",
+      "notOpened": "ainda não aberto",
+      "none": "Nenhum link ativo.",
+      "copyOnce": "Copie este link agora: por segurança não voltará a ser mostrado.",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "renew": "Criar um novo link",
+      "create": "Criar link",
+      "extend": "Prolongar 7 dias após a saída",
+      "revoke": "Revogar",
+      "renewHint": "Criar um novo link desativa o anterior."
+    },
+    "messages": {
+      "title": "Mensagens com o hóspede",
+      "visibleToGuest": "Tudo o que se escreve aqui é visível para o hóspede.",
+      "fromGuest": "Hóspede",
+      "fromTeam": "Equipa",
+      "seen": "lido",
+      "empty": "Nenhuma mensagem.",
+      "replyLabel": "Responder ao hóspede",
+      "replyHintEmail": "Visível no espaço e enviado por e-mail se configurado.",
+      "replyHintNoEmail": "Visível no espaço. Sem e-mail: endereço desconhecido.",
+      "postedEmailQueued": "Publicado no espaço. O estado real do e-mail aparece em «E-mails».",
+      "postedSpaceOnly": "Publicado apenas no espaço (sem e-mail).",
+      "send": "Enviar"
+    },
+    "outbox": {
+      "title": "E-mails",
+      "to": "Destinatário: {email}",
+      "noEmail": "Sem e-mail: o hóspede só é avisado no espaço.",
+      "empty": "Nenhum e-mail.",
+      "attempts": "{n} tentativas",
+      "status": {
+        "pending": "A aguardar envio",
+        "sent": "Enviado",
+        "failed": "Falha no envio",
+        "not_configured": "Não enviado: nenhum serviço configurado"
+      },
+      "retry": "Tentar de novo",
+      "template": {
+        "service_received": "Confirmação de receção",
+        "service_confirmed": "Pedido aceite",
+        "service_declined": "Pedido recusado",
+        "service_info_requested": "Detalhes pedidos",
+        "service_done": "Serviço realizado",
+        "service_cancelled": "Pedido cancelado",
+        "service_updated": "Pedido alterado",
+        "stay_message": "Mensagem da equipa"
+      }
+    },
+    "services": {
+      "title": "Serviços",
+      "subtitle": "Pedidos dos hóspedes e respostas.",
+      "loadError": "Não foi possível carregar os pedidos.",
+      "group": {
+        "todo": "Por tratar",
+        "waiting": "À espera do hóspede",
+        "confirmed": "Confirmados",
+        "closed": "Fechados"
+      },
+      "none": "Nada aqui.",
+      "noGuest": "Sem estadia",
+      "new": "Novo",
+      "unread": "Não lido",
+      "people": "{n} pess.",
+      "details": "Detalhes do hóspede",
+      "openStay": "Ver a estadia"
+    },
+    "decide": {
+      "title": "Responder ao pedido",
+      "closed": "Pedido fechado ({status}).",
+      "action": {
+        "confirmed": "Aceitar",
+        "info_requested": "Pedir detalhes",
+        "declined": "Recusar",
+        "cancelled": "Cancelar",
+        "done": "Marcar realizado"
+      },
+      "question": "Pergunta ao hóspede",
+      "questionHint": "Obrigatória. O hóspede poderá responder no espaço.",
+      "guestMessage": "Mensagem ao hóspede",
+      "messageHint": {
+        "confirmed": "Opcional: detalhes úteis (hora, local, contacto).",
+        "declined": "Opcional: um motivo que aceite comunicar.",
+        "cancelled": "Opcional: explicação para o hóspede.",
+        "done": "Opcional: uma nota de acompanhamento."
+      },
+      "internalNote": "Nota interna",
+      "internalHint": "Nunca é transmitida ao hóspede. Apenas managers.",
+      "previewTitle": "O que o hóspede verá",
+      "noMessage": "Só o novo estado, sem mensagem.",
+      "channelEmail": "No espaço e por e-mail para {email} se configurado.",
+      "channelSpace": "Apenas no espaço (sem e-mail).",
+      "notePrivate": "A nota interna fica no histórico da equipa.",
+      "confirm": "Confirmar e avisar o hóspede",
+      "doneEmail": "Guardado. O hóspede vê no espaço; o estado do e-mail é mostrado ao lado.",
+      "doneSpace": "Guardado. O hóspede vê no espaço (sem e-mail).",
+      "edit": "Alterar data ou pessoas",
+      "when": "Data e hora",
+      "people": "Pessoas",
+      "editHint": "Opcional: explique a alteração. O hóspede é avisado.",
+      "cancelEdit": "Cancelar",
+      "saveEdit": "Guardar e avisar"
+    },
+    "history": {
+      "title": "Histórico",
+      "legend": "Contorno contínuo: visível ao hóspede. Tracejado: interno.",
+      "internal": "Interno",
+      "guestVisible": "Visível ao hóspede",
+      "author": {
+        "guest": "Hóspede",
+        "member": "Equipa",
+        "system": "HALO"
+      },
+      "kind": {
+        "created": "Pedido recebido",
+        "status": "Novo estado",
+        "guest_message": "Mensagem do hóspede",
+        "team_message": "Mensagem da equipa",
+        "internal_note": "Nota interna",
+        "updated": "Pedido alterado"
+      }
+    },
+    "missions": {
+      "assignee": "Agente",
+      "unassigned": "Não atribuída",
+      "start": "Começar",
+      "finish": "Terminar",
+      "title": "Missões",
+      "subtitle": "Geradas automaticamente a partir das estadias.",
+      "mineTitle": "As minhas missões",
+      "mineSubtitle": "Apenas as missões atribuídas a si.",
+      "loadError": "Não foi possível carregar as missões.",
+      "empty": "Nenhuma missão futura.",
+      "mineEmpty": "Nenhuma missão atribuída por agora.",
+      "noName": "Sem nome"
+    },
+    "team": {
+      "title": "Equipa",
+      "subtitle": "Membros e funções.",
+      "noName": "Perfil incompleto",
+      "inactive": "desativado",
+      "roles": {
+        "owner": "Proprietário",
+        "manager": "Manager",
+        "agent": "Agente"
+      },
+      "invite": "Convidar alguém",
+      "inviteText": "Um link pessoal válido 7 dias. A pessoa entra com o seu e-mail.",
+      "role": "Função",
+      "createLink": "Criar link de convite",
+      "copyOnce": "Envie este link. Não voltará a ser mostrado.",
+      "accept": "Juntar-se à organização",
+      "inviteTitle": "Foi convidado para o HALO",
+      "inviteSignedAs": "Ligado com {email}."
+    }
+  },
+  "email": {
+    "footer": "Veja os detalhes e responda no seu espaço (link recebido para a estadia). E-mail automático.",
+    "service_received": {
+      "subject": "{org} — pedido recebido: {kind}",
+      "body": "Recebemos o seu pedido «{kind}». Aguarda resposta da equipa."
+    },
+    "service_confirmed": {
+      "subject": "{org} — pedido aceite: {kind}",
+      "body": "Boas notícias: o seu pedido «{kind}» foi aceite."
+    },
+    "service_declined": {
+      "subject": "{org} — pedido recusado: {kind}",
+      "body": "Infelizmente não podemos atender o seu pedido «{kind}»."
+    },
+    "service_info_requested": {
+      "subject": "{org} — uma pergunta sobre o seu pedido: {kind}",
+      "body": "Para tratar o pedido «{kind}», a equipa precisa de um detalhe. Pode responder no seu espaço."
+    },
+    "service_done": {
+      "subject": "{org} — serviço realizado: {kind}",
+      "body": "O seu serviço «{kind}» está marcado como realizado."
+    },
+    "service_cancelled": {
+      "subject": "{org} — pedido cancelado: {kind}",
+      "body": "O seu pedido «{kind}» foi cancelado."
+    },
+    "service_updated": {
+      "subject": "{org} — pedido alterado: {kind}",
+      "body": "O seu pedido «{kind}» foi alterado. Os detalhes estão no seu espaço."
+    },
+    "stay_message": {
+      "subject": "{org} — nova mensagem sobre a sua estadia",
+      "body": "A equipa escreveu-lhe:"
+    }
+  },
+  "guestSpace": {
+    "errors": {
+      "unavailable": "Este link já não está ativo. Contacte o anfitrião.",
+      "empty": "Escreva uma mensagem.",
+      "invalid": "Verifique os dados.",
+      "server": "Não foi possível enviar. Nada foi transmitido; tente novamente."
+    },
+    "request": {
+      "title": "Pedir um serviço",
+      "text": "A equipa responde aqui. Acompanha o pedido sem ligar.",
+      "kind": "Serviço",
+      "when": "Data e hora pretendidas",
+      "people": "Pessoas",
+      "details": "Detalhes",
+      "detailsPlaceholder": "Alergias, preferências, morada de recolha…",
+      "sent": "Pedido enviado. Aparece acima com o estado.",
+      "send": "Enviar pedido"
+    },
+    "reply": {
+      "answer": "A sua resposta",
+      "add": "Acrescentar um detalhe",
+      "send": "Enviar"
+    },
+    "contact": {
+      "title": "Contactar a equipa",
+      "label": "A sua mensagem",
+      "hint": "Em caso de urgência, ligue para o número do guia.",
+      "send": "Enviar",
+      "you": "Você",
+      "team": "Equipa"
+    },
+    "error": {
+      "title": "Serviço temporariamente indisponível",
+      "text": "Tente novamente daqui a pouco."
+    },
+    "unavailable": {
+      "title": "Link indisponível",
+      "text": "Este link ainda não abriu, expirou ou foi substituído. Peça um novo ao anfitrião."
+    },
+    "hello": "Olá, {name}",
+    "helloAnon": "Bem-vindo",
+    "news": "{count, plural, one {# novidade desde a última visita} other {# novidades desde a última visita}}",
+    "guide": "Guia da estadia",
+    "guideFields": {
+      "welcome": "Boas-vindas",
+      "house_rules": "Regras da casa",
+      "checkout_instructions": "Antes de sair",
+      "wifi_name": "Wi-Fi",
+      "wifi_password": "Palavra-passe Wi-Fi",
+      "parking": "Estacionamento",
+      "trash": "Lixo",
+      "recommendations": "As nossas recomendações",
+      "emergency_phone": "Emergência"
+    },
+    "guideEmpty": "O anfitrião vai completar o guia em breve.",
+    "times": "Chegada a partir das {in} · saída até às {out}",
+    "myRequests": "Os meus pedidos",
+    "noRequests": "Nenhum pedido ainda.",
+    "status": {
+      "requested": "Recebido, pendente",
+      "info_requested": "Pedido de detalhe",
+      "confirmed": "Aceite",
+      "declined": "Recusado",
+      "done": "Realizado",
+      "cancelled": "Cancelado"
+    },
+    "event": {
+      "you": "A sua mensagem",
+      "received": "Pedido recebido",
+      "updated": "Pedido alterado pela equipa"
+    },
+    "linkValid": "Este link pessoal é válido até {until}. Não o partilhe."
   }
 }

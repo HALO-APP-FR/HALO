@@ -1167,7 +1167,9 @@
     "managerText": "Planung, Einsätze, Team, Unterkünfte, Leistungen.",
     "agent": "Mitarbeiter-Bereich",
     "agentText": "Meine heutigen Einsätze vor Ort.",
-    "demoNotice": "Demo ohne Konten: Beide Bereiche sind offen. Mit der echten Anmeldung landet jeder direkt in seinem Bereich, und ein Mitarbeiter kann den Manager-Bereich weder öffnen noch dessen Funktionen nutzen, auch nicht über einen direkten Link."
+    "demoNotice": "Demo ohne Konten: Beide Bereiche sind offen. Mit der echten Anmeldung landet jeder direkt in seinem Bereich, und ein Mitarbeiter kann den Manager-Bereich weder öffnen noch dessen Funktionen nutzen, auch nicht über einen direkten Link.",
+    "connected": "Verbundene Umgebung",
+    "connectedText": "Sicheres Konto, Daten online gespeichert und geräteübergreifend verfügbar."
   },
   "inbox": {
     "title": "Benachrichtigungen",
@@ -1252,5 +1254,629 @@
       "open_service": "Anfrage bearbeiten",
       "open_linen": "Wäsche ansehen"
     }
+  },
+  "connected": {
+    "notConfigured": "Die verbundene Umgebung ist hier noch nicht eingerichtet. Nutzen Sie die Demo oder ergänzen Sie die Supabase-Variablen der Vorproduktion.",
+    "signOut": "Abmelden",
+    "nav": {
+      "label": "Navigation",
+      "home": "Start",
+      "stays": "Aufenthalte",
+      "services": "Leistungen",
+      "missions": "Einsätze",
+      "properties": "Unterkünfte",
+      "team": "Team",
+      "setup": "Einrichtung"
+    },
+    "env": {
+      "demo": "Demo",
+      "demoHint": "Demo: Beispieldaten nur in diesem Browser gespeichert.",
+      "preprod-local": "Lokale Vorprod.",
+      "preprod-localHint": "Verbundene Testumgebung auf diesem Rechner: echte Datenbank, Beispieldaten.",
+      "preprod": "Vorproduktion",
+      "preprodHint": "Verbundene Testumgebung: echte gespeicherte Datenbank, nur Beispieldaten.",
+      "production": "Verbunden",
+      "productionHint": "Produktionsumgebung: Ihre echten Daten."
+    },
+    "signIn": {
+      "title": "Bei HALO anmelden",
+      "subtitle": "Ohne Passwort: Wir senden Ihnen einen Link und einen Code per E-Mail.",
+      "email": "Geschäftliche E-Mail",
+      "emailHint": "Beim ersten Anmelden wird ein Konto erstellt.",
+      "send": "Link erhalten",
+      "code": "6-stelliger Code",
+      "codeSent": "E-Mail an {email} gesendet. Öffnen Sie den Link oder geben Sie den Code hier ein.",
+      "verify": "Anmelden",
+      "changeEmail": "Andere E-Mail",
+      "errors": {
+        "invalid_email": "Ungültige E-Mail-Adresse.",
+        "send_failed": "Die E-Mail konnte nicht gesendet werden. Bitte gleich erneut versuchen.",
+        "invalid_code": "Falscher oder abgelaufener Code.",
+        "rate_limited": "Zu viele Versuche. Bitte eine Minute warten.",
+        "link": "Dieser Anmeldelink ist nicht mehr gültig. Fordern Sie einen neuen an."
+      }
+    },
+    "createOrg": {
+      "title": "Erstellen Sie Ihren Bereich",
+      "text": "Der Name Ihres Concierge-Betriebs oder Hauses. Sie können ihn später ändern.",
+      "name": "Handelsname",
+      "submit": "Erstellen und einrichten"
+    },
+    "errors": {
+      "not_signed_in": "Ihre Sitzung ist abgelaufen. Bitte erneut anmelden.",
+      "forbidden": "Für Ihre Rolle nicht erlaubt.",
+      "duplicate": "Dieser Eintrag existiert bereits.",
+      "invalid": "Einige Angaben sind ungültig. Bitte prüfen.",
+      "not_found": "Eintrag nicht gefunden oder nicht zugänglich.",
+      "server": "Der Server konnte nicht speichern. Nichts wurde geändert; bitte erneut versuchen.",
+      "unknown": "Unerwarteter Fehler. Nichts wurde geändert.",
+      "network": "Server nicht erreichbar. Prüfen Sie Ihr Netz; nichts wurde gespeichert.",
+      "conflict": "Der Eintrag wurde inzwischen geändert. Die Seite zeigt den aktuellen Stand.",
+      "invalid_dates": "Die Abreise muss nach der Anreise liegen.",
+      "stay_ended": "Dieser Aufenthalt ist beendet: Kein Link möglich.",
+      "stay_not_confirmed": "Der Aufenthalt ist nicht bestätigt: kein Gästelink möglich.",
+      "question_required": "Schreiben Sie die Frage an den Gast.",
+      "missing_photos": "Pflichtfotos fehlen: Der Einsatz kann nicht abgeschlossen werden.",
+      "already_member": "Sie gehören bereits zu dieser Organisation.",
+      "invalid_invitation": "Einladung ungültig, abgelaufen oder bereits genutzt.",
+      "unchanged": "Keine Änderung zu speichern."
+    },
+    "home": {
+      "subtitle": "Was Ihre Aufmerksamkeit braucht.",
+      "onboardingTitle": "HALO fertig einrichten",
+      "onboardingResume": "Machen Sie dort weiter, wo Sie aufgehört haben; Antworten sind gespeichert.",
+      "onboardingStart": "3 bis 5 Minuten bis zu einer nützlichen Grundeinrichtung.",
+      "services": "{count, plural, =0 {Keine offene Leistungsanfrage} one {# offene Leistungsanfrage} other {# offene Leistungsanfragen}}",
+      "messages": "{count, plural, =0 {Keine ungelesene Gästenachricht} one {# ungelesene Gästenachricht} other {# ungelesene Gästenachrichten}}",
+      "unassigned": "{count, plural, =0 {Kein Einsatz ohne Mitarbeiter} one {# Einsatz ohne Mitarbeiter} other {# Einsätze ohne Mitarbeiter}}",
+      "emails": "{count, plural, =0 {Keine fehlgeschlagene Gäste-E-Mail} one {# Gäste-E-Mail nicht gesendet} other {# Gäste-E-Mails nicht gesendet}}",
+      "stays7": "{count, plural, =0 {Keine Anreise in den nächsten 7 Tagen} one {# Anreise in den nächsten 7 Tagen} other {# Anreisen in den nächsten 7 Tagen}}"
+    },
+    "onb": {
+      "progress": "Schritt {n} von {total}",
+      "later": "Später fortsetzen",
+      "skip": "Überspringen",
+      "next": "Weiter",
+      "back": "Zurück",
+      "optional": "Optional",
+      "profile": {
+        "title": "Sie",
+        "text": "Damit Ihr Team weiß, wer es kontaktiert.",
+        "known": "Angemeldet als {email}: keine erneute Eingabe nötig.",
+        "fullName": "Vor- und Nachname",
+        "jobTitle": "Funktion",
+        "phone": "Geschäftliche Telefonnummer",
+        "phoneHint": "Optional. Nur für Ihr Team sichtbar."
+      },
+      "organization": {
+        "title": "Ihre Organisation",
+        "text": "Das Minimum zur Identifikation. Alles andere ist optional.",
+        "name": "Handelsname",
+        "legalName": "Firmenname",
+        "country": "Land",
+        "address": "Adresse",
+        "postalCode": "PLZ",
+        "city": "Stadt",
+        "noLegal": "Zum Start sind keine Rechtsdokumente nötig. Rechnungsdaten werden erst bei Aktivierung der Abrechnung abgefragt."
+      },
+      "countries": {
+        "FR": "Frankreich",
+        "BE": "Belgien",
+        "CH": "Schweiz",
+        "LU": "Luxemburg",
+        "MC": "Monaco",
+        "ES": "Spanien",
+        "PT": "Portugal",
+        "IT": "Italien",
+        "DE": "Deutschland",
+        "GB": "Vereinigtes Königreich",
+        "US": "Vereinigte Staaten",
+        "CA": "Kanada",
+        "MA": "Marokko"
+      },
+      "activity": {
+        "title": "Ihre Tätigkeit",
+        "text": "Die folgenden Fragen passen sich Ihrer Antwort an.",
+        "label": "Tätigkeitsart",
+        "concierge": "Concierge-Service",
+        "short_term_rental": "Kurzzeitvermietung",
+        "residence": "Residenz",
+        "aparthotel": "Aparthotel",
+        "independent_hotel": "Unabhängiges Hotel",
+        "unitCount": "Anzahl Unterkünfte",
+        "roomCount": "Anzahl Zimmer",
+        "approx": "Eine Größenordnung genügt."
+      },
+      "operations": {
+        "title": "Ihr Alltag",
+        "text": "Um Einsätze, Freigabe und Wäsche vorzubereiten."
+      },
+      "cleaning": {
+        "label": "Wer reinigt?",
+        "internal": "Eigenes Team",
+        "providers": "Dienstleister",
+        "both": "Beides"
+      },
+      "linen": {
+        "label": "Und die Wäsche?",
+        "internal": "Eigener Bestand",
+        "laundry": "Externe Wäscherei",
+        "both": "Beides",
+        "none": "Nicht verwaltet"
+      },
+      "validation": {
+        "label": "Sollen Einsätze vor Abschluss geprüft werden?",
+        "all": "Alle",
+        "turnover": "Nur Reinigungen",
+        "none": "Nein"
+      },
+      "roomInspection": {
+        "label": "Werden Zimmer nach der Reinigung kontrolliert?"
+      },
+      "welcome": {
+        "label": "Empfangen Sie Gäste (Schlüsselübergabe, Übergabe)?"
+      },
+      "yesNo": {
+        "label": "Antwort",
+        "yes": "Ja",
+        "no": "Nein"
+      },
+      "services": {
+        "title": "Angebotene Leistungen",
+        "text": "Gäste können sie in ihrem Bereich anfragen."
+      },
+      "issues": {
+        "title": "Häufigste Probleme",
+        "text": "HALO schlägt damit Kontrollen und Hinweise vor.",
+        "late_cleaning": "Verspätete Reinigungen",
+        "missing_linen": "Fehlende Wäsche",
+        "damage": "Nicht gemeldete Schäden",
+        "guest_complaints": "Gästebeschwerden",
+        "staff_no_show": "Ausfälle von Mitarbeitern",
+        "late_checkout": "Späte Abreisen",
+        "room_not_ready": "Zimmer bei Anreise nicht fertig",
+        "housekeeping_control": "Qualitätskontrolle der Zimmer",
+        "key_handover": "Schlüsselübergabe",
+        "access_problems": "Probleme beim Zugang zur Unterkunft"
+      },
+      "channels": {
+        "title": "Ihre Buchungskanäle",
+        "text": "Zur Vorbereitung des Kalenderimports.",
+        "airbnb": "Airbnb",
+        "booking": "Booking.com",
+        "vrbo": "Vrbo",
+        "direct": "Direktbuchungen",
+        "notConnected": "Der automatische Kalenderimport ist noch nicht angebunden: Ihre Antworten bereiten ihn vor, derzeit wird nichts synchronisiert."
+      },
+      "proposals": {
+        "title": "Vorgeschlagene Einrichtung",
+        "text": "Automatisch aus Ihren Antworten erstellt, mit erklärten Regeln je Punkt. Nichts wird gespeichert, bevor Sie bestätigen.",
+        "alreadyDone": "Eine Einrichtung wurde bereits gespeichert. Erneutes Bestätigen ersetzt nur angenommene oder geänderte Punkte.",
+        "accept": "Annehmen",
+        "modify": "Anpassen",
+        "ignore": "Ignorieren",
+        "summary": "Vor dem Speichern",
+        "summaryText": "{kept} von {total} Punkten werden gespeichert. Ignorierte ändern nichts.",
+        "decideAll": "Wählen Sie für jeden Punkt Annehmen, Anpassen oder Ignorieren.",
+        "next": "Nächster Schritt: erste Unterkunft anlegen, dann das Team einladen.",
+        "confirm": "Bestätigen und speichern",
+        "photo": "Foto",
+        "room": "Raum",
+        "item": "Prüfpunkt",
+        "remove": "Entfernen",
+        "task_types": {
+          "title": "Einsatzarten"
+        },
+        "checklist": {
+          "title": "Standard-Checkliste"
+        },
+        "validation": {
+          "title": "Freigaberegeln",
+          "none": "Keine Freigabe: Einsätze schließen bei Fertigstellung."
+        },
+        "alerts": {
+          "title": "Hinweise auf der Startseite"
+        },
+        "linen": {
+          "title": "Wäscheverfolgung",
+          "value": "Geplante Umlaufzeit von {days} Tag(en) zwischen Abholung und Rückgabe.",
+          "days": "Umlauftage"
+        }
+      },
+      "alerts": {
+        "unassigned_missions": "Einsätze ohne Mitarbeiter",
+        "pending_services": "Offene Anfragen",
+        "unread_messages": "Ungelesene Nachrichten",
+        "failed_emails": "Nicht gesendete E-Mails",
+        "upcoming_stays": "Anreisen in 7 Tagen"
+      },
+      "why": {
+        "turnover_always": "Die Reinigung zwischen Aufenthalten ist die Grundlage jedes Wechsels.",
+        "welcome_service": "Sie empfangen Gäste: An- und Abreisen werden zu Einsätzen.",
+        "issue_key_handover": "Sie nannten Probleme bei der Schlüsselübergabe: Ein Anreise-Einsatz macht sie sichtbar.",
+        "linen_missions": "Externe Wäscherei: Lieferungen und Abholungen werden zu Einsätzen.",
+        "room_inspection": "Sie kontrollieren Zimmer: Nach jeder Reinigung folgt eine Kontrolle.",
+        "issue_control": "Sie nannten Bedarf an Qualitätskontrolle.",
+        "checklist_hotel": "Hotelzimmer-Checkliste, passend zu Ihrer Tätigkeit.",
+        "checklist_apartment": "Wohnungs-Checkliste nach Räumen, mit einem Foto je wichtigem Raum.",
+        "issue_damage": "Sie nannten nicht gemeldete Schäden: Ein Kontrollfoto wird ergänzt.",
+        "issue_missing_linen": "Sie nannten fehlende Wäsche: Eine Zählung wird ergänzt.",
+        "validation_all": "Sie möchten alle Einsätze prüfen.",
+        "validation_turnover": "Sie möchten Reinigungen prüfen.",
+        "validation_none": "Keine Freigabe gewünscht: Einsätze schließen bei Fertigstellung.",
+        "validation_providers": "Sie arbeiten mit Dienstleistern: Freigabe erlaubt Prüfung vor Zahlung.",
+        "alerts_guest": "Gästeanfragen und -nachrichten brauchen schnelle Antwort.",
+        "issue_late_cleaning": "Sie nannten Verspätungen oder Ausfälle: Einsätze ohne Mitarbeiter werden hervorgehoben.",
+        "alerts_volume": "Bei mehreren Einheiten oder späten Abreisen hilft der Blick auf kommende Anreisen.",
+        "linen_internal": "Eigener Bestand: kurze Umlaufzeit von einem Tag.",
+        "linen_laundry": "Externe Wäscherei: übliche Dauer von 3 Tagen.",
+        "linen_both": "Bestand und Wäscherei: Zur Sicherheit gilt die Wäscherei-Dauer (3 Tage)."
+      },
+      "labels": {
+        "room": {
+          "living": "Wohnzimmer",
+          "kitchen": "Küche",
+          "bedroom": "Schlafzimmer",
+          "bathroom": "Bad",
+          "general": "Allgemeine Kontrolle"
+        },
+        "check": {
+          "bed_made": "Bett gemacht",
+          "dust": "Staub",
+          "minibar": "Minibar geprüft",
+          "amenities": "Pflegeprodukte",
+          "bathroom_clean": "Bad sauber",
+          "towels": "Handtücher",
+          "toiletries": "Bad-Verbrauchsartikel",
+          "living_tidy": "Wohnzimmer aufgeräumt",
+          "windows": "Fenster",
+          "kitchen_clean": "Küche sauber",
+          "dishes": "Geschirr verräumt",
+          "fridge_empty": "Kühlschrank geleert",
+          "consumables": "Küchen-Verbrauchsartikel",
+          "linen_changed": "Wäsche gewechselt",
+          "damage_check": "Keine Schäden",
+          "linen_count": "Wäsche gezählt"
+        }
+      }
+    },
+    "properties": {
+      "title": "Unterkünfte",
+      "subtitle": "Ihre Unterkünfte und Gästemappe.",
+      "afterOnboarding": "Einrichtung gespeichert. Legen Sie jetzt Ihre erste Unterkunft an: Die bestätigte Checkliste wird übernommen.",
+      "loadError": "Unterkünfte konnten nicht geladen werden.",
+      "empty": "Noch keine Unterkunft.",
+      "new": "Neue Unterkunft",
+      "name": "Name",
+      "address": "Adresse",
+      "postalCode": "PLZ",
+      "city": "Stadt",
+      "checkIn": "Übliche Anreise",
+      "checkOut": "Übliche Abreise",
+      "cleaningDuration": "Reinigungsdauer (Min.)",
+      "create": "Unterkunft anlegen",
+      "noAddress": "Keine Adresse",
+      "checklist": "Reinigungs-Checkliste",
+      "noChecklist": "Keine Checkliste: Sie stammt aus der bestätigten Einrichtung."
+    },
+    "guide": {
+      "title": "Gästemappe",
+      "text": "Was der Gast sieht. Lassen Sie Unzutreffendes leer.",
+      "fields": {
+        "welcome": "Willkommen",
+        "house_rules": "Hausregeln",
+        "checkout_instructions": "Hinweise zur Abreise",
+        "wifi_name": "WLAN-Name",
+        "wifi_password": "WLAN-Passwort",
+        "parking": "Parken",
+        "trash": "Müll und Trennung",
+        "emergency_phone": "Notfallnummer",
+        "recommendations": "Unsere Empfehlungen"
+      },
+      "noAccessCodes": "Keine Zugangscodes hier eintragen: Die Mappe ist per Link teilbar.",
+      "saved": "Mappe gespeichert.",
+      "save": "Mappe speichern"
+    },
+    "stays": {
+      "title": "Aufenthalte",
+      "subtitle": "Laufende und kommende Aufenthalte, Gästezugang und Nachrichten.",
+      "loadError": "Aufenthalte konnten nicht geladen werden.",
+      "empty": "Kein laufender oder kommender Aufenthalt.",
+      "unnamed": "Gast ohne Namen",
+      "newMessage": "Neue Nachricht",
+      "status": {
+        "cancelled": "Storniert",
+        "blocked": "Gesperrt",
+        "confirmed": "Bestätigt"
+      },
+      "needProperty": "Legen Sie zuerst eine Unterkunft an.",
+      "new": "Neuer Aufenthalt",
+      "property": "Unterkunft",
+      "guestName": "Name des Gastes",
+      "guestEmail": "E-Mail des Gastes",
+      "guestEmailHint": "Optional. Nur zur Benachrichtigung über Antworten.",
+      "checkIn": "Anreise",
+      "checkOut": "Abreise",
+      "adults": "Gäste",
+      "guestLocale": "E-Mail-Sprache",
+      "create": "Aufenthalt anlegen",
+      "services": "Leistungen des Aufenthalts",
+      "noServices": "Keine Anfrage.",
+      "missions": "Erzeugte Einsätze",
+      "noMissions": "Noch keine Einsätze."
+    },
+    "link": {
+      "title": "Gästezugang",
+      "text": "Ein persönlicher Link nur für diesen Aufenthalt. Gültig ab 72 Std. vor Anreise bis zur Abreise. Ohne Zugangscodes.",
+      "status": {
+        "active": "Aktiv bis {until}",
+        "scheduled": "Geplant: ab {from}",
+        "expired": "Abgelaufen am {until}",
+        "revoked": "Widerrufen"
+      },
+      "opened": "geöffnet am {at}",
+      "notOpened": "noch nicht geöffnet",
+      "none": "Kein aktiver Link.",
+      "copyOnce": "Kopieren Sie den Link jetzt: Aus Sicherheitsgründen wird er nicht erneut angezeigt.",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "renew": "Neuen Link erstellen",
+      "create": "Gästelink erstellen",
+      "extend": "Bis 7 Tage nach Abreise verlängern",
+      "revoke": "Widerrufen",
+      "renewHint": "Ein neuer Link deaktiviert sofort den alten."
+    },
+    "messages": {
+      "title": "Nachrichten mit dem Gast",
+      "visibleToGuest": "Alles hier ist für den Gast sichtbar.",
+      "fromGuest": "Gast",
+      "fromTeam": "Team",
+      "seen": "gelesen",
+      "empty": "Keine Nachricht.",
+      "replyLabel": "Dem Gast antworten",
+      "replyHintEmail": "In seinem Bereich sichtbar, per E-Mail falls eingerichtet.",
+      "replyHintNoEmail": "In seinem Bereich sichtbar. Keine E-Mail: Adresse unbekannt.",
+      "postedEmailQueued": "Im Gästebereich veröffentlicht. Der tatsächliche E-Mail-Status steht unter „E-Mails“.",
+      "postedSpaceOnly": "Nur im Gästebereich veröffentlicht (keine E-Mail-Adresse).",
+      "send": "Senden"
+    },
+    "outbox": {
+      "title": "E-Mails",
+      "to": "Empfänger: {email}",
+      "noEmail": "Keine E-Mail-Adresse: Der Gast wird nur in seinem Bereich informiert.",
+      "empty": "Keine E-Mail.",
+      "attempts": "{n} Versuche",
+      "status": {
+        "pending": "Wartet auf Versand",
+        "sent": "Gesendet",
+        "failed": "Fehlgeschlagen",
+        "not_configured": "Nicht gesendet: kein E-Mail-Dienst eingerichtet"
+      },
+      "retry": "Erneut senden",
+      "template": {
+        "service_received": "Eingangsbestätigung",
+        "service_confirmed": "Anfrage angenommen",
+        "service_declined": "Anfrage abgelehnt",
+        "service_info_requested": "Rückfrage",
+        "service_done": "Leistung erbracht",
+        "service_cancelled": "Anfrage storniert",
+        "service_updated": "Anfrage geändert",
+        "stay_message": "Nachricht vom Team"
+      }
+    },
+    "services": {
+      "title": "Leistungen",
+      "subtitle": "Gästeanfragen und Antworten des Teams.",
+      "loadError": "Anfragen konnten nicht geladen werden.",
+      "group": {
+        "todo": "Zu bearbeiten",
+        "waiting": "Wartet auf Gast",
+        "confirmed": "Bestätigt",
+        "closed": "Abgeschlossen"
+      },
+      "none": "Nichts hier.",
+      "noGuest": "Ohne Aufenthalt",
+      "new": "Neu",
+      "unread": "Ungelesen",
+      "people": "{n} Pers.",
+      "details": "Angaben des Gastes",
+      "openStay": "Aufenthalt öffnen"
+    },
+    "decide": {
+      "title": "Auf Anfrage antworten",
+      "closed": "Anfrage abgeschlossen ({status}).",
+      "action": {
+        "confirmed": "Annehmen",
+        "info_requested": "Nachfragen",
+        "declined": "Ablehnen",
+        "cancelled": "Stornieren",
+        "done": "Als erledigt markieren"
+      },
+      "question": "Frage an den Gast",
+      "questionHint": "Pflichtfeld. Der Gast kann in seinem Bereich antworten.",
+      "guestMessage": "Nachricht an den Gast",
+      "messageHint": {
+        "confirmed": "Optional: nützliche Details (Uhrzeit, Ort, Kontakt).",
+        "declined": "Optional: ein Grund, den Sie mitteilen möchten.",
+        "cancelled": "Optional: Erklärung für den Gast.",
+        "done": "Optional: eine Rückmeldung."
+      },
+      "internalNote": "Interne Notiz",
+      "internalHint": "Nie an den Gast übermittelt. Nur für Manager.",
+      "previewTitle": "Was der Gast sieht",
+      "noMessage": "Nur der neue Status, ohne Nachricht.",
+      "channelEmail": "In seinem Bereich und per E-Mail an {email}, falls eingerichtet.",
+      "channelSpace": "Nur in seinem Bereich (keine E-Mail-Adresse).",
+      "notePrivate": "Die interne Notiz bleibt im Team-Verlauf.",
+      "confirm": "Bestätigen und Gast informieren",
+      "doneEmail": "Gespeichert. Der Gast sieht es; der E-Mail-Status steht daneben.",
+      "doneSpace": "Gespeichert. Der Gast sieht es in seinem Bereich (keine E-Mail).",
+      "edit": "Datum oder Personenzahl ändern",
+      "when": "Datum und Uhrzeit",
+      "people": "Personen",
+      "editHint": "Optional: Änderung erklären. Der Gast wird informiert.",
+      "cancelEdit": "Abbrechen",
+      "saveEdit": "Speichern und informieren"
+    },
+    "history": {
+      "title": "Verlauf",
+      "legend": "Durchgezogen: für den Gast sichtbar. Gestrichelt: intern.",
+      "internal": "Intern",
+      "guestVisible": "Für Gast sichtbar",
+      "author": {
+        "guest": "Gast",
+        "member": "Team",
+        "system": "HALO"
+      },
+      "kind": {
+        "created": "Anfrage erhalten",
+        "status": "Neuer Status",
+        "guest_message": "Nachricht des Gastes",
+        "team_message": "Nachricht des Teams",
+        "internal_note": "Interne Notiz",
+        "updated": "Anfrage geändert"
+      }
+    },
+    "missions": {
+      "assignee": "Mitarbeiter",
+      "unassigned": "Nicht zugewiesen",
+      "start": "Starten",
+      "finish": "Abschließen",
+      "title": "Einsätze",
+      "subtitle": "Automatisch aus Aufenthalten erzeugt.",
+      "mineTitle": "Meine Einsätze",
+      "mineSubtitle": "Nur Ihnen zugewiesene Einsätze.",
+      "loadError": "Einsätze konnten nicht geladen werden.",
+      "empty": "Keine kommenden Einsätze.",
+      "mineEmpty": "Ihnen ist derzeit kein Einsatz zugewiesen.",
+      "noName": "Ohne Namen"
+    },
+    "team": {
+      "title": "Team",
+      "subtitle": "Mitglieder und Rollen.",
+      "noName": "Profil unvollständig",
+      "inactive": "deaktiviert",
+      "roles": {
+        "owner": "Inhaber",
+        "manager": "Manager",
+        "agent": "Mitarbeiter"
+      },
+      "invite": "Jemanden einladen",
+      "inviteText": "Ein persönlicher Link, 7 Tage gültig. Anmeldung mit eigener E-Mail.",
+      "role": "Rolle",
+      "createLink": "Einladungslink erstellen",
+      "copyOnce": "Senden Sie diesen Link. Er wird nicht erneut angezeigt.",
+      "accept": "Organisation beitreten",
+      "inviteTitle": "Sie sind zu HALO eingeladen",
+      "inviteSignedAs": "Angemeldet als {email}."
+    }
+  },
+  "email": {
+    "footer": "Details und Antwort in Ihrem Gästebereich (Link zu Ihrem Aufenthalt). Automatische E-Mail.",
+    "service_received": {
+      "subject": "{org} — Anfrage erhalten: {kind}",
+      "body": "Wir haben Ihre Anfrage „{kind}“ erhalten. Sie wartet auf Antwort des Teams."
+    },
+    "service_confirmed": {
+      "subject": "{org} — Anfrage angenommen: {kind}",
+      "body": "Gute Nachricht: Ihre Anfrage „{kind}“ wurde angenommen."
+    },
+    "service_declined": {
+      "subject": "{org} — Anfrage abgelehnt: {kind}",
+      "body": "Leider können wir Ihre Anfrage „{kind}“ nicht erfüllen."
+    },
+    "service_info_requested": {
+      "subject": "{org} — eine Rückfrage zu Ihrer Anfrage: {kind}",
+      "body": "Für Ihre Anfrage „{kind}“ braucht das Team eine Angabe. Sie können in Ihrem Gästebereich antworten."
+    },
+    "service_done": {
+      "subject": "{org} — Leistung erbracht: {kind}",
+      "body": "Ihre Leistung „{kind}“ ist als erbracht markiert."
+    },
+    "service_cancelled": {
+      "subject": "{org} — Anfrage storniert: {kind}",
+      "body": "Ihre Anfrage „{kind}“ wurde storniert."
+    },
+    "service_updated": {
+      "subject": "{org} — Anfrage geändert: {kind}",
+      "body": "Ihre Anfrage „{kind}“ wurde geändert. Details in Ihrem Gästebereich."
+    },
+    "stay_message": {
+      "subject": "{org} — neue Nachricht zu Ihrem Aufenthalt",
+      "body": "Das Team schreibt Ihnen:"
+    }
+  },
+  "guestSpace": {
+    "errors": {
+      "unavailable": "Dieser Link ist nicht mehr aktiv. Kontaktieren Sie Ihren Gastgeber.",
+      "empty": "Schreiben Sie eine Nachricht.",
+      "invalid": "Bitte Angaben prüfen.",
+      "server": "Senden nicht möglich. Nichts wurde übermittelt; bitte erneut versuchen."
+    },
+    "request": {
+      "title": "Leistung anfragen",
+      "text": "Das Team antwortet hier. Sie verfolgen den Stand ohne Anruf.",
+      "kind": "Leistung",
+      "when": "Gewünschtes Datum und Uhrzeit",
+      "people": "Personen",
+      "details": "Angaben",
+      "detailsPlaceholder": "Allergien, Wünsche, Abholadresse…",
+      "sent": "Anfrage gesendet. Sie erscheint oben mit Status.",
+      "send": "Anfrage senden"
+    },
+    "reply": {
+      "answer": "Ihre Antwort",
+      "add": "Angabe ergänzen",
+      "send": "Senden"
+    },
+    "contact": {
+      "title": "Team kontaktieren",
+      "label": "Ihre Nachricht",
+      "hint": "Im Notfall die Nummer in der Mappe anrufen.",
+      "send": "Senden",
+      "you": "Sie",
+      "team": "Team"
+    },
+    "error": {
+      "title": "Dienst vorübergehend nicht verfügbar",
+      "text": "Bitte gleich erneut versuchen."
+    },
+    "unavailable": {
+      "title": "Link nicht verfügbar",
+      "text": "Dieser Link ist noch nicht offen, abgelaufen oder ersetzt. Bitten Sie Ihren Gastgeber um einen neuen."
+    },
+    "hello": "Hallo {name}",
+    "helloAnon": "Willkommen",
+    "news": "{count, plural, one {# Neuigkeit seit Ihrem letzten Besuch} other {# Neuigkeiten seit Ihrem letzten Besuch}}",
+    "guide": "Aufenthaltsmappe",
+    "guideFields": {
+      "welcome": "Willkommen",
+      "house_rules": "Hausregeln",
+      "checkout_instructions": "Vor der Abreise",
+      "wifi_name": "WLAN",
+      "wifi_password": "WLAN-Passwort",
+      "parking": "Parken",
+      "trash": "Müll",
+      "recommendations": "Unsere Empfehlungen",
+      "emergency_phone": "Notfall"
+    },
+    "guideEmpty": "Ihr Gastgeber ergänzt die Mappe bald.",
+    "times": "Anreise ab {in} · Abreise bis {out}",
+    "myRequests": "Meine Anfragen",
+    "noRequests": "Noch keine Anfrage.",
+    "status": {
+      "requested": "Erhalten, in Bearbeitung",
+      "info_requested": "Rückfrage an Sie",
+      "confirmed": "Angenommen",
+      "declined": "Abgelehnt",
+      "done": "Erledigt",
+      "cancelled": "Storniert"
+    },
+    "event": {
+      "you": "Ihre Nachricht",
+      "received": "Anfrage erhalten",
+      "updated": "Anfrage vom Team geändert"
+    },
+    "linkValid": "Dieser persönliche Link gilt bis {until}. Bitte nicht teilen."
   }
 }

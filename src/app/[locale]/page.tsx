@@ -1,8 +1,10 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowRight, FlaskConical, LayoutDashboard, Smartphone } from "lucide-react";
+import { ArrowRight, Cloud, FlaskConical, LayoutDashboard, Smartphone } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { LogoMark } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
+import { EnvBadge } from "@/components/connected/env-badge";
+import { isConnected } from "@/lib/supabase/config";
 
 /**
  * Accueil : choix de l'espace.
@@ -52,6 +54,25 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
               </li>
             ))}
           </ul>
+          {isConnected() && (
+            <Link
+              href="/auth/sign-in"
+              className="mt-6 flex items-center gap-4 rounded-xl border border-accent bg-surface p-5 shadow-card transition-colors hover:bg-surface-hover"
+              data-testid="connected-entry"
+            >
+              <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-accent text-on-accent">
+                <Cloud className="size-6" strokeWidth={1.9} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-title-3">{t("connected")}</span>
+                <span className="mt-0.5 block text-[14px] text-muted">{t("connectedText")}</span>
+                <span className="mt-2 inline-block">
+                  <EnvBadge />
+                </span>
+              </span>
+              <ArrowRight className="size-5 shrink-0 text-muted rtl:-scale-x-100" />
+            </Link>
+          )}
           <p className="mt-6 flex items-start gap-2 rounded-lg bg-warning-soft p-3 text-caption text-fg">
             <FlaskConical className="mt-0.5 size-4 shrink-0 text-warning" />
             {t("demoNotice")}
