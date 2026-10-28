@@ -59,17 +59,16 @@ Les adresses `bounce…@` sont refusées par la boîte de test pour vérifier l'
 
 Résultat : **7 scénarios / 10 vérifications réussis**, et la suite démo existante toujours verte.
 
-## Passer en préproduction Vercel (actions de Mathieu)
+## Préproduction en ligne — état au 28/10/2026
 
-1. Supabase → nouveau projet **halo-test**, région **Paris (eu-west-3)**, offre gratuite.
-2. SQL Editor → exécuter les 4 fichiers de `supabase/migrations/` dans l'ordre.
-3. Authentication → URL Configuration : Site URL = l'URL de préproduction ; Redirect URLs : `https://<url-de-préproduction>/api/auth/callback`.
-4. Authentication → Email Templates → « Magic Link » : ajouter `{{ .Token }}` (le code à 6 chiffres) à côté du lien.
-5. Vercel → Settings → Environment Variables, **portée Preview uniquement** : `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_HALO_ENV=preprod`, `SUPABASE_SERVICE_ROLE_KEY` (secret), et si un fournisseur est choisi `SMTP_URL`, `EMAIL_FROM`.
-6. GitHub → secret `SUPABASE_TEST_DB_URL` (chaîne de connexion de halo-test) pour les tests d'isolation automatiques.
-7. Redéployer la préproduction.
+- URL : https://halo-git-feat-operations-halo-65a7.vercel.app (branche `feat/operations`).
+- Supabase : projet `yokcliujljlqdhkcncte`, 4 migrations appliquées (SQL Editor) et enregistrées dans `supabase_migrations.schema_migrations` pour que l'intégration GitHub ne les rejoue pas.
+- Vercel : toutes les variables Supabase (y compris celles créées par l'intégration Supabase ↔ Vercel) sont en portée **Preview uniquement**. **Production : aucune variable Supabase → reste en démo** tant qu'une bascule n'est pas décidée (avec un projet Supabase de production distinct).
+- Intégration Supabase ↔ Vercel : décocher « Production » côté Supabase, sinon elle peut recréer les variables en production à la prochaine synchronisation.
+- E-mails : Brevo (offre gratuite) — SMTP personnalisé dans Supabase (connexion) et `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` en Preview (voyageurs). Expéditeur Gmail provisoire : risque de spam, à remplacer par une adresse sur un domaine vérifié (SPF/DKIM).
+- Modèles d'e-mail Supabase : modifiables seulement avec SMTP personnalisé (règle des nouveaux projets gratuits) ; modèle Magic Link et Confirm signup avec `{{ .Token }}`.
 
-Sans `SMTP_URL`, aucun e-mail n'est envoyé et chaque envoi est marqué « Non envoyé : aucun service d'envoi configuré ». Pas de SMS.
+Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est marqué « Non envoyé : aucun service d'envoi configuré ». Pas de SMS.
 
 ## Limites connues
 
