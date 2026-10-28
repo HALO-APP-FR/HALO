@@ -31,7 +31,8 @@
     "switchToManager": "Vista gestor",
     "alerts": "Alertas",
     "calendar": "Calendário",
-    "services": "Serviços"
+    "services": "Serviços",
+    "arrivals": "Chegadas"
   },
   "theme": {
     "label": "Aparência",
@@ -107,7 +108,7 @@
     "servicesRequested": "{count, plural, one {# pedido de serviço por tratar} other {# pedidos de serviço por tratar}}",
     "linenShortage": "{count, plural, one {Rutura de roupa prevista em # artigo} other {Rutura de roupa prevista em # artigos}}",
     "blocked": "{count, plural, one {# missão atrasada ou inviável na janela} other {# missões atrasadas ou inviáveis na janela}}",
-    "arrivalsNotReady": "{count, plural, one {# chegada de hoje a desbloquear} other {# chegadas de hoje a desbloquear}}"
+    "arrivalsControl": "Chegadas de hoje: {blocked} bloqueada(s), {watch} a vigiar"
   },
   "agentToday": {
     "greeting": "Olá {name}",
@@ -1207,15 +1208,49 @@
     "none": "Em falta",
     "cannotValidate": "Validação impossível: faltam {count} prova(s) fotográfica(s) obrigatória(s). Peça uma correção."
   },
-  "readiness": {
-    "ready": "Pronto",
-    "awaiting_validation": "Limpeza a validar",
-    "in_progress": "Limpeza em curso",
-    "correction": "Correção pedida",
-    "scheduled": "Limpeza planeada",
-    "unassigned": "Limpeza sem agente",
-    "at_risk": "Em risco",
-    "no_cleaning": "Sem limpeza associada: verificar",
-    "incident": "incidente urgente aberto"
+  "arrivals": {
+    "title": "Chegadas",
+    "subtitle": "Cada alojamento está pronto para o seu hóspede? O que bloqueia, quem age e como.",
+    "summary": "Resumo das chegadas",
+    "state": {
+      "blocked": "Bloqueada",
+      "watch": "A vigiar",
+      "preparing": "Em preparação",
+      "ready": "Pronta"
+    },
+    "filter": "Filtrar chegadas",
+    "filterTodo": "A desbloquear ou vigiar",
+    "filterAll": "Todas",
+    "nothingToDo": "Nada a desbloquear neste dia.",
+    "none": "Nenhuma chegada neste dia.",
+    "footnote": "Horas no fuso de cada alojamento. «Pronta» exige uma limpeza validada e nenhum incidente urgente aberto. Cada chegada conta uma vez, com o seu estado mais grave.",
+    "inTime": "em {time}",
+    "passed": "há {time}",
+    "cleaning": "Limpeza",
+    "responsible": "Responsável: {name}",
+    "responsibleManager": "{name} (responsável)",
+    "responsibleNobody": "ninguém (a atribuir)",
+    "blocker": {
+      "no_cleaning": "Nenhuma limpeza associada a esta estadia",
+      "cleaning_unassigned": "Limpeza sem agente",
+      "cleaning_infeasible": "Limpeza impossível",
+      "cleaning_late_start": "Limpeza ainda não iniciada (horário começou)",
+      "awaiting_validation": "Limpeza concluída, a aguardar validação",
+      "correction": "Correção pedida na limpeza",
+      "urgent_incident": "Incidente urgente aberto no alojamento",
+      "open_incident": "Incidente aberto no alojamento",
+      "linen_shortage": "Rutura de roupa prevista no dia da limpeza (stock central)",
+      "service_pending": "Pedido de serviço a aguardar decisão",
+      "guest_arrived_not_ready": "Hora de chegada passada: alojamento não pronto"
+    },
+    "action": {
+      "assign": "Atribuir",
+      "review": "Validar ou corrigir",
+      "open_task": "Abrir a missão",
+      "create_cleaning": "Criar a limpeza",
+      "open_incident": "Tratar o incidente",
+      "open_service": "Tratar o pedido",
+      "open_linen": "Ver a roupa"
+    }
   }
 }

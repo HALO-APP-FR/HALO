@@ -11,7 +11,9 @@ import { EmptyState } from "./empty-state";
 import { GuestBadges } from "./guest-badges";
 import { CalendarX } from "lucide-react";
 import { useHalo } from "@/lib/store/halo-store";
-import { READINESS_TONE, readinessFor } from "@/lib/engine/readiness";
+import { arrivalControl } from "@/lib/engine/arrival-control";
+
+const STATE_TONE = { blocked: "danger", watch: "warning", preparing: "accent", ready: "success" } as const;
 
 /** Arrivées ou départs du jour : qui, combien, bébés, animaux, à quelle heure. */
 export function StaysSheet({
@@ -31,6 +33,7 @@ export function StaysSheet({
   const locale = useLocale();
   const tasks = useHalo((s) => s.tasks);
   const alerts = useHalo((s) => s.alerts);
+  const services = useHalo((s) => s.services);
   if (!kind) return null;
   const now = new Date();
   const at = (r: Reservation) => (kind === "arrivals" ? r.checkInAt : r.checkOutAt);
@@ -55,13 +58,12 @@ export function StaysSheet({
                         {r.source !== "manual" && <Badge>{t(`source.${r.source}`)}</Badge>}
                         {kind === "arrivals" &&
                           (() => {
-                            const ready = readinessFor(r, tasks, alerts, now);
-                            return (
-                              <Badge tone={READINESS_TONE[ready.level]} data-testid="readiness">
-                                {t(`readiness.${ready.level}`)}
-                                {ready.urgentIncident && ready.level !== "ready" ? ` · ${t("readiness.incident")}` : ""}
+                            const [row] = arrivalControl({ stays: [r], tasks, alerts, services, now });
+                            return row ? (
+                              <Badge tone={STATE_TONE[row.state]} data-testid="readiness">
+                                {t(`arrivals.state.${row.state}`)}
                               </Badge>
-                            );
+                            ) : null;
                           })()}
                         {kind === "departures" && r.departedAt && (
                           <Badge tone="success">

@@ -31,7 +31,8 @@
     "switchToManager": "Manageransicht",
     "alerts": "Meldungen",
     "calendar": "Kalender",
-    "services": "Services"
+    "services": "Services",
+    "arrivals": "Anreisen"
   },
   "theme": {
     "label": "Darstellung",
@@ -107,7 +108,7 @@
     "servicesRequested": "{count, plural, one {# Leistungsanfrage zu bearbeiten} other {# Leistungsanfragen zu bearbeiten}}",
     "linenShortage": "{count, plural, one {Wäsche-Engpass erwartet bei # Artikel} other {Wäsche-Engpass erwartet bei # Artikeln}}",
     "blocked": "{count, plural, one {# Auftrag überfällig oder nicht machbar} other {# Aufträge überfällig oder nicht machbar}}",
-    "arrivalsNotReady": "{count, plural, one {# Anreise heute braucht Handlung} other {# Anreisen heute brauchen Handlung}}"
+    "arrivalsControl": "Heutige Anreisen: {blocked} blockiert, {watch} beobachten"
   },
   "agentToday": {
     "greeting": "Hallo {name}",
@@ -1207,15 +1208,49 @@
     "none": "Fehlt",
     "cannotValidate": "Bestätigung nicht möglich: {count} Pflicht-Fotonachweis(e) fehlen. Fordern Sie eine Korrektur an."
   },
-  "readiness": {
-    "ready": "Bereit",
-    "awaiting_validation": "Reinigung zu prüfen",
-    "in_progress": "Reinigung läuft",
-    "correction": "Korrektur angefordert",
-    "scheduled": "Reinigung geplant",
-    "unassigned": "Reinigung ohne Mitarbeiter",
-    "at_risk": "Gefährdet",
-    "no_cleaning": "Keine Reinigung verknüpft: prüfen",
-    "incident": "dringender Vorfall offen"
+  "arrivals": {
+    "title": "Anreisen",
+    "subtitle": "Ist jede Unterkunft für ihren Gast bereit? Was blockiert, wer handelt und wie.",
+    "summary": "Übersicht der Anreisen",
+    "state": {
+      "blocked": "Blockiert",
+      "watch": "Beobachten",
+      "preparing": "In Vorbereitung",
+      "ready": "Bereit"
+    },
+    "filter": "Anreisen filtern",
+    "filterTodo": "Zu lösen oder beobachten",
+    "filterAll": "Alle",
+    "nothingToDo": "An diesem Tag ist nichts zu lösen.",
+    "none": "Keine Anreisen an diesem Tag.",
+    "footnote": "Zeiten in der Zeitzone jeder Unterkunft. „Bereit“ setzt eine bestätigte Reinigung und keinen offenen dringenden Vorfall voraus. Jede Anreise wird einmal gezählt, mit ihrem ernstesten Zustand.",
+    "inTime": "in {time}",
+    "passed": "vor {time}",
+    "cleaning": "Reinigung",
+    "responsible": "Zuständig: {name}",
+    "responsibleManager": "{name} (Verantwortliche/r)",
+    "responsibleNobody": "niemand (zuzuweisen)",
+    "blocker": {
+      "no_cleaning": "Keine Reinigung mit diesem Aufenthalt verknüpft",
+      "cleaning_unassigned": "Reinigung ohne Mitarbeiter",
+      "cleaning_infeasible": "Reinigung nicht durchführbar",
+      "cleaning_late_start": "Reinigung noch nicht begonnen (Zeitfenster läuft)",
+      "awaiting_validation": "Reinigung erledigt, wartet auf Bestätigung",
+      "correction": "Korrektur der Reinigung angefordert",
+      "urgent_incident": "Dringender Vorfall in der Unterkunft offen",
+      "open_incident": "Vorfall in der Unterkunft offen",
+      "linen_shortage": "Wäscheengpass am Reinigungstag erwartet (Zentrallager)",
+      "service_pending": "Leistungsanfrage wartet auf Entscheidung",
+      "guest_arrived_not_ready": "Anreisezeit überschritten: Unterkunft nicht bereit"
+    },
+    "action": {
+      "assign": "Zuweisen",
+      "review": "Bestätigen oder korrigieren",
+      "open_task": "Einsatz öffnen",
+      "create_cleaning": "Reinigung anlegen",
+      "open_incident": "Vorfall bearbeiten",
+      "open_service": "Anfrage bearbeiten",
+      "open_linen": "Wäsche ansehen"
+    }
   }
 }

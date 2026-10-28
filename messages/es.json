@@ -31,7 +31,8 @@
     "switchToManager": "Vista gestor",
     "alerts": "Alertas",
     "calendar": "Calendario",
-    "services": "Servicios"
+    "services": "Servicios",
+    "arrivals": "Llegadas"
   },
   "theme": {
     "label": "Apariencia",
@@ -107,7 +108,7 @@
     "servicesRequested": "{count, plural, one {# solicitud de servicio por gestionar} other {# solicitudes de servicio por gestionar}}",
     "linenShortage": "{count, plural, one {Rotura de ropa prevista en # artículo} other {Rotura de ropa prevista en # artículos}}",
     "blocked": "{count, plural, one {# misión con retraso o inviable en su ventana} other {# misiones con retraso o inviables en su ventana}}",
-    "arrivalsNotReady": "{count, plural, one {# llegada de hoy por desbloquear} other {# llegadas de hoy por desbloquear}}"
+    "arrivalsControl": "Llegadas de hoy: {blocked} bloqueada(s), {watch} a vigilar"
   },
   "agentToday": {
     "greeting": "Hola {name}",
@@ -1207,15 +1208,49 @@
     "none": "Falta",
     "cannotValidate": "No se puede validar: faltan {count} prueba(s) fotográfica(s) obligatoria(s). Pide una corrección."
   },
-  "readiness": {
-    "ready": "Listo",
-    "awaiting_validation": "Limpieza por validar",
-    "in_progress": "Limpieza en curso",
-    "correction": "Corrección solicitada",
-    "scheduled": "Limpieza planificada",
-    "unassigned": "Limpieza sin agente",
-    "at_risk": "En riesgo",
-    "no_cleaning": "Sin limpieza vinculada: verificar",
-    "incident": "incidencia urgente abierta"
+  "arrivals": {
+    "title": "Llegadas",
+    "subtitle": "¿Está cada alojamiento listo para su huésped? Qué bloquea, quién actúa y cómo.",
+    "summary": "Resumen de llegadas",
+    "state": {
+      "blocked": "Bloqueada",
+      "watch": "A vigilar",
+      "preparing": "En preparación",
+      "ready": "Lista"
+    },
+    "filter": "Filtrar llegadas",
+    "filterTodo": "Por desbloquear o vigilar",
+    "filterAll": "Todas",
+    "nothingToDo": "Nada que desbloquear este día.",
+    "none": "No hay llegadas este día.",
+    "footnote": "Horas en la zona horaria de cada alojamiento. «Lista» exige una limpieza validada y ninguna incidencia urgente abierta. Cada llegada se cuenta una vez, con su estado más grave.",
+    "inTime": "en {time}",
+    "passed": "hace {time}",
+    "cleaning": "Limpieza",
+    "responsible": "Responsable: {name}",
+    "responsibleManager": "{name} (responsable)",
+    "responsibleNobody": "nadie (por asignar)",
+    "blocker": {
+      "no_cleaning": "Ninguna limpieza vinculada a esta estancia",
+      "cleaning_unassigned": "Limpieza sin agente",
+      "cleaning_infeasible": "Limpieza irrealizable",
+      "cleaning_late_start": "Limpieza aún no iniciada (franja empezada)",
+      "awaiting_validation": "Limpieza terminada, pendiente de validación",
+      "correction": "Corrección solicitada en la limpieza",
+      "urgent_incident": "Incidencia urgente abierta en el alojamiento",
+      "open_incident": "Incidencia abierta en el alojamiento",
+      "linen_shortage": "Falta de ropa prevista el día de la limpieza (stock central)",
+      "service_pending": "Solicitud de servicio pendiente de decisión",
+      "guest_arrived_not_ready": "Hora de llegada pasada: alojamiento no listo"
+    },
+    "action": {
+      "assign": "Asignar",
+      "review": "Validar o corregir",
+      "open_task": "Abrir la misión",
+      "create_cleaning": "Crear la limpieza",
+      "open_incident": "Gestionar la incidencia",
+      "open_service": "Gestionar la solicitud",
+      "open_linen": "Ver la ropa"
+    }
   }
 }

@@ -10,7 +10,8 @@ import { useLinenData } from "@/components/linen/use-linen";
 import { infeasibility } from "@/lib/engine/conflicts";
 import { useHalo } from "@/lib/store/halo-store";
 import { isPendingService } from "@/components/services/service-meta";
-import { needsAttention, readinessFor } from "@/lib/engine/readiness";
+import { arrivalCounts } from "@/lib/engine/arrival-control";
+import { useArrivalRows } from "@/components/views/arrivals";
 import { activeAgents, arrivalsOfDay, departuresOfDay, tasksOfDay } from "@/lib/store/selectors";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,18 +70,18 @@ function ManagerTodayInner() {
     new Date(`${dayKey}T12:00:00Z`),
   );
 
-  // Arrivées du jour pas encore prêtes (ménage non validé, en retard, sans agent, incident urgent…)
-  const notReady = arrivals.filter((r) => needsAttention(readinessFor(r, tasks, alerts, nowDate)));
+  // Arrivées du jour : même calcul que le poste de pilotage, une arrivée = un état
+  const arrivalState = arrivalCounts(useArrivalRows(dayKey));
 
   const actions = [
-    notReady.length > 0 && {
+    arrivalState.blocked + arrivalState.watch > 0 && {
       key: "readiness",
       icon: KeyRound,
-      tone: "text-danger bg-danger-soft",
-      label: t("managerToday.arrivalsNotReady", { count: notReady.length }),
+      tone: arrivalState.blocked ? "text-danger bg-danger-soft" : "text-warning bg-warning-soft",
+      label: t("managerToday.arrivalsControl", { blocked: arrivalState.blocked, watch: arrivalState.watch }),
       cta: t("managerToday.view"),
-      onClick: () => setStaysOpen("arrivals"),
-      primary: true,
+      onClick: () => router.push("/arrivals"),
+      primary: arrivalState.blocked > 0,
     },
     openAlerts.length > 0 && {
       key: "alerts",
@@ -155,7 +156,7 @@ function ManagerTodayInner() {
       />
 
       <section className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4">
-        <KpiCard label={t("managerToday.kpiArrivals")} value={arrivals.length} icon={KeyRound} onClick={() => setStaysOpen("arrivals")} />
+        <KpiCard label={t("managerToday.kpiArrivals")} value={arrivals.length} icon={KeyRound} href="/arrivals" />
         <KpiCard label={t("managerToday.kpiDepartures")} value={departures.length} icon={DoorClosed} onClick={() => setStaysOpen("departures")} />
         <KpiCard
           label={t("managerToday.kpiCleanings")}

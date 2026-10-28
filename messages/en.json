@@ -31,7 +31,8 @@
     "switchToManager": "Manager view",
     "alerts": "Alerts",
     "calendar": "Calendar",
-    "services": "Services"
+    "services": "Services",
+    "arrivals": "Arrivals"
   },
   "theme": {
     "label": "Appearance",
@@ -107,7 +108,7 @@
     "servicesRequested": "{count, plural, one {# service request to handle} other {# service requests to handle}}",
     "linenShortage": "{count, plural, one {Linen shortage expected on # item} other {Linen shortage expected on # items}}",
     "blocked": "{count, plural, one {# job overdue or not fitting its window} other {# jobs overdue or not fitting their window}}",
-    "arrivalsNotReady": "{count, plural, one {# arrival today needs action} other {# arrivals today need action}}"
+    "arrivalsControl": "Today's arrivals: {blocked} blocked, {watch} to watch"
   },
   "agentToday": {
     "greeting": "Hello {name}",
@@ -1207,15 +1208,49 @@
     "none": "Missing",
     "cannotValidate": "Can't approve: {count} required photo proof(s) missing. Request a correction."
   },
-  "readiness": {
-    "ready": "Ready",
-    "awaiting_validation": "Cleaning to review",
-    "in_progress": "Cleaning in progress",
-    "correction": "Correction requested",
-    "scheduled": "Cleaning scheduled",
-    "unassigned": "Cleaning unassigned",
-    "at_risk": "At risk",
-    "no_cleaning": "No linked cleaning: check",
-    "incident": "urgent incident open"
+  "arrivals": {
+    "title": "Arrivals",
+    "subtitle": "Is each property ready for its guest? What's blocking, who acts, and how.",
+    "summary": "Arrivals summary",
+    "state": {
+      "blocked": "Blocked",
+      "watch": "To watch",
+      "preparing": "In preparation",
+      "ready": "Ready"
+    },
+    "filter": "Filter arrivals",
+    "filterTodo": "To unblock or watch",
+    "filterAll": "All",
+    "nothingToDo": "Nothing to unblock for this day.",
+    "none": "No arrivals this day.",
+    "footnote": "Times in each property's time zone. \"Ready\" requires an approved cleaning and no open urgent incident. Each arrival is counted once, with its most serious state.",
+    "inTime": "in {time}",
+    "passed": "{time} ago",
+    "cleaning": "Cleaning",
+    "responsible": "Owner: {name}",
+    "responsibleManager": "{name} (manager)",
+    "responsibleNobody": "nobody (to assign)",
+    "blocker": {
+      "no_cleaning": "No cleaning linked to this stay",
+      "cleaning_unassigned": "Cleaning has no agent",
+      "cleaning_infeasible": "Cleaning not feasible",
+      "cleaning_late_start": "Cleaning not started yet (slot has begun)",
+      "awaiting_validation": "Cleaning done, waiting for approval",
+      "correction": "Correction requested on the cleaning",
+      "urgent_incident": "Urgent incident open in the property",
+      "open_incident": "Incident open in the property",
+      "linen_shortage": "Linen shortage expected on cleaning day (central stock)",
+      "service_pending": "Service request waiting for a decision",
+      "guest_arrived_not_ready": "Arrival time passed: property not ready"
+    },
+    "action": {
+      "assign": "Assign",
+      "review": "Approve or correct",
+      "open_task": "Open the job",
+      "create_cleaning": "Create the cleaning",
+      "open_incident": "Handle the incident",
+      "open_service": "Handle the request",
+      "open_linen": "See linen"
+    }
   }
 }

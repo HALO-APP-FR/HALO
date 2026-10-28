@@ -31,7 +31,8 @@
     "switchToManager": "Vue manager",
     "alerts": "Alertes",
     "calendar": "Calendrier",
-    "services": "Prestations"
+    "services": "Prestations",
+    "arrivals": "Arrivées"
   },
   "theme": {
     "label": "Apparence",
@@ -107,7 +108,7 @@
     "servicesRequested": "{count, plural, one {# demande de prestation à traiter} other {# demandes de prestation à traiter}}",
     "linenShortage": "{count, plural, one {Rupture de linge prévue sur # article} other {Rupture de linge prévue sur # articles}}",
     "blocked": "{count, plural, one {# mission en retard ou impossible dans sa fenêtre} other {# missions en retard ou impossibles dans leur fenêtre}}",
-    "arrivalsNotReady": "{count, plural, one {# arrivée du jour à débloquer} other {# arrivées du jour à débloquer}}"
+    "arrivalsControl": "Arrivées du jour : {blocked} bloquée(s), {watch} à surveiller"
   },
   "agentToday": {
     "greeting": "Bonjour {name}",
@@ -1207,15 +1208,49 @@
     "none": "Manquante",
     "cannotValidate": "Validation impossible : {count} preuve(s) photo exigée(s) manquante(s). Demandez une correction."
   },
-  "readiness": {
-    "ready": "Prêt",
-    "awaiting_validation": "Ménage à valider",
-    "in_progress": "Ménage en cours",
-    "correction": "Correction demandée",
-    "scheduled": "Ménage planifié",
-    "unassigned": "Ménage sans agent",
-    "at_risk": "À risque",
-    "no_cleaning": "Aucun ménage relié : à vérifier",
-    "incident": "incident urgent ouvert"
+  "arrivals": {
+    "title": "Arrivées",
+    "subtitle": "Chaque logement est-il prêt pour son voyageur ? Ce qui bloque, qui agit, et comment.",
+    "summary": "Résumé des arrivées",
+    "state": {
+      "blocked": "Bloquée",
+      "watch": "À surveiller",
+      "preparing": "En préparation",
+      "ready": "Prête"
+    },
+    "filter": "Filtrer les arrivées",
+    "filterTodo": "À débloquer ou surveiller",
+    "filterAll": "Toutes",
+    "nothingToDo": "Rien à débloquer pour ce jour.",
+    "none": "Aucune arrivée ce jour.",
+    "footnote": "Heures dans le fuseau de chaque logement. « Prête » exige un ménage validé et aucun incident urgent ouvert. Une arrivée n'est comptée qu'une fois, avec son état le plus grave.",
+    "inTime": "dans {time}",
+    "passed": "dépassée de {time}",
+    "cleaning": "Ménage",
+    "responsible": "Qui agit : {name}",
+    "responsibleManager": "{name} (responsable)",
+    "responsibleNobody": "personne (à attribuer)",
+    "blocker": {
+      "no_cleaning": "Aucun ménage relié à ce séjour",
+      "cleaning_unassigned": "Ménage sans agent",
+      "cleaning_infeasible": "Ménage irréalisable",
+      "cleaning_late_start": "Ménage pas encore démarré (créneau commencé)",
+      "awaiting_validation": "Ménage terminé, en attente de validation",
+      "correction": "Correction demandée sur le ménage",
+      "urgent_incident": "Incident urgent ouvert dans le logement",
+      "open_incident": "Incident ouvert dans le logement",
+      "linen_shortage": "Rupture de linge prévue le jour du ménage (stock central)",
+      "service_pending": "Demande de prestation en attente de décision",
+      "guest_arrived_not_ready": "Heure d'arrivée passée : logement pas prêt"
+    },
+    "action": {
+      "assign": "Attribuer",
+      "review": "Valider ou corriger",
+      "open_task": "Ouvrir la mission",
+      "create_cleaning": "Créer le ménage",
+      "open_incident": "Traiter l'incident",
+      "open_service": "Traiter la demande",
+      "open_linen": "Voir le linge"
+    }
   }
 }

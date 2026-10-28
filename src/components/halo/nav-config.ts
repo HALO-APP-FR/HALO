@@ -10,6 +10,7 @@ import {
   CalendarDays,
   ConciergeBell,
   Siren,
+  KeyRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ export interface NavItem {
 
 export const managerNav: NavItem[] = [
   { key: "today", href: "/today", icon: House },
+  { key: "arrivals", href: "/arrivals", icon: KeyRound },
   { key: "planning", href: "/planning", icon: CalendarRange },
   { key: "tasks", href: "/tasks", icon: ListChecks },
   { key: "alerts", href: "/alerts", icon: Siren },

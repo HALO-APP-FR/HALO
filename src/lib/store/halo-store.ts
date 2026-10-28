@@ -60,7 +60,7 @@ export type NewAlert = Omit<Alert, "id" | "status" | "createdAt" | "photoIds"> &
 export type NewReservation = Omit<Reservation, "id" | "status"> & { status?: Reservation["status"] };
 export type NewService = Omit<ServiceRequest, "id" | "createdAt" | "status"> & { status?: ServiceRequest["status"] };
 export type NewTask = Pick<Task, "propertyId" | "type" | "windowStart" | "windowEnd" | "durationMin"> &
-  Partial<Pick<Task, "assigneeId" | "scheduledStart" | "notes" | "priority" | "title">>;
+  Partial<Pick<Task, "assigneeId" | "scheduledStart" | "notes" | "priority" | "title" | "nextReservationId" | "reservationId">>;
 
 interface HaloState extends HaloData {
   seeded: boolean;
@@ -90,6 +90,8 @@ interface HaloState extends HaloData {
   assignTask: (id: string, agentId: string | undefined, scheduledStart?: string) => void;
   /** Changement de statut bas niveau, toujours tracé dans l'historique. */
   setTaskStatus: (id: string, status: TaskStatus, by?: string) => void;
+  /** Crée le ménage manquant d'un séjour, relié à lui : de la fin du séjour précédent (ou maintenant) jusqu'à l'arrivée. */
+  createCleaningForStay: (stayId: string) => string | null;
   /** Cycle de mission : chaque action vérifie qui agit et dans quel état est la mission. */
   startTask: (id: string, memberId: string | undefined) => StartCheck;
   submitTask: (id: string, memberId: string | undefined) => SubmitCheck & { alerts?: number; status?: TaskStatus };
@@ -440,6 +442,29 @@ export const useHalo = create<HaloState>()(
         })),
       updateTaskReport: (id, update) =>
         set((s) => ({ tasks: s.tasks.map((x) => (x.id === id ? { ...x, report: update(x.report ?? emptyReport()) } : x)) })),
+      createCleaningForStay: (stayId) => {
+        const s = get();
+        const stay = s.reservations.find((r) => r.id === stayId && r.status === "confirmed");
+        if (!stay) return null;
+        const existing = s.tasks.find((x) => x.type === "turnover" && x.nextReservationId === stayId && x.status !== "cancelled");
+        if (existing) return existing.id; // jamais de doublon
+        const property = s.properties.find((p) => p.id === stay.propertyId);
+        const previous = s.reservations
+          .filter((r) => r.propertyId === stay.propertyId && r.status === "confirmed" && r.id !== stay.id && r.checkOutAt <= stay.checkInAt)
+          .sort((a, b) => b.checkOutAt.localeCompare(a.checkOutAt))[0];
+        const arrival = new Date(stay.checkInAt).getTime();
+        const from = previous ? new Date(previous.checkOutAt).getTime() : Date.now();
+        const start = from < arrival ? from : arrival - 4 * 3_600_000;
+        return get().addTask({
+          propertyId: stay.propertyId,
+          type: "turnover",
+          windowStart: new Date(start).toISOString(),
+          windowEnd: stay.checkInAt,
+          durationMin: property?.cleaningDurationMin ?? 90,
+          nextReservationId: stay.id,
+          reservationId: previous?.id,
+        });
+      },
       startTask: (id, memberId) => {
         const task = get().tasks.find((x) => x.id === id);
         if (!task) return { ok: false, reason: "bad_status" };

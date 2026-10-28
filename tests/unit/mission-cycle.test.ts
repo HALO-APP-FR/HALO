@@ -108,3 +108,20 @@ describe("cycle de mission : magasin de la démo", () => {
     expect(get(id).events?.at(-1)?.kind).toBe("auto_validated");
   });
 });
+
+describe("arrivée sans ménage : création depuis le poste de pilotage", () => {
+  it("crée un ménage relié au séjour, jusqu'à l'heure d'arrivée, sans doublon", () => {
+    useHalo.getState().resetDemo("fr");
+    const st = useHalo.getState();
+    const p = st.properties[0];
+    const checkIn = new Date(Date.now() + 10 * 3_600_000).toISOString();
+    const stayId = st.addReservation({ propertyId: p.id, source: "manual", checkInAt: checkIn, checkOutAt: new Date(Date.now() + 60 * 3_600_000).toISOString() });
+    // Le moteur peut avoir généré le ménage : on vérifie le cas où il manque
+    useHalo.setState((s) => ({ tasks: s.tasks.filter((x) => x.nextReservationId !== stayId) }));
+    const id = useHalo.getState().createCleaningForStay(stayId)!;
+    const task = useHalo.getState().tasks.find((x) => x.id === id)!;
+    expect(task).toMatchObject({ type: "turnover", nextReservationId: stayId, windowEnd: checkIn, status: "unassigned" });
+    expect(new Date(task.windowStart).getTime()).toBeLessThan(new Date(checkIn).getTime());
+    expect(useHalo.getState().createCleaningForStay(stayId)).toBe(id);
+  });
+});
