@@ -13,7 +13,7 @@ const intl = createMiddleware(routing);
 export default async function proxy(request: NextRequest) {
   const response = intl(request);
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key || !/\/app(\/|$)/.test(request.nextUrl.pathname)) return response;
   if (response.headers.get("location")) return response;
   const supabase = createServerClient(url, key, {

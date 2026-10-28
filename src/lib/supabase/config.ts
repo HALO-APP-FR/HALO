@@ -5,7 +5,8 @@
  *   production) est affiché en permanence pour qu'on ne confonde jamais données fictives et réelles.
  */
 export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+// Clé publique : ancien nom (anon) ou nouveau nom Supabase (publishable), au choix
+export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
 export const isConnected = () => Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 export type HaloEnv = "preprod-local" | "preprod" | "production";

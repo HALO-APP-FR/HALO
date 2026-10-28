@@ -7,7 +7,8 @@ import { SUPABASE_URL } from "./config";
  * Usage limité à l'envoi des notifications de la file d'attente.
  */
 export function supabaseAdmin() {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // Ancien nom (service_role) ou nouvelle clé secrète Supabase (sb_secret_…)
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
   if (!key) return null;
   return createClient(SUPABASE_URL, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
