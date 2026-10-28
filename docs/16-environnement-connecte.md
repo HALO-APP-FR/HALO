@@ -59,6 +59,15 @@ Les adresses `bounce…@` sont refusées par la boîte de test pour vérifier l'
 
 Résultat : **7 scénarios / 10 vérifications réussis**, et la suite démo existante toujours verte.
 
+## Démo et environnement connecté : règle de séparation (décidée le 28/10/2026)
+
+- **Déploiement connecté** (préproduction, puis production) : l'accueil mène à la connexion ; c'est le parcours principal. La démo n'est qu'une entrée secondaire « Démo » vers `/demo`.
+- Les pages de démo (`/today`, `/planning`, `/a/…`, `/g/…`, etc.) ne s'ouvrent qu'après l'entrée explicite `/demo` (marqueur `halo_demo`, 8 h). Sans ce marqueur, le serveur (proxy) renvoie à la connexion avec un message. Elles ne lisent jamais la base.
+- Pages connectées (`/app/…`) : session vérifiée côté serveur à chaque requête + règles d'accès en base. Voyageur : `/s/<lien>`, sans compte, par conception.
+- **Déploiement sans backend** (production actuelle) : la démo publique, présentée comme telle.
+- `/status` : état vérifié du backend (API, migrations, lecture anonyme refusée, authentification, clé serveur, SMTP), sans aucune valeur secrète. Le libellé « données enregistrées en ligne » n'apparaît que si ces vérifications passent ; sinon l'accueil affiche « Environnement connecté indisponible ».
+- `/api/selftest?token=…` (préversion seulement, 404 en production) : parcours réel sur le backend du déploiement avec des comptes fictifs `@halo.invalid` (aucun e-mail envoyé) — organisation, logement, séjour, lien voyageur, persistance après nouvelle connexion, cloisonnement organisation / agent / voyageur, note interne invisible, révocation — puis suppression de toutes les données de test.
+
 ## Préproduction en ligne — état au 28/10/2026
 
 - URL : https://halo-git-feat-operations-halo-65a7.vercel.app (branche `feat/operations`).

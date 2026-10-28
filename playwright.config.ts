@@ -6,6 +6,8 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     locale: "fr-FR",
     timezoneId: "Europe/Paris",
+    // Les parcours de démo y entrent explicitement (marqueur « démo »), comme un utilisateur via /demo.
+    storageState: "tests/e2e/demo-state.json",
     // Permet d'utiliser un Chrome déjà installé : PW_CHROMIUM_PATH=/chemin/vers/chrome
     launchOptions: process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {},
   },

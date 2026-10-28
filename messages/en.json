@@ -1169,7 +1169,15 @@
     "agentText": "My jobs for today, in the field.",
     "demoNotice": "Demo without accounts: both spaces are open. With real sign-in, everyone lands in their own space, and an agent can neither open the Manager space nor use its functions, even with a direct link.",
     "connected": "Connected environment",
-    "connectedText": "Secure account, data saved online and shared across devices."
+    "connectedText": "Secure account. Data saved online and available on all your devices (backend just verified).",
+    "connectedTitle": "Welcome to HALO",
+    "connectedSubtitle": "Sign in to access your workspace.",
+    "unavailableTitle": "Connected environment unavailable",
+    "unavailableText": "The setup is incomplete or the server isn't responding: no data can be saved. See details.",
+    "demoSection": "Demo",
+    "demoSectionText": "A separate demo, no account: sample data kept in this browser only, never saved online.",
+    "demoOpen": "Open the demo",
+    "statusLink": "Service status"
   },
   "inbox": {
     "title": "Notifications",
@@ -1769,7 +1777,9 @@
       "accept": "Join the organisation",
       "inviteTitle": "You're invited to HALO",
       "inviteSignedAs": "Signed in as {email}."
-    }
+    },
+    "fromDemo": "This address belongs to the demo. Sign in for the real environment, or open the demo explicitly:",
+    "openDemo": "open the demo"
   },
   "email": {
     "footer": "See the details and reply from your guest space (the link you received for your stay). This is an automatic email.",
@@ -1878,5 +1888,34 @@
       "updated": "Request changed by the team"
     },
     "linkValid": "This personal link is valid until {until}. Don't share it."
+  },
+  "demoEntry": {
+    "badge": "Demo",
+    "title": "HALO demo",
+    "text": "No account. Data is fictitious and stays in this browser.",
+    "warning": "Nothing you do here is saved online, shared across devices or visible to your team. Don't enter real data.",
+    "toConnected": "Go to the connected environment",
+    "exit": "Leave the demo"
+  },
+  "status": {
+    "title": "Service status",
+    "ready": "The connected backend responds and its access rules are active. Real checks, no secret value shown.",
+    "notReady": "The connected backend isn't operational: nothing can be saved until the failing items are fixed.",
+    "demoOnly": "This deployment runs as a demo only: no backend is configured.",
+    "check": {
+      "api": "API reachable",
+      "migrations": "Database up to date (migrations applied)",
+      "anonBlocked": "Anonymous data reads refused",
+      "auth": "Email sign-in active",
+      "serverKey": "Server key (notification sending)",
+      "email": "Email provider (SMTP connection verified)"
+    },
+    "state": {
+      "ok": "Verified",
+      "fail": "Check failed",
+      "missing": "Not configured"
+    },
+    "checkedAt": "Checked at {at}",
+    "back": "Back to home"
   }
 }

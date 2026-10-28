@@ -448,3 +448,28 @@ test("10 · persistance après déconnexion et sur un autre appareil", async ({ 
   expect(stored).not.toContain("Loft Canal");
   await other.context().close();
 });
+
+test("11 · démo et environnement connecté impossibles à confondre", async ({ browser }) => {
+  const page = await newPage(browser);
+  await page.context().clearCookies(); // aucun marqueur démo, aucune session
+  await page.goto("/fr");
+  await expect(page.getByTestId("connected-entry")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Espace Manager/ })).toHaveCount(0);
+  for (const path of ["/fr/today", "/fr/a/today", "/fr/tasks", "/fr/properties", "/fr/a/profile", "/fr/g/abc", "/fr/settings"]) {
+    await page.goto(path);
+    await expect(page, path).toHaveURL(/\/fr\/auth\/sign-in\?from=demo$/);
+    await expect(page.getByTestId("from-demo")).toBeVisible();
+  }
+  for (const path of ["/fr/app", "/fr/app/stays", "/fr/app/services", "/fr/app/missions", "/fr/app/properties", "/fr/app/onboarding"]) {
+    await page.goto(path);
+    await expect(page, path).toHaveURL(/\/fr\/auth\/sign-in$/);
+  }
+  // Entrée explicite dans la démo, étiquetée comme telle
+  await page.goto("/fr/demo");
+  await expect(page.getByTestId("demo-entry-badge")).toBeVisible();
+  await page.getByTestId("demo-space").first().click();
+  await expect(page).toHaveURL(/\/fr\/today$/);
+  await page.goto("/fr/status");
+  await expect(page.getByTestId("status-page")).toHaveAttribute("data-ready", "yes");
+  await page.context().close();
+});

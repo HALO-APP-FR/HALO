@@ -1169,7 +1169,15 @@
     "agentText": "Mes missions du jour, sur le terrain.",
     "demoNotice": "Démo sans compte : les deux espaces sont ouverts. Avec la connexion réelle, chacun arrive directement dans son espace, et un agent ne peut ni ouvrir l'espace Manager ni utiliser ses fonctions, même par une adresse directe.",
     "connected": "Environnement connecté",
-    "connectedText": "Compte sécurisé, données sauvegardées en ligne et partagées entre appareils."
+    "connectedText": "Compte sécurisé. Données enregistrées en ligne et retrouvées sur tous vos appareils (backend vérifié à l'instant).",
+    "connectedTitle": "Bienvenue sur HALO",
+    "connectedSubtitle": "Connectez-vous pour accéder à votre espace.",
+    "unavailableTitle": "Environnement connecté indisponible",
+    "unavailableText": "La configuration est incomplète ou le serveur ne répond pas : aucune donnée ne peut être enregistrée. Voir le détail.",
+    "demoSection": "Démo",
+    "demoSectionText": "Une démonstration séparée, sans compte : données fictives conservées dans ce navigateur seulement, jamais enregistrées en ligne.",
+    "demoOpen": "Ouvrir la démo",
+    "statusLink": "État du service"
   },
   "inbox": {
     "title": "Notifications",
@@ -1769,7 +1777,9 @@
       "accept": "Rejoindre l'organisation",
       "inviteTitle": "Vous êtes invité sur HALO",
       "inviteSignedAs": "Connecté avec {email}."
-    }
+    },
+    "fromDemo": "Cette adresse appartient à la démo. Connectez-vous pour l'environnement réel, ou ouvrez la démo explicitement :",
+    "openDemo": "ouvrir la démo"
   },
   "email": {
     "footer": "Retrouvez le détail et répondez depuis votre espace voyageur (lien reçu pour votre séjour). Cet e-mail est automatique.",
@@ -1878,5 +1888,34 @@
       "updated": "Demande modifiée par l'équipe"
     },
     "linkValid": "Ce lien personnel est valable jusqu'au {until}. Ne le partagez pas."
+  },
+  "demoEntry": {
+    "badge": "Démo",
+    "title": "Démonstration de HALO",
+    "text": "Sans compte. Les données sont fictives et restent dans ce navigateur.",
+    "warning": "Rien de ce que vous faites ici n'est enregistré en ligne, partagé entre appareils ou visible par votre équipe. N'y saisissez aucune donnée réelle.",
+    "toConnected": "Aller à l'environnement connecté",
+    "exit": "Quitter la démo"
+  },
+  "status": {
+    "title": "État du service",
+    "ready": "Le backend connecté répond et ses règles d'accès sont actives. Vérifications réelles, aucune valeur secrète affichée.",
+    "notReady": "Le backend connecté n'est pas opérationnel : rien ne peut être enregistré tant que les points en échec ne sont pas corrigés.",
+    "demoOnly": "Ce déploiement fonctionne en démo uniquement : aucun backend n'est configuré.",
+    "check": {
+      "api": "API joignable",
+      "migrations": "Base de données à jour (migrations appliquées)",
+      "anonBlocked": "Lecture anonyme des données refusée",
+      "auth": "Connexion par e-mail active",
+      "serverKey": "Clé serveur (envoi des notifications)",
+      "email": "Service d'envoi d'e-mails (connexion SMTP vérifiée)"
+    },
+    "state": {
+      "ok": "Vérifié",
+      "fail": "Échec de la vérification",
+      "missing": "Non configuré"
+    },
+    "checkedAt": "Vérifié le {at}",
+    "back": "Retour à l'accueil"
   }
 }

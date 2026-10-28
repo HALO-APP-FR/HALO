@@ -1169,7 +1169,15 @@
     "agentText": "Le mie missioni di oggi, sul campo.",
     "demoNotice": "Demo senza account: entrambi gli spazi sono aperti. Con l'accesso reale, ognuno arriva direttamente nel proprio spazio e un agente non può aprire lo spazio Manager né usarne le funzioni, nemmeno con un link diretto.",
     "connected": "Ambiente connesso",
-    "connectedText": "Account sicuro, dati salvati online e condivisi tra dispositivi."
+    "connectedText": "Account sicuro. Dati salvati online e disponibili su tutti i dispositivi (backend appena verificato).",
+    "connectedTitle": "Benvenuto su HALO",
+    "connectedSubtitle": "Accedi per entrare nel tuo spazio.",
+    "unavailableTitle": "Ambiente connesso non disponibile",
+    "unavailableText": "La configurazione è incompleta o il server non risponde: nessun dato può essere salvato. Vedi dettagli.",
+    "demoSection": "Demo",
+    "demoSectionText": "Una demo separata, senza account: dati fittizi solo in questo browser, mai salvati online.",
+    "demoOpen": "Apri la demo",
+    "statusLink": "Stato del servizio"
   },
   "inbox": {
     "title": "Notifiche",
@@ -1769,7 +1777,9 @@
       "accept": "Unisciti all'organizzazione",
       "inviteTitle": "Sei stato invitato su HALO",
       "inviteSignedAs": "Connesso come {email}."
-    }
+    },
+    "fromDemo": "Questo indirizzo appartiene alla demo. Accedi per l'ambiente reale o apri la demo esplicitamente:",
+    "openDemo": "apri la demo"
   },
   "email": {
     "footer": "Vedi i dettagli e rispondi dal tuo spazio ospite (link ricevuto per il soggiorno). E-mail automatica.",
@@ -1878,5 +1888,34 @@
       "updated": "Richiesta modificata dal team"
     },
     "linkValid": "Questo link personale è valido fino al {until}. Non condividerlo."
+  },
+  "demoEntry": {
+    "badge": "Demo",
+    "title": "Demo di HALO",
+    "text": "Senza account. I dati sono fittizi e restano in questo browser.",
+    "warning": "Nulla di ciò che fai qui viene salvato online, condiviso tra dispositivi o visto dal team. Non inserire dati reali.",
+    "toConnected": "Vai all'ambiente connesso",
+    "exit": "Esci dalla demo"
+  },
+  "status": {
+    "title": "Stato del servizio",
+    "ready": "Il backend connesso risponde e le regole di accesso sono attive. Controlli reali, nessun valore segreto.",
+    "notReady": "Il backend connesso non è operativo: nulla può essere salvato finché i punti in errore non sono corretti.",
+    "demoOnly": "Questo deploy funziona solo in demo: nessun backend configurato.",
+    "check": {
+      "api": "API raggiungibile",
+      "migrations": "Database aggiornato (migrazioni applicate)",
+      "anonBlocked": "Lettura anonima rifiutata",
+      "auth": "Accesso via e-mail attivo",
+      "serverKey": "Chiave server (notifiche)",
+      "email": "Servizio e-mail (connessione SMTP verificata)"
+    },
+    "state": {
+      "ok": "Verificato",
+      "fail": "Verifica non riuscita",
+      "missing": "Non configurato"
+    },
+    "checkedAt": "Verificato il {at}",
+    "back": "Torna alla home"
   }
 }

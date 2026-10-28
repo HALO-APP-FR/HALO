@@ -1169,7 +1169,15 @@
     "agentText": "Meine heutigen Einsätze vor Ort.",
     "demoNotice": "Demo ohne Konten: Beide Bereiche sind offen. Mit der echten Anmeldung landet jeder direkt in seinem Bereich, und ein Mitarbeiter kann den Manager-Bereich weder öffnen noch dessen Funktionen nutzen, auch nicht über einen direkten Link.",
     "connected": "Verbundene Umgebung",
-    "connectedText": "Sicheres Konto, Daten online gespeichert und geräteübergreifend verfügbar."
+    "connectedText": "Sicheres Konto. Daten online gespeichert und auf allen Geräten verfügbar (Backend soeben geprüft).",
+    "connectedTitle": "Willkommen bei HALO",
+    "connectedSubtitle": "Melden Sie sich an, um Ihren Bereich zu öffnen.",
+    "unavailableTitle": "Verbundene Umgebung nicht verfügbar",
+    "unavailableText": "Die Einrichtung ist unvollständig oder der Server antwortet nicht: Es kann nichts gespeichert werden. Details ansehen.",
+    "demoSection": "Demo",
+    "demoSectionText": "Eine separate Demo ohne Konto: Beispieldaten nur in diesem Browser, nie online gespeichert.",
+    "demoOpen": "Demo öffnen",
+    "statusLink": "Dienststatus"
   },
   "inbox": {
     "title": "Benachrichtigungen",
@@ -1769,7 +1777,9 @@
       "accept": "Organisation beitreten",
       "inviteTitle": "Sie sind zu HALO eingeladen",
       "inviteSignedAs": "Angemeldet als {email}."
-    }
+    },
+    "fromDemo": "Diese Adresse gehört zur Demo. Melden Sie sich für die echte Umgebung an oder öffnen Sie die Demo ausdrücklich:",
+    "openDemo": "Demo öffnen"
   },
   "email": {
     "footer": "Details und Antwort in Ihrem Gästebereich (Link zu Ihrem Aufenthalt). Automatische E-Mail.",
@@ -1878,5 +1888,34 @@
       "updated": "Anfrage vom Team geändert"
     },
     "linkValid": "Dieser persönliche Link gilt bis {until}. Bitte nicht teilen."
+  },
+  "demoEntry": {
+    "badge": "Demo",
+    "title": "HALO-Demo",
+    "text": "Ohne Konto. Die Daten sind fiktiv und bleiben in diesem Browser.",
+    "warning": "Nichts hier wird online gespeichert, geräteübergreifend geteilt oder für Ihr Team sichtbar. Keine echten Daten eingeben.",
+    "toConnected": "Zur verbundenen Umgebung",
+    "exit": "Demo verlassen"
+  },
+  "status": {
+    "title": "Dienststatus",
+    "ready": "Das verbundene Backend antwortet, Zugriffsregeln sind aktiv. Echte Prüfungen, keine geheimen Werte.",
+    "notReady": "Das verbundene Backend ist nicht betriebsbereit: Nichts kann gespeichert werden, bis die Fehler behoben sind.",
+    "demoOnly": "Diese Bereitstellung läuft nur als Demo: kein Backend eingerichtet.",
+    "check": {
+      "api": "API erreichbar",
+      "migrations": "Datenbank aktuell (Migrationen angewendet)",
+      "anonBlocked": "Anonymes Lesen verweigert",
+      "auth": "E-Mail-Anmeldung aktiv",
+      "serverKey": "Server-Schlüssel (Benachrichtigungen)",
+      "email": "E-Mail-Dienst (SMTP-Verbindung geprüft)"
+    },
+    "state": {
+      "ok": "Geprüft",
+      "fail": "Prüfung fehlgeschlagen",
+      "missing": "Nicht eingerichtet"
+    },
+    "checkedAt": "Geprüft am {at}",
+    "back": "Zur Startseite"
   }
 }

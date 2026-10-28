@@ -10,11 +10,21 @@ const intl = createMiddleware(routing);
  * Le proxy ne donne aucun droit : chaque page et chaque action revérifient la session,
  * et la base applique ses règles d'accès.
  */
+/** Pages de la DÉMO (données locales au navigateur), distinctes de l'environnement connecté (/app, /s, /invite). */
+const DEMO_ROUTE = /^\/(fr|en|es|pt|it|de)\/(today|planning|tasks|properties|team|settings|services|alerts|arrivals|linen|login|unlock|a|g)(\/|$)/;
+
 export default async function proxy(request: NextRequest) {
-  const response = intl(request);
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key || !/\/app(\/|$)/.test(request.nextUrl.pathname)) return response;
+  const path = request.nextUrl.pathname;
+  // Déploiement connecté : une page de démo ne s'ouvre qu'après l'entrée explicite « Démo » ;
+  // sinon, retour à la connexion (aucune donnée locale ne peut passer pour l'environnement réel).
+  const demo = DEMO_ROUTE.exec(path);
+  if (url && key && demo && request.cookies.get("halo_demo")?.value !== "1") {
+    return NextResponse.redirect(new URL(`/${demo[1]}/auth/sign-in?from=demo`, request.url));
+  }
+  const response = intl(request);
+  if (!url || !key || !/\/app(\/|$)/.test(path)) return response;
   if (response.headers.get("location")) return response;
   const supabase = createServerClient(url, key, {
     cookies: {
