@@ -4,6 +4,15 @@ import { getTranslations } from "next-intl/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { locales, type Locale } from "@/i18n/routing";
 
+/** Service d'envoi : SMTP_URL complète, ou bien hôte + identifiant + mot de passe séparés (plus simples à saisir). */
+function smtpTransport() {
+  if (process.env.SMTP_URL) return nodemailer.createTransport(process.env.SMTP_URL);
+  const { SMTP_HOST: host, SMTP_USER: user, SMTP_PASS: pass } = process.env;
+  if (!host || !user || !pass) return null;
+  const port = Number(process.env.SMTP_PORT || 587);
+  return nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } });
+}
+
 export interface OutboxRow {
   id: string;
   recipient: string;
@@ -26,8 +35,7 @@ export async function processOutbox(orgId?: string) {
   if (orgId) q = q.eq("organization_id", orgId);
   const { data: rows } = await q;
   if (!rows?.length) return { processed: 0 };
-  const smtp = process.env.SMTP_URL;
-  const transport = smtp ? nodemailer.createTransport(smtp) : null;
+  const transport = smtpTransport();
   const orgNames = new Map<string, string>();
   for (const row of rows as OutboxRow[]) {
     if (!transport) {
