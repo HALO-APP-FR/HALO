@@ -104,7 +104,7 @@ export function ServiceDecision({ serviceId, status, guestEmail, unread, startAt
           )}
         </>
       )}
-      {done && <p role="status" className="mt-3 text-[14px] text-muted" data-testid="decide-done">{done}</p>}
+      {done && <p role="status" className="mt-3 text-[14px] text-muted" data-testid="decide-saved">{done}</p>}
 
       {(status === "requested" || status === "info_requested" || status === "confirmed") && (
         <div className="mt-5 border-t border-line pt-4">

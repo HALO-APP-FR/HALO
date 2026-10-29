@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { Building2, CalendarDays, ConciergeBell, House, ListChecks, Mail, Settings2, TriangleAlert, Users } from "lucide-react";
+import { Building2, CalendarDays, ConciergeBell, House, ListChecks, Mail, Settings2, TriangleAlert, Users, CircleUser, SlidersHorizontal } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Logo } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
@@ -16,12 +16,17 @@ const MANAGER_NAV = [
   { key: "notifications", href: "/app/notifications", icon: Mail },
   { key: "properties", href: "/app/properties", icon: Building2 },
   { key: "team", href: "/app/team", icon: Users },
+  { key: "settings", href: "/app/settings", icon: SlidersHorizontal },
   { key: "setup", href: "/app/onboarding", icon: Settings2 },
+  { key: "profile", href: "/app/profile", icon: CircleUser },
 ] as const;
-const AGENT_NAV = [{ key: "missions", href: "/app/missions", icon: ListChecks }] as const;
+const AGENT_NAV = [
+  { key: "missions", href: "/app/missions", icon: ListChecks },
+  { key: "profile", href: "/app/profile", icon: CircleUser },
+] as const;
 
 /** Coquille de l'environnement connecté : environnement affiché en permanence, navigation selon le rôle. */
-export async function ConnectedShell({ org, orgs, email, children }: { org: OrgSummary | null; orgs: OrgSummary[]; email: string; children: React.ReactNode }) {
+export async function ConnectedShell({ org, orgs, email, missingName = false, children }: { org: OrgSummary | null; orgs: OrgSummary[]; email: string; missingName?: boolean; children: React.ReactNode }) {
   const t = await getTranslations("connected");
   const manager = org?.role === "owner" || org?.role === "manager";
   const nav = org ? (manager ? MANAGER_NAV : AGENT_NAV) : [];
@@ -54,7 +59,19 @@ export async function ConnectedShell({ org, orgs, email, children }: { org: OrgS
           </nav>
         )}
       </header>
-      <main className="mx-auto w-full max-w-[1200px] px-4 pb-24 pt-6 md:px-8 md:pt-8">{children}</main>
+      <main className="mx-auto w-full max-w-[1200px] px-4 pb-24 pt-6 md:px-8 md:pt-8">
+        {missingName && org && (
+          // Profil sans nom : l'équipe verrait « Sans nom » — on le demande partout jusqu'à ce qu'il soit renseigné
+          <Link href="/app/profile" className="mb-4 flex items-center gap-3 rounded-xl border border-warning bg-warning-soft p-4 text-[15px]" data-testid="profile-incomplete">
+            <CircleUser className="size-5 shrink-0 text-warning" />
+            <span className="flex-1">
+              <span className="block font-semibold">{t("profile.incompleteTitle")}</span>
+              <span className="block text-[14px] text-muted">{t("profile.incompleteText")}</span>
+            </span>
+          </Link>
+        )}
+        {children}
+      </main>
     </div>
   );
 }

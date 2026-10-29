@@ -107,8 +107,12 @@ export async function GET(request: NextRequest) {
     // 4. Agent de A : invité, ne voit ni séjours ni demandes ni messages
     const { data: inv } = await a1.rpc("create_invitation", { org: orgA, invite_role: "agent", invite_position: "housekeeper" });
     const ag = await session(admin, `selftest-${run}-agent-a@halo.invalid`, users);
-    const { error: acc } = await ag.rpc("accept_invitation", { raw_token: inv as string });
+    const { error: noName } = await ag.rpc("accept_invitation", { raw_token: inv as string, member_name: " " });
+    check("invitation_requires_name", Boolean(noName));
+    const { error: acc } = await ag.rpc("accept_invitation", { raw_token: inv as string, member_name: `Agent ${run}`, member_phone: "+33600000000" });
     check("agent_accepts_invitation", !acc, acc?.message);
+    const { data: agProfile } = await a1.from("profiles").select("full_name").eq("id", (await ag.auth.getUser()).data.user!.id).single();
+    check("agent_name_visible_to_manager", agProfile?.full_name === `Agent ${run}`);
     const [{ data: agStays }, { data: agLinks }] = await Promise.all([ag.from("reservations").select("id"), ag.from("guest_links").select("id")]);
     check("agent_cannot_read_stays_or_guest_links", (agStays ?? []).length === 0 && (agLinks ?? []).length === 0);
     const { error: agDecide } = await ag.rpc("create_guest_link", { org: orgA, reservation: rA!.id });
@@ -140,6 +144,26 @@ export async function GET(request: NextRequest) {
     const { data: forgedUp } = await b.storage.from("org-files").upload(`${orgA}/task/${task!.id}/forged.jpg`, new Blob([new Uint8Array([1])], { type: "image/jpeg" }), { contentType: "image/jpeg" });
     if (forgedUp) stored.push(`${orgA}/task/${task!.id}/forged.jpg`);
     check("other_org_cannot_upload_into_mission", !forgedUp);
+
+    // 4c. Validation pilotée par le réglage (maintenance comprise), créneaux et absences contrôlés par la base
+    await a1.from("organizations").update({ validation_task_types: ["turnover", "maintenance"] }).eq("id", orgA);
+    const soon = (min: number) => new Date(Date.now() + min * 60_000).toISOString();
+    const { data: mt } = await a1.from("tasks").insert({ organization_id: orgA, property_id: pA!.id, type: "maintenance", status: "assigned", assignee_id: agentId, window_start: soon(-30), window_end: soon(180), duration_min: 30 }).select("id").single();
+    await ag.rpc("start_task", { org: orgA, task: mt!.id, action_id: crypto.randomUUID(), client_at: new Date().toISOString() });
+    await ag.rpc("finish_task", { org: orgA, task: mt!.id, action_id: crypto.randomUUID(), client_at: new Date().toISOString() });
+    const { data: mtRow } = await a1.from("tasks").select("status").eq("id", mt!.id).single();
+    check("maintenance_waits_for_manager_validation", mtRow?.status === "done", mtRow?.status);
+    const { error: selfVal } = await ag.rpc("validate_task", { org: orgA, task: mt!.id });
+    check("agent_cannot_validate_own_mission", Boolean(selfVal));
+    const { data: val } = await a1.rpc("validate_task", { org: orgA, task: mt!.id });
+    check("manager_validates_mission", val === "applied", String(val));
+    const { error: shortErr } = await a1.from("tasks").insert({ organization_id: orgA, property_id: pA!.id, type: "turnover", window_start: soon(60), window_end: soon(61), duration_min: 90 });
+    check("window_shorter_than_duration_refused", Boolean(shortErr));
+    const { data: ab, error: abe } = await a1.rpc("save_absence", { org: orgA, client: crypto.randomUUID(), a_scope: "member", a_member: agentId, a_kind: "leave", a_start: soon(0), a_end: soon(300) });
+    check("manager_records_absence", !abe && (ab as { status: string })?.status === "accepted", abe?.message);
+    const { error: busy } = await a1.from("tasks").insert({ organization_id: orgA, property_id: pA!.id, type: "maintenance", status: "assigned", assignee_id: agentId, window_start: soon(30), window_end: soon(150), duration_min: 60 });
+    check("absent_agent_cannot_be_assigned", Boolean(busy) && String(busy?.message).includes("assignee_unavailable"), busy?.message);
+    await a1.rpc("cancel_absence", { org: orgA, absence: (ab as { id: string }).id });
 
     // 5. Voyageur (sans compte, par son lien)
     const guest = fresh();

@@ -20,6 +20,9 @@ const fail = (error: string): { ok: false; error: string } => ({ ok: false, erro
 const errCode = (e: { code?: string; message?: string } | null) =>
   !e ? "unknown" : e.code === "42501" ? "forbidden" : e.code === "23505" ? "duplicate" : e.code === "23514" || e.code === "22023" ? "invalid" : e.code === "P0002" ? "not_found" : "server";
 
+/** Codes métier remontés par la base (message de l'exception), sinon le code générique. */
+const dbCode = (e: { code?: string; message?: string } | null, known: string[]) => known.find((k) => e?.message?.includes(k)) ?? errCode(e);
+
 async function manager() {
   const ctx = await getContext();
   if (!ctx.user) return { ctx, error: "not_signed_in" as const };
@@ -200,7 +203,7 @@ export async function createStay(input: StayInput): Promise<Result<{ id: string;
     .insert({ organization_id: ctx.org!.id, ...input, guest_email: input.guest_email?.trim() || null, guest_name: input.guest_name?.trim() || null })
     .select("id")
     .single();
-  if (e) return fail(errCode(e));
+  if (e) return fail(dbCode(e, ["stay_overlap"]));
   const plan = await syncTasks(input.property_id);
   revalidatePath("/", "layout");
   return { ok: true, data: { id: data.id as string, tasksCreated: plan.ok ? plan.data.created : 0 } };
@@ -279,7 +282,7 @@ export async function assignTask(taskId: string, memberId: string | null, newWin
     }
   }
   const { error: e } = await ctx.supabase.from("tasks").update(patch).eq("organization_id", o).eq("id", taskId).in("status", ["unassigned", "assigned"]);
-  if (e) return fail(errCode(e));
+  if (e) return fail(dbCode(e, ["assignee_unavailable", "invalid_window"]));
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
@@ -400,11 +403,12 @@ export async function inviteMember(role: "agent" | "manager", position: string |
   return { ok: true, data: { token: data as string } };
 }
 
-export async function acceptInvitation(token: string): Promise<Result<{ orgId: string }>> {
+export async function acceptInvitation(token: string, fullName: string, phone?: string): Promise<Result<{ orgId: string }>> {
   const ctx = await getContext();
   if (!ctx.user) return fail("not_signed_in");
-  const { data, error: e } = await ctx.supabase.rpc("accept_invitation", { raw_token: token });
-  if (e) return fail(e.message?.includes("already_member") ? "already_member" : "invalid_invitation");
+  if (!fullName.trim()) return fail("name_required");
+  const { data, error: e } = await ctx.supabase.rpc("accept_invitation", { raw_token: token, member_name: fullName.trim(), member_phone: phone?.trim() || null });
+  if (e) return fail(e.message?.includes("already_member") ? "already_member" : e.message?.includes("name_required") ? "name_required" : "invalid_invitation");
   (await cookies()).set(ORG_COOKIE, data as string, { path: "/", httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" });
   revalidatePath("/", "layout");
   return { ok: true, data: { orgId: data as string } };
@@ -544,7 +548,7 @@ export async function createIntervention(incidentId: string, assigneeId: string 
     w_end: endAt,
     duration: durationMin,
   });
-  if (e) return fail(e.message?.includes("invalid_window") ? "invalid_window" : e.message?.includes("already_resolved") ? "conflict" : errCode(e));
+  if (e) return fail(e.message?.includes("already_resolved") ? "conflict" : dbCode(e, ["invalid_window", "assignee_unavailable"]));
   await processOutbox(ctx.org!.id);
   revalidatePath("/", "layout");
   return { ok: true, data: { id: data as string } };
@@ -577,4 +581,101 @@ export async function planLinenDelivery(stayId: string): Promise<Result<{ id: st
   if (e) return fail(errCode(e));
   revalidatePath("/", "layout");
   return { ok: true, data: { id: data.id as string } };
+}
+
+
+// ---------- Réglages : validation par type de mission ----------
+const KNOWN_TYPES = ["turnover", "check_in", "check_out", "inspection", "linen_delivery", "linen_pickup", "maintenance", "other"];
+/** Types de mission dont la fin passe par « À valider » (appliqué par la base dans finish_task). */
+export async function setValidationTypes(types: string[]): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const clean = Array.from(new Set(types.filter((x) => KNOWN_TYPES.includes(x))));
+  const { data, error: e } = await ctx.supabase.from("organizations").update({ validation_task_types: clean }).eq("id", ctx.org!.id).select("validation_task_types");
+  if (e) return fail(errCode(e));
+  if (!data?.length) return fail("forbidden");
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+// ---------- Créneau d'une mission (correction par le responsable, tracée) ----------
+export async function setTaskWindow(taskId: string, startAt: string, endAt: string, durationMin: number, reason: string): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const start = new Date(startAt);
+  const end = new Date(endAt);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || !(durationMin >= 5) || end.getTime() < start.getTime() + durationMin * 60_000) return fail("invalid_window");
+  const { data, error: e } = await ctx.supabase.rpc("set_task_window", { org: ctx.org!.id, task: taskId, w_start: start.toISOString(), w_end: end.toISOString(), duration: Math.round(durationMin), reason: reason.trim() || null });
+  if (e) return fail(dbCode(e, ["invalid_window"]));
+  if (data !== "applied") return fail(data as string);
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+// ---------- Profil (chacun le sien) ----------
+export async function updateMyProfile(fullName: string, phone: string): Promise<Result> {
+  const ctx = await getContext();
+  if (!ctx.user) return fail("not_signed_in");
+  if (!fullName.trim()) return fail("name_required");
+  const { error: e } = await ctx.supabase.from("profiles").update({ full_name: fullName.trim().slice(0, 120), phone: phone.trim().slice(0, 32) || null, updated_at: new Date().toISOString() }).eq("id", ctx.user.id);
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+// ---------- Absences et fermetures d'équipe ----------
+export interface AbsenceInput {
+  /** Identifiant généré par l'écran : rejouer la même demande ne crée pas de doublon. */
+  clientId: string;
+  scope: "member" | "team";
+  memberId: string | null;
+  kind: "leave" | "unavailable" | "closure";
+  startsAt: string;
+  endsAt: string;
+  unplanned?: boolean;
+  reason?: string;
+  teamPosition?: string | null;
+}
+export async function saveAbsence(input: AbsenceInput): Promise<Result<{ id: string; status: string; replayed: boolean }>> {
+  const ctx = await getContext();
+  if (!ctx.user || !ctx.org) return fail("not_signed_in");
+  const start = new Date(input.startsAt);
+  const end = new Date(input.endsAt);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return fail("invalid_period");
+  const { data, error: e } = await ctx.supabase.rpc("save_absence", {
+    org: ctx.org.id,
+    client: input.clientId,
+    a_scope: input.scope,
+    a_member: input.scope === "member" ? input.memberId ?? ctx.user.id : null,
+    a_kind: input.kind,
+    a_start: start.toISOString(),
+    a_end: end.toISOString(),
+    a_unplanned: Boolean(input.unplanned),
+    a_reason: input.reason?.trim() || null,
+    a_position: input.scope === "team" ? input.teamPosition || null : null,
+  });
+  if (e) return fail(dbCode(e, ["invalid_period", "not_member", "invalid_kind"]));
+  const r = data as { id: string; status: string; replayed: boolean };
+  // Responsables prévenus d'une nouvelle demande (journal des envois)
+  await processOutbox(ctx.org.id);
+  revalidatePath("/", "layout");
+  return { ok: true, data: r };
+}
+export async function decideAbsence(absenceId: string, accept: boolean): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.rpc("decide_absence", { org: ctx.org!.id, absence: absenceId, accept });
+  if (e) return fail(errCode(e));
+  if (data !== "applied" && data !== "already") return fail(data as string);
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+export async function cancelAbsence(absenceId: string): Promise<Result> {
+  const ctx = await getContext();
+  if (!ctx.user || !ctx.org) return fail("not_signed_in");
+  const { data, error: e } = await ctx.supabase.rpc("cancel_absence", { org: ctx.org.id, absence: absenceId });
+  if (e) return fail(errCode(e));
+  if (data !== "applied" && data !== "already") return fail(data as string);
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
 }

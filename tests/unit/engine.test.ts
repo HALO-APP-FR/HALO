@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Property, Reservation, Task } from "@/lib/domain/types";
-import { expectedTasks, planTasks } from "@/lib/engine/tasks";
+import { expectedTasks, OPEN_WINDOW_DAYS, planTasks, scheduleConflicts } from "@/lib/engine/tasks";
 import { autoAssign, conflictsIfAssigned, detectConflicts } from "@/lib/engine/conflicts";
 import { parseIcs } from "@/lib/engine/ical";
 
@@ -77,15 +77,13 @@ describe("génération des ménages", () => {
     expect(drafts[0].priority).toBe("normal");
   });
 
-  it("urgent quand la fenêtre est plus courte que le ménage", () => {
-    const drafts = expectedTasks(
-      property(),
-      [res("r1", "2026-11-02T15:00:00Z", "2026-11-05T10:00:00Z"), res("r2", "2026-11-05T11:00:00Z", "2026-11-06T10:00:00Z")],
-      NOW,
-    );
-    expect(drafts.find((d) => d.reservationId === "r1")!.priority).toBe("urgent");
+  it("fenêtre plus courte que le ménage : aucun ménage impossible, un conflit signalé", () => {
+    const rs = [res("r1", "2026-11-02T15:00:00Z", "2026-11-05T10:00:00Z"), res("r2", "2026-11-05T11:00:00Z", "2026-11-06T10:00:00Z")];
+    expect(expectedTasks(property(), rs, NOW).find((d) => d.reservationId === "r1")).toBeUndefined();
+    expect(scheduleConflicts(property(), rs, NOW)).toEqual([
+      { kind: "gap_too_short", propertyId: "p1", reservationId: "r1", nextReservationId: "r2", availableMin: 60, neededMin: 120 },
+    ]);
   });
-
   it("ignore les blocages et ajoute accueil/départ si le service est activé", () => {
     const drafts = expectedTasks(
       property({ checkInService: true, checkOutService: true }),
@@ -213,5 +211,76 @@ describe("lecture iCal", () => {
 
   it("refuse un fichier qui n'est pas un calendrier", () => {
     expect(() => parseIcs("<html></html>", property())).toThrow("not_ical");
+  });
+});
+
+describe("créneaux de ménage : règle explicite (retour du 29/10)", () => {
+  const p = property({ cleaningDurationMin: 90 });
+  const r1 = res("r1", "2026-11-05T15:00:00Z", "2026-11-08T10:00:00Z");
+
+  it("aucun séjour suivant : départ → départ + 3 jours, durée distincte de la fenêtre", () => {
+    const [d] = expectedTasks(p, [r1], NOW);
+    expect(OPEN_WINDOW_DAYS).toBe(3);
+    expect(d.windowStart).toBe("2026-11-08T10:00:00.000Z");
+    expect(d.windowEnd).toBe("2026-11-11T10:00:00.000Z");
+    expect(d.durationMin).toBe(90);
+    expect(new Date(d.windowEnd).getTime()).toBeGreaterThan(new Date(d.windowStart).getTime());
+  });
+
+  it("séjour suivant le même jour : fin à l'arrivée suivante", () => {
+    const [d] = expectedTasks(p, [r1, res("r2", "2026-11-08T15:00:00Z", "2026-11-10T10:00:00Z")], NOW).filter((x) => x.reservationId === "r1");
+    expect(d.windowEnd).toBe("2026-11-08T15:00:00.000Z");
+    expect(d.nextReservationId).toBe("r2");
+  });
+
+  it("séjour suivant plusieurs jours après : fin à cette arrivée (pas au bout de 3 jours)", () => {
+    const [d] = expectedTasks(p, [r1, res("r2", "2026-11-13T15:00:00Z", "2026-11-15T10:00:00Z")], NOW).filter((x) => x.reservationId === "r1");
+    expect(d.windowEnd).toBe("2026-11-13T15:00:00.000Z");
+    expect(d.priority).toBe("normal");
+  });
+
+  it("arrivée à l'heure exacte du départ : conflit, jamais un créneau 11 h → 11 h", () => {
+    const rs = [r1, res("r2", "2026-11-08T10:00:00Z", "2026-11-10T10:00:00Z")];
+    expect(expectedTasks(p, rs, NOW).filter((x) => x.type === "turnover" && x.reservationId === "r1")).toEqual([]);
+    expect(scheduleConflicts(p, rs, NOW)[0]).toMatchObject({ kind: "gap_too_short", availableMin: 0, neededMin: 90 });
+  });
+
+  it("séjours qui se chevauchent : conflit, aucun ménage", () => {
+    const rs = [r1, res("r2", "2026-11-07T15:00:00Z", "2026-11-09T10:00:00Z")];
+    expect(scheduleConflicts(p, rs, NOW)[0]).toMatchObject({ kind: "stay_overlap", reservationId: "r1", nextReservationId: "r2" });
+    expect(expectedTasks(p, rs, NOW).some((x) => x.reservationId === "r1")).toBe(false);
+  });
+
+  it("durée de ménage nulle ou invalide : conflit", () => {
+    for (const bad of [0, Number.NaN, -10]) {
+      const c = scheduleConflicts(property({ cleaningDurationMin: bad }), [r1], NOW);
+      expect(c[0]?.kind).toBe("invalid_duration");
+      expect(expectedTasks(property({ cleaningDurationMin: bad }), [r1], NOW)).toEqual([]);
+    }
+  });
+
+  it("heure de départ manquante : conflit, aucun ménage", () => {
+    const rs = [res("r1", "2026-11-05T15:00:00Z", "")];
+    expect(scheduleConflicts(p, rs, NOW)[0]?.kind).toBe("missing_checkout");
+    expect(expectedTasks(p, rs, NOW)).toEqual([]);
+  });
+
+  it("animaux : durée allongée, et conflit si elle ne tient plus", () => {
+    const rs = [{ ...r1, pets: 1 }, res("r2", "2026-11-08T11:30:00Z", "2026-11-10T10:00:00Z")];
+    expect(scheduleConflicts(p, rs, NOW)[0]).toMatchObject({ kind: "gap_too_short", availableMin: 90, neededMin: 120 });
+    // Sans animaux, 90 min suffisent
+    expect(scheduleConflicts(p, [r1, rs[1]], NOW)).toEqual([]);
+  });
+
+  it("mission reprise à la main : la synchro ne la recrée pas en double", () => {
+    const rs = [r1, res("r2", "2026-11-08T15:00:00Z", "2026-11-10T10:00:00Z")];
+    const manualFix: Task = {
+      id: "m1", propertyId: "p1", type: "turnover", reservationId: "r1", nextReservationId: "r2", status: "assigned", isAutoGenerated: false,
+      windowStart: "2026-11-08T10:00:00.000Z", windowEnd: "2026-11-08T14:00:00.000Z", priority: "high", durationMin: 90, createdAt: "x",
+    } as Task;
+    expect(planTasks(p, rs, [manualFix], NOW).create.filter((x) => x.type === "turnover" && x.reservationId === "r1")).toEqual([]);
+    // Ménage créé manuellement pour l'arrivée r2 (sans séjour de départ) : pas de doublon non plus
+    const created: Task = { ...manualFix, id: "m2", reservationId: undefined };
+    expect(planTasks(p, rs, [created], NOW).create.filter((x) => x.type === "turnover" && x.nextReservationId === "r2")).toEqual([]);
   });
 });

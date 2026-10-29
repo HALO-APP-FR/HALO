@@ -1292,7 +1292,9 @@
       "team": "Équipe",
       "setup": "Configuration",
       "incidents": "Incidents",
-      "notifications": "Envois"
+      "notifications": "Envois",
+      "settings": "Réglages",
+      "profile": "Mon profil"
     },
     "env": {
       "demo": "Démo",
@@ -1355,8 +1357,14 @@
       "empty": "Ajoutez une description.",
       "too_late": "Trop tard : l'arrivée est déjà passée.",
       "resolution_required": "Indiquez ce qui a été fait.",
-      "invalid_window": "Le créneau n'est pas valide (fin après début, durée d'au moins 5 min).",
-      "out_of_window": "La mission ne tient plus dans sa fenêtre : confirmez une nouvelle fin avant d'attribuer."
+      "invalid_window": "Le créneau n'est pas valide : la fin doit laisser au moins la durée estimée après le début.",
+      "out_of_window": "La mission ne tient plus dans sa fenêtre : confirmez une nouvelle fin avant d'attribuer.",
+      "stay_overlap": "Ce séjour chevauche un autre séjour confirmé du même logement.",
+      "assignee_unavailable": "Cette personne est absente sur ce créneau : la mission ne tient pas en dehors de son absence.",
+      "name_required": "Indiquez votre nom.",
+      "invalid_period": "La période n'est pas valide (fin après début).",
+      "not_member": "Cette personne ne fait pas partie de l'équipe active.",
+      "invalid_kind": "Type d'absence non valide."
     },
     "home": {
       "subtitle": "Ce qui demande votre attention.",
@@ -1374,7 +1382,10 @@
       "noArrivals": "Aucune arrivée dans les 48 prochaines heures.",
       "allReady": "Toutes les arrivées sont prêtes : ménage validé et aucun incident ouvert.",
       "you": "vous",
-      "pending": "Encore à faire avant l'arrivée : {steps}"
+      "pending": "Encore à faire avant l'arrivée : {steps}",
+      "schedule": "{count, plural, =0 {Aucun ménage impossible à planifier} one {# ménage impossible à planifier} other {# ménages impossibles à planifier}}",
+      "availability": "{count, plural, =0 {Aucune mission touchée par une absence} one {# mission à réorganiser (absence ou fermeture)} other {# missions à réorganiser (absence ou fermeture)}}",
+      "absenceRequests": "{count, plural, =0 {Aucune demande d'absence en attente} one {# demande d'absence à décider} other {# demandes d'absence à décider}}"
     },
     "onb": {
       "progress": "Étape {n} sur {total}",
@@ -1712,7 +1723,8 @@
         "team_guest_problem": "Équipe : problème voyageur",
         "team_agent_blocker": "Équipe : blocage urgent",
         "team_guest_message": "Équipe : message voyageur",
-        "problem_taken": "Problème pris en charge"
+        "problem_taken": "Problème pris en charge",
+        "team_absence_requested": "Équipe : demande d'absence"
       },
       "testAddress": "Adresse fictive (compte de test) : rien n'est envoyé."
     },
@@ -1807,11 +1819,14 @@
       "outOfWindowText": "Cette mission ne tient plus dans sa fenêtre. Fixez une nouvelle fin avant d'attribuer.",
       "newWindowEnd": "Nouvelle fin de fenêtre",
       "confirmOutOfWindow": "Confirmer l'affectation",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "absent": "absent",
+      "windowLabel": "À réaliser {window}",
+      "durationLabel": "durée {duration}"
     },
     "team": {
       "title": "Équipe",
-      "subtitle": "Les membres de votre organisation et leur rôle.",
+      "subtitle": "Qui est qui, qui est disponible, ce qu'il faut réorganiser.",
       "noName": "Profil incomplet",
       "inactive": "désactivé",
       "roles": {
@@ -1826,7 +1841,16 @@
       "copyOnce": "Transmettez ce lien à la personne. Il ne sera plus affiché.",
       "accept": "Rejoindre l'organisation",
       "inviteTitle": "Vous êtes invité sur HALO",
-      "inviteSignedAs": "Connecté avec {email}."
+      "inviteSignedAs": "Connecté avec {email}.",
+      "yourName": "Votre nom",
+      "yourNameHint": "Affiché à l'équipe et sur vos missions.",
+      "yourPhone": "Téléphone (facultatif)",
+      "yourPhoneHint": "Pour qu'un responsable puisse vous joindre sur le terrain.",
+      "fields": {
+        "name": "nom",
+        "phone": "téléphone"
+      },
+      "toComplete": "à compléter : {fields}"
     },
     "fromDemo": "Cette adresse appartient à la démo. Connectez-vous pour l'environnement réel, ou ouvrez la démo explicitement :",
     "openDemo": "ouvrir la démo",
@@ -1853,7 +1877,16 @@
       "notes": "À traiter",
       "oldProof": "Ancienne preuve (remplacée après correction)",
       "redoItems": "Points à refaire",
-      "newPhotoRequired": "nouvelle photo exigée"
+      "newPhotoRequired": "nouvelle photo exigée",
+      "window": "À réaliser",
+      "duration": "Durée estimée",
+      "closing": "À la fin",
+      "needsValidation": "Validation par un responsable",
+      "autoValidated": "Clôture directe (réglage)",
+      "manualWindow": "Créneau fixé à la main : il n'est plus recalculé automatiquement.",
+      "sourceIncident": "Intervention liée à l'incident",
+      "incidentResolved": "incident résolu",
+      "incidentStillOpen": "sa résolution reste à décider par un responsable"
     },
     "testAccount": {
       "title": "Préproduction : compte de test sans e-mail",
@@ -1930,13 +1963,146 @@
       "planDuration": "Durée (min)",
       "planHint": "La mission est reliée à la prochaine arrivée du logement : tant qu'elle n'est pas faite, l'arrivée n'est pas « prête ».",
       "planConfirm": "Créer l'intervention",
-      "openIntervention": "Voir l'intervention"
+      "openIntervention": "Voir l'intervention",
+      "interventionStatus": "intervention : {status}"
     },
     "notifications": {
       "title": "Envois et notifications",
       "subtitle": "Chaque e-mail aux voyageurs et à l'équipe, avec son état réel. Rien n'est affiché « envoyé » sans l'accord du service d'envoi.",
       "loadError": "Impossible de charger les envois.",
       "summary": "{sent} envoyé(s) · {pending} en attente · {failed} en échec · {notConfigured} non envoyé(s) faute de service"
+    },
+    "profile": {
+      "incompleteTitle": "Indiquez votre nom",
+      "incompleteText": "Sans nom, l'équipe vous voit comme « Sans nom » sur les missions.",
+      "pageTitle": "Mon profil",
+      "title": "Coordonnées",
+      "name": "Nom",
+      "nameMissing": "Obligatoire : affiché à l'équipe et sur les missions.",
+      "phone": "Téléphone",
+      "phoneMissing": "Facultatif, mais utile pour vous joindre sur le terrain.",
+      "phoneHint": "Visible par les responsables de votre organisation.",
+      "save": "Enregistrer",
+      "saved": "Enregistré.",
+      "missing": "À compléter : {fields}",
+      "complete": "Profil complet.",
+      "me": "Moi"
+    },
+    "settings": {
+      "title": "Réglages",
+      "subtitle": "Ce qui est enregistré ici est appliqué par le serveur.",
+      "validationTitle": "Validation des missions",
+      "validationText": "Pour chaque type : à la fin, la mission passe « À valider » (un responsable valide ou demande une correction) ou se clôt directement.",
+      "needsValidation": "Validation",
+      "autoClose": "Clôture directe",
+      "save": "Enregistrer",
+      "saved": "Réglage enregistré et appliqué aux prochaines fins de mission."
+    },
+    "window": {
+      "edit": "Modifier le créneau",
+      "start": "À partir de",
+      "end": "Au plus tard",
+      "duration": "Durée estimée (min)",
+      "durationHint": "Temps de travail, distinct de la fenêtre.",
+      "reason": "Motif (facultatif)",
+      "tooShort": "La fenêtre doit être au moins aussi longue que la durée.",
+      "save": "Enregistrer le créneau",
+      "cancel": "Annuler"
+    },
+    "missionHistory": {
+      "title": "Historique",
+      "kind": {
+        "created": "Créée",
+        "assigned": "Attribuée",
+        "unassigned": "Désattribuée",
+        "started": "Démarrée",
+        "submitted": "Terminée, à valider",
+        "validated": "Validée",
+        "auto_validated": "Clôturée sans validation (réglage)",
+        "correction_requested": "Correction demandée",
+        "cancelled": "Annulée",
+        "status_changed": "Statut modifié",
+        "window_changed": "Créneau modifié"
+      }
+    },
+    "schedule": {
+      "title": "{count, plural, one {# ménage impossible à planifier} other {# ménages impossibles à planifier}}",
+      "text": "HALO n'a pas créé de mission intenable : modifiez les horaires des séjours ou créez le ménage à la main avec un créneau réaliste.",
+      "kind": {
+        "gap_too_short": "{available} entre le départ et l'arrivée suivante, {needed} de ménage nécessaires.",
+        "stay_overlap": "Deux séjours se chevauchent dans ce logement.",
+        "missing_checkout": "Heure de départ manquante ou invalide.",
+        "invalid_duration": "Durée de ménage du logement nulle ou invalide."
+      },
+      "open": "Voir le séjour",
+      "stayTitle": "Ménage impossible à planifier",
+      "stayHint": "Aucune mission n'a été créée automatiquement. Ajustez les horaires ou créez le ménage depuis « Logement prêt » avec un créneau réaliste."
+    },
+    "absences": {
+      "newTitle": "Absence ou fermeture",
+      "newText": "Enregistrée par un responsable : acceptée d'office. Aucune mission n'est déplacée automatiquement.",
+      "requestTitle": "Déclarer une absence ou une indisponibilité",
+      "requestText": "Votre responsable reçoit la demande et la valide.",
+      "who": "Personne",
+      "noName": "Sans nom",
+      "wholeTeam": "Toute l'équipe",
+      "position": "Postes concernés",
+      "positionHint": "Par exemple : seuls les agents de ménage.",
+      "allPositions": "Tous les postes",
+      "kind": "Type",
+      "kinds": {
+        "leave": "Congé",
+        "unavailable": "Indisponible",
+        "closure": "Fermeture d'équipe"
+      },
+      "allDay": "Journées entières",
+      "from": "Du",
+      "to": "Au (inclus)",
+      "start": "Début",
+      "end": "Fin",
+      "unplanned": "Imprévue",
+      "unplannedShort": "imprévue",
+      "reason": "Motif court (facultatif)",
+      "reasonHint": "Aucun détail médical ni personnel : « Congé », « Rendez-vous » suffisent.",
+      "save": "Enregistrer",
+      "request": "Envoyer la demande",
+      "invalidPeriod": "La fin doit être après le début.",
+      "savedPending": "Demande enregistrée, en attente de décision.",
+      "savedAccepted": "Enregistrée et prise en compte dans les affectations.",
+      "status": {
+        "pending": "En attente",
+        "accepted": "Acceptée",
+        "refused": "Refusée",
+        "cancelled": "Annulée"
+      },
+      "impacts": "{count, plural, one {# mission concernée :} other {# missions concernées :}}",
+      "accept": "Accepter",
+      "refuse": "Refuser",
+      "cancel": "Annuler l'absence",
+      "mine": "Mes absences",
+      "noneMine": "Aucune absence déclarée.",
+      "absentNow": "Absent en ce moment",
+      "conflictsTitle": "{count, plural, one {# mission à réorganiser} other {# missions à réorganiser}}",
+      "conflictsText": "Ces missions ne tiennent plus hors des absences ou fermetures. HALO ne les réaffecte jamais seul : ouvrez-les pour changer la personne ou le créneau.",
+      "nobody": "Personne n'est attribué",
+      "conflictKind": {
+        "accepted": "absence acceptée",
+        "pending": "si la demande en attente est acceptée",
+        "closure": "fermeture d'équipe"
+      },
+      "closureStay": "Séjour pendant une fermeture : {guest}, {dates}",
+      "listTitle": "Absences et fermetures à venir",
+      "listText": "Seules les absences acceptées bloquent une affectation.",
+      "none": "Aucune absence ni fermeture à venir.",
+      "historyTitle": "Historique des absences",
+      "historyEmpty": "Aucune activité.",
+      "event": {
+        "requested": "demande",
+        "created": "enregistrée",
+        "accepted": "acceptée",
+        "refused": "refusée",
+        "cancelled": "annulée"
+      }
     }
   },
   "email": {
@@ -2002,6 +2168,10 @@
     "problem_taken": {
       "subject": "{org} — votre signalement est pris en charge",
       "body": "L'équipe a pris en charge le problème que vous avez signalé. Vous suivez son avancement dans votre espace voyageur."
+    },
+    "team_absence_requested": {
+      "subject": "Demande d'absence — {member}",
+      "body": "{member} a déclaré une absence ou une indisponibilité. Elle attend votre décision ; les missions concernées sont listées dans HALO."
     }
   },
   "guestSpace": {

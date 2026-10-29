@@ -99,6 +99,8 @@ insert into public.checklist_rooms (id, organization_id, property_id, name) valu
   (t.id('roomA'), t.id('A'), t.id('PA1'), 'Cuisine'), (t.id('roomB'), t.id('B'), t.id('PB1'), 'Cuisine');
 insert into public.checklist_items (id, organization_id, room_id, label) values
   (t.id('itemA'), t.id('A'), t.id('roomA'), 'Frigo'), (t.id('itemB'), t.id('B'), t.id('roomB'), 'Frigo');
+-- Jeux d'essai historiques (séjours qui se recouvrent) : le contrôle de chevauchement est testé en section 3.8
+alter table public.reservations disable trigger reservations_overlap_check;
 insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values
   (t.id('RA1'), t.id('A'), t.id('PA1'), 'Voyageur A', now() - interval '3 days', now() - interval '1 hour'),
   (t.id('RB1'), t.id('B'), t.id('PB1'), 'Voyageur B', now() - interval '3 days', now() - interval '1 hour');
@@ -553,6 +555,122 @@ values (t.id('A'), 'task_photo', t.id('TC4'), t.id('PA3'), t.id('itemA3'), t.id(
 insert into storage.objects (bucket_id, name, owner) values ('org-files', t.id('A') || '/task/' || t.id('TC4') || '/new.jpg', t.id('a_agent2'));
 select t.is('correction ciblée : terminée avec la nouvelle photo', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC4'))), 'applied');
 select t.err('correction ciblée : un agent ne demande pas de correction', t.q('a_agent2', format('select public.request_correction(%L, %L, ''x'', null)', t.id('A'), t.id('TC4'))), '42501');
+
+-- 3.8 Retour du 29/10 : validation par type, créneaux, profil à l'arrivée, absences et fermetures
+insert into t.ids select k, gen_random_uuid() from unnest(array['PV', 'TV2', 'IV', 'RV1', 'newbie', 'TW1', 'TW2', 'TW3', 'TW4', 'ABS1', 'ABS2', 'ABS3']) k;
+insert into public.properties (id, organization_id, name) values (t.id('PV'), t.id('A'), 'Logement validation');
+-- « Toutes les missions » choisi à l'onboarding avec seulement 3 types enregistrés (cause du défaut observé) : la migration corrige
+update public.organizations set onboarding = '{"answers": {"validation_policy": "all"}}', validation_task_types = array['turnover', 'linen_delivery', 'linen_pickup']::public.task_type[] where id = t.id('A');
+update public.organizations set validation_task_types = enum_range(null::public.task_type) where onboarding #>> '{answers,validation_policy}' = 'all' and id = t.id('A');
+select t.check('validation : « toutes » couvre la maintenance', '', (select 'maintenance' = any (validation_task_types) from public.organizations where id = t.id('A')));
+insert into public.incidents (id, organization_id, property_id, source, category, description) values (t.id('IV'), t.id('A'), t.id('PV'), 'manager', 'breakdown', 'Chaudière en panne');
+select t.check('validation : intervention créée depuis l''incident', '', t.keep('a_manager', format('select public.create_intervention(%L, %L, %L, now() - interval ''1 hour'', now() + interval ''4 hours'', 60)', t.id('A'), t.id('IV'), t.id('a_agent2'))) ~ '^[0-9a-f-]{36}$');
+create function t.iv() returns uuid language sql stable as $$ select follow_up_task_id from public.incidents where id = t.id('IV') $$;
+select t.is('validation : démarrée par l''agent', t.keep('a_agent2', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.iv())), 'applied');
+select t.is('validation : terminée par l''agent', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.iv())), 'applied');
+select t.is('validation : l''intervention reste « à valider »', (select status::text from public.tasks where id = t.iv()), 'done');
+select t.is('validation : l''incident n''est pas résolu automatiquement', (select status from public.incidents where id = t.id('IV')), 'in_progress');
+select t.err('validation : l''agent ne valide pas lui-même', t.q('a_agent2', format('select public.validate_task(%L, %L)', t.id('A'), t.iv())), '42501');
+select t.deny('validation : l''agent ne passe pas la mission en « validée » directement', t.dml('a_agent2', format('update public.tasks set status = ''validated'' where id = %L', t.iv())));
+select t.err('validation : un agent d''une autre organisation ne la termine pas', t.q('b_agent', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.iv())), '42501');
+select t.is('validation : correction demandée par le manager', t.keep('a_manager', format('select public.request_correction(%L, %L, ''Joint à refaire'')', t.id('A'), t.iv())), 'applied');
+select t.is('validation : rapport précédent conservé', (select count(*)::text from public.task_report_versions where task_id = t.iv()), '1');
+select t.is('validation : reprise par l''agent', t.keep('a_agent2', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.iv())), 'applied');
+select t.is('validation : resoumise', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.iv())), 'applied');
+select t.is('validation : toujours « à valider » après reprise', (select status::text from public.tasks where id = t.iv()), 'done');
+select t.is('validation : validée par le manager', t.keep('a_manager', format('select public.validate_task(%L, %L)', t.id('A'), t.iv())), 'applied');
+-- Type sans validation : clôture directe, tracée
+select t.is('validation : le manager retire la maintenance du contrôle', t.dml('a_manager', format('update public.organizations set validation_task_types = array[''turnover'']::public.task_type[] where id = %L', t.id('A'))), '1');
+select t.deny('validation : un agent ne change pas le réglage', t.dml('a_agent', format('update public.organizations set validation_task_types = ''{}'' where id = %L', t.id('A'))));
+update public.organizations set validation_task_types = array['turnover']::public.task_type[] where id = t.id('A');
+insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, window_start, window_end, duration_min) values
+  (t.id('TV2'), t.id('A'), t.id('PV'), 'maintenance', 'assigned', t.id('a_agent2'), now() - interval '1 hour', now() + interval '3 hours', 30);
+select t.is('validation : sans contrôle, démarrage', t.keep('a_agent2', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TV2'))), 'applied');
+select t.is('validation : sans contrôle, fin', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TV2'))), 'applied');
+select t.is('validation : sans contrôle, validée automatiquement et tracée', (select status::text || '/' || (select kind from public.task_events where task_id = t.id('TV2') order by id desc limit 1) from public.tasks where id = t.id('TV2')), 'validated/auto_validated');
+
+-- Créneaux : jamais de fenêtre plus courte que la durée ; correction tracée
+select t.err('créneau : fenêtre de 1 minute refusée', t.q('a_manager', format('insert into public.tasks (organization_id, property_id, type, window_start, window_end, duration_min) values (%L, %L, ''turnover'', now(), now() + interval ''1 minute'', 90)', t.id('A'), t.id('PV'))), '22023');
+select t.err('créneau : fenêtre plus courte que la durée refusée', t.q('a_manager', format('insert into public.tasks (organization_id, property_id, type, window_start, window_end, duration_min) values (%L, %L, ''turnover'', now(), now() + interval ''60 minutes'', 90)', t.id('A'), t.id('PV'))), '22023');
+insert into public.tasks (id, organization_id, property_id, type, is_auto_generated, window_start, window_end, duration_min) values
+  (t.id('TW1'), t.id('A'), t.id('PV'), 'turnover', true, now() + interval '1 day', now() + interval '1 day 5 hours', 90);
+select t.is('créneau : corrigé par le manager', t.keep('a_manager', format('select public.set_task_window(%L, %L, now() + interval ''1 day'', now() + interval ''1 day 3 hours'', 120, ''Arrivée avancée'')', t.id('A'), t.id('TW1'))), 'applied');
+select t.is('créneau : correction tracée avec son motif', (select note::jsonb ->> 'reason' from public.task_events where task_id = t.id('TW1') and kind = 'window_changed' order by id desc limit 1), 'Arrivée avancée');
+select t.is('créneau : mission reprise à la main (plus déplacée par la synchro)', (select is_auto_generated::text || '/' || duration_locked::text from public.tasks where id = t.id('TW1')), 'false/true');
+select t.err('créneau : correction incohérente refusée', t.q('a_manager', format('select public.set_task_window(%L, %L, now(), now() + interval ''30 minutes'', 90)', t.id('A'), t.id('TW1'))), '22023');
+select t.err('créneau : un agent ne corrige pas', t.q('a_agent', format('select public.set_task_window(%L, %L, now(), now() + interval ''5 hours'', 90)', t.id('A'), t.id('TW1'))), '42501');
+select t.err('créneau : une autre organisation ne corrige pas', t.q('b_manager', format('select public.set_task_window(%L, %L, now(), now() + interval ''5 hours'', 90)', t.id('A'), t.id('TW1'))), '42501');
+select t.is('créneau : les autres modifications restent possibles', t.dml('a_manager', format('update public.tasks set priority = ''high'' where id = %L', t.id('TW1'))), '1');
+
+-- Séjours qui se chevauchent
+alter table public.reservations enable trigger reservations_overlap_check;
+insert into public.reservations (id, organization_id, property_id, check_in_at, check_out_at) values (t.id('RV1'), t.id('A'), t.id('PV'), '2027-03-01 15:00+00', '2027-03-05 10:00+00');
+select t.err('séjours : chevauchement refusé', t.q('a_manager', format('insert into public.reservations (organization_id, property_id, check_in_at, check_out_at) values (%L, %L, ''2027-03-04 15:00+00'', ''2027-03-07 10:00+00'')', t.id('A'), t.id('PV'))), '23P01');
+select t.is('séjours : arrivée le jour du départ acceptée', t.dml('a_manager', format('insert into public.reservations (organization_id, property_id, check_in_at, check_out_at) values (%L, %L, ''2027-03-05 15:00+00'', ''2027-03-07 10:00+00'')', t.id('A'), t.id('PV'))), '1');
+select t.is('séjours : séjour annulé ignoré', t.dml('a_manager', format('insert into public.reservations (organization_id, property_id, status, check_in_at, check_out_at) values (%L, %L, ''cancelled'', ''2027-03-02 15:00+00'', ''2027-03-03 10:00+00'')', t.id('A'), t.id('PV'))), '1');
+insert into public.reservations (organization_id, property_id, check_in_at, check_out_at) values (t.id('A'), t.id('PV'), '2027-03-05 15:00+00', '2027-03-07 10:00+00');
+select t.err('séjours : prolongation qui chevauche refusée', t.dml('a_manager', format('update public.reservations set check_out_at = ''2027-03-06 10:00+00'' where id = %L', t.id('RV1'))), '23P01');
+alter table public.reservations disable trigger reservations_overlap_check;
+
+-- Profil à l'arrivée dans l'équipe : nom exigé, téléphone facultatif, aucun droit en plus
+insert into auth.users (id, email) values (t.id('newbie'), 'newbie@test.invalid');
+create table t.inv (token text);
+insert into t.inv select t.keep('a_manager', format('select public.create_invitation(%L, ''agent'', ''housekeeper'')', t.id('A')));
+select t.err('profil : invitation acceptée sans nom refusée', t.q('newbie', format('select public.accept_invitation(%L, ''  '')', (select token from t.inv))), '22023');
+select t.is('profil : invitation acceptée avec un nom', t.keep('newbie', format('select public.accept_invitation(%L, ''Nadia Benali'', ''+33 6 12 34 56 78'')', (select token from t.inv))), t.id('A')::text);
+select t.is('profil : nom et téléphone enregistrés', (select full_name || '/' || phone from public.profiles where id = t.id('newbie')), 'Nadia Benali/+33 6 12 34 56 78');
+select t.is('profil : rôle agent, inchangé', (select role::text from public.memberships where organization_id = t.id('A') and user_id = t.id('newbie')), 'agent');
+select t.is('profil : visible du manager', t.q('a_manager', format('select full_name from public.profiles where id = %L', t.id('newbie'))), 'Nadia Benali');
+select t.is('profil : l''agent modifie son propre profil', t.dml('newbie', format('update public.profiles set phone = ''0612345678'' where id = %L', t.id('newbie'))), '1');
+select t.deny('profil : l''agent ne modifie pas le profil d''un collègue', t.dml('newbie', format('update public.profiles set full_name = ''x'' where id = %L', t.id('a_agent'))));
+
+-- Absences et fermetures
+insert into public.tasks (id, organization_id, property_id, type, status, window_start, window_end, duration_min) values
+  (t.id('TW2'), t.id('A'), t.id('PV'), 'turnover', 'unassigned', '2027-04-10 08:00+00', '2027-04-10 12:00+00', 120),
+  (t.id('TW3'), t.id('A'), t.id('PV'), 'turnover', 'unassigned', '2027-04-10 13:00+00', '2027-04-10 17:00+00', 120);
+select t.is('absence : demandée par l''agent (en attente)', t.keep('a_agent', format('select public.save_absence(%L, %L, ''member'', %L, ''leave'', ''2027-04-10 07:00+00'', ''2027-04-10 11:00+00'') ->> ''status''', t.id('A'), t.id('ABS1'), t.id('a_agent'))), 'pending');
+select t.is('absence : rejouer la demande ne crée pas de doublon', t.keep('a_agent', format('select public.save_absence(%L, %L, ''member'', %L, ''leave'', ''2027-04-10 07:00+00'', ''2027-04-10 11:00+00'') ->> ''replayed''', t.id('A'), t.id('ABS1'), t.id('a_agent'))), 'true');
+select t.is('absence : une seule ligne et un seul événement', (select count(*)::text from public.absences where client_id = t.id('ABS1')) || '/' || (select count(*)::text from public.absence_events e join public.absences a on a.id = e.absence_id where a.client_id = t.id('ABS1')), '1/1');
+select t.is('absence : responsables prévenus de la demande (une fois)', (select count(*)::text from public.notification_outbox where organization_id = t.id('A') and template = 'team_absence_requested'), '2');
+select t.err('absence : un agent ne déclare pas l''absence d''un collègue', t.q('a_agent', format('select public.save_absence(%L, gen_random_uuid(), ''member'', %L, ''leave'', now(), now() + interval ''1 day'')', t.id('A'), t.id('a_agent2'))), '42501');
+select t.err('absence : un agent ne ferme pas l''équipe', t.q('a_agent', format('select public.save_absence(%L, gen_random_uuid(), ''team'', null, ''closure'', now(), now() + interval ''1 day'')', t.id('A'))), '42501');
+select t.err('absence : période incohérente refusée', t.q('a_manager', format('select public.save_absence(%L, gen_random_uuid(), ''member'', %L, ''leave'', now(), now() - interval ''1 hour'')', t.id('A'), t.id('a_agent'))), '22023');
+select t.is('absence : en attente, l''affectation reste possible', t.dml('a_manager', format('update public.tasks set assignee_id = %L, status = ''assigned'' where id = %L', t.id('a_agent'), t.id('TW2'))), '1');
+insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, window_start, window_end, duration_min) values
+  (t.id('TW4'), t.id('A'), t.id('PV'), 'turnover', 'assigned', t.id('a_agent'), '2027-04-10 07:30+00', '2027-04-10 10:30+00', 60);
+select t.err('absence : l''agent ne décide pas', t.q('a_agent', format('select public.decide_absence(%L, (select id from public.absences where client_id = %L), true)', t.id('A'), t.id('ABS1'))), '42501');
+select t.is('absence : acceptée par le manager', t.keep('a_manager', format('select public.decide_absence(%L, (select id from public.absences where client_id = %L), true)', t.id('A'), t.id('ABS1'))), 'applied');
+select t.is('absence : décider deux fois sans effet', t.keep('a_manager', format('select public.decide_absence(%L, (select id from public.absences where client_id = %L), true)', t.id('A'), t.id('ABS1'))), 'already');
+select t.err('absence : nouvelle affectation pendant l''absence refusée', t.dml('a_manager', format('update public.tasks set assignee_id = %L, status = ''assigned'' where id = %L', t.id('a_agent'), t.id('TW2'))), '22023');
+select t.is('absence : partielle — la mission de l''après-midi reste attribuable', t.dml('a_manager', format('update public.tasks set assignee_id = %L, status = ''assigned'' where id = %L', t.id('a_agent'), t.id('TW3'))), '1');
+select t.is('absence : temps libre restant le matin (11 h → 12 h)', t.q('a_manager', format('select public.free_minutes(%L, %L, ''2027-04-10 08:00+00'', ''2027-04-10 12:00+00'')', t.id('A'), t.id('a_agent'))), '60');
+select t.err('absence : le temps libre d''un collègue n''est pas lisible par un agent', t.q('a_agent2', format('select public.free_minutes(%L, %L, now(), now() + interval ''1 day'')', t.id('A'), t.id('a_agent'))), '42501');
+select t.err('absence : ni par une autre organisation', t.q('b_manager', format('select public.free_minutes(%L, %L, now(), now() + interval ''1 day'')', t.id('A'), t.id('a_agent'))), '42501');
+-- Mission déjà attribuée avant l'acceptation : jamais réaffectée automatiquement (le conflit est signalé)
+select t.is('absence : la mission déjà attribuée n''est pas réaffectée automatiquement', (select assignee_id::text || '/' || status::text from public.tasks where id = t.id('TW4')), t.id('a_agent')::text || '/assigned');
+select t.is('absence : elle ne tient plus hors de l''absence (conflit à signaler)', t.q('a_manager', format('select public.free_minutes(%L, %L, ''2027-04-10 07:30+00'', ''2027-04-10 10:30+00'')', t.id('A'), t.id('a_agent'))), '0');
+select t.is('absence : annulée par l''agent', t.keep('a_agent', format('select public.cancel_absence(%L, (select id from public.absences where client_id = %L))', t.id('A'), t.id('ABS1'))), 'applied');
+select t.is('absence : annulée, elle ne bloque plus', t.q('a_manager', format('select public.free_minutes(%L, %L, ''2027-04-10 08:00+00'', ''2027-04-10 12:00+00'')', t.id('A'), t.id('a_agent'))), '240');
+select t.is('absence : historique complet', (select string_agg(e.kind, ',' order by e.id) from public.absence_events e join public.absences a on a.id = e.absence_id where a.client_id = t.id('ABS1')), 'requested,accepted,cancelled');
+-- Refus
+select t.is('absence : demande d''indisponibilité imprévue', t.keep('a_agent2', format('select public.save_absence(%L, %L, ''member'', %L, ''unavailable'', ''2027-04-10 07:00+00'', ''2027-04-10 20:00+00'', true, ''Imprévu'') ->> ''status''', t.id('A'), t.id('ABS2'), t.id('a_agent2'))), 'pending');
+select t.is('absence : refusée', t.keep('a_manager', format('select public.decide_absence(%L, (select id from public.absences where client_id = %L), false)', t.id('A'), t.id('ABS2'))), 'applied');
+select t.is('absence : refusée, elle ne bloque pas', t.q('a_manager', format('select public.free_minutes(%L, %L, ''2027-04-10 08:00+00'', ''2027-04-10 12:00+00'')', t.id('A'), t.id('a_agent2'))), '240');
+-- Fermeture d'équipe : bloque tout le monde, ne déplace ni ne supprime rien
+select t.is('fermeture : enregistrée par le manager', t.keep('a_manager', format('select public.save_absence(%L, %L, ''team'', null, ''closure'', ''2027-04-10 00:00+00'', ''2027-04-11 00:00+00'', false, ''Fermeture annuelle'') ->> ''status''', t.id('A'), t.id('ABS3'))), 'accepted');
+select t.is('fermeture : aucun temps libre pour un agent', t.q('a_manager', format('select public.free_minutes(%L, %L, ''2027-04-10 08:00+00'', ''2027-04-10 12:00+00'')', t.id('A'), t.id('a_agent2'))), '0');
+select t.err('fermeture : affectation refusée', t.dml('a_manager', format('update public.tasks set assignee_id = %L, status = ''assigned'' where id = %L', t.id('a_agent2'), t.id('TW2'))), '22023');
+select t.is('fermeture : les missions restent en place', (select count(*)::text from public.tasks where id in (t.id('TW2'), t.id('TW3'), t.id('TW4')) and status <> 'cancelled'), '3');
+select t.is('fermeture : visible par les agents de l''organisation', t.q('a_agent2', format('select count(*) from public.absences where client_id = %L', t.id('ABS3'))), '1');
+-- Confidentialité et cloisonnement
+select t.is('absence : un agent ne voit pas les absences de ses collègues', t.q('a_agent', format('select count(*) from public.absences where client_id = %L', t.id('ABS2'))), '0');
+select t.is('absence : ni leur historique', t.q('a_agent', format('select count(*) from public.absence_events e where e.absence_id = (select id from public.absences where client_id = %L)', t.id('ABS2'))), '0');
+select t.is('absence : une autre organisation ne voit rien', t.q('b_manager', format('select count(*) from public.absences where organization_id = %L', t.id('A'))), '0');
+select t.err('absence : une autre organisation ne décide pas', t.q('b_manager', format('select public.decide_absence(%L, (select id from public.absences where client_id = %L), true)', t.id('A'), t.id('ABS2'))), '42501');
+select t.err('absence : une autre organisation n''annule pas', t.q('b_manager', format('select public.cancel_absence(%L, (select id from public.absences where client_id = %L))', t.id('A'), t.id('ABS3'))), '42501');
+select t.deny('absence : aucune écriture directe', t.dml('a_manager', format('update public.absences set status = ''cancelled'' where client_id = %L', t.id('ABS3'))));
+select t.is('fermeture : annulée', t.keep('a_manager', format('select public.cancel_absence(%L, (select id from public.absences where client_id = %L))', t.id('A'), t.id('ABS3'))), 'applied');
+update public.organizations set validation_task_types = array['turnover']::public.task_type[] where id = t.id('A');
 
 -- 3.4 Mission sans validation requise : validée automatiquement à la soumission
 select t.is('auto : démarrer un accueil', t.keep('a_agent2', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC2'))), 'applied');

@@ -62,7 +62,7 @@ export async function processOutbox(orgId?: string) {
       const message = typeof row.payload.message === "string" ? row.payload.message : "";
       const org = orgNames.get(row.organization_id)!;
       const str = (k: string) => (typeof row.payload[k] === "string" ? (row.payload[k] as string) : "");
-      const params = { org, kind, property: str("property") || "—", guest: str("guest") || "—" };
+      const params = { org, kind, property: str("property") || "—", guest: str("guest") || "—", member: str("member") || "—" };
       const team = row.template.startsWith("team_");
       const base = appUrl();
       const link = team && str("path") && base ? `${base}/${locale}${str("path")}` : "";

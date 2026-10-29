@@ -1292,7 +1292,9 @@
       "team": "Team",
       "setup": "Configurazione",
       "incidents": "Incidenti",
-      "notifications": "Invii"
+      "notifications": "Invii",
+      "settings": "Impostazioni",
+      "profile": "Il mio profilo"
     },
     "env": {
       "demo": "Demo",
@@ -1355,8 +1357,14 @@
       "empty": "Aggiungi una descrizione.",
       "too_late": "Troppo tardi: l'arrivo è già passato.",
       "resolution_required": "Indica cosa è stato fatto.",
-      "invalid_window": "Fascia non valida (fine dopo l'inizio, almeno 5 min).",
-      "out_of_window": "La missione non rientra nella fascia: conferma una nuova fine."
+      "invalid_window": "La fascia non è valida: la fine deve lasciare almeno la durata stimata dopo l'inizio.",
+      "out_of_window": "La missione non rientra nella fascia: conferma una nuova fine.",
+      "stay_overlap": "Questo soggiorno si sovrappone a un altro soggiorno confermato dello stesso alloggio.",
+      "assignee_unavailable": "Questa persona è assente in questa fascia: la missione non rientra fuori dalla sua assenza.",
+      "name_required": "Indica il tuo nome.",
+      "invalid_period": "Il periodo non è valido (fine dopo l'inizio).",
+      "not_member": "Questa persona non fa parte del team attivo.",
+      "invalid_kind": "Tipo di assenza non valido."
     },
     "home": {
       "subtitle": "Ciò che richiede la tua attenzione.",
@@ -1374,7 +1382,10 @@
       "noArrivals": "Nessun arrivo nelle prossime 48 ore.",
       "allReady": "Tutti gli arrivi sono pronti: pulizia convalidata e nessun incidente.",
       "you": "tu",
-      "pending": "Ancora da fare prima dell'arrivo: {steps}"
+      "pending": "Ancora da fare prima dell'arrivo: {steps}",
+      "schedule": "{count, plural, =0 {Nessuna pulizia impossibile da pianificare} one {# pulizia impossibile da pianificare} other {# pulizie impossibili da pianificare}}",
+      "availability": "{count, plural, =0 {Nessuna missione toccata da un'assenza} one {# missione da riorganizzare (assenza o chiusura)} other {# missioni da riorganizzare (assenza o chiusura)}}",
+      "absenceRequests": "{count, plural, =0 {Nessuna richiesta di assenza in attesa} one {# richiesta di assenza da decidere} other {# richieste di assenza da decidere}}"
     },
     "onb": {
       "progress": "Passo {n} di {total}",
@@ -1712,7 +1723,8 @@
         "team_guest_problem": "Team: problema dell'ospite",
         "team_agent_blocker": "Team: blocco urgente",
         "team_guest_message": "Team: messaggio dell'ospite",
-        "problem_taken": "Problema in carico"
+        "problem_taken": "Problema in carico",
+        "team_absence_requested": "Team: richiesta di assenza"
       },
       "testAddress": "Indirizzo fittizio (account di test): nulla viene inviato."
     },
@@ -1807,11 +1819,14 @@
       "outOfWindowText": "La missione non rientra più nella fascia. Imposta una nuova fine prima di assegnare.",
       "newWindowEnd": "Nuova fine fascia",
       "confirmOutOfWindow": "Conferma l'assegnazione",
-      "cancel": "Annulla"
+      "cancel": "Annulla",
+      "absent": "assente",
+      "windowLabel": "Da svolgere {window}",
+      "durationLabel": "durata {duration}"
     },
     "team": {
       "title": "Team",
-      "subtitle": "Membri e ruoli.",
+      "subtitle": "Chi è chi, chi è disponibile, cosa riorganizzare.",
       "noName": "Profilo incompleto",
       "inactive": "disattivato",
       "roles": {
@@ -1826,7 +1841,16 @@
       "copyOnce": "Invia questo link. Non sarà più mostrato.",
       "accept": "Unisciti all'organizzazione",
       "inviteTitle": "Sei stato invitato su HALO",
-      "inviteSignedAs": "Connesso come {email}."
+      "inviteSignedAs": "Connesso come {email}.",
+      "yourName": "Il tuo nome",
+      "yourNameHint": "Visibile al team e nelle tue missioni.",
+      "yourPhone": "Telefono (facoltativo)",
+      "yourPhoneHint": "Perché un responsabile possa contattarti sul campo.",
+      "fields": {
+        "name": "nome",
+        "phone": "telefono"
+      },
+      "toComplete": "da completare: {fields}"
     },
     "fromDemo": "Questo indirizzo appartiene alla demo. Accedi per l'ambiente reale o apri la demo esplicitamente:",
     "openDemo": "apri la demo",
@@ -1853,7 +1877,16 @@
       "notes": "Da gestire",
       "oldProof": "Prova precedente (sostituita dopo la correzione)",
       "redoItems": "Punti da rifare",
-      "newPhotoRequired": "nuova foto obbligatoria"
+      "newPhotoRequired": "nuova foto obbligatoria",
+      "window": "Da svolgere",
+      "duration": "Durata stimata",
+      "closing": "Alla fine",
+      "needsValidation": "Convalida da un responsabile",
+      "autoValidated": "Chiusura diretta (impostazione)",
+      "manualWindow": "Fascia fissata a mano: non viene più ricalcolata automaticamente.",
+      "sourceIncident": "Intervento legato all'incidente",
+      "incidentResolved": "incidente risolto",
+      "incidentStillOpen": "la sua risoluzione spetta a un responsabile"
     },
     "testAccount": {
       "title": "Preproduzione: account di test senza e-mail",
@@ -1930,13 +1963,146 @@
       "planDuration": "Durata (min)",
       "planHint": "La missione è collegata al prossimo arrivo: finché non è fatta, l'arrivo non è «pronto».",
       "planConfirm": "Crea l'intervento",
-      "openIntervention": "Vedi l'intervento"
+      "openIntervention": "Vedi l'intervento",
+      "interventionStatus": "intervento: {status}"
     },
     "notifications": {
       "title": "Invii e notifiche",
       "subtitle": "Ogni e-mail a ospiti e team, con il suo stato reale.",
       "loadError": "Impossibile caricare gli invii.",
       "summary": "{sent} inviati · {pending} in attesa · {failed} non riusciti · {notConfigured} senza servizio"
+    },
+    "profile": {
+      "incompleteTitle": "Indica il tuo nome",
+      "incompleteText": "Senza nome, il team ti vede come «Senza nome» nelle missioni.",
+      "pageTitle": "Il mio profilo",
+      "title": "Recapiti",
+      "name": "Nome",
+      "nameMissing": "Obbligatorio: visibile al team e nelle missioni.",
+      "phone": "Telefono",
+      "phoneMissing": "Facoltativo, ma utile per contattarti sul campo.",
+      "phoneHint": "Visibile ai responsabili della tua organizzazione.",
+      "save": "Salva",
+      "saved": "Salvato.",
+      "missing": "Da completare: {fields}",
+      "complete": "Profilo completo.",
+      "me": "Io"
+    },
+    "settings": {
+      "title": "Impostazioni",
+      "subtitle": "Ciò che salvi qui è applicato dal server.",
+      "validationTitle": "Convalida delle missioni",
+      "validationText": "Per ogni tipo: alla fine, la missione passa a «Da convalidare» (un responsabile convalida o chiede una correzione) o si chiude direttamente.",
+      "needsValidation": "Convalida",
+      "autoClose": "Chiusura diretta",
+      "save": "Salva",
+      "saved": "Impostazione salvata e applicata alle prossime missioni concluse."
+    },
+    "window": {
+      "edit": "Modifica la fascia oraria",
+      "start": "Dalle",
+      "end": "Al più tardi",
+      "duration": "Durata stimata (min)",
+      "durationHint": "Tempo di lavoro, distinto dalla finestra.",
+      "reason": "Motivo (facoltativo)",
+      "tooShort": "La finestra deve durare almeno quanto la durata.",
+      "save": "Salva la fascia oraria",
+      "cancel": "Annulla"
+    },
+    "missionHistory": {
+      "title": "Cronologia",
+      "kind": {
+        "created": "Creata",
+        "assigned": "Assegnata",
+        "unassigned": "Non assegnata",
+        "started": "Avviata",
+        "submitted": "Conclusa, da convalidare",
+        "validated": "Convalidata",
+        "auto_validated": "Chiusa senza convalida (impostazione)",
+        "correction_requested": "Correzione richiesta",
+        "cancelled": "Annullata",
+        "status_changed": "Stato modificato",
+        "window_changed": "Fascia modificata"
+      }
+    },
+    "schedule": {
+      "title": "{count, plural, one {# pulizia impossibile da pianificare} other {# pulizie impossibili da pianificare}}",
+      "text": "HALO non ha creato una missione impossibile: modifica gli orari dei soggiorni o crea la pulizia a mano con una fascia realistica.",
+      "kind": {
+        "gap_too_short": "{available} tra la partenza e l'arrivo successivo; servono {needed} di pulizia.",
+        "stay_overlap": "Due soggiorni si sovrappongono in questo alloggio.",
+        "missing_checkout": "Orario di partenza mancante o non valido.",
+        "invalid_duration": "Durata di pulizia dell'alloggio nulla o non valida."
+      },
+      "open": "Vedi il soggiorno",
+      "stayTitle": "Pulizia impossibile da pianificare",
+      "stayHint": "Nessuna missione è stata creata automaticamente. Regola gli orari o crea la pulizia da «Alloggio pronto» con una fascia realistica."
+    },
+    "absences": {
+      "newTitle": "Assenza o chiusura",
+      "newText": "Registrata da un responsabile: accettata subito. Nessuna missione viene spostata automaticamente.",
+      "requestTitle": "Segnalare un'assenza o un'indisponibilità",
+      "requestText": "Il tuo responsabile riceve la richiesta e la convalida.",
+      "who": "Persona",
+      "noName": "Senza nome",
+      "wholeTeam": "Tutto il team",
+      "position": "Ruoli interessati",
+      "positionHint": "Ad esempio: solo gli addetti alle pulizie.",
+      "allPositions": "Tutti i ruoli",
+      "kind": "Tipo",
+      "kinds": {
+        "leave": "Congedo",
+        "unavailable": "Non disponibile",
+        "closure": "Chiusura del team"
+      },
+      "allDay": "Giornate intere",
+      "from": "Dal",
+      "to": "Al (incluso)",
+      "start": "Inizio",
+      "end": "Fine",
+      "unplanned": "Imprevista",
+      "unplannedShort": "imprevista",
+      "reason": "Motivo breve (facoltativo)",
+      "reasonHint": "Nessun dettaglio medico o personale: «Congedo» o «Appuntamento» bastano.",
+      "save": "Salva",
+      "request": "Invia la richiesta",
+      "invalidPeriod": "La fine deve essere dopo l'inizio.",
+      "savedPending": "Richiesta salvata, in attesa di decisione.",
+      "savedAccepted": "Salvata e considerata nelle assegnazioni.",
+      "status": {
+        "pending": "In attesa",
+        "accepted": "Accettata",
+        "refused": "Rifiutata",
+        "cancelled": "Annullata"
+      },
+      "impacts": "{count, plural, one {# missione interessata:} other {# missioni interessate:}}",
+      "accept": "Accetta",
+      "refuse": "Rifiuta",
+      "cancel": "Annulla l'assenza",
+      "mine": "Le mie assenze",
+      "noneMine": "Nessuna assenza segnalata.",
+      "absentNow": "Assente ora",
+      "conflictsTitle": "{count, plural, one {# missione da riorganizzare} other {# missioni da riorganizzare}}",
+      "conflictsText": "Queste missioni non rientrano più fuori dalle assenze o chiusure. HALO non le riassegna mai da solo: aprile per cambiare persona o fascia.",
+      "nobody": "Nessuno assegnato",
+      "conflictKind": {
+        "accepted": "assenza accettata",
+        "pending": "se la richiesta in attesa viene accettata",
+        "closure": "chiusura del team"
+      },
+      "closureStay": "Soggiorno durante una chiusura: {guest}, {dates}",
+      "listTitle": "Assenze e chiusure in arrivo",
+      "listText": "Solo le assenze accettate bloccano un'assegnazione.",
+      "none": "Nessuna assenza o chiusura in arrivo.",
+      "historyTitle": "Cronologia delle assenze",
+      "historyEmpty": "Nessuna attività.",
+      "event": {
+        "requested": "richiesta",
+        "created": "registrata",
+        "accepted": "accettata",
+        "refused": "rifiutata",
+        "cancelled": "annullata"
+      }
     }
   },
   "email": {
@@ -2002,6 +2168,10 @@
     "problem_taken": {
       "subject": "{org} — la tua segnalazione è in carico",
       "body": "Il team sta gestendo il problema. Seguine l'avanzamento nel tuo spazio."
+    },
+    "team_absence_requested": {
+      "subject": "Richiesta di assenza — {member}",
+      "body": "{member} ha segnalato un'assenza o un'indisponibilità. Attende la tua decisione; le missioni interessate sono elencate in HALO."
     }
   },
   "guestSpace": {

@@ -1,3 +1,4 @@
+import { TASK_TYPES } from "@/lib/domain/types";
 import { describe, expect, it } from "vitest";
 import { issueOptions, channelOptions, proposeConfiguration } from "@/lib/onboarding/propose";
 
@@ -21,7 +22,7 @@ describe("propositions d'onboarding", () => {
   it("hôtel avec contrôle des chambres et validation de toutes les missions", () => {
     const r = proposeConfiguration({ activity_type: "independent_hotel", room_inspection: true, validation_policy: "all", linen_model: "none" }, L);
     expect(get(r, "task_types")?.value).toEqual(["turnover", "inspection"]);
-    expect(get(r, "validation")?.value).toEqual(["turnover", "inspection"]);
+    expect(get(r, "validation")?.value).toEqual(TASK_TYPES); // y compris la maintenance (retour du 29/10)
     expect(get(r, "linen")).toBeUndefined();
     expect(JSON.stringify(get(r, "checklist")?.value)).not.toContain("room.kitchen");
   });

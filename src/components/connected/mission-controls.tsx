@@ -21,6 +21,7 @@ export function AssignSelect({
   outOfWindow,
   durationMin = 60,
   arrival,
+  unavailable = [],
 }: {
   taskId: string;
   current: string | null;
@@ -30,6 +31,8 @@ export function AssignSelect({
   outOfWindow?: boolean;
   durationMin?: number;
   arrival?: string | null;
+  /** Personnes absentes sur ce créneau (absence acceptée ou fermeture) : non proposées. La base refuse aussi. */
+  unavailable?: string[];
 }) {
   const t = useTranslations("connected.missions");
   const { pending, error, run } = useRun();
@@ -49,11 +52,14 @@ export function AssignSelect({
         data-testid="assign-select"
       >
         <option value="">{t("unassigned")}</option>
-        {members.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.name}
-          </option>
-        ))}
+        {members.map((m) => {
+          const away = unavailable.includes(m.id) && m.id !== current;
+          return (
+            <option key={m.id} value={m.id} disabled={away}>
+              {away ? `${m.name} — ${t("absent")}` : m.name}
+            </option>
+          );
+        })}
       </Select>
       {pendingMember && (
         <div className="mt-2 max-w-72 rounded-md border border-danger bg-danger-soft p-3 text-[13px]" role="alert" data-testid="out-of-window">

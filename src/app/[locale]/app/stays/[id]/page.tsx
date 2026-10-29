@@ -7,6 +7,10 @@ import { GuestLinkPanel, StayReply, type LinkRow } from "@/components/connected/
 import { OutboxList, type OutboxItem } from "@/components/connected/outbox-list";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { cn } from "@/lib/utils";
+import { durationText, windowText } from "@/lib/connected/format";
+import { toProperty, toReservation } from "@/lib/connected/mappers";
+import { scheduleConflicts } from "@/lib/engine/tasks";
+import { nowDate } from "@/lib/connected/time";
 
 export default async function StayPage({ params }: PageProps<"/[locale]/app/stays/[id]">) {
   const { locale, id } = await params;
@@ -28,13 +32,18 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
     .eq("id", id)
     .maybeSingle();
   if (!s) notFound();
-  const [{ data: links }, { data: msgs }, { data: services }, { data: tasks }, { data: outbox }] = await Promise.all([
+  const [{ data: links }, { data: msgs }, { data: services }, { data: tasks }, { data: outbox }, { data: prop }, { data: around }] = await Promise.all([
     supabase.from("guest_links").select("id, valid_from, valid_until, revoked_at, revoke_reason, last_opened_at, created_at").eq("organization_id", o).eq("reservation_id", id).order("created_at", { ascending: false }),
     supabase.from("stay_messages").select("id, author_kind, body, created_at, read_by_guest_at").eq("organization_id", o).eq("reservation_id", id).order("created_at"),
     supabase.from("service_requests").select("id, kind, start_at, status, manager_unread").eq("organization_id", o).eq("reservation_id", id).order("created_at", { ascending: false }),
     supabase.from("tasks").select("id, type, status, window_start, window_end").eq("organization_id", o).or(`reservation_id.eq.${id},next_reservation_id.eq.${id}`).neq("status", "cancelled").order("window_start"),
     supabase.from("notification_outbox").select("id, template, recipient, status, attempts, last_error, created_at, sent_at").eq("organization_id", o).eq("reservation_id", id).order("created_at", { ascending: false }),
+    supabase.from("properties").select("*").eq("organization_id", o).eq("id", s.property_id).single(),
+    supabase.from("reservations").select("*").eq("organization_id", o).eq("property_id", s.property_id).eq("status", "confirmed"),
   ]);
+  const tc = await getTranslations("connected.schedule");
+  // Conflit de créneau qui touche ce séjour (départ ou arrivée) : signalé, jamais une mission impossible
+  const conflicts = prop ? scheduleConflicts(toProperty(prop), (around ?? []).map(toReservation), nowDate()).filter((c) => c.reservationId === id || c.nextReservationId === id) : [];
   const p = (Array.isArray(s.properties) ? s.properties[0] : s.properties) as { name: string } | null;
   const d = (x: string) => f.dateTime(new Date(x), { dateStyle: "medium", timeStyle: "short" });
   return (
@@ -42,6 +51,17 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
       <PageHeader title={s.guest_name || t("stays.unnamed")} subtitle={`${p?.name} · ${d(s.check_in_at)} → ${d(s.check_out_at)}`} />
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
+          {conflicts.length > 0 && (
+            <Card className="border-danger p-5" data-testid="stay-schedule-conflict">
+              <h2 className="text-[17px] font-semibold text-danger">{tc("stayTitle")}</h2>
+              {conflicts.map((c) => (
+                <p key={c.kind} className="mt-1 text-[14px]">
+                  {tc(`kind.${c.kind}`, { available: durationText(c.availableMin ?? 0), needed: durationText(c.neededMin ?? 0) })}
+                </p>
+              ))}
+              <p className="mt-2 text-[13px] text-muted">{tc("stayHint")}</p>
+            </Card>
+          )}
           <GuestLinkPanel reservationId={s.id} links={(links ?? []) as LinkRow[]} checkOut={s.check_out_at} />
           <Card className="p-5">
             <h2 className="text-[17px] font-semibold">{t("stays.services")}</h2>
@@ -66,7 +86,10 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
             <ul className="mt-2 space-y-1.5 text-[14px]">
               {(tasks ?? []).map((k) => (
                 <li key={k.id}>
-                  {tt(k.type)} · {d(k.window_start)} — <span className="text-muted">{tts(k.status)}</span>
+                  <Link href={`/app/missions/${k.id}`} className="hover:underline">
+                    {tt(k.type)} · {windowText(f, k.window_start, k.window_end)}
+                  </Link>{" "}
+                  — <span className="text-muted">{tts(k.status)}</span>
                 </li>
               ))}
               {(tasks ?? []).length === 0 && <li className="text-muted">{t("stays.noMissions")}</li>}

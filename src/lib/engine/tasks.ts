@@ -9,7 +9,15 @@ import { turnoverPriority } from "./time";
 
 const MINUTE = 60_000;
 const DAY = 24 * 60 * MINUTE;
-/** Fenêtre par défaut quand aucune arrivée ne suit : départ + 3 jours. */
+/**
+ * Règle du créneau de ménage (rotation) — docs/04 §2 :
+ * - début : l'heure de départ du voyageur (ou son départ anticipé signalé) ;
+ * - fin : l'arrivée suivante dans le logement, quel que soit le jour (même jour ou plusieurs jours après) ;
+ * - sans arrivée suivante : départ + OPEN_WINDOW_DAYS jours (le ménage reste à faire, sans urgence) ;
+ * - la DURÉE estimée (durée du logement, + temps animaux) est distincte de la FENÊTRE ;
+ * - si la fenêtre est plus courte que la durée, si deux séjours se chevauchent, si le départ ou la durée
+ *   est invalide : AUCUNE mission impossible n'est créée, un conflit est signalé au responsable.
+ */
 export const OPEN_WINDOW_DAYS = 3;
 /** Temps de ménage ajouté quand des animaux ont séjourné (poils, odeurs). */
 export const PET_EXTRA_MIN = 30;
@@ -29,6 +37,18 @@ export interface TaskDraft {
   babies?: number;
   pets?: number;
   vip?: boolean;
+}
+
+/** Conflit de planning signalé au responsable au lieu de créer une mission impossible. */
+export interface ScheduleConflict {
+  kind: "gap_too_short" | "stay_overlap" | "missing_checkout" | "invalid_duration";
+  propertyId: string;
+  reservationId: string;
+  nextReservationId?: string;
+  /** Minutes disponibles entre le départ et l'arrivée suivante (gap_too_short). */
+  availableMin?: number;
+  /** Minutes nécessaires (durée estimée du ménage). */
+  neededMin?: number;
 }
 
 export interface TaskPatch {
@@ -57,28 +77,59 @@ const t = (s: string) => new Date(s).getTime();
 
 /** Calcule les tâches auto attendues pour un logement. */
 export function expectedTasks(property: Property, reservations: Reservation[], now: Date): TaskDraft[] {
+  return schedule(property, reservations, now).drafts;
+}
+
+/** Conflits de planning d'un logement (missions de ménage impossibles à créer). */
+export function scheduleConflicts(property: Property, reservations: Reservation[], now: Date): ScheduleConflict[] {
+  return schedule(property, reservations, now).conflicts;
+}
+
+function schedule(property: Property, reservations: Reservation[], now: Date): { drafts: TaskDraft[]; conflicts: ScheduleConflict[] } {
   const nowMs = now.getTime();
   const confirmed = reservations
     .filter((r) => r.propertyId === property.id && r.status === "confirmed")
     .sort((a, b) => t(a.checkInAt) - t(b.checkInAt));
 
   const drafts: TaskDraft[] = [];
-  confirmed.forEach((r) => {
+  const conflicts: ScheduleConflict[] = [];
+  confirmed.forEach((r, idx) => {
     // Départ anticipé signalé par le voyageur : la fenêtre de ménage s'ouvre plus tôt
-    const outMs = r.departedAt ? Math.min(t(r.departedAt), t(r.checkOutAt)) : t(r.checkOutAt);
+    const plannedOut = t(r.checkOutAt);
+    const outMs = r.departedAt ? Math.min(t(r.departedAt), plannedOut) : plannedOut;
     const inMs = t(r.checkInAt);
+    if (!Number.isFinite(plannedOut) || !Number.isFinite(inMs)) {
+      conflicts.push({ kind: "missing_checkout", propertyId: property.id, reservationId: r.id });
+      return;
+    }
 
     // Ménage de rotation : départ de R → arrivée suivante
     if (outMs >= nowMs - HORIZON_PAST_MS && outMs <= nowMs + HORIZON_FUTURE_MS) {
+      // Séjour qui commence avant la fin de celui-ci : chevauchement, jamais un ménage « entre les deux »
+      const overlapping = confirmed.slice(idx + 1).find((n) => t(n.checkInAt) < plannedOut);
       const next = confirmed.find((n) => n.id !== r.id && t(n.checkInAt) >= outMs);
       const windowEnd = next ? t(next.checkInAt) : outMs + OPEN_WINDOW_DAYS * DAY;
+      const durationMin = property.cleaningDurationMin + (r.pets ? PET_EXTRA_MIN : 0);
+      if (overlapping) {
+        conflicts.push({ kind: "stay_overlap", propertyId: property.id, reservationId: r.id, nextReservationId: overlapping.id });
+        return;
+      }
+      if (!Number.isFinite(property.cleaningDurationMin) || property.cleaningDurationMin < 5) {
+        conflicts.push({ kind: "invalid_duration", propertyId: property.id, reservationId: r.id, nextReservationId: next?.id });
+        return;
+      }
+      const availableMin = Math.floor((windowEnd - outMs) / MINUTE);
+      if (availableMin < durationMin) {
+        conflicts.push({ kind: "gap_too_short", propertyId: property.id, reservationId: r.id, nextReservationId: next?.id, availableMin: Math.max(0, availableMin), neededMin: durationMin });
+        return;
+      }
       drafts.push({
         propertyId: property.id,
         type: "turnover",
         reservationId: r.id,
         nextReservationId: next?.id,
         windowStart: iso(outMs),
-        windowEnd: iso(Math.max(windowEnd, outMs + MINUTE)),
+        windowEnd: iso(windowEnd),
         priority: turnoverPriority({
           checkOutAt: new Date(outMs),
           nextCheckInAt: next ? new Date(t(next.checkInAt)) : null,
@@ -86,7 +137,7 @@ export function expectedTasks(property: Property, reservations: Reservation[], n
           timeZone: property.timezone,
         }),
         // Animaux chez le voyageur sortant = ménage plus long
-        durationMin: property.cleaningDurationMin + (r.pets ? PET_EXTRA_MIN : 0),
+        durationMin,
         // Préparation pour le voyageur entrant (linge, lit bébé…)
         guestsCount: next?.guestsCount,
         babies: next?.babies || undefined,
@@ -129,7 +180,7 @@ export function expectedTasks(property: Property, reservations: Reservation[], n
       });
     }
   });
-  return drafts;
+  return { drafts, conflicts };
 }
 
 /** Compare l'existant à l'attendu et renvoie les opérations à appliquer. */
@@ -147,6 +198,10 @@ export function planTasks(
     (x) => x.propertyId === property.id && x.isAutoGenerated && x.status !== "cancelled",
   );
   const byKey = new Map(autoTasks.map((x) => [key(x.reservationId, x.type), x]));
+  // Mission reprise à la main (créneau corrigé, ménage créé manuellement) : la synchro ne la recrée pas en double
+  const manual = existingTasks.filter((x) => x.propertyId === property.id && !x.isAutoGenerated && x.status !== "cancelled");
+  const handledByHand = (d: TaskDraft) =>
+    manual.some((x) => x.type === d.type && ((x.reservationId && x.reservationId === d.reservationId) || (d.type === "turnover" && d.nextReservationId && x.nextReservationId === d.nextReservationId)));
   const expectedKeys = new Set<string>();
   const reservationById = new Map(reservations.map((r) => [r.id, r]));
 
@@ -155,7 +210,7 @@ export function planTasks(
     expectedKeys.add(k);
     const current = byKey.get(k);
     if (!current) {
-      plan.create.push(draft);
+      if (!handledByHand(draft)) plan.create.push(draft);
       continue;
     }
     if (LOCKED_STATUSES.includes(current.status)) continue;

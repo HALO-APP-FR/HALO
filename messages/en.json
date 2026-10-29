@@ -1292,7 +1292,9 @@
       "team": "Team",
       "setup": "Setup",
       "incidents": "Incidents",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "settings": "Settings",
+      "profile": "My profile"
     },
     "env": {
       "demo": "Demo",
@@ -1355,8 +1357,14 @@
       "empty": "Add a description.",
       "too_late": "Too late: the arrival time has passed.",
       "resolution_required": "Say what was done.",
-      "invalid_window": "The time slot isn't valid (end after start, at least 5 min).",
-      "out_of_window": "The mission no longer fits its window: confirm a new end before assigning."
+      "invalid_window": "The time slot is not valid: the end must leave at least the estimated duration after the start.",
+      "out_of_window": "The mission no longer fits its window: confirm a new end before assigning.",
+      "stay_overlap": "This stay overlaps another confirmed stay in the same property.",
+      "assignee_unavailable": "This person is away during this time slot: the mission does not fit outside their absence.",
+      "name_required": "Enter your name.",
+      "invalid_period": "The period is not valid (end after start).",
+      "not_member": "This person is not part of the active team.",
+      "invalid_kind": "Invalid absence type."
     },
     "home": {
       "subtitle": "What needs your attention.",
@@ -1374,7 +1382,10 @@
       "noArrivals": "No arrival in the next 48 hours.",
       "allReady": "All arrivals are ready: cleaning validated and no open incident.",
       "you": "you",
-      "pending": "Still to do before arrival: {steps}"
+      "pending": "Still to do before arrival: {steps}",
+      "schedule": "{count, plural, =0 {No cleaning that cannot be scheduled} one {# cleaning cannot be scheduled} other {# cleanings cannot be scheduled}}",
+      "availability": "{count, plural, =0 {No mission affected by an absence} one {# mission to reorganize (absence or closure)} other {# missions to reorganize (absence or closure)}}",
+      "absenceRequests": "{count, plural, =0 {No pending absence request} one {# absence request to decide} other {# absence requests to decide}}"
     },
     "onb": {
       "progress": "Step {n} of {total}",
@@ -1712,7 +1723,8 @@
         "team_guest_problem": "Team: guest problem",
         "team_agent_blocker": "Team: urgent blocker",
         "team_guest_message": "Team: guest message",
-        "problem_taken": "Problem being handled"
+        "problem_taken": "Problem being handled",
+        "team_absence_requested": "Team: absence request"
       },
       "testAddress": "Fictitious address (test account): nothing is sent."
     },
@@ -1807,11 +1819,14 @@
       "outOfWindowText": "This mission no longer fits its window. Set a new end before assigning.",
       "newWindowEnd": "New window end",
       "confirmOutOfWindow": "Confirm assignment",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "absent": "away",
+      "windowLabel": "To be done {window}",
+      "durationLabel": "duration {duration}"
     },
     "team": {
       "title": "Team",
-      "subtitle": "Your organisation's members and roles.",
+      "subtitle": "Who is who, who is available, what needs reorganizing.",
       "noName": "Incomplete profile",
       "inactive": "deactivated",
       "roles": {
@@ -1826,7 +1841,16 @@
       "copyOnce": "Send this link to them. It won't be shown again.",
       "accept": "Join the organisation",
       "inviteTitle": "You're invited to HALO",
-      "inviteSignedAs": "Signed in as {email}."
+      "inviteSignedAs": "Signed in as {email}.",
+      "yourName": "Your name",
+      "yourNameHint": "Shown to the team and on your missions.",
+      "yourPhone": "Phone (optional)",
+      "yourPhoneHint": "So a manager can reach you in the field.",
+      "fields": {
+        "name": "name",
+        "phone": "phone"
+      },
+      "toComplete": "to complete: {fields}"
     },
     "fromDemo": "This address belongs to the demo. Sign in for the real environment, or open the demo explicitly:",
     "openDemo": "open the demo",
@@ -1853,7 +1877,16 @@
       "notes": "To handle",
       "oldProof": "Previous proof (replaced after correction)",
       "redoItems": "Items to redo",
-      "newPhotoRequired": "new photo required"
+      "newPhotoRequired": "new photo required",
+      "window": "To be done",
+      "duration": "Estimated duration",
+      "closing": "When finished",
+      "needsValidation": "Validated by a manager",
+      "autoValidated": "Closes directly (setting)",
+      "manualWindow": "Time slot set by hand: it is no longer recalculated automatically.",
+      "sourceIncident": "Intervention linked to the incident",
+      "incidentResolved": "incident resolved",
+      "incidentStillOpen": "its resolution is still for a manager to decide"
     },
     "testAccount": {
       "title": "Pre-production: test account without email",
@@ -1930,13 +1963,146 @@
       "planDuration": "Duration (min)",
       "planHint": "The mission is linked to the property's next arrival: until it's done, that arrival isn't “ready”.",
       "planConfirm": "Create the intervention",
-      "openIntervention": "See the intervention"
+      "openIntervention": "See the intervention",
+      "interventionStatus": "intervention: {status}"
     },
     "notifications": {
       "title": "Notifications sent",
       "subtitle": "Every email to guests and the team, with its real status. Nothing shows “sent” unless the provider accepted it.",
       "loadError": "Couldn't load notifications.",
       "summary": "{sent} sent · {pending} pending · {failed} failed · {notConfigured} not sent (no provider)"
+    },
+    "profile": {
+      "incompleteTitle": "Add your name",
+      "incompleteText": "Without a name, the team sees you as “No name” on missions.",
+      "pageTitle": "My profile",
+      "title": "Contact details",
+      "name": "Name",
+      "nameMissing": "Required: shown to the team and on missions.",
+      "phone": "Phone",
+      "phoneMissing": "Optional, but useful to reach you in the field.",
+      "phoneHint": "Visible to your organization's managers.",
+      "save": "Save",
+      "saved": "Saved.",
+      "missing": "To complete: {fields}",
+      "complete": "Profile complete.",
+      "me": "Me"
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "What is saved here is enforced by the server.",
+      "validationTitle": "Mission validation",
+      "validationText": "For each type: when finished, the mission goes to “To validate” (a manager validates or requests a correction) or closes directly.",
+      "needsValidation": "Validation",
+      "autoClose": "Closes directly",
+      "save": "Save",
+      "saved": "Setting saved and applied to the next missions finished."
+    },
+    "window": {
+      "edit": "Change the time slot",
+      "start": "From",
+      "end": "At the latest",
+      "duration": "Estimated duration (min)",
+      "durationHint": "Working time, separate from the window.",
+      "reason": "Reason (optional)",
+      "tooShort": "The window must be at least as long as the duration.",
+      "save": "Save the time slot",
+      "cancel": "Cancel"
+    },
+    "missionHistory": {
+      "title": "History",
+      "kind": {
+        "created": "Created",
+        "assigned": "Assigned",
+        "unassigned": "Unassigned",
+        "started": "Started",
+        "submitted": "Finished, to validate",
+        "validated": "Validated",
+        "auto_validated": "Closed without validation (setting)",
+        "correction_requested": "Correction requested",
+        "cancelled": "Cancelled",
+        "status_changed": "Status changed",
+        "window_changed": "Time slot changed"
+      }
+    },
+    "schedule": {
+      "title": "{count, plural, one {# cleaning cannot be scheduled} other {# cleanings cannot be scheduled}}",
+      "text": "HALO did not create an impossible mission: change the stays' times or create the cleaning by hand with a realistic time slot.",
+      "kind": {
+        "gap_too_short": "{available} between check-out and the next check-in, {needed} of cleaning needed.",
+        "stay_overlap": "Two stays overlap in this property.",
+        "missing_checkout": "Missing or invalid check-out time.",
+        "invalid_duration": "The property's cleaning duration is zero or invalid."
+      },
+      "open": "View the stay",
+      "stayTitle": "Cleaning cannot be scheduled",
+      "stayHint": "No mission was created automatically. Adjust the times or create the cleaning from “Property ready” with a realistic time slot."
+    },
+    "absences": {
+      "newTitle": "Absence or closure",
+      "newText": "Recorded by a manager: accepted straight away. No mission is moved automatically.",
+      "requestTitle": "Report an absence or unavailability",
+      "requestText": "Your manager receives the request and approves it.",
+      "who": "Person",
+      "noName": "No name",
+      "wholeTeam": "Whole team",
+      "position": "Roles concerned",
+      "positionHint": "For example: only housekeepers.",
+      "allPositions": "All roles",
+      "kind": "Type",
+      "kinds": {
+        "leave": "Leave",
+        "unavailable": "Unavailable",
+        "closure": "Team closure"
+      },
+      "allDay": "Whole days",
+      "from": "From",
+      "to": "To (included)",
+      "start": "Start",
+      "end": "End",
+      "unplanned": "Unplanned",
+      "unplannedShort": "unplanned",
+      "reason": "Short reason (optional)",
+      "reasonHint": "No medical or personal details: “Leave” or “Appointment” is enough.",
+      "save": "Save",
+      "request": "Send the request",
+      "invalidPeriod": "The end must be after the start.",
+      "savedPending": "Request saved, awaiting a decision.",
+      "savedAccepted": "Saved and taken into account for assignments.",
+      "status": {
+        "pending": "Pending",
+        "accepted": "Accepted",
+        "refused": "Refused",
+        "cancelled": "Cancelled"
+      },
+      "impacts": "{count, plural, one {# mission affected:} other {# missions affected:}}",
+      "accept": "Accept",
+      "refuse": "Refuse",
+      "cancel": "Cancel the absence",
+      "mine": "My absences",
+      "noneMine": "No absence reported.",
+      "absentNow": "Away right now",
+      "conflictsTitle": "{count, plural, one {# mission to reorganize} other {# missions to reorganize}}",
+      "conflictsText": "These missions no longer fit outside absences or closures. HALO never reassigns them on its own: open them to change the person or the time slot.",
+      "nobody": "No one assigned",
+      "conflictKind": {
+        "accepted": "accepted absence",
+        "pending": "if the pending request is accepted",
+        "closure": "team closure"
+      },
+      "closureStay": "Stay during a closure: {guest}, {dates}",
+      "listTitle": "Upcoming absences and closures",
+      "listText": "Only accepted absences block an assignment.",
+      "none": "No upcoming absence or closure.",
+      "historyTitle": "Absence history",
+      "historyEmpty": "No activity.",
+      "event": {
+        "requested": "requested",
+        "created": "recorded",
+        "accepted": "accepted",
+        "refused": "refused",
+        "cancelled": "cancelled"
+      }
     }
   },
   "email": {
@@ -2002,6 +2168,10 @@
     "problem_taken": {
       "subject": "{org} — your report is being handled",
       "body": "The team is handling the problem you reported. Follow its progress in your guest space."
+    },
+    "team_absence_requested": {
+      "subject": "Absence request — {member}",
+      "body": "{member} reported an absence or unavailability. It awaits your decision; the missions affected are listed in HALO."
     }
   },
   "guestSpace": {

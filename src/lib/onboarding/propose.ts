@@ -5,6 +5,7 @@
  * Aucune information légale n'est produite ici.
  */
 
+import { TASK_TYPES as ALL_TASK_TYPES, type TaskType as AnyTaskType } from "@/lib/domain/types";
 export type ActivityType =
   | "concierge"
   | "short_term_rental"
@@ -96,7 +97,7 @@ export interface ChecklistRoom {
 export type Proposal =
   | { id: "task_types"; value: TaskType[]; reasons: string[] }
   | { id: "checklist"; value: ChecklistRoom[]; reasons: string[] }
-  | { id: "validation"; value: TaskType[]; reasons: string[] }
+  | { id: "validation"; value: AnyTaskType[]; reasons: string[] }
   | { id: "alerts"; value: Alert[]; reasons: string[] }
   | { id: "linen"; value: number; reasons: string[] };
 
@@ -214,9 +215,10 @@ export function proposeConfiguration(
     (a.cleaning_model === "providers" || a.cleaning_model === "both"
       ? "turnover"
       : "none");
-  const validation: TaskType[] =
+  const validation: AnyTaskType[] =
     policy === "all"
-      ? Array.from(new Set(types))
+      ? // « Toutes les missions » : tous les types, y compris ceux créés plus tard (interventions de maintenance, contrôles…)
+        [...ALL_TASK_TYPES]
       : policy === "turnover"
         ? ["turnover"]
         : [];

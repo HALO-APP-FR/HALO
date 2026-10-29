@@ -11,7 +11,7 @@ export default async function InvitePage({ params }: PageProps<"/[locale]/invite
   setRequestLocale(locale);
   const t = await getTranslations("connected");
   if (!isConnected()) return <p className="mx-auto max-w-lg p-8 text-[15px] text-muted">{t("notConfigured")}</p>;
-  const { user } = await getContext();
+  const { user, profile } = await getContext();
   if (!user) redirect({ href: { pathname: "/auth/sign-in", query: { next: `/invite/${token}` } }, locale });
   return (
     <div className="flex min-h-dvh flex-col bg-subtle">
@@ -23,7 +23,7 @@ export default async function InvitePage({ params }: PageProps<"/[locale]/invite
           <LogoMark className="mx-auto size-12 text-fg" />
           <h1 className="mt-5 text-title-2">{t("team.inviteTitle")}</h1>
           <p className="mb-6 mt-2 text-[15px] text-muted">{t("team.inviteSignedAs", { email: user!.email ?? "" })}</p>
-          <AcceptInvite token={token} />
+          <AcceptInvite token={token} defaultName={profile?.full_name ?? ""} defaultPhone={profile?.phone ?? ""} />
         </div>
       </main>
     </div>

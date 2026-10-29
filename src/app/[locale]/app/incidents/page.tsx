@@ -12,6 +12,7 @@ export default async function IncidentsPage({ params }: PageProps<"/[locale]/app
   setRequestLocale(locale);
   const t = await getTranslations("connected.incidents");
   const tt = await getTranslations("taskType");
+  const tts = await getTranslations("taskStatus");
   const f = await getFormatter();
   const { supabase, org } = await getContext();
   if (!org) redirect({ href: "/app", locale });
@@ -23,7 +24,7 @@ export default async function IncidentsPage({ params }: PageProps<"/[locale]/app
   }));
   const { data, error } = await supabase
     .from("incidents")
-    .select("id, source, category, description, urgent, status, created_at, taken_at, resolved_at, resolution, guest_message, manager_unread, task_id, reservation_id, follow_up_task_id, properties(name), reservations(guest_name, guest_email), tasks!incidents_organization_id_task_id_fkey(type)")
+    .select("id, source, category, description, urgent, status, created_at, taken_at, resolved_at, resolution, guest_message, manager_unread, task_id, reservation_id, follow_up_task_id, properties(name), reservations(guest_name, guest_email), tasks!incidents_organization_id_task_id_fkey(type), follow:tasks!incidents_follow_up_fk(status)")
     .eq("organization_id", org!.id)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -77,6 +78,15 @@ export default async function IncidentsPage({ params }: PageProps<"/[locale]/app
                 {i.follow_up_task_id && (
                   <Link href={`/app/missions/${i.follow_up_task_id}`} className="mt-2 text-accent-text hover:underline" data-testid="incident-intervention">
                     {t("openIntervention")}
+                    {/* État de l'intervention, distinct de celui de l'incident (résolu seulement par un responsable) */}
+                    {(() => {
+                      const fu = one(i.follow as unknown as { status: string } | { status: string }[] | null);
+                      return fu ? (
+                        <span className="ms-1 text-muted" data-testid="incident-intervention-status">
+                          · {t("interventionStatus", { status: tts(fu.status) })}
+                        </span>
+                      ) : null;
+                    })()}
                   </Link>
                 )}
                 {i.reservation_id && (

@@ -217,7 +217,7 @@ test("5-7 · prestation, précisions, acceptation, refus, modification, messages
   await expect(page.getByTestId("decide-preview")).not.toContainText("chef Marc");
   await expect(page.getByTestId("decide-preview")).toContainText(guestEmail);
   await page.getByTestId("decide-confirm").click();
-  await expect(page.getByTestId("decide-done")).toBeVisible();
+  await expect(page.getByTestId("decide-saved")).toBeVisible();
   await expect(page.locator("[data-visibility=internal]")).toContainText("chef Marc");
   await expect(page.getByTestId("outbox-row").first()).toHaveAttribute("data-status", "sent");
 
@@ -237,7 +237,7 @@ test("5-7 · prestation, précisions, acceptation, refus, modification, messages
   await page.getByTestId("decide-confirmed").click();
   await page.getByTestId("decide-message").fill("Chef confirmé pour 20 h");
   await page.getByTestId("decide-confirm").click();
-  await expect(page.getByTestId("decide-done")).toBeVisible();
+  await expect(page.getByTestId("decide-saved")).toBeVisible();
   await guest.reload();
   await expect(guest.getByTestId("guest-service").first()).toHaveAttribute("data-status", "confirmed");
   await expect(guest.getByTestId("guest-service").first()).toContainText("Chef confirmé pour 20 h");
@@ -262,7 +262,7 @@ test("5-7 · prestation, précisions, acceptation, refus, modification, messages
   await page.getByTestId("decide-declined").click();
   await page.getByTestId("decide-message").fill("Aucun chauffeur disponible ce soir-là");
   await page.getByTestId("decide-confirm").click();
-  await expect(page.getByTestId("decide-done")).toBeVisible();
+  await expect(page.getByTestId("decide-saved")).toBeVisible();
   await guest.reload();
   await expect(guest.locator("[data-status=declined]")).toContainText("Aucun chauffeur disponible");
 
@@ -290,7 +290,9 @@ test("5-7 · prestation, précisions, acceptation, refus, modification, messages
 
 test("7b · échec d'envoi visible et relançable, jamais affiché « envoyé »", async ({ page, browser }) => {
   await signIn(page, managerA);
-  const { data: p } = await admin.from("properties").select("id").eq("organization_id", s.orgA).single();
+  // Logement à part : un séjour qui chevaucherait celui d'Alex dans le même logement serait refusé (règle du 29/10)
+  const { data: p } = await admin.from("properties").insert({ organization_id: s.orgA, name: "Studio Bounce" }).select("id").single();
+  await admin.from("guest_guides").insert({ organization_id: s.orgA, property_id: p!.id, enabled: true });
   const { data: r } = await admin
     .from("reservations")
     .insert({ organization_id: s.orgA, property_id: p!.id, guest_name: "Bounce Test", guest_email: `bounce-${run}@halo.test`, check_in_at: new Date(Date.now() + 86_400_000).toISOString(), check_out_at: new Date(Date.now() + 3 * 86_400_000).toISOString() })
@@ -368,11 +370,16 @@ test("8 · cloisonnement : autre organisation, autre séjour, agent", async ({ p
   const invite = await pa.getByTestId("invite-url").inputValue();
   const agent = await newPage(browser);
   await signIn(agent, agentA, `?next=${encodeURIComponent(new URL(invite).pathname.replace("/fr", ""))}`);
+  // Le nom est demandé à l'arrivée dans l'équipe (sinon le manager verrait « Sans nom »)
+  await expect(agent.getByTestId("invite-accept")).toBeDisabled();
+  await agent.getByTestId("invite-name").fill("Sam Agent");
+  await agent.getByTestId("invite-phone").fill("06 12 34 56 78");
   await agent.getByTestId("invite-accept").click();
   await expect(agent).toHaveURL(/\/fr\/app\/missions$/);
   await expect(agent.getByTestId("mission-row")).toHaveCount(0);
-  const agentId = (await admin.auth.admin.listUsers()).data.users.find((u) => u.email === agentA)!.id;
-  await admin.from("profiles").update({ full_name: "Sam Agent" }).eq("id", agentId);
+  await expect(agent.getByTestId("profile-incomplete")).toHaveCount(0);
+  await pa.goto("/fr/app/team");
+  await expect(pa.getByTestId("member-row").filter({ hasText: "Sam Agent" })).toContainText("06 12 34 56 78");
   await pa.goto("/fr/app/missions");
   const turnover = pa.getByTestId("mission-row").filter({ hasText: "Ménage · Loft Canal" }).first();
   await turnover.getByTestId("assign-select").selectOption({ label: "Sam Agent" });
@@ -713,4 +720,123 @@ test("16 · scénario de test complet, journal des envois et affectation hors fe
   await expect(late.getByTestId("out-of-window")).toHaveCount(0);
   await expect(late.getByTestId("assign-select")).toHaveValue(/.+/);
   for (const c of [m, guest, agent]) await c.context().close();
+});
+
+test("17 · validation par type, créneau lisible et corrigé, absences et fermeture sans réaffectation automatique", async ({ browser }) => {
+  const m = await newPage(browser);
+  await m.context().clearCookies();
+  await m.goto("/fr/auth/sign-in");
+  await m.getByLabel("Nom du compte de test").fill(`abs ${run}`);
+  await m.getByTestId("test-scenario-submit").click();
+  await expect(m.getByTestId("test-scenario-ready")).toBeVisible();
+  await m.getByTestId("test-scenario-continue").click();
+  await expect(m).toHaveURL(/\/fr\/app$/);
+  const agentUser = (await admin.auth.admin.listUsers({ perPage: 1000 })).data.users.find((u) => u.email === `test-abs-${run}-agent@halo.invalid`)!;
+  const { data: mem } = await admin.from("memberships").select("organization_id").eq("user_id", agentUser.id).single();
+  const org = mem!.organization_id as string;
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+
+  // 1. Réglage explicite par type : la maintenance passe par une validation (appliqué par le serveur)
+  await m.goto("/fr/app/settings");
+  await m.getByTestId("validation-maintenance-on").click();
+  await m.getByTestId("validation-save").click();
+  await expect(m.getByTestId("validation-settings")).toContainText("Réglage enregistré");
+  const { data: o } = await admin.from("organizations").select("validation_task_types").eq("id", org).single();
+  expect(o!.validation_task_types).toContain("maintenance");
+
+  const at = (min: number) => new Date(Date.now() + min * 60_000).toISOString();
+  const { data: mt } = await admin.from("tasks").insert({ organization_id: org, property_id: prop!.id, type: "maintenance", status: "assigned", assignee_id: agentUser.id, title: "Chaudière", window_start: at(-30), window_end: at(180), duration_min: 30 }).select("id").single();
+  const agent = await newPage(browser);
+  await agent.context().clearCookies();
+  await agent.goto("/fr/auth/sign-in");
+  await agent.getByLabel("Nom du compte de test").fill(`abs-${run}-agent`);
+  await agent.getByTestId("test-account-submit").click();
+  await agent.waitForURL(/\/fr\/app/);
+  await agent.goto(`/fr/app/missions/${mt!.id}`);
+  await expect(agent.getByTestId("mission-validation-rule")).toHaveText("Validation par un responsable");
+  await agent.getByTestId("mission-start").click();
+  await expect(agent.getByTestId("mission-finish")).toBeVisible();
+  await agent.getByTestId("mission-finish").click();
+  await expect(agent.getByTestId("mission-finish")).toHaveCount(0);
+  await expect.poll(async () => (await admin.from("tasks").select("status").eq("id", mt!.id).single()).data?.status).toBe("done");
+  await m.goto(`/fr/app/missions/${mt!.id}`);
+  await m.getByTestId("mission-validate").click();
+  await expect.poll(async () => (await admin.from("tasks").select("status").eq("id", mt!.id).single()).data?.status).toBe("validated");
+  await m.reload();
+  await expect(m.getByTestId("mission-history")).toContainText("Terminée, à valider");
+  await expect(m.getByTestId("mission-history")).toContainText("Validée");
+
+  // 2. Créneau : fenêtre et durée séparées, date de fin affichée, correction tracée
+  const { data: ménage } = await admin.from("tasks").select("id, window_start, window_end, duration_min").eq("organization_id", org).eq("type", "turnover").eq("assignee_id", agentUser.id).limit(1).single();
+  await m.goto(`/fr/app/missions/${ménage!.id}`);
+  await expect(m.getByTestId("mission-duration")).toHaveText(/\d/);
+  await m.getByTestId("window-edit").click();
+  const start = new Date(ménage!.window_start);
+  await m.getByTestId("window-end").fill(local(new Date(start.getTime() + 30 * 60_000)));
+  await expect(m.getByTestId("window-save")).toBeDisabled(); // plus court que la durée : impossible
+  await m.getByTestId("window-end").fill(local(new Date(start.getTime() + (ménage!.duration_min + 60) * 60_000)));
+  await m.getByTestId("window-reason").fill("Arrivée avancée");
+  await m.getByTestId("window-save").click();
+  await expect(m.getByTestId("window-editor")).toHaveCount(0);
+  await expect(m.getByTestId("mission-history")).toContainText("Créneau modifié");
+  await expect(m.getByTestId("mission-history")).toContainText("Arrivée avancée");
+
+  // 3. Absence demandée par l'agent : en attente, les responsables sont prévenus, une mission est concernée
+  const { data: today } = await admin.from("tasks").insert({ organization_id: org, property_id: prop!.id, type: "other", status: "assigned", assignee_id: agentUser.id, window_start: at(30), window_end: at(150), duration_min: 60 }).select("id").single();
+  await agent.goto("/fr/app/profile");
+  const tomorrow = local(new Date(Date.now() + 86_400_000)).slice(0, 10);
+  await agent.getByTestId("absence-to").fill(tomorrow);
+  await agent.getByTestId("absence-reason").fill("Rendez-vous");
+  await agent.getByTestId("absence-save").click();
+  await expect(agent.getByTestId("absence-saved")).toContainText("en attente");
+  await agent.reload();
+  await expect(agent.getByTestId("my-absences").getByTestId("absence-status").first()).toHaveText("En attente");
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-absenceRequests")).toContainText("1 demande d'absence à décider");
+  await m.goto("/fr/app/notifications");
+  await expect(m.getByTestId("outbox-row").filter({ hasText: "Équipe : demande d'absence" }).first()).toBeVisible();
+
+  // 4. Le responsable accepte : la mission déjà attribuée n'est PAS réaffectée, le conflit est listé
+  await m.goto("/fr/app/team");
+  const req = m.getByTestId("absence-row").filter({ hasText: "Agent test" }).first();
+  await expect(req.getByTestId("absence-impacts")).toBeVisible();
+  await req.getByTestId("absence-accept").click();
+  await expect(m.getByTestId("absence-row").filter({ hasText: "Agent test" }).first().getByTestId("absence-status")).toHaveText("Acceptée");
+  await expect(m.getByTestId("availability-conflicts")).toBeVisible();
+  await expect(m.getByTestId("availability-conflict").first()).toContainText("absence acceptée");
+  expect((await admin.from("tasks").select("assignee_id").eq("id", today!.id).single()).data?.assignee_id).toBe(agentUser.id);
+  await expect(m.getByTestId("member-row").filter({ hasText: "Agent test" }).getByTestId("member-absent")).toBeVisible();
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-availability")).toContainText("à réorganiser");
+
+  // 5. Nouvelle mission sur la période : l'agent absent n'est pas proposé (et la base refuserait)
+  await admin.from("tasks").insert({ organization_id: org, property_id: prop!.id, type: "inspection", window_start: at(60), window_end: at(240), duration_min: 45 });
+  await m.goto("/fr/app/missions");
+  const insp = m.getByTestId("mission-row").filter({ hasText: "Contrôle · Appartement test" });
+  await expect(insp.getByTestId("assign-select").locator("option", { hasText: "Agent test" })).toBeDisabled();
+  await expect(insp.getByTestId("assign-select").locator("option", { hasText: "Agent test" })).toContainText("absent");
+  const blocked = await admin.from("tasks").update({ assignee_id: agentUser.id, status: "assigned" }).eq("organization_id", org).eq("type", "inspection").select("id");
+  expect(blocked.error?.message).toContain("assignee_unavailable");
+
+  // 6. Fermeture d'équipe : signalée, rien n'est déplacé ni supprimé
+  await m.goto("/fr/app/team");
+  await m.getByTestId("absence-who").selectOption("team");
+  await m.getByTestId("absence-to").fill(tomorrow);
+  await m.getByTestId("absence-save").click();
+  await expect(m.getByTestId("absence-saved")).toContainText("prise en compte");
+  await m.reload();
+  await expect(m.getByTestId("absence-row").filter({ hasText: "Toute l'équipe" }).first()).toContainText("Fermeture d'équipe");
+  await expect(m.getByTestId("availability-conflict").filter({ hasText: "Contrôle" })).toContainText("fermeture d'équipe");
+  const { count } = await admin.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org).neq("status", "cancelled");
+  expect(count).toBeGreaterThanOrEqual(4);
+
+  // 7. Annulations : plus rien ne bloque
+  while ((await m.getByTestId("absence-cancel").count()) > 0) {
+    const n = await m.getByTestId("absence-cancel").count();
+    await m.getByTestId("absence-cancel").first().click();
+    await expect(m.getByTestId("absence-cancel")).toHaveCount(n - 1);
+  }
+  await m.reload();
+  await expect(m.getByTestId("availability-conflicts")).toHaveCount(0);
+  for (const c of [m, agent]) await c.context().close();
 });

@@ -98,3 +98,22 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 - **Affectation hors fenêtre** : jamais silencieuse. Connecté : refusée par le serveur sans nouvelle fin de fenêtre confirmée (avec l'heure d'arrivée du voyageur). Démo : confirmation explicite avec la nouvelle fin et l'heure d'arrivée.
 - **Scénario de test complet** (préproduction) : depuis la page de connexion, un bouton crée manager, agent, logement avec livret et checklist, séjour d'arrivée demain, ménage assigné et lien voyageur, à travers les vraies fonctions de la base.
 - **Auto-test** `/api/selftest?token=…&email=1` : en plus des droits, vérifie que chaque événement crée un envoi et que les e-mails voyageur partent réellement (adresse « +selftest » de l'expéditeur).
+
+## Phase 1 du retour du 30/10 (migration 9 : `20261104000001_validation_creneaux_absences.sql`)
+
+**Validation par type de mission.** Réglages → Validation des missions : chaque type (ménage, maintenance/intervention, livraison et collecte de linge, contrôle, accueil, départ, autre) est explicitement « Validation » ou « Clôture directe ». `finish_task` lit ce réglage en base : un type soumis à validation passe « À valider », jamais « Validée ». « Toutes les missions » choisi à l'onboarding couvre désormais tous les types ; les organisations concernées sont corrigées par la migration. Une intervention ne résout jamais l'incident : la fiche mission montre l'incident d'origine et son état, la page incidents montre l'état de l'intervention.
+
+**Créneaux de ménage (règle).** Début = départ du voyageur (ou départ anticipé signalé). Fin = arrivée suivante dans le logement, le même jour ou plus tard. Sans arrivée suivante : départ + 3 jours. La durée estimée (durée du logement, + 30 min si animaux) est affichée à part de la fenêtre, et la date de fin est toujours affichée quand elle diffère du début. Écart plus court que la durée, séjours qui se chevauchent, durée ou départ invalides : aucune mission n'est créée, un conflit est signalé (accueil, missions, fiche séjour). La base refuse toute fenêtre plus courte que la durée et tout séjour confirmé qui en chevauche un autre dans le même logement. Le responsable corrige un créneau (`set_task_window`) : motif facultatif, trace « Créneau modifié » dans l'historique, et la synchronisation ne déplace plus ni ne recrée cette mission.
+
+**Profil de l'agent.** L'acceptation d'une invitation demande le nom (obligatoire) et le téléphone (facultatif), contrôlés par `accept_invitation(token, nom, téléphone)`. Page « Mon profil » pour chacun, bandeau tant que le nom manque, champs à compléter visibles dans l'équipe. Aucun droit en plus.
+
+**Absences et fermetures.** Tables `absences` et `absence_events`, écritures uniquement par fonctions :
+- `save_absence` (idempotente) : un responsable crée une absence, acceptée d'office ; un agent la demande pour lui-même (en attente, les responsables sont prévenus par e-mail).
+- `decide_absence` et `cancel_absence` : décision et annulation.
+- Catégories neutres (congé, indisponible, fermeture d'équipe) et motif court facultatif, sans détail médical.
+- Seules les absences acceptées bloquent. Le contrôle se fait en base, sur toute nouvelle affectation (`check_assignee_available`) : la mission doit tenir dans le plus long temps libre de sa fenêtre, donc une absence partielle ne bloque que ce qu'elle recouvre.
+- Une absence ou une fermeture enregistrée après coup ne modifie aucune mission. Les missions à réorganiser et les séjours pendant une fermeture sont listés sur la page Équipe et comptés à l'accueil.
+- Un agent ne voit que ses absences et les fermetures. Historique horodaté de chaque création, décision et annulation.
+- Limite : pas de récurrence pour l'instant.
+
+**Retour arrière** (sans perte de données métier) : supprimer les déclencheurs `tasks_window_check`, `tasks_assignee_available` et `reservations_overlap_check`, puis les fonctions et les tables ajoutées.

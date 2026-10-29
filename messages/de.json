@@ -1292,7 +1292,9 @@
       "team": "Team",
       "setup": "Einrichtung",
       "incidents": "Vorfälle",
-      "notifications": "Versand"
+      "notifications": "Versand",
+      "settings": "Einstellungen",
+      "profile": "Mein Profil"
     },
     "env": {
       "demo": "Demo",
@@ -1355,8 +1357,14 @@
       "empty": "Beschreibung hinzufügen.",
       "too_late": "Zu spät: Die Anreise ist bereits vorbei.",
       "resolution_required": "Geben Sie an, was getan wurde.",
-      "invalid_window": "Ungültiges Zeitfenster (Ende nach Beginn, mind. 5 Min.).",
-      "out_of_window": "Der Einsatz passt nicht mehr ins Fenster: neues Ende bestätigen."
+      "invalid_window": "Das Zeitfenster ist ungültig: Zwischen Beginn und Ende muss mindestens die geschätzte Dauer liegen.",
+      "out_of_window": "Der Einsatz passt nicht mehr ins Fenster: neues Ende bestätigen.",
+      "stay_overlap": "Dieser Aufenthalt überschneidet sich mit einem anderen bestätigten Aufenthalt derselben Unterkunft.",
+      "assignee_unavailable": "Diese Person ist in diesem Zeitfenster abwesend: Der Einsatz passt nicht außerhalb ihrer Abwesenheit.",
+      "name_required": "Geben Sie Ihren Namen an.",
+      "invalid_period": "Der Zeitraum ist ungültig (Ende nach Beginn).",
+      "not_member": "Diese Person gehört nicht zum aktiven Team.",
+      "invalid_kind": "Ungültige Abwesenheitsart."
     },
     "home": {
       "subtitle": "Was Ihre Aufmerksamkeit braucht.",
@@ -1374,7 +1382,10 @@
       "noArrivals": "Keine Anreise in den nächsten 48 Std.",
       "allReady": "Alle Anreisen sind bereit: Reinigung freigegeben, kein offener Vorfall.",
       "you": "Sie",
-      "pending": "Vor der Anreise noch offen: {steps}"
+      "pending": "Vor der Anreise noch offen: {steps}",
+      "schedule": "{count, plural, =0 {Keine unplanbare Reinigung} one {# Reinigung nicht planbar} other {# Reinigungen nicht planbar}}",
+      "availability": "{count, plural, =0 {Kein Einsatz von einer Abwesenheit betroffen} one {# Einsatz neu zu planen (Abwesenheit oder Schließung)} other {# Einsätze neu zu planen (Abwesenheit oder Schließung)}}",
+      "absenceRequests": "{count, plural, =0 {Kein offener Abwesenheitsantrag} one {# Abwesenheitsantrag zu entscheiden} other {# Abwesenheitsanträge zu entscheiden}}"
     },
     "onb": {
       "progress": "Schritt {n} von {total}",
@@ -1712,7 +1723,8 @@
         "team_guest_problem": "Team: Gastproblem",
         "team_agent_blocker": "Team: dringender Blocker",
         "team_guest_message": "Team: Gastnachricht",
-        "problem_taken": "Problem in Bearbeitung"
+        "problem_taken": "Problem in Bearbeitung",
+        "team_absence_requested": "Team: Abwesenheitsantrag"
       },
       "testAddress": "Fiktive Adresse (Testkonto): Es wird nichts gesendet."
     },
@@ -1807,11 +1819,14 @@
       "outOfWindowText": "Der Einsatz passt nicht mehr ins Fenster. Vor dem Zuweisen neues Ende festlegen.",
       "newWindowEnd": "Neues Fensterende",
       "confirmOutOfWindow": "Zuweisung bestätigen",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "absent": "abwesend",
+      "windowLabel": "Zu erledigen {window}",
+      "durationLabel": "Dauer {duration}"
     },
     "team": {
       "title": "Team",
-      "subtitle": "Mitglieder und Rollen.",
+      "subtitle": "Wer ist wer, wer ist verfügbar, was neu zu planen ist.",
       "noName": "Profil unvollständig",
       "inactive": "deaktiviert",
       "roles": {
@@ -1826,7 +1841,16 @@
       "copyOnce": "Senden Sie diesen Link. Er wird nicht erneut angezeigt.",
       "accept": "Organisation beitreten",
       "inviteTitle": "Sie sind zu HALO eingeladen",
-      "inviteSignedAs": "Angemeldet als {email}."
+      "inviteSignedAs": "Angemeldet als {email}.",
+      "yourName": "Ihr Name",
+      "yourNameHint": "Für das Team und bei Ihren Einsätzen sichtbar.",
+      "yourPhone": "Telefon (optional)",
+      "yourPhoneHint": "Damit eine verantwortliche Person Sie vor Ort erreichen kann.",
+      "fields": {
+        "name": "Name",
+        "phone": "Telefon"
+      },
+      "toComplete": "zu ergänzen: {fields}"
     },
     "fromDemo": "Diese Adresse gehört zur Demo. Melden Sie sich für die echte Umgebung an oder öffnen Sie die Demo ausdrücklich:",
     "openDemo": "Demo öffnen",
@@ -1853,7 +1877,16 @@
       "notes": "Zu erledigen",
       "oldProof": "Frühere Nachweis (nach Korrektur ersetzt)",
       "redoItems": "Zu wiederholende Punkte",
-      "newPhotoRequired": "neues Foto erforderlich"
+      "newPhotoRequired": "neues Foto erforderlich",
+      "window": "Zu erledigen",
+      "duration": "Geschätzte Dauer",
+      "closing": "Am Ende",
+      "needsValidation": "Freigabe durch eine verantwortliche Person",
+      "autoValidated": "Direkter Abschluss (Einstellung)",
+      "manualWindow": "Manuell festgelegtes Zeitfenster: wird nicht mehr automatisch neu berechnet.",
+      "sourceIncident": "Einsatz zum Vorfall",
+      "incidentResolved": "Vorfall gelöst",
+      "incidentStillOpen": "über die Lösung entscheidet eine verantwortliche Person"
     },
     "testAccount": {
       "title": "Vorproduktion: Testkonto ohne E-Mail",
@@ -1930,13 +1963,146 @@
       "planDuration": "Dauer (Min.)",
       "planHint": "Der Einsatz ist mit der nächsten Anreise verknüpft: Bis er erledigt ist, gilt sie nicht als „bereit“.",
       "planConfirm": "Einsatz erstellen",
-      "openIntervention": "Einsatz ansehen"
+      "openIntervention": "Einsatz ansehen",
+      "interventionStatus": "Einsatz: {status}"
     },
     "notifications": {
       "title": "Versand und Benachrichtigungen",
       "subtitle": "Jede E-Mail an Gäste und Team mit tatsächlichem Status.",
       "loadError": "Versand konnte nicht geladen werden.",
       "summary": "{sent} gesendet · {pending} wartend · {failed} fehlgeschlagen · {notConfigured} ohne Dienst"
+    },
+    "profile": {
+      "incompleteTitle": "Geben Sie Ihren Namen an",
+      "incompleteText": "Ohne Namen sieht das Team Sie bei Einsätzen als „Ohne Namen“.",
+      "pageTitle": "Mein Profil",
+      "title": "Kontaktdaten",
+      "name": "Name",
+      "nameMissing": "Pflichtfeld: für das Team und bei Einsätzen sichtbar.",
+      "phone": "Telefon",
+      "phoneMissing": "Optional, aber nützlich, um Sie vor Ort zu erreichen.",
+      "phoneHint": "Für die Verantwortlichen Ihrer Organisation sichtbar.",
+      "save": "Speichern",
+      "saved": "Gespeichert.",
+      "missing": "Noch zu ergänzen: {fields}",
+      "complete": "Profil vollständig.",
+      "me": "Ich"
+    },
+    "settings": {
+      "title": "Einstellungen",
+      "subtitle": "Was hier gespeichert wird, setzt der Server durch.",
+      "validationTitle": "Freigabe der Einsätze",
+      "validationText": "Für jeden Typ: Am Ende geht der Einsatz auf „Zu prüfen“ (eine verantwortliche Person gibt frei oder fordert eine Korrektur an) oder wird direkt abgeschlossen.",
+      "needsValidation": "Freigabe",
+      "autoClose": "Direkter Abschluss",
+      "save": "Speichern",
+      "saved": "Einstellung gespeichert und für die nächsten abgeschlossenen Einsätze angewendet."
+    },
+    "window": {
+      "edit": "Zeitfenster ändern",
+      "start": "Ab",
+      "end": "Spätestens",
+      "duration": "Geschätzte Dauer (Min.)",
+      "durationHint": "Arbeitszeit, getrennt vom Zeitfenster.",
+      "reason": "Grund (optional)",
+      "tooShort": "Das Zeitfenster muss mindestens so lang wie die Dauer sein.",
+      "save": "Zeitfenster speichern",
+      "cancel": "Abbrechen"
+    },
+    "missionHistory": {
+      "title": "Verlauf",
+      "kind": {
+        "created": "Erstellt",
+        "assigned": "Zugewiesen",
+        "unassigned": "Zuweisung entfernt",
+        "started": "Begonnen",
+        "submitted": "Beendet, zu prüfen",
+        "validated": "Freigegeben",
+        "auto_validated": "Ohne Freigabe abgeschlossen (Einstellung)",
+        "correction_requested": "Korrektur angefordert",
+        "cancelled": "Storniert",
+        "status_changed": "Status geändert",
+        "window_changed": "Zeitfenster geändert"
+      }
+    },
+    "schedule": {
+      "title": "{count, plural, one {# Reinigung nicht planbar} other {# Reinigungen nicht planbar}}",
+      "text": "HALO hat keinen unmöglichen Einsatz angelegt: Ändern Sie die Zeiten der Aufenthalte oder legen Sie die Reinigung manuell mit einem realistischen Zeitfenster an.",
+      "kind": {
+        "gap_too_short": "{available} zwischen Abreise und nächster Anreise, {needed} Reinigung nötig.",
+        "stay_overlap": "Zwei Aufenthalte überschneiden sich in dieser Unterkunft.",
+        "missing_checkout": "Abreisezeit fehlt oder ist ungültig.",
+        "invalid_duration": "Reinigungsdauer der Unterkunft ist null oder ungültig."
+      },
+      "open": "Aufenthalt ansehen",
+      "stayTitle": "Reinigung nicht planbar",
+      "stayHint": "Es wurde kein Einsatz automatisch angelegt. Passen Sie die Zeiten an oder legen Sie die Reinigung unter „Unterkunft bereit“ mit einem realistischen Zeitfenster an."
+    },
+    "absences": {
+      "newTitle": "Abwesenheit oder Schließung",
+      "newText": "Von einer verantwortlichen Person erfasst: sofort angenommen. Kein Einsatz wird automatisch verschoben.",
+      "requestTitle": "Abwesenheit oder Nichtverfügbarkeit melden",
+      "requestText": "Ihre verantwortliche Person erhält den Antrag und genehmigt ihn.",
+      "who": "Person",
+      "noName": "Ohne Namen",
+      "wholeTeam": "Ganzes Team",
+      "position": "Betroffene Funktionen",
+      "positionHint": "Zum Beispiel: nur Reinigungskräfte.",
+      "allPositions": "Alle Funktionen",
+      "kind": "Art",
+      "kinds": {
+        "leave": "Urlaub",
+        "unavailable": "Nicht verfügbar",
+        "closure": "Teamschließung"
+      },
+      "allDay": "Ganze Tage",
+      "from": "Vom",
+      "to": "Bis (einschließlich)",
+      "start": "Beginn",
+      "end": "Ende",
+      "unplanned": "Ungeplant",
+      "unplannedShort": "ungeplant",
+      "reason": "Kurzer Grund (optional)",
+      "reasonHint": "Keine medizinischen oder persönlichen Details: „Urlaub“ oder „Termin“ genügt.",
+      "save": "Speichern",
+      "request": "Antrag senden",
+      "invalidPeriod": "Das Ende muss nach dem Beginn liegen.",
+      "savedPending": "Antrag gespeichert, Entscheidung ausstehend.",
+      "savedAccepted": "Gespeichert und bei Zuweisungen berücksichtigt.",
+      "status": {
+        "pending": "Ausstehend",
+        "accepted": "Angenommen",
+        "refused": "Abgelehnt",
+        "cancelled": "Storniert"
+      },
+      "impacts": "{count, plural, one {# betroffener Einsatz:} other {# betroffene Einsätze:}}",
+      "accept": "Annehmen",
+      "refuse": "Ablehnen",
+      "cancel": "Abwesenheit stornieren",
+      "mine": "Meine Abwesenheiten",
+      "noneMine": "Keine Abwesenheit gemeldet.",
+      "absentNow": "Gerade abwesend",
+      "conflictsTitle": "{count, plural, one {# Einsatz neu zu planen} other {# Einsätze neu zu planen}}",
+      "conflictsText": "Diese Einsätze passen nicht mehr außerhalb der Abwesenheiten oder Schließungen. HALO weist sie nie selbst neu zu: Öffnen Sie sie, um Person oder Zeitfenster zu ändern.",
+      "nobody": "Niemand zugewiesen",
+      "conflictKind": {
+        "accepted": "angenommene Abwesenheit",
+        "pending": "falls der offene Antrag angenommen wird",
+        "closure": "Teamschließung"
+      },
+      "closureStay": "Aufenthalt während einer Schließung: {guest}, {dates}",
+      "listTitle": "Kommende Abwesenheiten und Schließungen",
+      "listText": "Nur angenommene Abwesenheiten blockieren eine Zuweisung.",
+      "none": "Keine kommende Abwesenheit oder Schließung.",
+      "historyTitle": "Verlauf der Abwesenheiten",
+      "historyEmpty": "Keine Aktivität.",
+      "event": {
+        "requested": "beantragt",
+        "created": "erfasst",
+        "accepted": "angenommen",
+        "refused": "abgelehnt",
+        "cancelled": "storniert"
+      }
     }
   },
   "email": {
@@ -2002,6 +2168,10 @@
     "problem_taken": {
       "subject": "{org} — Ihre Meldung wird bearbeitet",
       "body": "Das Team bearbeitet Ihr Problem. Den Stand sehen Sie in Ihrem Gästebereich."
+    },
+    "team_absence_requested": {
+      "subject": "Abwesenheitsantrag — {member}",
+      "body": "{member} hat eine Abwesenheit oder Nichtverfügbarkeit gemeldet. Sie wartet auf Ihre Entscheidung; die betroffenen Einsätze sind in HALO aufgeführt."
     }
   },
   "guestSpace": {
