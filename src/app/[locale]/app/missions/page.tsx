@@ -12,8 +12,10 @@ import { isAvailable } from "@/lib/engine/availability";
 import { durationText, windowText } from "@/lib/connected/format";
 import { TriangleAlert } from "lucide-react";
 
-export default async function MissionsPage({ params }: PageProps<"/[locale]/app/missions">) {
+export default async function MissionsPage({ params, searchParams }: PageProps<"/[locale]/app/missions">) {
   const { locale } = await params;
+  const sp = await searchParams;
+  const onlyToValidate = sp.status === "done";
   setRequestLocale(locale);
   const t = await getTranslations("connected.missions");
   const tt = await getTranslations("taskType");
@@ -28,11 +30,12 @@ export default async function MissionsPage({ params }: PageProps<"/[locale]/app/
     .select("*, properties(name, address_line, city), next:reservations!tasks_organization_id_next_reservation_id_fkey(check_in_at)")
     .eq("organization_id", org!.id)
     .neq("status", "cancelled")
-    .gte("window_end", since)
     .order("window_start")
     .limit(200);
   // Agent : uniquement les siennes (la base l'impose déjà ; ce filtre évite d'afficher des missions passées d'autres)
   if (!manager) q = q.eq("assignee_id", user!.id);
+  // « Missions à valider » (lien de l'accueil) : terminées, en attente d'un responsable
+  q = onlyToValidate ? q.eq("status", "done") : q.gte("window_end", since);
   const now = nowDate();
   const [{ data: tasks, error }, { data: members }, planning] = await Promise.all([
     q,
@@ -41,8 +44,8 @@ export default async function MissionsPage({ params }: PageProps<"/[locale]/app/
   ]);
   const tc = await getTranslations("connected.schedule");
   // Personnes absentes sur le créneau de chaque mission (même règle que la base)
-  const away = (k: { window_start: string; window_end: string; duration_min: number }) =>
-    (planning?.members ?? []).filter((m) => !isAvailable(m, { windowStart: k.window_start, windowEnd: k.window_end, durationMin: k.duration_min }, planning!.absences)).map((m) => m.id);
+  const away = (k: { window_start: string; window_end: string; duration_min: number; scheduled_start: string | null }) =>
+    (planning?.members ?? []).filter((m) => !isAvailable(m, { windowStart: k.window_start, windowEnd: k.window_end, durationMin: k.duration_min, scheduledStart: k.scheduled_start }, planning!.absences)).map((m) => m.id);
   const nextArrival = (k: { next?: unknown }) => ((Array.isArray(k.next) ? k.next[0] : k.next) as { check_in_at: string } | null)?.check_in_at ?? null;
   const people = (members ?? []).map((m: { user_id: string; profiles: unknown }) => {
     const p = (Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as { full_name: string } | null;
@@ -50,7 +53,12 @@ export default async function MissionsPage({ params }: PageProps<"/[locale]/app/
   });
   return (
     <>
-      <PageHeader title={manager ? t("title") : t("mineTitle")} subtitle={manager ? t("subtitle") : t("mineSubtitle")} />
+      <PageHeader title={onlyToValidate ? t("toValidateTitle") : manager ? t("title") : t("mineTitle")} subtitle={onlyToValidate ? t("toValidateSubtitle") : manager ? t("subtitle") : t("mineSubtitle")} />
+      {onlyToValidate && (
+        <Link href="/app/missions" className="-mt-2 mb-4 inline-block text-[14px] text-accent-text hover:underline" data-testid="missions-all">
+          {t("showAll")}
+        </Link>
+      )}
       {error && <p role="alert" className="mb-4 text-danger">{t("loadError")}</p>}
       {planning && planning.schedule.length > 0 && (
         // Ménages impossibles : signalés au lieu d'être créés avec un créneau intenable

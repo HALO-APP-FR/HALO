@@ -52,15 +52,20 @@ export function AssignSelect({
         data-testid="assign-select"
       >
         <option value="">{t("unassigned")}</option>
-        {members.map((m) => {
-          const away = unavailable.includes(m.id) && m.id !== current;
-          return (
-            <option key={m.id} value={m.id} disabled={away}>
-              {away ? `${m.name} — ${t("absent")}` : m.name}
+        {/* Personnes absentes sur le créneau réel : non proposées (la base refuserait aussi) */}
+        {members
+          .filter((m) => !unavailable.includes(m.id) || m.id === current)
+          .map((m) => (
+            <option key={m.id} value={m.id}>
+              {unavailable.includes(m.id) ? `${m.name} — ${t("absent")}` : m.name}
             </option>
-          );
-        })}
+          ))}
       </Select>
+      {members.some((m) => unavailable.includes(m.id) && m.id !== current) && (
+        <p className="mt-1 text-[12px] text-muted" data-testid="assign-hidden">
+          {t("hiddenAbsent", { count: members.filter((m) => unavailable.includes(m.id) && m.id !== current).length })}
+        </p>
+      )}
       {pendingMember && (
         <div className="mt-2 max-w-72 rounded-md border border-danger bg-danger-soft p-3 text-[13px]" role="alert" data-testid="out-of-window">
           <p className="font-semibold text-danger">{t("outOfWindowTitle")}</p>

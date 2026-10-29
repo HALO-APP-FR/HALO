@@ -679,3 +679,209 @@ export async function cancelAbsence(absenceId: string): Promise<Result> {
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
+
+// ---------- Lecture des messages voyageur ----------
+export async function markStayMessagesRead(reservationId: string, ids: number[] | null): Promise<Result<{ marked: number }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.rpc("mark_stay_messages_read", { org: ctx.org!.id, reservation: reservationId, ids: ids?.length ? ids : null });
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: { marked: data as number } };
+}
+
+/** Application d'itinéraire par défaut de la personne connectée (null = demander à chaque fois). */
+export async function updateMapsApp(app: "apple" | "google" | "waze" | null): Promise<Result> {
+  const ctx = await getContext();
+  if (!ctx.user) return fail("not_signed_in");
+  if (app !== null && !["apple", "google", "waze"].includes(app)) return fail("invalid");
+  const { error: e } = await ctx.supabase.from("profiles").update({ maps_app: app }).eq("id", ctx.user.id);
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+// ---------- Messagerie interne (Manager ↔ Agents), toujours liée à une opération ----------
+export interface NewThread {
+  clientId: string;
+  recipients: string[];
+  contextKind: "task" | "property" | "reservation";
+  contextId: string;
+  body: string;
+  urgent: boolean;
+}
+const chatCodes = ["empty", "no_recipient", "not_member", "invalid_context"];
+export async function startTeamThread(input: NewThread): Promise<Result<{ thread: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.rpc("start_team_thread", {
+    org: ctx.org!.id,
+    client: input.clientId,
+    recipients: input.recipients,
+    ctx_kind: input.contextKind,
+    ctx_id: input.contextId,
+    body: input.body,
+    is_urgent: input.urgent,
+  });
+  if (e) return fail(dbCode(e, chatCodes));
+  await processOutbox(ctx.org!.id);
+  revalidatePath("/", "layout");
+  return { ok: true, data: { thread: (data as { thread: string }).thread } };
+}
+/** Envoi confirmé seulement quand la base a enregistré le message (identifiant client : pas de doublon au renvoi). */
+export async function postTeamMessage(threadId: string, clientId: string, body: string, urgent: boolean): Promise<Result<{ at: string }>> {
+  const ctx = await getContext();
+  if (!ctx.user || !ctx.org) return fail("not_signed_in");
+  const { data, error: e } = await ctx.supabase.rpc("post_team_message", { org: ctx.org.id, thread: threadId, client: clientId, body, is_urgent: urgent });
+  if (e) return fail(dbCode(e, chatCodes));
+  await processOutbox(ctx.org.id);
+  revalidatePath("/", "layout");
+  return { ok: true, data: { at: (data as { at: string }).at } };
+}
+export async function markTeamThreadRead(threadId: string): Promise<Result> {
+  const ctx = await getContext();
+  if (!ctx.user || !ctx.org) return fail("not_signed_in");
+  const { error: e } = await ctx.supabase.rpc("mark_team_thread_read", { org: ctx.org.id, thread: threadId });
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+// ---------- Préférences de notification (chacun les siennes ; appliquées par la base) ----------
+export async function setNotificationPref(event: string, email: boolean): Promise<Result> {
+  const ctx = await getContext();
+  if (!ctx.user || !ctx.org) return fail("not_signed_in");
+  const { error: e } = await ctx.supabase.rpc("set_notification_pref", { org: ctx.org.id, ev: event, by_email: email });
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+// ---------- Lieux autour du logement (responsable) ----------
+/** Coordonnées du logement : géocodage OpenStreetMap de son adresse, ou saisie manuelle. */
+export async function locateProperty(propertyId: string, manual?: { lat: number; lng: number }): Promise<Result<{ lat: number; lng: number }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const o = ctx.org!.id;
+  let lat: number;
+  let lng: number;
+  let source: "manager" | "openstreetmap";
+  if (manual) {
+    if (!(Math.abs(manual.lat) <= 90 && Math.abs(manual.lng) <= 180) || (manual.lat === 0 && manual.lng === 0)) return fail("invalid_coordinates");
+    ({ lat, lng } = manual);
+    source = "manager";
+  } else {
+    const { data: p } = await ctx.supabase.from("properties").select("address_line, postal_code, city, country_code").eq("organization_id", o).eq("id", propertyId).maybeSingle();
+    if (!p) return fail("not_found");
+    const { geocode } = await import("./osm");
+    const g = await geocode({ addressLine: p.address_line, postalCode: p.postal_code, city: p.city, countryCode: p.country_code });
+    if (!g.ok) return fail(g.error);
+    ({ lat, lng } = g);
+    source = "openstreetmap";
+  }
+  const { data, error: e } = await ctx.supabase
+    .from("properties")
+    .update({ latitude: lat, longitude: lng, geo_source: source, geo_updated_at: new Date().toISOString() })
+    .eq("organization_id", o)
+    .eq("id", propertyId)
+    .select("id");
+  if (e) return fail(errCode(e));
+  if (!data?.length) return fail("forbidden");
+  revalidatePath("/", "layout");
+  return { ok: true, data: { lat, lng } };
+}
+
+/** Import des lieux OpenStreetMap autour du logement : remplace l'import précédent, garde les lieux masqués et ceux de l'équipe. */
+export async function importNearbyPlaces(propertyId: string): Promise<Result<{ count: number; dataDate: string | null }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const o = ctx.org!.id;
+  const { data: p } = await ctx.supabase.from("properties").select("latitude, longitude").eq("organization_id", o).eq("id", propertyId).maybeSingle();
+  if (!p) return fail("not_found");
+  if (p.latitude == null || p.longitude == null) return fail("no_coordinates");
+  const { nearbyPlaces } = await import("./osm");
+  const r = await nearbyPlaces(p.latitude, p.longitude);
+  if (!r.ok) return fail(r.error);
+  const updatedAt = r.dataDate ?? new Date().toISOString();
+  const rows = r.places.map((x) => ({
+    organization_id: o,
+    property_id: propertyId,
+    source: "openstreetmap",
+    external_id: x.externalId,
+    category: x.category,
+    name: x.name,
+    address: x.address,
+    latitude: x.lat,
+    longitude: x.lng,
+    opening_hours: x.openingHours,
+    phone: x.phone,
+    website: x.website,
+    source_updated_at: updatedAt,
+  }));
+  if (rows.length) {
+    const { error: ue } = await ctx.supabase.from("property_places").upsert(rows, { onConflict: "property_id,source,external_id" });
+    if (ue) return fail(errCode(ue));
+  }
+  // Lieux qui n'existent plus dans OpenStreetMap : retirés (sauf ceux que l'équipe a masqués, gardés pour mémoire)
+  const keep = rows.map((x) => x.external_id);
+  let del = ctx.supabase.from("property_places").delete().eq("organization_id", o).eq("property_id", propertyId).eq("source", "openstreetmap").eq("hidden", false);
+  if (keep.length) del = del.not("external_id", "in", `(${keep.map((k) => `"${k}"`).join(",")})`);
+  const { error: de } = await del;
+  if (de) return fail(errCode(de));
+  revalidatePath("/", "layout");
+  return { ok: true, data: { count: rows.length, dataDate: r.dataDate } };
+}
+
+export interface PlaceInput {
+  category: string;
+  name: string;
+  address?: string;
+  openingHours?: string;
+  phone?: string;
+  website?: string;
+  note?: string;
+  lat?: number | null;
+  lng?: number | null;
+}
+/** Lieu ajouté et vérifié par l'équipe (source « équipe », date du jour). */
+export async function addPlace(propertyId: string, input: PlaceInput): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  if (!input.name.trim()) return fail("invalid");
+  const { error: e } = await ctx.supabase.from("property_places").insert({
+    organization_id: ctx.org!.id,
+    property_id: propertyId,
+    source: "manager",
+    category: input.category,
+    name: input.name.trim().slice(0, 160),
+    address: input.address?.trim() || null,
+    opening_hours: input.openingHours?.trim() || null,
+    phone: input.phone?.trim() || null,
+    website: input.website?.trim() || null,
+    note: input.note?.trim() || null,
+    latitude: input.lat ?? null,
+    longitude: input.lng ?? null,
+    created_by: ctx.user!.id,
+  });
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+export async function setPlaceHidden(placeId: string, hidden: boolean): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.from("property_places").update({ hidden }).eq("organization_id", ctx.org!.id).eq("id", placeId).select("id");
+  if (e) return fail(errCode(e));
+  if (!data?.length) return fail("not_found");
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+export async function deletePlace(placeId: string): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.from("property_places").delete().eq("organization_id", ctx.org!.id).eq("id", placeId).eq("source", "manager").select("id");
+  if (e) return fail(errCode(e));
+  if (!data?.length) return fail("not_found");
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}

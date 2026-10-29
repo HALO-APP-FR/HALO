@@ -37,7 +37,7 @@ export async function loadPlanning(supabase: SupabaseClient, orgId: string, now:
   const [{ data: props }, { data: stays }, { data: tasks }, { data: abs }, { data: mem }] = await Promise.all([
     supabase.from("properties").select("*").eq("organization_id", orgId).is("archived_at", null),
     supabase.from("reservations").select("*").eq("organization_id", orgId).eq("status", "confirmed").gte("check_out_at", since).lte("check_in_at", until),
-    supabase.from("tasks").select("id, assignee_id, status, window_start, window_end, duration_min").eq("organization_id", orgId).in("status", ["unassigned", "assigned", "in_progress", "to_redo"]).gte("window_end", now.toISOString()),
+    supabase.from("tasks").select("id, assignee_id, status, window_start, window_end, duration_min, scheduled_start").eq("organization_id", orgId).in("status", ["unassigned", "assigned", "in_progress", "to_redo"]).gte("window_end", now.toISOString()),
     supabase.from("absences").select("*").eq("organization_id", orgId).in("status", ["pending", "accepted"]).gte("ends_at", since).order("starts_at"),
     supabase.from("memberships").select("user_id, position, profiles(full_name)").eq("organization_id", orgId).eq("is_active", true),
   ]);
@@ -52,7 +52,7 @@ export async function loadPlanning(supabase: SupabaseClient, orgId: string, now:
   }));
   const absences = (abs ?? []).map((r) => ({ ...toAbsence(r), reason: (r.reason as string) ?? null, unplanned: Boolean(r.unplanned), createdAt: r.created_at as string }));
   const availability = availabilityConflicts(
-    (tasks ?? []).map((k) => ({ id: k.id, assigneeId: k.assignee_id, status: k.status, windowStart: k.window_start, windowEnd: k.window_end, durationMin: k.duration_min })),
+    (tasks ?? []).map((k) => ({ id: k.id, assigneeId: k.assignee_id, status: k.status, windowStart: k.window_start, windowEnd: k.window_end, durationMin: k.duration_min, scheduledStart: k.scheduled_start })),
     members,
     absences,
     now,

@@ -4,6 +4,8 @@ import { redirect } from "@/i18n/navigation";
 import { PageHeader } from "@/components/halo/page-header";
 import { GuideEditor } from "@/components/connected/property-forms";
 import { getContext, isManagerRole } from "@/lib/connected/context";
+import { PlacesManager, type Place } from "@/components/connected/places";
+import { distanceM } from "@/lib/engine/places";
 
 export default async function PropertyPage({ params }: PageProps<"/[locale]/app/properties/[id]">) {
   const { locale, id } = await params;
@@ -12,17 +14,38 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
   const { supabase, org } = await getContext();
   if (!org) redirect({ href: "/app", locale });
   if (!isManagerRole(org!.role)) redirect({ href: "/app/missions", locale });
-  const [{ data: p }, { data: g }, { data: rooms }] = await Promise.all([
-    supabase.from("properties").select("id, name, city, address_line, default_check_in, default_check_out").eq("organization_id", org!.id).eq("id", id).maybeSingle(),
+  const [{ data: p }, { data: g }, { data: rooms }, { data: placeRows }] = await Promise.all([
+    supabase.from("properties").select("id, name, city, address_line, default_check_in, default_check_out, latitude, longitude, geo_source").eq("organization_id", org!.id).eq("id", id).maybeSingle(),
     supabase.from("guest_guides").select("*").eq("organization_id", org!.id).eq("property_id", id).maybeSingle(),
     supabase.from("checklist_rooms").select("id, name, checklist_items(label, photo_required)").eq("organization_id", org!.id).eq("property_id", id).order("sort"),
+    supabase.from("property_places").select("*").eq("organization_id", org!.id).eq("property_id", id).order("source").order("name"),
   ]);
   if (!p) notFound();
+  const coords = p.latitude != null && p.longitude != null ? { lat: p.latitude as number, lng: p.longitude as number } : null;
+  const places: Place[] = (placeRows ?? []).map((x) => ({
+    id: x.id,
+    source: x.source,
+    category: x.category,
+    name: x.name,
+    address: x.address,
+    lat: x.latitude,
+    lng: x.longitude,
+    opening_hours: x.opening_hours,
+    phone: x.phone,
+    website: x.website,
+    note: x.note,
+    updated_at: x.source_updated_at,
+    hidden: x.hidden,
+    distance_m: coords && x.latitude != null ? distanceM(coords.lat, coords.lng, x.latitude, x.longitude) : null,
+  }));
   return (
     <>
       <PageHeader title={p.name} subtitle={[p.address_line, p.city].filter(Boolean).join(", ") || t("noAddress")} />
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-        <GuideEditor propertyId={p.id} guide={g ?? {}} />
+        <div className="space-y-4">
+          <GuideEditor propertyId={p.id} guide={g ?? {}} />
+          <PlacesManager propertyId={p.id} coords={coords} geoSource={p.geo_source} places={places} />
+        </div>
         <div className="self-start rounded-xl border border-line bg-surface p-5">
           <h2 className="text-[17px] font-semibold">{t("checklist")}</h2>
           {(rooms ?? []).length === 0 ? (

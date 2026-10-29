@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { Building2, CalendarDays, ConciergeBell, House, ListChecks, Mail, Settings2, TriangleAlert, Users, CircleUser, SlidersHorizontal } from "lucide-react";
+import { Building2, CalendarDays, ConciergeBell, House, ListChecks, Mail, Settings2, TriangleAlert, Users, CircleUser, MessagesSquare, SlidersHorizontal } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Logo } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
@@ -13,6 +13,7 @@ const MANAGER_NAV = [
   { key: "services", href: "/app/services", icon: ConciergeBell },
   { key: "incidents", href: "/app/incidents", icon: TriangleAlert },
   { key: "missions", href: "/app/missions", icon: ListChecks },
+  { key: "messages", href: "/app/messages", icon: MessagesSquare },
   { key: "notifications", href: "/app/notifications", icon: Mail },
   { key: "properties", href: "/app/properties", icon: Building2 },
   { key: "team", href: "/app/team", icon: Users },
@@ -22,11 +23,12 @@ const MANAGER_NAV = [
 ] as const;
 const AGENT_NAV = [
   { key: "missions", href: "/app/missions", icon: ListChecks },
+  { key: "messages", href: "/app/messages", icon: MessagesSquare },
   { key: "profile", href: "/app/profile", icon: CircleUser },
 ] as const;
 
 /** Coquille de l'environnement connecté : environnement affiché en permanence, navigation selon le rôle. */
-export async function ConnectedShell({ org, orgs, email, missingName = false, children }: { org: OrgSummary | null; orgs: OrgSummary[]; email: string; missingName?: boolean; children: React.ReactNode }) {
+export async function ConnectedShell({ org, orgs, email, missingName = false, unreadChats = 0, children }: { org: OrgSummary | null; orgs: OrgSummary[]; email: string; missingName?: boolean; unreadChats?: number; children: React.ReactNode }) {
   const t = await getTranslations("connected");
   const manager = org?.role === "owner" || org?.role === "manager";
   const nav = org ? (manager ? MANAGER_NAV : AGENT_NAV) : [];
@@ -52,6 +54,11 @@ export async function ConnectedShell({ org, orgs, email, missingName = false, ch
                   <Link href={href} className="flex h-9 items-center gap-2 whitespace-nowrap rounded-md px-3 text-[14px] font-medium text-muted hover:bg-subtle hover:text-fg dark:hover:bg-surface-hover">
                     <Icon className="size-4" />
                     {t(`nav.${key}`)}
+                    {key === "messages" && unreadChats > 0 && (
+                      <span className="rounded-full bg-danger px-1.5 text-[11px] font-semibold text-white" data-testid="nav-chat-unread">
+                        {unreadChats}
+                      </span>
+                    )}
                   </Link>
                 </li>
               ))}

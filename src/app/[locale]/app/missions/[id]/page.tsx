@@ -8,6 +8,11 @@ import { ReportIncident } from "@/components/connected/report-incident";
 import { WindowEditor } from "@/components/connected/planning-forms";
 import { Card } from "@/components/ui/card";
 import { getContext, isManagerRole } from "@/lib/connected/context";
+import { MissionDirections } from "@/components/connected/directions";
+import { ChatThread } from "@/components/connected/chat";
+import { loadThreadMessages, loadThreads } from "@/lib/connected/chat";
+import { toChatMessages } from "@/lib/connected/chat-view";
+import type { MapsApp } from "@/lib/engine/directions";
 import { durationText, windowText } from "@/lib/connected/format";
 
 export default async function MissionPage({ params }: PageProps<"/[locale]/app/missions/[id]">) {
@@ -17,14 +22,14 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
   const tt = await getTranslations("taskType");
   const tts = await getTranslations("taskStatus");
   const f = await getFormatter();
-  const { supabase, org, user } = await getContext();
+  const { supabase, org, user, profile } = await getContext();
   if (!org) redirect({ href: "/app", locale });
   const o = org!.id;
   const manager = isManagerRole(org!.role);
   // La base ne renvoie la mission qu'à un manager ou à son agent assigné
   const { data: task } = await supabase
     .from("tasks")
-    .select("id, type, status, window_start, window_end, duration_min, is_auto_generated, assignee_id, correction_reason, notes, property_id, properties(name, address_line, city, instructions)")
+    .select("id, type, status, window_start, window_end, duration_min, is_auto_generated, assignee_id, correction_reason, notes, property_id, properties(name, address_line, postal_code, city, country_code, latitude, longitude, instructions)")
     .eq("organization_id", o)
     .eq("id", id)
     .maybeSingle();
@@ -54,7 +59,14 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
   const photos = readable.filter((x) => !x.superseded_at).map((x) => ({ id: x.id, itemId: x.checklist_item_id, url: urlOf.get(x.path)! }));
   // Preuves écartées par une demande de correction : gardées en historique, elles ne comptent plus
   const oldPhotos = readable.filter((x) => x.superseded_at).map((x) => ({ id: x.id, itemId: x.checklist_item_id, url: urlOf.get(x.path)! }));
-  const p = (Array.isArray(task.properties) ? task.properties[0] : task.properties) as { name: string; address_line: string | null; city: string | null; instructions: string | null } | null;
+  const p = (Array.isArray(task.properties) ? task.properties[0] : task.properties) as {
+    name: string; address_line: string | null; postal_code: string | null; city: string | null; country_code: string | null;
+    latitude: number | null; longitude: number | null; instructions: string | null;
+  } | null;
+  // Conversations internes rattachées à cette mission (jamais visibles du voyageur)
+  const threads = await loadThreads(supabase, o, user!.id, { taskId: id });
+  const threadMessages = await Promise.all(threads.map(async (th) => toChatMessages(th, await loadThreadMessages(supabase, o, th.id), user!.id)));
+  const tc = await getTranslations("connected.chat");
   const checklist: ReportRoom[] = (rooms ?? []).map((r: { id: string; name: string; checklist_items: { id: string; label: string; photo_required: boolean; sort: number }[] }) => ({
     id: r.id,
     name: r.name,
@@ -101,10 +113,19 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
         </Link>
       )}
       {(p?.address_line || p?.city) && (
-        <p className="-mt-2 mb-4 flex items-center gap-2 text-[15px] text-muted">
+        <p className="-mt-2 mb-3 flex items-center gap-2 text-[15px] text-muted" data-testid="mission-address">
           <MapPin className="size-4" />
-          {[p?.address_line, p?.city].filter(Boolean).join(", ")}
+          {[p?.address_line, [p?.postal_code, p?.city].filter(Boolean).join(" ")].filter(Boolean).join(", ")}
         </p>
+      )}
+      {/* Toute mission se déroule au logement : itinéraire proposé, adresse envoyée seulement au geste de l'agent */}
+      {p && task.status !== "cancelled" && (
+        <div className="mb-4">
+          <MissionDirections
+            destination={{ name: p.name, addressLine: p.address_line ?? undefined, postalCode: p.postal_code ?? undefined, city: p.city ?? undefined, countryCode: p.country_code ?? undefined, lat: p.latitude ?? undefined, lng: p.longitude ?? undefined }}
+            preferred={((profile as { maps_app?: string | null } | null)?.maps_app as MapsApp | null) ?? null}
+          />
+        </div>
       )}
       {task.notes && (
         <div className="mb-4 rounded-xl border border-warning bg-warning-soft p-4" data-testid="mission-notes">
@@ -154,6 +175,25 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
               );
             })}
           </ul>
+        </Card>
+      )}
+      {(threads.length > 0 || manager) && (
+        <Card className="mt-4 space-y-4 p-5" data-testid="mission-chat">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="flex-1 text-[17px] font-semibold">{tc("missionTitle")}</h2>
+            {manager && (
+              <Link href={`/app/messages?task=${task.id}`} className="text-[14px] text-accent-text hover:underline" data-testid="mission-chat-new">
+                {tc("newForMission")}
+              </Link>
+            )}
+          </div>
+          {threads.length === 0 && <p className="text-[14px] text-muted">{tc("noneForMission")}</p>}
+          {threads.map((th, i) => (
+            <div key={th.id} className="border-t border-line pt-3 first:border-0 first:pt-0">
+              <p className="mb-2 text-[13px] text-muted">{th.members.map((m) => m.name || tc("noName")).join(", ")}</p>
+              <ChatThread threadId={th.id} messages={threadMessages[i]} meId={user!.id} canWrite={th.mine || manager} />
+            </div>
+          ))}
         </Card>
       )}
       {(mine || manager) && task.status !== "cancelled" && (

@@ -1,5 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowRight, CalendarClock, CalendarDays, CalendarX2, ConciergeBell, MailWarning, MessageSquare, Settings2, TriangleAlert, UserRoundX } from "lucide-react";
+import { ArrowRight, ClipboardCheck, MessagesSquare, CalendarClock, CalendarDays, CalendarX2, ConciergeBell, MailWarning, MessageSquare, Settings2, TriangleAlert, UserRoundX } from "lucide-react";
 import { Link, redirect } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/halo/page-header";
@@ -8,6 +8,7 @@ import { getContext, isManagerRole } from "@/lib/connected/context";
 import { nowDate } from "@/lib/connected/time";
 import { ArrivalsNow } from "@/components/connected/arrivals-now";
 import { loadPlanning } from "@/lib/connected/planning";
+import { unreadThreads } from "@/lib/connected/chat";
 
 export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
   const { locale } = await params;
@@ -19,7 +20,7 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
 
   const now = nowDate();
   const in7 = new Date(now.getTime() + 7 * 86_400_000).toISOString();
-  const [services, messages, outbox, stays, unassigned, incidents, planning] = await Promise.all([
+  const [services, messages, outbox, stays, unassigned, incidents, planning, toValidate, chats] = await Promise.all([
     supabase.from("service_requests").select("id", { count: "exact", head: true }).eq("organization_id", org.id).or("manager_unread.eq.true,status.eq.requested"),
     supabase.from("stay_messages").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("author_kind", "guest").is("read_by_team_at", null),
     supabase.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org.id).in("status", ["failed", "not_configured"]),
@@ -27,6 +28,9 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     supabase.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "unassigned").gte("window_end", now.toISOString()),
     supabase.from("incidents").select("id", { count: "exact", head: true }).eq("organization_id", org.id).neq("status", "resolved"),
     loadPlanning(supabase, org.id, now),
+    // Missions terminées qui attendent un responsable (statut « À valider ») : disparaissent dès validation ou correction
+    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "done"),
+    unreadThreads(supabase, org.id),
   ]);
   const onboardingDone = Boolean(org.onboarding?.completed_at);
   // Linge suivi dans « logement prêt » seulement si l'organisation travaille avec une blanchisserie (réponse d'onboarding)
@@ -34,6 +38,8 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
   const linenRequired = orgRow?.linen_model === "laundry" || orgRow?.linen_model === "both";
   const enabled = ((org.onboarding?.config as { alerts?: string[] } | undefined)?.alerts ?? null) as string[] | null;
   const allRows = [
+    { key: "toValidate", n: toValidate.count ?? 0, href: "/app/missions?status=done", icon: ClipboardCheck, danger: true },
+    { key: "chats", n: chats, href: "/app/messages", icon: MessagesSquare, danger: true },
     { key: "incidents", n: incidents.count ?? 0, href: "/app/incidents", icon: TriangleAlert, danger: true },
     // Planning : ménages impossibles, missions touchées par une absence, demandes d'absence — toujours visibles
     { key: "schedule", n: planning.schedule.length, href: "/app/missions", icon: CalendarX2, danger: true },
@@ -45,9 +51,9 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     { key: "emails", n: outbox.count ?? 0, href: "/app/notifications", icon: MailWarning, danger: false },
     { key: "stays7", n: stays.count ?? 0, href: "/app/stays", icon: CalendarDays, danger: false },
   ] as const;
-  const alertOf = { schedule: "unassigned_missions", availability: "unassigned_missions", absenceRequests: "unassigned_missions", incidents: "pending_services", services: "pending_services", messages: "unread_messages", unassigned: "unassigned_missions", emails: "failed_emails", stays7: "upcoming_stays" } as const;
+  const alertOf = { toValidate: "unassigned_missions", chats: "unread_messages", schedule: "unassigned_missions", availability: "unassigned_missions", absenceRequests: "unassigned_missions", incidents: "pending_services", services: "pending_services", messages: "unread_messages", unassigned: "unassigned_missions", emails: "failed_emails", stays7: "upcoming_stays" } as const;
   // Alertes choisies à l'onboarding ; les demandes et messages voyageurs restent toujours visibles
-  const always = ["services", "messages", "incidents", "schedule", "availability", "absenceRequests"];
+  const always = ["toValidate", "chats", "services", "messages", "incidents", "schedule", "availability", "absenceRequests"];
   const rows = allRows.filter((r) => !enabled || always.includes(r.key) || enabled.includes(alertOf[r.key]));
 
   return (

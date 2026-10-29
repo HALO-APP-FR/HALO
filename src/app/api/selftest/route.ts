@@ -4,6 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, haloEnv, isConnected } from "@/lib/supabase/config";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { processOutbox } from "@/lib/connected/outbox";
+import { geocode, nearbyPlaces } from "@/lib/connected/osm";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -203,6 +204,8 @@ export async function GET(request: NextRequest) {
     const tpl = (name: string) => (outA ?? []).filter((o) => o.template === name);
     check("team_notified_of_guest_request", tpl("team_service_requested").length > 0 && tpl("team_service_requested").every((o) => o.status !== "sent" || !o.recipient.endsWith(".invalid")));
     check("team_notified_of_guest_problem", tpl("team_guest_problem").length > 0);
+    check("team_notified_of_mission_to_validate", tpl("team_task_to_validate").length > 0);
+    check("agent_notified_of_assignment", tpl("agent_task_assigned").length > 0);
     check("fictitious_addresses_never_sent", (outA ?? []).filter((o) => o.recipient.endsWith(".invalid")).every((o) => o.status === "failed" && o.last_error === "undeliverable_test_address"));
     if (guestEmail) {
       await processOutbox(orgA);
@@ -210,6 +213,38 @@ export async function GET(request: NextRequest) {
       const ok = (sentRows ?? []).length >= 3 && (sentRows ?? []).every((o) => o.status === "sent");
       check("guest_emails_really_sent", ok, (sentRows ?? []).map((o) => `${o.template}:${o.status}${o.last_error ? `(${o.last_error})` : ""}`).join(",").slice(0, 300));
     }
+
+    // 6d. Messagerie interne liée à une mission : l'agent lit et répond, ni l'autre organisation ni le voyageur n'y accèdent
+    const { data: th, error: the } = await a1.rpc("start_team_thread", { org: orgA, client: crypto.randomUUID(), recipients: [agentId], ctx_kind: "task", ctx_id: task!.id, body: `Consigne ${run}`, is_urgent: false });
+    check("manager_writes_to_agent_about_mission", !the && Boolean((th as { thread?: string })?.thread), the?.message);
+    const threadId = (th as { thread?: string } | null)?.thread ?? "";
+    const { data: agMsgs } = await ag.from("team_messages").select("body").eq("thread_id", threadId);
+    check("agent_reads_message", (agMsgs ?? []).some((m) => m.body === `Consigne ${run}`));
+    const { error: rep } = await ag.rpc("post_team_message", { org: orgA, thread: threadId, client: crypto.randomUUID(), body: `Reçu ${run}`, is_urgent: false });
+    const { data: mMsgs } = await a1.from("team_messages").select("body").eq("thread_id", threadId);
+    check("manager_sees_agent_reply", !rep && (mMsgs ?? []).some((m) => m.body === `Reçu ${run}`), rep?.message);
+    const [{ data: bMsgs }, { error: bPost }, { data: gMsgs, error: gErr }] = await Promise.all([
+      b.from("team_messages").select("id").eq("thread_id", threadId),
+      b.rpc("post_team_message", { org: orgA, thread: threadId, client: crypto.randomUUID(), body: "intrusion" }),
+      guest.from("team_messages").select("id"),
+    ]);
+    check("other_org_cannot_read_or_write_conversation", (bMsgs ?? []).length === 0 && Boolean(bPost));
+    check("guest_cannot_read_internal_messages", Boolean(gErr) || (gMsgs ?? []).length === 0);
+
+    // 6e. Lieux autour du logement : uniquement ceux du logement du séjour
+    await a1.from("properties").update({ latitude: 48.8606, longitude: 2.3376 }).eq("id", pA!.id);
+    await a1.from("property_places").insert({ organization_id: orgA, property_id: pA!.id, source: "manager", category: "food", name: `Café ${run}`, latitude: 48.861, longitude: 2.338 });
+    const { data: gp2 } = await guest.rpc("guest_places", { token: tokenA as string });
+    const names = ((gp2 as { places?: { name: string; distance_m: number }[] } | null)?.places ?? []).map((x) => x.name);
+    check("guest_sees_places_of_own_property", names.includes(`Café ${run}`));
+    const { data: forgedPlaces } = await guest.rpc("guest_places", { token: "f".repeat(64) });
+    check("forged_link_sees_no_places", (forgedPlaces as { status: string })?.status === "unavailable");
+
+    // 6f. Fournisseur réel de lieux (OpenStreetMap) joignable depuis ce serveur
+    const g = await geocode({ addressLine: "10 Rue de Rivoli", postalCode: "75004", city: "Paris", countryCode: "FR" });
+    check("openstreetmap_geocoding_works", g.ok && Math.abs(g.lat - 48.855) < 0.02, g.ok ? `${g.lat},${g.lng}` : g.error);
+    const near = await nearbyPlaces(48.8606, 2.3376);
+    check("openstreetmap_places_work", near.ok && near.places.length > 0 && Boolean(near.dataDate), near.ok ? `${near.places.length} lieux, données du ${near.dataDate}` : near.error);
 
     // 7. Révocation
     const { data: links } = await a1.from("guest_links").select("id").eq("reservation_id", rA!.id).is("revoked_at", null);

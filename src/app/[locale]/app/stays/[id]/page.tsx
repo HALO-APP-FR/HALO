@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/halo/page-header";
 import { GuestLinkPanel, StayReply, type LinkRow } from "@/components/connected/stay-forms";
 import { OutboxList, type OutboxItem } from "@/components/connected/outbox-list";
+import { MarkStayRead } from "@/components/connected/mark-read";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { cn } from "@/lib/utils";
 import { durationText, windowText } from "@/lib/connected/format";
@@ -34,7 +35,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
   if (!s) notFound();
   const [{ data: links }, { data: msgs }, { data: services }, { data: tasks }, { data: outbox }, { data: prop }, { data: around }] = await Promise.all([
     supabase.from("guest_links").select("id, valid_from, valid_until, revoked_at, revoke_reason, last_opened_at, created_at").eq("organization_id", o).eq("reservation_id", id).order("created_at", { ascending: false }),
-    supabase.from("stay_messages").select("id, author_kind, body, created_at, read_by_guest_at").eq("organization_id", o).eq("reservation_id", id).order("created_at"),
+    supabase.from("stay_messages").select("id, author_kind, body, created_at, read_by_guest_at, read_by_team_at").eq("organization_id", o).eq("reservation_id", id).order("created_at"),
     supabase.from("service_requests").select("id, kind, start_at, status, manager_unread").eq("organization_id", o).eq("reservation_id", id).order("created_at", { ascending: false }),
     supabase.from("tasks").select("id, type, status, window_start, window_end").eq("organization_id", o).or(`reservation_id.eq.${id},next_reservation_id.eq.${id}`).neq("status", "cancelled").order("window_start"),
     supabase.from("notification_outbox").select("id, template, recipient, status, attempts, last_error, created_at, sent_at").eq("organization_id", o).eq("reservation_id", id).order("created_at", { ascending: false }),
@@ -46,6 +47,8 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
   const conflicts = prop ? scheduleConflicts(toProperty(prop), (around ?? []).map(toReservation), nowDate()).filter((c) => c.reservationId === id || c.nextReservationId === id) : [];
   const p = (Array.isArray(s.properties) ? s.properties[0] : s.properties) as { name: string } | null;
   const d = (x: string) => f.dateTime(new Date(x), { dateStyle: "medium", timeStyle: "short" });
+  // Messages du voyageur non lus au moment de l'ouverture : signalés « Nouveau », puis marqués lus (ceux affichés seulement)
+  const unreadIds = (msgs ?? []).filter((m) => m.author_kind === "guest" && !m.read_by_team_at).map((m) => m.id as number);
   return (
     <>
       <PageHeader title={s.guest_name || t("stays.unnamed")} subtitle={`${p?.name} · ${d(s.check_in_at)} → ${d(s.check_out_at)}`} />
@@ -102,14 +105,17 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
             <p className="mt-1 text-[13px] text-muted">{t("messages.visibleToGuest")}</p>
             <ul className="mt-3 space-y-2">
               {(msgs ?? []).map((m) => (
-                <li key={m.id} className={cn("max-w-[85%] rounded-lg px-3 py-2 text-[15px]", m.author_kind === "guest" ? "bg-subtle dark:bg-surface-hover" : "ms-auto bg-accent-soft")}>
+                <li key={m.id} className={cn("max-w-[85%] rounded-lg px-3 py-2 text-[15px]", m.author_kind === "guest" ? "bg-subtle dark:bg-surface-hover" : "ms-auto bg-accent-soft")} data-testid="stay-message" data-unread={unreadIds.includes(m.id) ? "1" : "0"}>
+                  {unreadIds.includes(m.id) && <span className="mb-1 inline-block rounded-full bg-danger px-2 py-0.5 text-[11px] font-semibold text-white">{t("messages.new")}</span>}
                   <p className="whitespace-pre-wrap">{m.body}</p>
                   <p className="mt-1 text-[12px] text-faint">
                     {m.author_kind === "guest" ? t("messages.fromGuest") : t("messages.fromTeam")} · {d(m.created_at)}
                     {m.author_kind === "member" && (m.read_by_guest_at ? ` · ${t("messages.seen")}` : "")}
+                    {m.author_kind === "guest" && m.read_by_team_at ? ` · ${t("messages.readByTeam", { at: d(m.read_by_team_at) })}` : ""}
                   </p>
                 </li>
               ))}
+              {unreadIds.length > 0 && <MarkStayRead reservationId={s.id} ids={unreadIds} />}
               {(msgs ?? []).length === 0 && <li className="text-[14px] text-muted">{t("messages.empty")}</li>}
             </ul>
             <StayReply reservationId={s.id} hasEmail={Boolean(s.guest_email)} />

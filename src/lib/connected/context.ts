@@ -24,7 +24,7 @@ export async function getContext() {
   if (!user) return { supabase, user: null, orgs: [] as OrgSummary[], org: null as OrgSummary | null, profile: null };
   const [{ data: memberships }, { data: profile }] = await Promise.all([
     supabase.from("memberships").select("organization_id, role, is_active, organizations(id, name, onboarding)").eq("user_id", user.id).eq("is_active", true),
-    supabase.from("profiles").select("id, full_name, phone, job_title, locale").eq("id", user.id).maybeSingle(),
+    supabase.from("profiles").select("id, full_name, phone, job_title, locale, maps_app").eq("id", user.id).maybeSingle(),
   ]);
   const orgs: OrgSummary[] = (memberships ?? []).flatMap((m) => {
     const o = (Array.isArray(m.organizations) ? m.organizations[0] : m.organizations) as { id: string; name: string; onboarding: Record<string, unknown> } | null;

@@ -186,9 +186,9 @@ where n.nspname = 'public' and c.relkind = 'r' group by c.relname;
 select t.check('aucune fonction exécutable par anon (hors exception invité) : ' || p.proname, p.proname, false)
 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')
-  and p.proname not in ('get_guest_stay', 'guest_request_service', 'guest_reply_service', 'guest_send_message', 'guest_report_problem', 'guest_problems');
+  and p.proname not in ('get_guest_stay', 'guest_request_service', 'guest_reply_service', 'guest_send_message', 'guest_report_problem', 'guest_problems', 'guest_places');
 select t.is('exceptions anonymes : uniquement la porte d''entrée voyageur (lien de séjour)', (select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'get_guest_stay,guest_problems,guest_reply_service,guest_report_problem,guest_request_service,guest_send_message');
+  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'get_guest_stay,guest_places,guest_problems,guest_reply_service,guest_report_problem,guest_request_service,guest_send_message');
 
 select t.check('fonction security definer avec search_path fixé : ' || p.proname,
   coalesce(array_to_string(p.proconfig, ','), 'aucun'), coalesce(array_to_string(p.proconfig, ','), '') like '%search_path=%')
@@ -855,7 +855,7 @@ select t.is('équipe : blocage urgent d''agent → responsables prévenus', (sel
 select t.is('équipe : problème voyageur → responsables prévenus', (select count(*)::text from public.notification_outbox where template = 'team_guest_problem'), '2');
 select t.is('équipe : message voyageur → responsables prévenus', (select count(*)::text from public.notification_outbox where template = 'team_guest_message' and organization_id = t.id('A')), '4');
 select t.check('équipe : réponse du voyageur à une question → responsables prévenus', '', (select count(*) from public.notification_outbox where template = 'team_guest_reply' and organization_id = t.id('A')) > 0);
-select t.is('équipe : jamais d''agent parmi les destinataires', (select count(*)::text from public.notification_outbox where recipient like 'a_agent%' or recipient like 'b_agent%'), '0');
+select t.is('équipe : jamais d''agent parmi les destinataires des alertes responsables', (select count(*)::text from public.notification_outbox where template like 'team_%' and (recipient like 'a_agent%' or recipient like 'b_agent%')), '0');
 select t.check('équipe : seules les adresses fictives sont en échec', '', not exists (select 1 from public.notification_outbox where template like 'team_%' and status = 'failed' and recipient not like '%.invalid'));
 select t.is('voyageur : problème pris en charge → e-mail au voyageur s''il a une adresse', (select count(*)::text from public.notification_outbox where template = 'problem_taken'), '1');
 select t.is('équipe : une autre organisation ne voit pas ces envois', t.q('b_manager', format('select count(*) from public.notification_outbox where organization_id = %L', t.id('A'))), '0');
@@ -879,6 +879,118 @@ select t.is('révocation : plus de réponse possible', (t.q(null, format('select
 select t.is('onboarding : le manager enregistre les réponses', t.dml('a_manager', format('update public.organizations set activity_type = ''concierge'', onboarding = ''{"step": 2}'' where id = %L', t.id('A'))), '1');
 select t.deny('onboarding : un agent ne modifie pas l''organisation', t.dml('a_agent', format('update public.organizations set activity_type = ''independent_hotel'' where id = %L', t.id('A'))));
 select t.err('onboarding : type d''activité inconnu refusé', t.dml('a_manager', format('update public.organizations set activity_type = ''casino'' where id = %L', t.id('A'))), '23514');
+
+-- =====================================================================
+-- Migration 10 : absences sur le créneau réel, missions à valider, lecture des messages,
+-- préférences de notification, messagerie interne, lieux autour du logement
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['PX', 'TX1', 'TX2', 'ABSX', 'CHAT1', 'MSG1', 'MSG2', 'PLACE1', 'PLACE2', 'PLACE3', 'PLACE4']) k;
+insert into public.properties (id, organization_id, name) values (t.id('PX'), t.id('A'), 'Logement 10');
+-- Lien voyageur propre à cette section (les liens des fixtures ont été révoqués plus haut)
+insert into t.ids values ('RX', gen_random_uuid());
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at)
+values (t.id('RX'), t.id('A'), t.id('PA1'), 'Séjour lieux', now() - interval '1 day', now() + interval '2 days');
+insert into public.guest_links (organization_id, reservation_id, token_hash, valid_from, valid_until)
+values (t.id('A'), t.id('RX'), encode(extensions.digest('1111111111111111111111111111111111111111111111111111111111111111', 'sha256'), 'hex'), now() - interval '1 day', now() + interval '2 days');
+-- Absences : la fenêtre entière compte quand aucun horaire n'est fixé ; l'horaire fixé compte s'il existe
+select t.is('créneau réel : congé accepté', t.keep('a_manager', format('select public.save_absence(%L, %L, ''member'', %L, ''leave'', ''2027-06-02 00:00+00'', ''2027-06-03 00:00+00'') ->> ''status''', t.id('A'), t.id('ABSX'), t.id('a_agent2'))), 'accepted');
+insert into public.tasks (id, organization_id, property_id, type, window_start, window_end, duration_min) values
+  (t.id('TX1'), t.id('A'), t.id('PX'), 'turnover', '2027-06-01 10:00+00', '2027-06-04 10:00+00', 90),
+  (t.id('TX2'), t.id('A'), t.id('PX'), 'maintenance', '2027-06-01 10:00+00', '2027-06-04 10:00+00', 60);
+select t.err('créneau réel : fenêtre de 3 jours qui chevauche le congé → affectation refusée', t.dml('a_manager', format('update public.tasks set assignee_id = %L, status = ''assigned'' where id = %L', t.id('a_agent2'), t.id('TX1'))), '22023');
+select t.is('créneau réel : horaire fixé hors congé → affectation acceptée', t.dml('a_manager', format('update public.tasks set scheduled_start = ''2027-06-01 12:00+00'', assignee_id = %L, status = ''assigned'' where id = %L', t.id('a_agent2'), t.id('TX1'))), '1');
+select t.err('créneau réel : horaire fixé pendant le congé → refusé', t.dml('a_manager', format('update public.tasks set scheduled_start = ''2027-06-02 09:00+00'', assignee_id = %L, status = ''assigned'' where id = %L', t.id('a_agent2'), t.id('TX1'))), '22023');
+update public.tasks set scheduled_start = '2027-06-01 12:00+00', assignee_id = t.id('a_agent2'), status = 'assigned' where id = t.id('TX1');
+select t.err('créneau réel : déplacer l''horaire d''une mission affectée sur le congé → refusé', t.dml('a_manager', format('update public.tasks set scheduled_start = ''2027-06-02 10:00+00'' where id = %L', t.id('TX1'))), '22023');
+select t.err('créneau réel : corriger la fenêtre sur le congé de la personne affectée → refusé', t.q('a_manager', format('select public.set_task_window(%L, %L, ''2027-06-02 08:00+00'', ''2027-06-02 12:00+00'', 90)', t.id('A'), t.id('TX1'))), '22023');
+select t.is('créneau réel : corriger la fenêtre hors congé → accepté', t.q('a_manager', format('select public.set_task_window(%L, %L, ''2027-06-03 08:00+00'', ''2027-06-03 12:00+00'', 90)', t.id('A'), t.id('TX1'))), 'applied');
+
+-- Missions à valider : les responsables sont prévenus à la fin, selon leurs préférences
+select t.is('préférences : un responsable coupe l''e-mail « mission à valider »', t.keep('a_manager', format('select public.set_notification_pref(%L, ''team_task_to_validate'', false)', t.id('A'))), '');
+select t.is('préférences : enregistrée pour lui seul', t.q('a_manager', 'select count(*) from public.notification_prefs'), '1');
+select t.is('préférences : invisibles pour les autres', t.q('a_owner', 'select count(*) from public.notification_prefs'), '0');
+select t.err('préférences : jamais pour une autre organisation', t.q('b_manager', format('select public.set_notification_pref(%L, ''team_task_to_validate'', false)', t.id('A'))), '42501');
+select t.err('préférences : événement inconnu refusé', t.q('a_manager', format('select public.set_notification_pref(%L, ''nimporte'', false)', t.id('A'))), '23514');
+update public.tasks set status = 'in_progress', started_at = now() where id = t.id('TX1');
+select t.is('à valider : l''agent termine', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TX1'))), 'applied');
+select t.is('à valider : la mission attend le responsable', (select status::text from public.tasks where id = t.id('TX1')), 'done');
+select t.is('à valider : e-mail au responsable qui le veut, pas à celui qui l''a coupé', (select string_agg(recipient, ',' order by recipient) from public.notification_outbox where template = 'team_task_to_validate' and payload ->> 'path' = '/app/missions/' || t.id('TX1')), 'a_owner@test.invalid');
+select t.is('à valider : l''agent est prévenu de son affectation', (select count(*)::text from public.notification_outbox where template = 'agent_task_assigned' and payload ->> 'path' = '/app/missions/' || t.id('TX1') and recipient = 'a_agent2@test.invalid'), '1');
+-- Urgence : toujours envoyée, même préférence coupée
+select t.is('urgence : un responsable coupe les problèmes voyageurs', t.keep('a_owner', format('select public.set_notification_pref(%L, ''team_guest_problem'', false)', t.id('A'))), '');
+select t.is('urgence : fuite signalée par le voyageur', t.keep(null, format('select public.guest_report_problem(%L, ''leak'', ''Fuite sous l''''évier'', false) ->> ''status''', '1111111111111111111111111111111111111111111111111111111111111111')), 'ok');
+select t.check('urgence : envoyée malgré la préférence coupée', '', exists (select 1 from public.notification_outbox where template = 'team_guest_problem' and recipient = 'a_owner@test.invalid' and payload ->> 'message' = 'Fuite sous l''évier'));
+select t.is('non urgent : bruit signalé', t.keep(null, format('select public.guest_report_problem(%L, ''noise'', ''Bruit voisin'', false) ->> ''status''', '1111111111111111111111111111111111111111111111111111111111111111')), 'ok');
+select t.check('non urgent : préférence respectée', '', not exists (select 1 from public.notification_outbox where template = 'team_guest_problem' and recipient = 'a_owner@test.invalid' and payload ->> 'message' = 'Bruit voisin'));
+
+-- Lecture des messages voyageur : message par message, par un responsable de l'organisation seulement
+insert into public.stay_messages (organization_id, reservation_id, author_kind, body) values
+  (t.id('A'), t.id('RX'), 'guest', 'Bonjour 1'), (t.id('A'), t.id('RX'), 'guest', 'Bonjour 2');
+select t.err('lecture : un agent ne marque pas', t.q('a_agent', format('select public.mark_stay_messages_read(%L, %L)', t.id('A'), t.id('RX'))), '42501');
+select t.err('lecture : une autre organisation ne marque pas', t.q('b_manager', format('select public.mark_stay_messages_read(%L, %L)', t.id('A'), t.id('RX'))), '42501');
+select t.is('lecture : un seul message marqué', t.keep('a_manager', format('select public.mark_stay_messages_read(%L, %L, array[(select id from public.stay_messages where body = ''Bonjour 1'')])', t.id('A'), t.id('RX'))), '1');
+select t.is('lecture : l''autre reste non lu', (select string_agg(body, ',') from public.stay_messages where reservation_id = t.id('RX') and author_kind = 'guest' and read_by_team_at is null and body like 'Bonjour%'), 'Bonjour 2');
+select t.check('lecture : toute la conversation', '', t.keep('a_manager', format('select public.mark_stay_messages_read(%L, %L)', t.id('A'), t.id('RX')))::int >= 1);
+select t.is('lecture : plus aucun non lu', (select count(*)::text from public.stay_messages where reservation_id = t.id('RX') and author_kind = 'guest' and read_by_team_at is null), '0');
+
+-- Messagerie interne
+create table t.chat (k text primary key, v jsonb);
+insert into t.chat select 'start', t.keep('a_manager', format('select public.start_team_thread(%L, %L, array[%L]::uuid[], ''task'', %L, ''Clé chez le voisin, porte bleue'')', t.id('A'), t.id('MSG1'), t.id('a_agent2'), t.id('TX2')))::jsonb;
+create function t.th() returns uuid language sql stable as $$ select (v ->> 'thread')::uuid from t.chat where k = 'start' $$;
+select t.check('messagerie : conversation liée à la mission', '', (select context_kind = 'task' and task_id = t.id('TX2') from public.team_threads where id = t.th()));
+select t.is('messagerie : rejouer l''envoi ne crée pas de doublon', t.keep('a_manager', format('select public.start_team_thread(%L, %L, array[%L]::uuid[], ''task'', %L, ''Clé chez le voisin, porte bleue'') ->> ''replayed''', t.id('A'), t.id('MSG1'), t.id('a_agent2'), t.id('TX2'))), 'true');
+select t.is('messagerie : un seul message', (select count(*)::text from public.team_messages where thread_id = t.th()), '1');
+select t.is('messagerie : l''agent destinataire le lit', t.q('a_agent2', format('select body from public.team_messages where thread_id = %L', t.th())), 'Clé chez le voisin, porte bleue');
+select t.is('messagerie : un autre agent ne le voit pas', t.q('a_agent', format('select count(*) from public.team_messages where thread_id = %L', t.th())), '0');
+select t.is('messagerie : une autre organisation ne voit rien', t.q('b_manager', format('select count(*) from public.team_threads where organization_id = %L', t.id('A'))), '0');
+select t.err('messagerie : une autre organisation n''écrit pas', t.q('b_manager', format('select public.post_team_message(%L, %L, gen_random_uuid(), ''intrusion'')', t.id('A'), t.th())), '42501');
+select t.err('messagerie : un agent non participant n''écrit pas', t.q('a_agent', format('select public.post_team_message(%L, %L, gen_random_uuid(), ''intrusion'')', t.id('A'), t.th())), '42501');
+select t.deny('messagerie : aucune écriture directe', t.dml('a_agent2', format('update public.team_messages set body = ''modifié'' where thread_id = %L', t.th())));
+select t.err('messagerie : le voyageur (anonyme) n''a aucun accès', t.q(null, 'select count(*) from public.team_messages'), '42501');
+select t.err('messagerie : l''anonyme n''écrit pas', t.q(null, format('select public.post_team_message(%L, %L, gen_random_uuid(), ''x'')', t.id('A'), t.th())), '42501');
+select t.check('messagerie : jamais dans l''espace voyageur', '', position('porte bleue' in t.q(null, format('select public.get_guest_stay(%L)::text', '1111111111111111111111111111111111111111111111111111111111111111'))) = 0);
+select t.err('messagerie : un agent n''ouvre pas de conversation', t.q('a_agent2', format('select public.start_team_thread(%L, gen_random_uuid(), array[%L]::uuid[], ''property'', %L, ''x'')', t.id('A'), t.id('a_manager'), t.id('PX'))), '42501');
+select t.err('messagerie : destinataire d''une autre organisation refusé', t.q('a_manager', format('select public.start_team_thread(%L, gen_random_uuid(), array[%L]::uuid[], ''property'', %L, ''x'')', t.id('A'), t.id('b_agent'), t.id('PX'))), '22023');
+select t.err('messagerie : contexte d''une autre organisation refusé', t.q('a_manager', format('select public.start_team_thread(%L, gen_random_uuid(), array[%L]::uuid[], ''property'', %L, ''x'')', t.id('A'), t.id('a_agent2'), t.id('PB1'))), 'P0002');
+select t.err('messagerie : sans contexte opérationnel refusé', t.q('a_manager', format('select public.start_team_thread(%L, gen_random_uuid(), array[%L]::uuid[], ''general'', null, ''x'')', t.id('A'), t.id('a_agent2'))), '22023');
+select t.check('messagerie : l''agent est prévenu par e-mail', '', exists (select 1 from public.notification_outbox where template = 'chat_message' and recipient = 'a_agent2@test.invalid'));
+-- Réponse de l'agent et lecture
+select t.is('messagerie : l''agent répond', t.keep('a_agent2', format('select public.post_team_message(%L, %L, %L, ''Bien reçu, j''''y vais'') ->> ''replayed''', t.id('A'), t.th(), t.id('MSG2'))), 'false');
+select t.is('messagerie : réponse vue par le manager', t.q('a_manager', format('select count(*) from public.team_messages where thread_id = %L', t.th())), '2');
+select t.check('messagerie : non lue pour le manager tant qu''il n''a pas ouvert', '', (select m.last_read_at < (select max(created_at) from public.team_messages where thread_id = t.th() and author_id = t.id('a_agent2')) from public.team_thread_members m where m.thread_id = t.th() and m.user_id = t.id('a_manager')));
+select t.is('messagerie : ouverture par le manager', t.keep('a_manager', format('select public.mark_team_thread_read(%L, %L)', t.id('A'), t.th())), '');
+select t.check('messagerie : lue ensuite', '', (select m.last_read_at >= (select max(created_at) from public.team_messages where thread_id = t.th()) from public.team_thread_members m where m.thread_id = t.th() and m.user_id = t.id('a_manager')));
+select t.is('messagerie : urgent, préférence coupée', t.keep('a_agent2', format('select public.set_notification_pref(%L, ''chat_message'', false)', t.id('A'))), '');
+select t.is('messagerie : message urgent', t.keep('a_manager', format('select public.post_team_message(%L, %L, gen_random_uuid(), ''Urgent : alarme'', true) ->> ''replayed''', t.id('A'), t.th())), 'false');
+select t.check('messagerie : message urgent quand même envoyé', '', exists (select 1 from public.notification_outbox where template = 'chat_urgent' and recipient = 'a_agent2@test.invalid'));
+select t.is('messagerie : message ordinaire', t.keep('a_manager', format('select public.post_team_message(%L, %L, gen_random_uuid(), ''Pour info'') ->> ''replayed''', t.id('A'), t.th())), 'false');
+select t.check('messagerie : message ordinaire non envoyé (préférence)', '', not exists (select 1 from public.notification_outbox where template = 'chat_message' and recipient = 'a_agent2@test.invalid' and payload ->> 'message' = 'Pour info'));
+
+-- Lieux autour du logement : jamais ceux d'un autre logement, jamais hors périmètre
+update public.properties set latitude = 48.8606, longitude = 2.3376 where id = t.id('PA1');
+update public.properties set latitude = 43.2965, longitude = 5.3698 where id = t.id('PA2');
+insert into public.property_places (id, organization_id, property_id, source, category, name, latitude, longitude, external_id) values
+  (t.id('PLACE1'), t.id('A'), t.id('PA1'), 'manager', 'food', 'Café du Canal', 48.8610, 2.3380, null),
+  (t.id('PLACE2'), t.id('A'), t.id('PA1'), 'openstreetmap', 'shops', 'Boulangerie OSM', 48.8620, 2.3390, 'node/1'),
+  (t.id('PLACE3'), t.id('A'), t.id('PA1'), 'openstreetmap', 'food', 'Trop loin', 48.9500, 2.3376, 'node/2'),
+  (t.id('PLACE4'), t.id('A'), t.id('PA2'), 'manager', 'food', 'Bistrot Vieux-Port', 43.2966, 5.3699, null);
+select t.is('lieux : le voyageur voit les lieux de SON logement', t.q(null, format('select (select string_agg(x ->> ''name'', '','' order by x ->> ''name'') from jsonb_array_elements(public.guest_places(%L) -> ''places'') x)', '1111111111111111111111111111111111111111111111111111111111111111')), 'Boulangerie OSM,Café du Canal');
+select t.check('lieux : lieu vérifié par l''équipe en premier, distance calculée depuis le logement (≈ 53 m)', t.q(null, format('select (public.guest_places(%L) -> ''places'' -> 0)::text', '1111111111111111111111111111111111111111111111111111111111111111')),
+  coalesce(nullif(t.q(null, format('select (public.guest_places(%L) -> ''places'' -> 0 ->> ''distance_m'')', '1111111111111111111111111111111111111111111111111111111111111111')), 'null'), '0')::int between 45 and 60
+  and t.q(null, format('select (public.guest_places(%L) -> ''places'' -> 0 ->> ''name'')', '1111111111111111111111111111111111111111111111111111111111111111')) = 'Café du Canal');
+update public.guest_links set revoked_at = now() where reservation_id = t.id('RA3') and revoked_at is null;
+insert into public.guest_links (organization_id, reservation_id, token_hash, valid_from, valid_until)
+values (t.id('A'), t.id('RA3'), encode(extensions.digest('2222222222222222222222222222222222222222222222222222222222222222', 'sha256'), 'hex'), now() - interval '1 day', now() + interval '20 days');
+select t.is('lieux : un autre séjour, un autre logement : uniquement les siens', t.q(null, 'select (select string_agg(x ->> ''name'', '','') from jsonb_array_elements(public.guest_places(''2222222222222222222222222222222222222222222222222222222222222222'') -> ''places'') x)'), 'Bistrot Vieux-Port');
+select t.is('lieux : lien inventé refusé', t.q(null, format('select public.guest_places(%L) ->> ''status''', repeat('0', 64))), 'unavailable');
+update public.property_places set hidden = true where id = t.id('PLACE2');
+select t.is('lieux : un lieu masqué n''est plus montré', t.q(null, format('select (select string_agg(x ->> ''name'', '','') from jsonb_array_elements(public.guest_places(%L) -> ''places'') x)', '1111111111111111111111111111111111111111111111111111111111111111')), 'Café du Canal');
+select t.is('lieux : un agent ne les gère pas', t.q('a_agent', 'select count(*) from public.property_places'), '0');
+select t.deny('lieux : un agent n''en ajoute pas', t.dml('a_agent', format('insert into public.property_places (organization_id, property_id, source, category, name) values (%L, %L, ''manager'', ''food'', ''x'')', t.id('A'), t.id('PA1'))));
+select t.is('lieux : une autre organisation ne voit rien', t.q('b_manager', format('select count(*) from public.property_places where organization_id = %L', t.id('A'))), '0');
+select t.deny('lieux : une autre organisation n''en ajoute pas', t.dml('b_manager', format('insert into public.property_places (organization_id, property_id, source, category, name) values (%L, %L, ''manager'', ''food'', ''x'')', t.id('A'), t.id('PA1'))));
+select t.is('lieux : le manager en ajoute', t.dml('a_manager', format('insert into public.property_places (organization_id, property_id, source, category, name, address) values (%L, %L, ''manager'', ''services'', ''Pharmacie Élysée'', ''2 rue d''''Été'')', t.id('A'), t.id('PA1'))), '1');
+select t.err('lieux : lieu rattaché au logement d''une autre organisation refusé', t.dml('a_manager', format('insert into public.property_places (organization_id, property_id, source, category, name) values (%L, %L, ''manager'', ''food'', ''x'')', t.id('A'), t.id('PB1'))), '23503');
 
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);

@@ -5,8 +5,9 @@
  * Règles :
  * - seules les absences ACCEPTÉES bloquent (en attente : signalées, refusées / annulées : ignorées) ;
  * - une fermeture d'équipe concerne tout le monde, ou seulement un poste si elle en précise un ;
- * - une mission reste attribuable si elle tient dans le plus long temps libre de sa fenêtre
- *   (une absence partielle ne bloque que ce qu'elle recouvre réellement) ;
+ * - créneau RÉEL de la mission : l'horaire planifié (+ durée) s'il est fixé, sinon toute sa fenêtre ;
+ *   une personne n'est pas proposée dès qu'une absence acceptée ou une fermeture chevauche ce créneau
+ *   (une absence partielle qui ne le touche pas ne bloque rien) — retour du 29/10, migration 10 ;
  * - rien n'est jamais réaffecté automatiquement : les conflits sont listés pour le responsable.
  */
 const MINUTE = 60_000;
@@ -33,6 +34,8 @@ export interface PlannedTask {
   windowStart: string;
   windowEnd: string;
   durationMin: number;
+  /** Horaire planifié, s'il est fixé : c'est lui qui compte, pas toute la fenêtre. */
+  scheduledStart?: string | null;
 }
 
 const ms = (s: string) => new Date(s).getTime();
@@ -58,8 +61,21 @@ export function freeMinutes(member: Member, windowStart: string, windowEnd: stri
 }
 
 /** La personne peut-elle recevoir cette mission (même règle que la base) ? */
-export const isAvailable = (member: Member, task: Pick<PlannedTask, "windowStart" | "windowEnd" | "durationMin">, absences: Absence[]) =>
-  freeMinutes(member, task.windowStart, task.windowEnd, absences) >= task.durationMin;
+/** Créneau réel : [planifié ; planifié + durée] si un horaire est fixé, sinon la fenêtre entière. */
+export function slotOf(task: Pick<PlannedTask, "windowStart" | "windowEnd" | "durationMin" | "scheduledStart">) {
+  if (task.scheduledStart) return { start: ms(task.scheduledStart), end: ms(task.scheduledStart) + task.durationMin * MINUTE };
+  return { start: ms(task.windowStart), end: ms(task.windowEnd) };
+}
+
+/** Absences du statut voulu qui chevauchent le créneau réel de la mission (même règle que la base). */
+export function blockingAbsences(member: Member, task: Pick<PlannedTask, "windowStart" | "windowEnd" | "durationMin" | "scheduledStart">, absences: Absence[], statuses: AbsenceStatus[] = ["accepted"]) {
+  const { start, end } = slotOf(task);
+  return absences.filter((a) => statuses.includes(a.status) && concerns(a, member) && ms(a.startsAt) < end && ms(a.endsAt) > start);
+}
+
+/** La personne peut-elle recevoir cette mission ? Non dès qu'une absence acceptée chevauche le créneau réel. */
+export const isAvailable = (member: Member, task: Pick<PlannedTask, "windowStart" | "windowEnd" | "durationMin" | "scheduledStart">, absences: Absence[]) =>
+  blockingAbsences(member, task, absences).length === 0;
 
 const OPEN: string[] = ["assigned", "in_progress", "to_redo", "unassigned"];
 
@@ -75,20 +91,22 @@ export interface AvailabilityConflict {
 export function availabilityConflicts(tasks: PlannedTask[], members: Member[], absences: Absence[], now: Date): AvailabilityConflict[] {
   const out: AvailabilityConflict[] = [];
   const byId = new Map(members.map((m) => [m.id, m]));
-  const overlapping = (t: PlannedTask, a: Absence) => ms(a.startsAt) < ms(t.windowEnd) && ms(a.endsAt) > ms(t.windowStart);
+  const overlapping = (t: PlannedTask, a: Absence) => {
+    const { start, end } = slotOf(t);
+    return ms(a.startsAt) < end && ms(a.endsAt) > start;
+  };
   for (const t of tasks) {
     if (!OPEN.includes(t.status) || ms(t.windowEnd) <= now.getTime()) continue;
     const closures = absences.filter((a) => a.scope === "team" && a.status === "accepted" && overlapping(t, a));
     const m = t.assigneeId ? byId.get(t.assigneeId) : undefined;
     if (m) {
       if (!isAvailable(m, t, absences)) {
-        const ids = absences.filter((a) => a.status === "accepted" && concerns(a, m) && overlapping(t, a)).map((a) => a.id);
+        const ids = blockingAbsences(m, t, absences).map((a) => a.id);
         out.push({ taskId: t.id, memberId: m.id, kind: ids.length > 0 && ids.every((id) => closures.some((c) => c.id === id)) ? "closure" : "accepted", absenceIds: ids });
         continue;
       }
-      if (freeMinutes(m, t.windowStart, t.windowEnd, absences, ["accepted", "pending"]) < t.durationMin) {
-        out.push({ taskId: t.id, memberId: m.id, kind: "pending", absenceIds: absences.filter((a) => a.status === "pending" && concerns(a, m) && overlapping(t, a)).map((a) => a.id) });
-      }
+      const pending = blockingAbsences(m, t, absences, ["pending"]);
+      if (pending.length) out.push({ taskId: t.id, memberId: m.id, kind: "pending", absenceIds: pending.map((a) => a.id) });
     } else if (closures.length) {
       // Mission sans personne pendant une fermeture d'équipe : à signaler aussi
       out.push({ taskId: t.id, memberId: null, kind: "closure", absenceIds: closures.map((c) => c.id) });

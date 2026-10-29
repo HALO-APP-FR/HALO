@@ -18,6 +18,15 @@ describe("disponibilités (même règle que la base)", () => {
     expect(isAvailable(ana, task("a", "2027-04-10T13:00:00Z", "2027-04-10T17:00:00Z"), [abs({})])).toBe(true);
   });
 
+  it("créneau réel : une longue fenêtre qui chevauche un congé est refusée ; un horaire fixé hors congé est accepté", () => {
+    const leave = abs({ startsAt: "2027-06-02T00:00:00Z", endsAt: "2027-06-03T00:00:00Z" });
+    const long = { windowStart: "2027-06-01T10:00:00Z", windowEnd: "2027-06-04T10:00:00Z", durationMin: 90 };
+    expect(isAvailable(ana, long, [leave])).toBe(false);
+    expect(isAvailable(ana, { ...long, scheduledStart: "2027-06-01T12:00:00Z" }, [leave])).toBe(true);
+    expect(isAvailable(ana, { ...long, scheduledStart: "2027-06-02T09:00:00Z" }, [leave])).toBe(false);
+    expect(isAvailable(ana, { ...long, scheduledStart: "2027-06-01T23:00:00Z" }, [leave])).toBe(false); // 23 h + 1 h 30 déborde sur le congé
+  });
+
   it("en attente, refusée ou annulée : ne bloque pas", () => {
     for (const status of ["pending", "refused", "cancelled"] as const) {
       expect(freeMinutes(ana, "2027-04-10T08:00:00Z", "2027-04-10T12:00:00Z", [abs({ status })])).toBe(240);

@@ -9,6 +9,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync, readdirSync } from "node:fs";
+import { createServer, type Server } from "node:http";
 
 test.skip(!process.env.HALO_E2E_CONNECTED, "préproduction locale non démarrée");
 test.describe.configure({ mode: "serial", timeout: 90_000 });
@@ -813,8 +814,8 @@ test("17 · validation par type, créneau lisible et corrigé, absences et ferme
   await admin.from("tasks").insert({ organization_id: org, property_id: prop!.id, type: "inspection", window_start: at(60), window_end: at(240), duration_min: 45 });
   await m.goto("/fr/app/missions");
   const insp = m.getByTestId("mission-row").filter({ hasText: "Contrôle · Appartement test" });
-  await expect(insp.getByTestId("assign-select").locator("option", { hasText: "Agent test" })).toBeDisabled();
-  await expect(insp.getByTestId("assign-select").locator("option", { hasText: "Agent test" })).toContainText("absent");
+  await expect(insp.getByTestId("assign-select").locator("option", { hasText: "Agent test" })).toHaveCount(0);
+  await expect(insp.getByTestId("assign-hidden")).toContainText("1 personne absente");
   const blocked = await admin.from("tasks").update({ assignee_id: agentUser.id, status: "assigned" }).eq("organization_id", org).eq("type", "inspection").select("id");
   expect(blocked.error?.message).toContain("assignee_unavailable");
 
@@ -838,5 +839,228 @@ test("17 · validation par type, créneau lisible et corrigé, absences et ferme
   }
   await m.reload();
   await expect(m.getByTestId("availability-conflicts")).toHaveCount(0);
+  for (const c of [m, agent]) await c.context().close();
+});
+
+/**
+ * Simulation LOCALE du fournisseur OpenStreetMap (préproduction locale sans accès Internet) :
+ * NOMINATIM_URL et OVERPASS_URL de .env.local pointent ici. Le vrai fournisseur est vérifié en ligne
+ * par l'auto-test (openstreetmap_geocoding_works, openstreetmap_places_work).
+ */
+let osm: Server | null = null;
+const OSM_PORT = 54390;
+test.beforeAll(async () => {
+  if (!process.env.HALO_E2E_CONNECTED || osm) return;
+  osm = createServer((req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    if (req.url?.startsWith("/search")) return res.end(JSON.stringify([{ lat: "48.8606", lon: "2.3376", display_name: "1 Rue de la Paix, Paris" }]));
+    res.end(
+      JSON.stringify({
+        osm3s: { timestamp_osm_base: "2026-10-28T10:00:00Z" },
+        elements: [
+          { type: "node", id: 101, lat: 48.8611, lon: 2.3381, tags: { amenity: "cafe", name: "Café de l'Opéra", "addr:housenumber": "2", "addr:street": "Rue Été", "addr:city": "Paris", opening_hours: "Mo-Su 07:00-22:00" } },
+          { type: "node", id: 102, lat: 48.8601, lon: 2.3369, tags: { amenity: "pharmacy", name: "Pharmacie Centrale" } },
+          { type: "node", id: 103, lat: 48.8615, lon: 2.3390, tags: { railway: "station", name: "Gare Fictive" } },
+          { type: "node", id: 104, lat: 48.9500, lon: 2.3376, tags: { amenity: "restaurant", name: "Hors périmètre" } },
+        ],
+      }),
+    );
+  }).listen(OSM_PORT);
+});
+test.afterAll(() => {
+  osm?.close();
+  osm = null;
+});
+
+test("18 · missions à valider, messages lus, messagerie interne, itinéraires, préférences et lieux autour du logement", async ({ browser }) => {
+  const m = await newPage(browser);
+  await m.context().clearCookies();
+  await m.goto("/fr/auth/sign-in");
+  await m.getByLabel("Nom du compte de test").fill(`ops ${run}`);
+  await m.getByTestId("test-scenario-submit").click();
+  await expect(m.getByTestId("test-scenario-ready")).toBeVisible();
+  const guestHref = (await m.getByTestId("test-scenario-guest").getAttribute("href"))!;
+  await m.getByTestId("test-scenario-continue").click();
+  await expect(m).toHaveURL(/\/fr\/app$/);
+  const agentUser = (await admin.auth.admin.listUsers({ perPage: 1000 })).data.users.find((u) => u.email === `test-ops-${run}-agent@halo.invalid`)!;
+  const { data: mem } = await admin.from("memberships").select("organization_id").eq("user_id", agentUser.id).single();
+  const org = mem!.organization_id as string;
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+  const { data: ménage } = await admin.from("tasks").select("id").eq("organization_id", org).eq("type", "turnover").limit(1).single();
+
+  // A. Lieux : localisation et import OpenStreetMap, lieu vérifié par l'équipe, lieu masqué
+  await m.goto(`/fr/app/properties/${prop!.id}`);
+  await m.getByTestId("places-locate").click();
+  await expect(m.getByTestId("places-coords")).toContainText("48.86060");
+  await m.getByTestId("places-import").click();
+  await expect(m.getByTestId("places-imported")).toContainText("3 lieux importés"); // le lieu hors périmètre est écarté
+  await m.getByTestId("place-name").fill("Boulangerie Fraîche");
+  await m.getByTestId("place-category").selectOption("shops");
+  await m.getByTestId("place-address").fill("4 rue de l'Écluse, Paris");
+  await m.getByTestId("place-note").fill("Croissants dès 7 h");
+  await m.getByTestId("place-add").click();
+  await expect(m.getByTestId("place-row").filter({ hasText: "Boulangerie Fraîche" })).toBeVisible();
+  await m.getByTestId("place-row").filter({ hasText: "Gare Fictive" }).getByTestId("place-toggle").click();
+  await expect(m.getByTestId("place-row").filter({ hasText: "Gare Fictive" }).getByTestId("place-toggle")).toHaveText("Afficher");
+
+  // B. Voyageur : lieux de son logement, filtre, itinéraire, refus de géolocalisation sans blocage
+  const guestCtx = await browser.newContext({ locale: "fr-FR", timezoneId: "Europe/Paris" });
+  const guest = await guestCtx.newPage();
+  await guest.goto(guestHref);
+  const around = guest.getByTestId("guest-around");
+  await expect(around).toBeVisible();
+  await expect(around.getByTestId("around-place")).toHaveCount(3);
+  await expect(around.getByTestId("around-place").first()).toContainText("Boulangerie Fraîche"); // conseil de l'équipe d'abord
+  await expect(around.getByTestId("around-place").filter({ hasText: "Gare Fictive" })).toHaveCount(0); // masqué
+  await expect(around.getByTestId("around-place").filter({ hasText: "Hors périmètre" })).toHaveCount(0);
+  await expect(around.getByTestId("around-sources")).toContainText("OpenStreetMap");
+  await expect(around.getByTestId("around-sources")).toContainText("Données OpenStreetMap du 28 oct. 2026");
+  await expect(around.getByTestId("places-map")).toBeVisible();
+  await around.getByTestId("around-filter-food").click();
+  await expect(around.getByTestId("around-place")).toHaveCount(1);
+  const cafe = around.getByTestId("around-place").first();
+  await expect(cafe).toContainText("Café de l'Opéra");
+  await expect(cafe.getByTestId("around-distance")).toContainText("m");
+  await expect(cafe.getByTestId("around-hours")).toContainText("Mo-Su 07:00-22:00");
+  expect(await cafe.getByTestId("around-go-google").getAttribute("href")).toContain("48.861100%2C2.338100");
+  await around.getByTestId("around-geolocate").click();
+  await expect(around.getByTestId("around-denied")).toBeVisible(); // permission non accordée
+  await expect(around.getByTestId("around-place")).toHaveCount(1);
+  await guestCtx.close();
+  const located = await browser.newContext({ locale: "fr-FR", timezoneId: "Europe/Paris", permissions: ["geolocation"], geolocation: { latitude: 48.8611, longitude: 2.3381 } });
+  const g2 = await located.newPage();
+  await g2.goto(guestHref);
+  await g2.getByTestId("around-geolocate").click();
+  await expect(g2.getByTestId("around-origin")).toContainText("depuis votre position");
+  await expect(g2.getByTestId("around-place").filter({ hasText: "Café de l'Opéra" }).getByTestId("around-distance")).toContainText("0 m");
+
+  // C. Messages voyageur : lus à l'ouverture, compteurs cohérents
+  await g2.getByTestId("guest-message").fill("Où sont les serviettes ?");
+  await g2.getByTestId("guest-message-send").click();
+  await m.goto("/fr/app/stays");
+  const row = m.getByTestId("stay-row").filter({ hasText: "Voyageur test" });
+  await expect(row.getByTestId("stay-unread")).toHaveText("1 nouveau message");
+  await row.click();
+  await expect(m.getByTestId("stay-message").filter({ hasText: "serviettes" })).toHaveAttribute("data-unread", "1");
+  await expect(m.getByTestId("stay-message").filter({ hasText: "serviettes" })).toContainText("lu par l'équipe"); // après confirmation serveur
+  await m.goto("/fr/app/stays");
+  await expect(m.getByTestId("stay-row").filter({ hasText: "Voyageur test" }).getByTestId("stay-unread")).toHaveCount(0);
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-messages")).toContainText("Aucun message voyageur non lu");
+  await located.close();
+
+  // D. Messagerie interne liée à la mission
+  await m.goto(`/fr/app/missions/${ménage!.id}`);
+  await m.getByTestId("mission-chat-new").click();
+  await expect(m.getByTestId("chat-context")).toHaveValue(`task:${ménage!.id}`);
+  await m.getByTestId("chat-to").first().check();
+  await m.getByTestId("chat-first").fill("Le code du local poubelles a changé, demande-le-moi.");
+  await m.getByTestId("chat-start").click();
+  await expect(m).toHaveURL(/\/fr\/app\/messages\/[0-9a-f-]{36}$/);
+  await expect(m.getByTestId("chat-message")).toHaveCount(1);
+  await expect(m.getByTestId("chat-read-state")).toHaveText(" · non lu");
+
+  const agent = await newPage(browser);
+  await agent.addInitScript(() => {
+    (window as unknown as { __opened: string[] }).__opened = [];
+    window.open = (url?: string | URL) => {
+      (window as unknown as { __opened: string[] }).__opened.push(String(url));
+      return null;
+    };
+  });
+  await agent.context().clearCookies();
+  await agent.goto("/fr/auth/sign-in");
+  await agent.getByLabel("Nom du compte de test").fill(`ops-${run}-agent`);
+  await agent.getByTestId("test-account-submit").click();
+  await agent.waitForURL(/\/fr\/app/);
+  await agent.goto("/fr/app/missions");
+  await expect(agent.getByTestId("nav-chat-unread")).toHaveText("1");
+  await agent.goto(`/fr/app/missions/${ménage!.id}`);
+  const thread = agent.getByTestId("mission-chat");
+  await expect(thread.getByTestId("chat-message")).toContainText("local poubelles");
+  await expect(thread.getByTestId("chat-message")).toContainText("Nouveau");
+  await thread.getByTestId("chat-body").fill("Bien reçu, je vous appelle.");
+  await thread.getByTestId("chat-send").click();
+  await expect(thread.getByTestId("chat-message").filter({ hasText: "Bien reçu" })).toBeVisible();
+  // Coupure réseau : le message reste « en attente », jamais affiché comme envoyé, puis part au retour du réseau
+  await agent.context().setOffline(true);
+  await thread.getByTestId("chat-body").fill("Message écrit sans réseau");
+  await thread.getByTestId("chat-send").click();
+  await expect(thread.getByTestId("chat-pending")).toHaveAttribute("data-state", "offline");
+  await expect(thread.getByTestId("chat-message").filter({ hasText: "sans réseau" })).toHaveCount(0);
+  await agent.context().setOffline(false);
+  await agent.evaluate(() => window.dispatchEvent(new Event("online")));
+  await expect(thread.getByTestId("chat-pending")).toHaveCount(0);
+  await expect(thread.getByTestId("chat-message").filter({ hasText: "sans réseau" })).toHaveCount(1);
+  const { count: sansReseau } = await admin.from("team_messages").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("body", "Message écrit sans réseau");
+  expect(sansReseau).toBe(1); // aucun doublon
+
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-chats")).toContainText("1 conversation d'équipe non lue");
+  await m.getByTestId("home-chats").click();
+  await m.getByTestId("chat-row").first().click();
+  await expect(m.getByTestId("chat-message").filter({ hasText: "Bien reçu" })).toContainText("Nouveau");
+  await expect(m.getByTestId("chat-message").filter({ hasText: "local poubelles" }).getByTestId("chat-read-state")).toHaveText(" · lu");
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-chats")).toContainText("Aucun message d'équipe non lu");
+
+  // E. Itinéraire : trois applications, choix par défaut conservé après reconnexion
+  await agent.goto(`/fr/app/missions/${ménage!.id}`);
+  await agent.getByTestId("directions-menu").click();
+  await agent.getByTestId("directions-apple").click();
+  await agent.getByTestId("directions-menu").click();
+  await agent.getByTestId("directions-google").click();
+  await agent.getByTestId("directions-menu").click();
+  await agent.getByTestId("directions-waze").click();
+  const opened = await agent.evaluate(() => (window as unknown as { __opened: string[] }).__opened);
+  expect(opened[0]).toMatch(/^https:\/\/maps\.apple\.com\/\?daddr=48\.860600%2C2\.337600/);
+  expect(opened[1]).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=48\.860600%2C2\.337600/);
+  expect(opened[2]).toBe("https://waze.com/ul?ll=48.860600%2C2.337600&navigate=yes");
+  await agent.goto("/fr/app/profile");
+  await agent.getByTestId("maps-app").selectOption("waze");
+  await expect.poll(async () => (await admin.from("profiles").select("maps_app").eq("id", agentUser.id).single()).data?.maps_app).toBe("waze");
+  await agent.context().clearCookies();
+  await agent.goto("/fr/auth/sign-in");
+  await agent.getByLabel("Nom du compte de test").fill(`ops-${run}-agent`);
+  await agent.getByTestId("test-account-submit").click();
+  await agent.waitForURL(/\/fr\/app/);
+  await agent.goto(`/fr/app/missions/${ménage!.id}`);
+  await expect(agent.getByTestId("directions-waze")).toHaveAttribute("data-default", "1");
+
+  // F. Préférences de notification : enregistrées, appliquées par le serveur, canaux non configurés signalés
+  await agent.goto("/fr/app/profile");
+  await expect(agent.getByTestId("channel-sms")).toContainText("indisponible");
+  await expect(agent.getByTestId("channel-push")).toContainText("indisponibles");
+  const pref = agent.locator('[data-testid="pref-row"][data-event="agent_task_assigned"]');
+  await pref.getByTestId("pref-email").uncheck();
+  await expect.poll(async () => (await admin.from("notification_prefs").select("email").eq("user_id", agentUser.id).eq("event", "agent_task_assigned").maybeSingle()).data?.email).toBe(false);
+  await agent.reload();
+  await expect(agent.locator('[data-testid="pref-row"][data-event="agent_task_assigned"]').getByTestId("pref-email")).not.toBeChecked();
+  const before = (await admin.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("template", "agent_task_assigned")).count ?? 0;
+  const at = (min: number) => new Date(Date.now() + min * 60_000).toISOString();
+  const { data: mt } = await admin.from("tasks").insert({ organization_id: org, property_id: prop!.id, type: "maintenance", window_start: at(-30), window_end: at(240), duration_min: 30 }).select("id").single();
+  await admin.from("tasks").update({ assignee_id: agentUser.id, status: "assigned" }).eq("id", mt!.id);
+  const after = (await admin.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("template", "agent_task_assigned")).count ?? 0;
+  expect(after).toBe(before); // préférence appliquée par la base
+
+  // G. Missions à valider : alerte à l'accueil dès la fin, ouverture directe, disparition après validation
+  await admin.from("organizations").update({ validation_task_types: ["turnover", "maintenance"] }).eq("id", org);
+  await agent.goto(`/fr/app/missions/${mt!.id}`);
+  await agent.getByTestId("mission-start").click();
+  await agent.getByTestId("mission-finish").click();
+  await expect(agent.getByTestId("mission-finish")).toHaveCount(0);
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-toValidate")).toContainText("1 mission à valider");
+  await m.getByTestId("home-toValidate").click();
+  await expect(m).toHaveURL(/\/fr\/app\/missions\?status=done$/);
+  await expect(m.getByTestId("mission-row")).toHaveCount(1);
+  await expect(m.getByTestId("mission-row")).toContainText("Maintenance");
+  await m.getByTestId("mission-link").click();
+  await m.getByTestId("mission-validate").click();
+  await expect.poll(async () => (await admin.from("tasks").select("status").eq("id", mt!.id).single()).data?.status).toBe("validated");
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-toValidate")).toContainText("Aucune mission à valider");
+  const { data: mails } = await admin.from("notification_outbox").select("recipient").eq("organization_id", org).eq("template", "team_task_to_validate");
+  expect((mails ?? []).length).toBeGreaterThan(0); // notification générée à la fin de la mission
   for (const c of [m, agent]) await c.context().close();
 });

@@ -21,7 +21,9 @@ export default async function StaysPage({ params }: PageProps<"/[locale]/app/sta
     supabase.from("properties").select("id, name").eq("organization_id", org!.id).is("archived_at", null).order("name"),
     supabase.from("stay_messages").select("reservation_id").eq("organization_id", org!.id).eq("author_kind", "guest").is("read_by_team_at", null),
   ]);
-  const unreadBy = new Set((unread ?? []).map((m) => m.reservation_id));
+  // Nombre de messages non lus par séjour (cohérent avec l'accueil : même requête, même règle)
+  const unreadBy = new Map<string, number>();
+  for (const m of unread ?? []) unreadBy.set(m.reservation_id, (unreadBy.get(m.reservation_id) ?? 0) + 1);
   return (
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
@@ -42,7 +44,7 @@ export default async function StaysPage({ params }: PageProps<"/[locale]/app/sta
                     {s.status !== "confirmed" ? ` · ${t(`status.${s.status}`)}` : ""}
                   </span>
                 </span>
-                {unreadBy.has(s.id) && <span className="rounded-full bg-danger px-2 py-0.5 text-[12px] font-semibold text-white">{t("newMessage")}</span>}
+                {unreadBy.has(s.id) && <span className="rounded-full bg-danger px-2 py-0.5 text-[12px] font-semibold text-white" data-testid="stay-unread">{t("newMessages", { count: unreadBy.get(s.id)! })}</span>}
                 <ArrowRight className="size-4 text-faint rtl:-scale-x-100" />
               </Link>
             );

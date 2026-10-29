@@ -1294,7 +1294,8 @@
       "incidents": "Incidents",
       "notifications": "Notifications",
       "settings": "Settings",
-      "profile": "My profile"
+      "profile": "My profile",
+      "messages": "Messages"
     },
     "env": {
       "demo": "Demo",
@@ -1364,7 +1365,13 @@
       "name_required": "Enter your name.",
       "invalid_period": "The period is not valid (end after start).",
       "not_member": "This person is not part of the active team.",
-      "invalid_kind": "Invalid absence type."
+      "invalid_kind": "Invalid absence type.",
+      "no_address": "Property address missing: complete it or enter coordinates.",
+      "provider_unavailable": "OpenStreetMap is not responding right now. Try again later; nothing was changed.",
+      "no_coordinates": "Locate the property first.",
+      "invalid_coordinates": "Invalid coordinates.",
+      "no_recipient": "Choose at least one recipient.",
+      "invalid_context": "A conversation must concern a mission, a property or a stay."
     },
     "home": {
       "subtitle": "What needs your attention.",
@@ -1385,7 +1392,9 @@
       "pending": "Still to do before arrival: {steps}",
       "schedule": "{count, plural, =0 {No cleaning that cannot be scheduled} one {# cleaning cannot be scheduled} other {# cleanings cannot be scheduled}}",
       "availability": "{count, plural, =0 {No mission affected by an absence} one {# mission to reorganize (absence or closure)} other {# missions to reorganize (absence or closure)}}",
-      "absenceRequests": "{count, plural, =0 {No pending absence request} one {# absence request to decide} other {# absence requests to decide}}"
+      "absenceRequests": "{count, plural, =0 {No pending absence request} one {# absence request to decide} other {# absence requests to decide}}",
+      "toValidate": "{count, plural, =0 {No mission to validate} one {# mission to validate} other {# missions to validate}}",
+      "chats": "{count, plural, =0 {No unread team message} one {# unread team conversation} other {# unread team conversations}}"
     },
     "onb": {
       "progress": "Step {n} of {total}",
@@ -1658,7 +1667,8 @@
       "services": "Stay services",
       "noServices": "No request for this stay.",
       "missions": "Generated missions",
-      "noMissions": "No mission yet."
+      "noMissions": "No mission yet.",
+      "newMessages": "{count, plural, one {# new message} other {# new messages}}"
     },
     "link": {
       "title": "Guest access",
@@ -1693,7 +1703,9 @@
       "replyHintNoEmail": "Visible in their space. No email: no address known.",
       "postedEmailQueued": "Posted in the guest space. The email's actual status is shown under “Emails”.",
       "postedSpaceOnly": "Posted in the guest space only (no email address).",
-      "send": "Send"
+      "send": "Send",
+      "new": "New",
+      "readByTeam": "read by the team on {at}"
     },
     "outbox": {
       "title": "Emails",
@@ -1724,7 +1736,12 @@
         "team_agent_blocker": "Team: urgent blocker",
         "team_guest_message": "Team: guest message",
         "problem_taken": "Problem being handled",
-        "team_absence_requested": "Team: absence request"
+        "team_absence_requested": "Team: absence request",
+        "team_task_to_validate": "Team: mission to validate",
+        "agent_task_assigned": "Agent: mission assigned",
+        "agent_correction_requested": "Agent: correction requested",
+        "chat_message": "Messaging: message",
+        "chat_urgent": "Messaging: urgent message"
       },
       "testAddress": "Fictitious address (test account): nothing is sent."
     },
@@ -1822,7 +1839,11 @@
       "cancel": "Cancel",
       "absent": "away",
       "windowLabel": "To be done {window}",
-      "durationLabel": "duration {duration}"
+      "durationLabel": "duration {duration}",
+      "hiddenAbsent": "{count, plural, one {# person away during this slot, not offered} other {# people away during this slot, not offered}}",
+      "toValidateTitle": "Missions to validate",
+      "toValidateSubtitle": "Finished by the agent: validate or request a correction.",
+      "showAll": "See all missions"
     },
     "team": {
       "title": "Team",
@@ -2103,6 +2124,103 @@
         "refused": "refused",
         "cancelled": "cancelled"
       }
+    },
+    "chat": {
+      "title": "Team messages",
+      "subtitle": "Instructions linked to missions, properties and stays. Never visible to guests.",
+      "none": "No conversation.",
+      "new": "New",
+      "urgent": "Urgent",
+      "noName": "No name",
+      "readAll": "read",
+      "readSome": "read by {n} of {total}",
+      "unread": "unread",
+      "state": {
+        "sending": "Sending…",
+        "offline": "Waiting: no network. It will be sent when the network is back.",
+        "failed": "Not sent."
+      },
+      "retry": "Retry",
+      "empty": "No message.",
+      "write": "Your message",
+      "markUrgent": "Urgent (always notified)",
+      "send": "Send",
+      "newTitle": "New conversation",
+      "newText": "To one or several people, linked to a mission, a property or a stay.",
+      "to": "Recipients",
+      "context": "Regarding",
+      "contextHint": "The label stays visible to recipients, even without access to the stay.",
+      "contextKind": {
+        "task": "Mission",
+        "property": "Property",
+        "reservation": "Stay"
+      },
+      "open": {
+        "task": "Open the mission",
+        "property": "Open the property",
+        "reservation": "Open the stay"
+      },
+      "message": "Message",
+      "start": "Send",
+      "back": "Messages",
+      "missionTitle": "Mission messages",
+      "newForMission": "Write about this mission",
+      "noneForMission": "No conversation about this mission."
+    },
+    "prefs": {
+      "title": "Notifications",
+      "text": "Choose what you receive by email. Saved for you and enforced by the server.",
+      "channel": {
+        "inApp": "In HALO (home, counters): always on",
+        "emailOk": "Email: sending service configured",
+        "emailOff": "Email: unavailable, no sending service configured",
+        "sms": "SMS: unavailable (no provider configured)",
+        "push": "Push notifications: unavailable (no provider configured)"
+      },
+      "byEmail": "Email",
+      "alwaysSent": "Emergency: always sent",
+      "urgentAlwaysSent": "Emergencies (access, leak, damage, blocker, urgent message) are always sent",
+      "event": {
+        "team_task_to_validate": "Mission finished, to validate",
+        "team_service_requested": "New service request",
+        "team_guest_reply": "Guest reply",
+        "team_guest_message": "Guest message",
+        "team_guest_problem": "Problem reported by a guest",
+        "team_agent_blocker": "Urgent agent blocker",
+        "team_absence_requested": "Absence request",
+        "chat_message": "Team message",
+        "agent_task_assigned": "Mission assigned to me",
+        "agent_correction_requested": "Correction requested on my mission"
+      }
+    },
+    "places": {
+      "title": "Around the property (guest space)",
+      "text": "The guest sees a map and these places, with their source and date. Nothing is invented.",
+      "located": "Property located: {lat}, {lng} ({source})",
+      "sourceManual": "entered by the team",
+      "notLocated": "Property not located: locate the address or enter coordinates.",
+      "locate": "Locate the address (OpenStreetMap)",
+      "lat": "Latitude",
+      "lng": "Longitude",
+      "saveCoords": "Save these coordinates",
+      "import": "Import nearby places (OpenStreetMap)",
+      "importing": "Importing…",
+      "importHint": "Named places within 1.2 km. Run again to update; hidden places stay hidden.",
+      "imported": "{count, plural, =0 {No place found nearby.} one {# place imported.} other {# places imported.}}",
+      "addTitle": "Add a place checked by the team",
+      "name": "Name",
+      "category": "Category",
+      "address": "Address",
+      "hours": "Opening hours",
+      "hoursHint": "Only if you have checked them.",
+      "phone": "Phone",
+      "note": "Team tip",
+      "add": "Add",
+      "none": "No place yet.",
+      "byTeam": "team",
+      "show": "Show",
+      "hide": "Hide",
+      "delete": "Delete"
     }
   },
   "email": {
@@ -2172,6 +2290,26 @@
     "team_absence_requested": {
       "subject": "Absence request — {member}",
       "body": "{member} reported an absence or unavailability. It awaits your decision; the missions affected are listed in HALO."
+    },
+    "team_task_to_validate": {
+      "subject": "Mission to validate — {property}",
+      "body": "{member} finished “{kind}” at {property}. Validate the mission or request a correction."
+    },
+    "agent_task_assigned": {
+      "subject": "New mission — {property}",
+      "body": "A “{kind}” mission is assigned to you at {property}."
+    },
+    "agent_correction_requested": {
+      "subject": "Correction requested — {property}",
+      "body": "A correction is requested on your “{kind}” mission at {property}."
+    },
+    "chat_message": {
+      "subject": "Message from {member} — {property}",
+      "body": "{member} wrote to you in HALO ({property})."
+    },
+    "chat_urgent": {
+      "subject": "URGENT — {member} — {property}",
+      "body": "Urgent message from {member} in HALO ({property})."
     }
   },
   "guestSpace": {
@@ -2259,6 +2397,28 @@
         "in_progress": "Being handled",
         "resolved": "Resolved"
       }
+    },
+    "around": {
+      "title": "Around the property",
+      "fromMe": "Distances from my position",
+      "fromHome": "Back to the property",
+      "originMe": "Distances from your position (it stays on your phone).",
+      "originHome": "Distances from the property: {address}.",
+      "denied": "Position not allowed: distances are still calculated from the property.",
+      "unavailable": "Position unavailable: distances are still calculated from the property.",
+      "all": "All",
+      "byTeam": "Recommended by the team",
+      "hoursAsPublished": "published hours, to be confirmed",
+      "website": "Website",
+      "app": {
+        "apple": "Maps",
+        "google": "Google Maps",
+        "waze": "Waze"
+      },
+      "verifiedOn": "Checked by the team on {date}",
+      "osmData": "OpenStreetMap data from {date}",
+      "sources": "Sources: {list}",
+      "notBookable": "Suggestions, not bookings: to book a service, use “Request a service”."
     }
   },
   "demoEntry": {
@@ -2289,5 +2449,14 @@
     },
     "checkedAt": "Checked at {at}",
     "back": "Back to home"
+  },
+  "places": {
+    "category": {
+      "food": "Restaurants and cafés",
+      "shops": "Shops",
+      "transport": "Transport",
+      "activities": "Activities",
+      "services": "Useful services"
+    }
   }
 }

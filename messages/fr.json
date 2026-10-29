@@ -1294,7 +1294,8 @@
       "incidents": "Incidents",
       "notifications": "Envois",
       "settings": "Réglages",
-      "profile": "Mon profil"
+      "profile": "Mon profil",
+      "messages": "Messages"
     },
     "env": {
       "demo": "Démo",
@@ -1364,7 +1365,13 @@
       "name_required": "Indiquez votre nom.",
       "invalid_period": "La période n'est pas valide (fin après début).",
       "not_member": "Cette personne ne fait pas partie de l'équipe active.",
-      "invalid_kind": "Type d'absence non valide."
+      "invalid_kind": "Type d'absence non valide.",
+      "no_address": "Adresse du logement manquante : complétez-la ou saisissez les coordonnées.",
+      "provider_unavailable": "OpenStreetMap ne répond pas pour l'instant. Réessayez plus tard ; rien n'a été modifié.",
+      "no_coordinates": "Localisez d'abord le logement.",
+      "invalid_coordinates": "Coordonnées invalides.",
+      "no_recipient": "Choisissez au moins un destinataire.",
+      "invalid_context": "Une conversation doit concerner une mission, un logement ou un séjour."
     },
     "home": {
       "subtitle": "Ce qui demande votre attention.",
@@ -1385,7 +1392,9 @@
       "pending": "Encore à faire avant l'arrivée : {steps}",
       "schedule": "{count, plural, =0 {Aucun ménage impossible à planifier} one {# ménage impossible à planifier} other {# ménages impossibles à planifier}}",
       "availability": "{count, plural, =0 {Aucune mission touchée par une absence} one {# mission à réorganiser (absence ou fermeture)} other {# missions à réorganiser (absence ou fermeture)}}",
-      "absenceRequests": "{count, plural, =0 {Aucune demande d'absence en attente} one {# demande d'absence à décider} other {# demandes d'absence à décider}}"
+      "absenceRequests": "{count, plural, =0 {Aucune demande d'absence en attente} one {# demande d'absence à décider} other {# demandes d'absence à décider}}",
+      "toValidate": "{count, plural, =0 {Aucune mission à valider} one {# mission à valider} other {# missions à valider}}",
+      "chats": "{count, plural, =0 {Aucun message d'équipe non lu} one {# conversation d'équipe non lue} other {# conversations d'équipe non lues}}"
     },
     "onb": {
       "progress": "Étape {n} sur {total}",
@@ -1658,7 +1667,8 @@
       "services": "Prestations du séjour",
       "noServices": "Aucune demande pour ce séjour.",
       "missions": "Missions générées",
-      "noMissions": "Aucune mission pour l'instant."
+      "noMissions": "Aucune mission pour l'instant.",
+      "newMessages": "{count, plural, one {# nouveau message} other {# nouveaux messages}}"
     },
     "link": {
       "title": "Accès voyageur",
@@ -1693,7 +1703,9 @@
       "replyHintNoEmail": "Visible dans son espace. Pas d'e-mail : aucune adresse connue.",
       "postedEmailQueued": "Publié dans l'espace voyageur. L'état réel de l'e-mail est indiqué dans « Envois par e-mail ».",
       "postedSpaceOnly": "Publié dans l'espace voyageur uniquement (aucune adresse e-mail).",
-      "send": "Envoyer"
+      "send": "Envoyer",
+      "new": "Nouveau",
+      "readByTeam": "lu par l'équipe le {at}"
     },
     "outbox": {
       "title": "Envois par e-mail",
@@ -1724,7 +1736,12 @@
         "team_agent_blocker": "Équipe : blocage urgent",
         "team_guest_message": "Équipe : message voyageur",
         "problem_taken": "Problème pris en charge",
-        "team_absence_requested": "Équipe : demande d'absence"
+        "team_absence_requested": "Équipe : demande d'absence",
+        "team_task_to_validate": "Équipe : mission à valider",
+        "agent_task_assigned": "Agent : mission attribuée",
+        "agent_correction_requested": "Agent : correction demandée",
+        "chat_message": "Messagerie : message",
+        "chat_urgent": "Messagerie : message urgent"
       },
       "testAddress": "Adresse fictive (compte de test) : rien n'est envoyé."
     },
@@ -1822,7 +1839,11 @@
       "cancel": "Annuler",
       "absent": "absent",
       "windowLabel": "À réaliser {window}",
-      "durationLabel": "durée {duration}"
+      "durationLabel": "durée {duration}",
+      "hiddenAbsent": "{count, plural, one {# personne absente sur ce créneau, non proposée} other {# personnes absentes sur ce créneau, non proposées}}",
+      "toValidateTitle": "Missions à valider",
+      "toValidateSubtitle": "Terminées par l'agent : à valider ou à faire corriger.",
+      "showAll": "Voir toutes les missions"
     },
     "team": {
       "title": "Équipe",
@@ -2103,6 +2124,103 @@
         "refused": "refusée",
         "cancelled": "annulée"
       }
+    },
+    "chat": {
+      "title": "Messages d'équipe",
+      "subtitle": "Consignes liées aux missions, logements et séjours. Jamais visibles des voyageurs.",
+      "none": "Aucune conversation.",
+      "new": "Nouveau",
+      "urgent": "Urgent",
+      "noName": "Sans nom",
+      "readAll": "lu",
+      "readSome": "lu par {n} sur {total}",
+      "unread": "non lu",
+      "state": {
+        "sending": "Envoi en cours…",
+        "offline": "En attente : pas de réseau. Il partira au retour du réseau.",
+        "failed": "Non envoyé."
+      },
+      "retry": "Réessayer",
+      "empty": "Aucun message.",
+      "write": "Votre message",
+      "markUrgent": "Urgent (toujours notifié)",
+      "send": "Envoyer",
+      "newTitle": "Nouvelle conversation",
+      "newText": "À une ou plusieurs personnes, rattachée à une mission, un logement ou un séjour.",
+      "to": "Destinataires",
+      "context": "Concerne",
+      "contextHint": "Le libellé reste visible des destinataires, même sans accès au séjour.",
+      "contextKind": {
+        "task": "Mission",
+        "property": "Logement",
+        "reservation": "Séjour"
+      },
+      "open": {
+        "task": "Ouvrir la mission",
+        "property": "Ouvrir le logement",
+        "reservation": "Ouvrir le séjour"
+      },
+      "message": "Message",
+      "start": "Envoyer",
+      "back": "Messages",
+      "missionTitle": "Messages de la mission",
+      "newForMission": "Écrire à propos de cette mission",
+      "noneForMission": "Aucune conversation sur cette mission."
+    },
+    "prefs": {
+      "title": "Notifications",
+      "text": "Choisissez ce que vous recevez par e-mail. Enregistré pour vous et appliqué par le serveur.",
+      "channel": {
+        "inApp": "Dans HALO (accueil, compteurs) : toujours actif",
+        "emailOk": "E-mail : service d'envoi configuré",
+        "emailOff": "E-mail : indisponible, aucun service d'envoi configuré",
+        "sms": "SMS : indisponible (aucun fournisseur configuré)",
+        "push": "Notifications push : indisponibles (aucun fournisseur configuré)"
+      },
+      "byEmail": "E-mail",
+      "alwaysSent": "Urgence : toujours envoyée",
+      "urgentAlwaysSent": "Les urgences (accès, fuite, dégât, blocage, message urgent) partent toujours",
+      "event": {
+        "team_task_to_validate": "Mission terminée, à valider",
+        "team_service_requested": "Nouvelle demande de prestation",
+        "team_guest_reply": "Réponse d'un voyageur",
+        "team_guest_message": "Message d'un voyageur",
+        "team_guest_problem": "Problème signalé par un voyageur",
+        "team_agent_blocker": "Blocage urgent d'un agent",
+        "team_absence_requested": "Demande d'absence",
+        "chat_message": "Message d'équipe",
+        "agent_task_assigned": "Mission qui m'est attribuée",
+        "agent_correction_requested": "Correction demandée sur ma mission"
+      }
+    },
+    "places": {
+      "title": "Autour du logement (espace voyageur)",
+      "text": "Le voyageur voit une carte et ces lieux, avec leur source et leur date. Rien n'est inventé.",
+      "located": "Logement localisé : {lat}, {lng} ({source})",
+      "sourceManual": "saisi par l'équipe",
+      "notLocated": "Logement non localisé : localisez l'adresse ou saisissez les coordonnées.",
+      "locate": "Localiser l'adresse (OpenStreetMap)",
+      "lat": "Latitude",
+      "lng": "Longitude",
+      "saveCoords": "Enregistrer ces coordonnées",
+      "import": "Importer les lieux proches (OpenStreetMap)",
+      "importing": "Import en cours…",
+      "importHint": "Lieux nommés dans un rayon de 1,2 km. Relancez pour mettre à jour ; les lieux masqués le restent.",
+      "imported": "{count, plural, =0 {Aucun lieu trouvé autour.} one {# lieu importé.} other {# lieux importés.}}",
+      "addTitle": "Ajouter un lieu vérifié par l'équipe",
+      "name": "Nom",
+      "category": "Catégorie",
+      "address": "Adresse",
+      "hours": "Horaires",
+      "hoursHint": "Seulement si vous les avez vérifiés.",
+      "phone": "Téléphone",
+      "note": "Conseil de l'équipe",
+      "add": "Ajouter",
+      "none": "Aucun lieu pour l'instant.",
+      "byTeam": "équipe",
+      "show": "Afficher",
+      "hide": "Masquer",
+      "delete": "Supprimer"
     }
   },
   "email": {
@@ -2172,6 +2290,26 @@
     "team_absence_requested": {
       "subject": "Demande d'absence — {member}",
       "body": "{member} a déclaré une absence ou une indisponibilité. Elle attend votre décision ; les missions concernées sont listées dans HALO."
+    },
+    "team_task_to_validate": {
+      "subject": "Mission à valider — {property}",
+      "body": "{member} a terminé « {kind} » dans {property}. Validez la mission ou demandez une correction."
+    },
+    "agent_task_assigned": {
+      "subject": "Nouvelle mission — {property}",
+      "body": "Une mission « {kind} » vous est attribuée dans {property}."
+    },
+    "agent_correction_requested": {
+      "subject": "Correction demandée — {property}",
+      "body": "Une correction est demandée sur votre mission « {kind} » dans {property}."
+    },
+    "chat_message": {
+      "subject": "Message de {member} — {property}",
+      "body": "{member} vous a écrit dans HALO ({property})."
+    },
+    "chat_urgent": {
+      "subject": "URGENT — {member} — {property}",
+      "body": "Message urgent de {member} dans HALO ({property})."
     }
   },
   "guestSpace": {
@@ -2259,6 +2397,28 @@
         "in_progress": "Pris en charge",
         "resolved": "Résolu"
       }
+    },
+    "around": {
+      "title": "Autour du logement",
+      "fromMe": "Distances depuis ma position",
+      "fromHome": "Revenir au logement",
+      "originMe": "Distances depuis votre position (elle reste sur votre téléphone).",
+      "originHome": "Distances depuis le logement : {address}.",
+      "denied": "Position non autorisée : les distances restent calculées depuis le logement.",
+      "unavailable": "Position indisponible : les distances restent calculées depuis le logement.",
+      "all": "Tout",
+      "byTeam": "Conseillé par l'équipe",
+      "hoursAsPublished": "horaires publiés, à confirmer",
+      "website": "Site web",
+      "app": {
+        "apple": "Plans",
+        "google": "Google Maps",
+        "waze": "Waze"
+      },
+      "verifiedOn": "Vérifié par l'équipe le {date}",
+      "osmData": "Données OpenStreetMap du {date}",
+      "sources": "Sources : {list}",
+      "notBookable": "Suggestions, pas des réservations : pour réserver une prestation, utilisez « Demander une prestation »."
     }
   },
   "demoEntry": {
@@ -2289,5 +2449,14 @@
     },
     "checkedAt": "Vérifié le {at}",
     "back": "Retour à l'accueil"
+  },
+  "places": {
+    "category": {
+      "food": "Restaurants et cafés",
+      "shops": "Commerces",
+      "transport": "Transports",
+      "activities": "Activités",
+      "services": "Services utiles"
+    }
   }
 }

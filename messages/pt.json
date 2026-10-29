@@ -1294,7 +1294,8 @@
       "incidents": "Incidentes",
       "notifications": "Envios",
       "settings": "Definições",
-      "profile": "O meu perfil"
+      "profile": "O meu perfil",
+      "messages": "Mensagens"
     },
     "env": {
       "demo": "Demo",
@@ -1364,7 +1365,13 @@
       "name_required": "Indique o seu nome.",
       "invalid_period": "O período não é válido (fim depois do início).",
       "not_member": "Esta pessoa não faz parte da equipa ativa.",
-      "invalid_kind": "Tipo de ausência inválido."
+      "invalid_kind": "Tipo de ausência inválido.",
+      "no_address": "Morada do alojamento em falta: complete-a ou introduza as coordenadas.",
+      "provider_unavailable": "O OpenStreetMap não responde de momento. Tente mais tarde; nada foi alterado.",
+      "no_coordinates": "Localize primeiro o alojamento.",
+      "invalid_coordinates": "Coordenadas inválidas.",
+      "no_recipient": "Escolha pelo menos um destinatário.",
+      "invalid_context": "Uma conversa deve referir-se a uma missão, alojamento ou estadia."
     },
     "home": {
       "subtitle": "O que precisa da sua atenção.",
@@ -1385,7 +1392,9 @@
       "pending": "Ainda por fazer antes da chegada: {steps}",
       "schedule": "{count, plural, =0 {Nenhuma limpeza impossível de planear} one {# limpeza impossível de planear} other {# limpezas impossíveis de planear}}",
       "availability": "{count, plural, =0 {Nenhuma missão afetada por uma ausência} one {# missão a reorganizar (ausência ou fecho)} other {# missões a reorganizar (ausência ou fecho)}}",
-      "absenceRequests": "{count, plural, =0 {Nenhum pedido de ausência pendente} one {# pedido de ausência a decidir} other {# pedidos de ausência a decidir}}"
+      "absenceRequests": "{count, plural, =0 {Nenhum pedido de ausência pendente} one {# pedido de ausência a decidir} other {# pedidos de ausência a decidir}}",
+      "toValidate": "{count, plural, =0 {Nenhuma missão a validar} one {# missão a validar} other {# missões a validar}}",
+      "chats": "{count, plural, =0 {Nenhuma mensagem de equipa por ler} one {# conversa de equipa por ler} other {# conversas de equipa por ler}}"
     },
     "onb": {
       "progress": "Passo {n} de {total}",
@@ -1658,7 +1667,8 @@
       "services": "Serviços da estadia",
       "noServices": "Nenhum pedido.",
       "missions": "Missões geradas",
-      "noMissions": "Nenhuma missão ainda."
+      "noMissions": "Nenhuma missão ainda.",
+      "newMessages": "{count, plural, one {# mensagem nova} other {# mensagens novas}}"
     },
     "link": {
       "title": "Acesso do hóspede",
@@ -1693,7 +1703,9 @@
       "replyHintNoEmail": "Visível no espaço. Sem e-mail: endereço desconhecido.",
       "postedEmailQueued": "Publicado no espaço. O estado real do e-mail aparece em «E-mails».",
       "postedSpaceOnly": "Publicado apenas no espaço (sem e-mail).",
-      "send": "Enviar"
+      "send": "Enviar",
+      "new": "Novo",
+      "readByTeam": "lido pela equipa em {at}"
     },
     "outbox": {
       "title": "E-mails",
@@ -1724,7 +1736,12 @@
         "team_agent_blocker": "Equipa: bloqueio urgente",
         "team_guest_message": "Equipa: mensagem do hóspede",
         "problem_taken": "Problema em tratamento",
-        "team_absence_requested": "Equipa: pedido de ausência"
+        "team_absence_requested": "Equipa: pedido de ausência",
+        "team_task_to_validate": "Equipa: missão a validar",
+        "agent_task_assigned": "Agente: missão atribuída",
+        "agent_correction_requested": "Agente: correção pedida",
+        "chat_message": "Mensagens: mensagem",
+        "chat_urgent": "Mensagens: mensagem urgente"
       },
       "testAddress": "Endereço fictício (conta de teste): nada é enviado."
     },
@@ -1822,7 +1839,11 @@
       "cancel": "Cancelar",
       "absent": "ausente",
       "windowLabel": "A realizar {window}",
-      "durationLabel": "duração {duration}"
+      "durationLabel": "duração {duration}",
+      "hiddenAbsent": "{count, plural, one {# pessoa ausente neste horário, não proposta} other {# pessoas ausentes neste horário, não propostas}}",
+      "toValidateTitle": "Missões a validar",
+      "toValidateSubtitle": "Terminadas pelo agente: validar ou pedir correção.",
+      "showAll": "Ver todas as missões"
     },
     "team": {
       "title": "Equipa",
@@ -2103,6 +2124,103 @@
         "refused": "recusada",
         "cancelled": "cancelada"
       }
+    },
+    "chat": {
+      "title": "Mensagens da equipa",
+      "subtitle": "Instruções ligadas a missões, alojamentos e estadias. Nunca visíveis para os hóspedes.",
+      "none": "Nenhuma conversa.",
+      "new": "Novo",
+      "urgent": "Urgente",
+      "noName": "Sem nome",
+      "readAll": "lido",
+      "readSome": "lido por {n} de {total}",
+      "unread": "não lido",
+      "state": {
+        "sending": "A enviar…",
+        "offline": "Em espera: sem rede. Será enviada quando a rede voltar.",
+        "failed": "Não enviada."
+      },
+      "retry": "Tentar novamente",
+      "empty": "Nenhuma mensagem.",
+      "write": "A sua mensagem",
+      "markUrgent": "Urgente (sempre notificado)",
+      "send": "Enviar",
+      "newTitle": "Nova conversa",
+      "newText": "Para uma ou várias pessoas, ligada a uma missão, alojamento ou estadia.",
+      "to": "Destinatários",
+      "context": "Refere-se a",
+      "contextHint": "O título fica visível para os destinatários, mesmo sem acesso à estadia.",
+      "contextKind": {
+        "task": "Missão",
+        "property": "Alojamento",
+        "reservation": "Estadia"
+      },
+      "open": {
+        "task": "Abrir a missão",
+        "property": "Abrir o alojamento",
+        "reservation": "Abrir a estadia"
+      },
+      "message": "Mensagem",
+      "start": "Enviar",
+      "back": "Mensagens",
+      "missionTitle": "Mensagens da missão",
+      "newForMission": "Escrever sobre esta missão",
+      "noneForMission": "Nenhuma conversa sobre esta missão."
+    },
+    "prefs": {
+      "title": "Notificações",
+      "text": "Escolha o que recebe por e-mail. Guardado para si e aplicado pelo servidor.",
+      "channel": {
+        "inApp": "No HALO (início, contadores): sempre ativo",
+        "emailOk": "E-mail: serviço de envio configurado",
+        "emailOff": "E-mail: indisponível, nenhum serviço de envio configurado",
+        "sms": "SMS: indisponível (nenhum fornecedor configurado)",
+        "push": "Notificações push: indisponíveis (nenhum fornecedor configurado)"
+      },
+      "byEmail": "E-mail",
+      "alwaysSent": "Urgência: sempre enviada",
+      "urgentAlwaysSent": "As urgências (acesso, fuga, dano, bloqueio, mensagem urgente) são sempre enviadas",
+      "event": {
+        "team_task_to_validate": "Missão terminada, a validar",
+        "team_service_requested": "Novo pedido de serviço",
+        "team_guest_reply": "Resposta de um hóspede",
+        "team_guest_message": "Mensagem de um hóspede",
+        "team_guest_problem": "Problema assinalado por um hóspede",
+        "team_agent_blocker": "Bloqueio urgente de um agente",
+        "team_absence_requested": "Pedido de ausência",
+        "chat_message": "Mensagem da equipa",
+        "agent_task_assigned": "Missão atribuída a mim",
+        "agent_correction_requested": "Correção pedida na minha missão"
+      }
+    },
+    "places": {
+      "title": "À volta do alojamento (espaço do hóspede)",
+      "text": "O hóspede vê um mapa e estes locais, com fonte e data. Nada é inventado.",
+      "located": "Alojamento localizado: {lat}, {lng} ({source})",
+      "sourceManual": "introduzido pela equipa",
+      "notLocated": "Alojamento não localizado: localize a morada ou introduza as coordenadas.",
+      "locate": "Localizar a morada (OpenStreetMap)",
+      "lat": "Latitude",
+      "lng": "Longitude",
+      "saveCoords": "Guardar estas coordenadas",
+      "import": "Importar locais próximos (OpenStreetMap)",
+      "importing": "A importar…",
+      "importHint": "Locais com nome num raio de 1,2 km. Repita para atualizar; os ocultos continuam ocultos.",
+      "imported": "{count, plural, =0 {Nenhum local encontrado.} one {# local importado.} other {# locais importados.}}",
+      "addTitle": "Adicionar um local verificado pela equipa",
+      "name": "Nome",
+      "category": "Categoria",
+      "address": "Morada",
+      "hours": "Horário",
+      "hoursHint": "Só se os verificou.",
+      "phone": "Telefone",
+      "note": "Dica da equipa",
+      "add": "Adicionar",
+      "none": "Nenhum local por agora.",
+      "byTeam": "equipa",
+      "show": "Mostrar",
+      "hide": "Ocultar",
+      "delete": "Eliminar"
     }
   },
   "email": {
@@ -2172,6 +2290,26 @@
     "team_absence_requested": {
       "subject": "Pedido de ausência — {member}",
       "body": "{member} declarou uma ausência ou indisponibilidade. Aguarda a sua decisão; as missões afetadas estão listadas no HALO."
+    },
+    "team_task_to_validate": {
+      "subject": "Missão a validar — {property}",
+      "body": "{member} terminou «{kind}» em {property}. Valide a missão ou peça uma correção."
+    },
+    "agent_task_assigned": {
+      "subject": "Nova missão — {property}",
+      "body": "Foi-lhe atribuída uma missão «{kind}» em {property}."
+    },
+    "agent_correction_requested": {
+      "subject": "Correção pedida — {property}",
+      "body": "É pedida uma correção na sua missão «{kind}» em {property}."
+    },
+    "chat_message": {
+      "subject": "Mensagem de {member} — {property}",
+      "body": "{member} escreveu-lhe no HALO ({property})."
+    },
+    "chat_urgent": {
+      "subject": "URGENTE — {member} — {property}",
+      "body": "Mensagem urgente de {member} no HALO ({property})."
     }
   },
   "guestSpace": {
@@ -2259,6 +2397,28 @@
         "in_progress": "Em tratamento",
         "resolved": "Resolvido"
       }
+    },
+    "around": {
+      "title": "À volta do alojamento",
+      "fromMe": "Distâncias a partir da minha posição",
+      "fromHome": "Voltar ao alojamento",
+      "originMe": "Distâncias a partir da sua posição (fica no seu telemóvel).",
+      "originHome": "Distâncias a partir do alojamento: {address}.",
+      "denied": "Posição não autorizada: as distâncias continuam calculadas a partir do alojamento.",
+      "unavailable": "Posição indisponível: as distâncias continuam calculadas a partir do alojamento.",
+      "all": "Tudo",
+      "byTeam": "Recomendado pela equipa",
+      "hoursAsPublished": "horário publicado, a confirmar",
+      "website": "Site",
+      "app": {
+        "apple": "Mapas",
+        "google": "Google Maps",
+        "waze": "Waze"
+      },
+      "verifiedOn": "Verificado pela equipa em {date}",
+      "osmData": "Dados OpenStreetMap de {date}",
+      "sources": "Fontes: {list}",
+      "notBookable": "Sugestões, não reservas: para reservar um serviço, use «Pedir um serviço»."
     }
   },
   "demoEntry": {
@@ -2289,5 +2449,14 @@
     },
     "checkedAt": "Verificado em {at}",
     "back": "Voltar ao início"
+  },
+  "places": {
+    "category": {
+      "food": "Restaurantes e cafés",
+      "shops": "Comércio",
+      "transport": "Transportes",
+      "activities": "Atividades",
+      "services": "Serviços úteis"
+    }
   }
 }

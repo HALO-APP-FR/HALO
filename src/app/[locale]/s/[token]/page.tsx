@@ -4,6 +4,7 @@ import { Bell, CalendarDays, MapPin } from "lucide-react";
 import { LogoMark } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
 import { Card } from "@/components/ui/card";
+import { GuestAround, type Place } from "@/components/connected/places";
 import { GuestMessageForm, GuestProblemForm, GuestReply, GuestRequestForm } from "@/components/connected/guest-forms";
 import { supabaseAnon } from "@/lib/supabase/server";
 import { isConnected } from "@/lib/supabase/config";
@@ -42,6 +43,8 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
 
   let data: GStay | { status: string } | null = null;
   let problems: GProblem[] = [];
+  type Around = { property: { name: string; address: string | null; postal_code: string | null; city: string | null; lat: number | null; lng: number | null }; places: Place[] };
+  let around = null as Around | null;
   let failed = false;
   if (isConnected()) {
     const anon = supabaseAnon();
@@ -51,6 +54,9 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
     if (!failed && data?.status === "ok") {
       const { data: pr } = await anon.rpc("guest_problems", { token });
       problems = ((pr as { problems?: GProblem[] } | null)?.problems ?? []) as GProblem[];
+      // Lieux du logement de CE séjour uniquement (la base le garantit à partir du lien)
+      const { data: pl } = await anon.rpc("guest_places", { token });
+      if ((pl as { status?: string } | null)?.status === "ok") around = pl as Around;
     }
   }
 
@@ -119,6 +125,18 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
           </dl>
           <p className="mt-3 text-[13px] text-muted">{t("times", { in: g.property.check_in_time.slice(0, 5), out: g.property.check_out_time.slice(0, 5) })}</p>
         </Card>
+
+        {around && around.places.length > 0 && (
+          <GuestAround
+            property={{
+              name: around.property.name,
+              lat: around.property.lat,
+              lng: around.property.lng,
+              address: [around.property.address, [around.property.postal_code, around.property.city].filter(Boolean).join(" ")].filter(Boolean).join(", "),
+            }}
+            places={around.places}
+          />
+        )}
 
         <Card className="p-5" data-testid="guest-services">
           <h2 className="text-[17px] font-semibold">{t("myRequests")}</h2>

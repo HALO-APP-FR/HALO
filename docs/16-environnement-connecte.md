@@ -117,3 +117,48 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 - Limite : pas de récurrence pour l'instant.
 
 **Retour arrière** (sans perte de données métier) : supprimer les déclencheurs `tasks_window_check`, `tasks_assignee_available` et `reservations_overlap_check`, puis les fonctions et les tables ajoutées.
+
+## Périmètre opérationnel du 29/10 au soir (migration 10 : `20261105000001_messagerie_lieux_preferences.sql`)
+
+**Absences et affectation (règle durcie).** Une affectation est refusée, à l'écran comme dans la base, dès qu'une absence acceptée ou une fermeture d'équipe chevauche le créneau réel de la mission.
+- Créneau réel : l'horaire planifié + durée s'il est fixé, sinon toute la fenêtre.
+- Le même contrôle s'applique quand on déplace l'horaire ou qu'on corrige le créneau d'une mission déjà affectée.
+- Les personnes absentes ne sont pas proposées dans le choix d'affectation ; un compteur indique combien ont été écartées.
+- Avant cette migration, une mission avec une fenêtre de 3 jours restait attribuable si elle « tenait » en dehors d'un congé d'un jour. Ce n'est plus le cas.
+
+**Missions à valider.**
+- Compteur « Missions à valider » sur l'accueil, avec un lien direct vers `/app/missions?status=done`.
+- E-mail aux responsables à la fin de chaque mission (`team_task_to_validate`). Le compteur disparaît après validation ou demande de correction.
+- L'agent est prévenu quand une mission lui est attribuée (`agent_task_assigned`) ou qu'une correction est demandée (`agent_correction_requested`).
+
+**Messages voyageur.**
+- Les messages affichés sont marqués lus à l'ouverture de la conversation (`mark_stay_messages_read`), message par message, après confirmation du serveur.
+- Les messages non lus à l'ouverture portent l'étiquette « Nouveau ».
+- La liste des séjours indique le nombre de nouveaux messages, avec la même règle que le compteur de l'accueil.
+
+**Messagerie interne Manager–Agent** (`team_threads`, `team_thread_members`, `team_messages`).
+- Chaque conversation est obligatoirement liée à une mission, un logement ou un séjour.
+- Le responsable écrit à une ou plusieurs personnes ; l'agent répond depuis la page Messages ou depuis la mission.
+- Chaque message affiche l'auteur, l'heure et l'état « lu », « lu par n sur N » ou « non lu ».
+- Un message urgent est toujours notifié.
+- Sans réseau, le message reste « en attente » et repart au retour du réseau, sans doublon grâce à l'identifiant client.
+- Accès réservé aux participants et aux responsables de l'organisation ; aucun accès anonyme ni voyageur. Écritures uniquement par fonctions.
+- Pas de pièces jointes dans cette version.
+
+**Itinéraires.** Bouton « Itinéraire » sur chaque mission (toutes se déroulent au logement) vers Apple Plans, Google Maps et Waze.
+- Destination : les coordonnées du logement si elles existent, sinon son adresse.
+- Le choix par défaut se règle dans Mon profil (`profiles.maps_app`) et reste conservé après reconnexion.
+- L'adresse n'est transmise qu'au geste de l'agent.
+
+**Préférences de notification** (`notification_prefs`). Chacun choisit les e-mails qu'il reçoit, par événement, dans Mon profil. La base applique ces choix (`queue_team_email` et `queue_member_email`).
+- Canaux : « Dans HALO » est toujours actif. L'e-mail est indiqué disponible ou indisponible selon la configuration SMTP réelle. SMS et notifications push sont indiqués indisponibles (aucun fournisseur).
+- Urgences toujours envoyées, quelle que soit la préférence : blocage d'agent ; problème voyageur urgent ou de catégorie accès, fuite, dégât ou blocage ; message urgent.
+
+**Autour du logement (espace voyageur).**
+- Le logement a des coordonnées : géocodage OpenStreetMap Nominatim de son adresse, ou saisie manuelle.
+- Le responsable importe les lieux nommés dans un rayon de 1,2 km (OpenStreetMap Overpass), avec la date des données. Il peut aussi ajouter des lieux vérifiés par l'équipe, ou masquer un lieu.
+- Le voyageur voit une carte OpenStreetMap (Leaflet), des filtres par catégorie, la distance, l'adresse, les horaires « publiés, à confirmer », la source et la date, et les liens Plans, Google Maps et Waze.
+- Sa position n'est demandée que s'il clique « Distances depuis ma position » et reste sur son téléphone. Un refus ne bloque rien.
+- `guest_places(token)` ne renvoie que les lieux du logement de ce séjour, à 3 km maximum.
+- Recommandations distinctes des prestations réservables.
+- Variables facultatives : `NOMINATIM_URL` et `OVERPASS_URL`, pour un fournisseur dédié en production. Les tuiles cartographiques viennent de `tile.openstreetmap.org` ; un fournisseur de tuiles sera à prévoir pour un fort trafic.
