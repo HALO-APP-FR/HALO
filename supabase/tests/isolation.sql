@@ -693,6 +693,17 @@ select t.is('onboarding : le manager enregistre les réponses', t.dml('a_manager
 select t.deny('onboarding : un agent ne modifie pas l''organisation', t.dml('a_agent', format('update public.organizations set activity_type = ''independent_hotel'' where id = %L', t.id('A'))));
 select t.err('onboarding : type d''activité inconnu refusé', t.dml('a_manager', format('update public.organizations set activity_type = ''casino'' where id = %L', t.id('A'))), '23514');
 
+-- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
+select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);
+do $$ declare n int; begin
+  delete from public.organizations where id = t.id('A');
+  get diagnostics n = row_count;
+  perform t.check('suppression : une organisation avec missions assignées se supprime entièrement', n::text, n = 1);
+exception when others then
+  perform t.check('suppression : une organisation avec missions assignées se supprime entièrement', sqlerrm, false);
+end $$;
+select t.is('suppression : plus aucune mission ni événement de A', (select count(*)::text from public.tasks where organization_id = t.id('A')) || '/' || (select count(*)::text from public.task_events where organization_id = t.id('A')), '0/0');
+
 -- =====================================================================
 -- Bilan
 -- =====================================================================

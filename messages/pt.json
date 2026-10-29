@@ -1327,7 +1327,11 @@
       "missing_photos": "Faltam fotos obrigatórias: a missão não pode ser concluída.",
       "already_member": "Já faz parte desta organização.",
       "invalid_invitation": "Convite inválido, expirado ou já usado.",
-      "unchanged": "Sem alterações para guardar."
+      "unchanged": "Sem alterações para guardar.",
+      "bad_mime": "Formato de foto não aceite (JPEG, PNG, WebP ou HEIC).",
+      "reason_required": "Indique o motivo da correção.",
+      "stale": "Já existe uma versão mais recente: a página é atualizada.",
+      "already": "Já feito."
     },
     "home": {
       "subtitle": "O que precisa da sua atenção.",
@@ -1779,7 +1783,28 @@
       "inviteSignedAs": "Ligado com {email}."
     },
     "fromDemo": "Este endereço pertence à demo. Inicie sessão para o ambiente real ou abra a demo explicitamente:",
-    "openDemo": "abrir a demo"
+    "openDemo": "abrir a demo",
+    "mission": {
+      "back": "Missões",
+      "instructions": "Instruções do alojamento",
+      "start": "Começar a missão",
+      "finish": "Terminar a missão",
+      "addPhoto": "Foto",
+      "photoAlt": "Foto da missão",
+      "photoRequired": "foto obrigatória",
+      "photoDone": "foto enviada",
+      "otherPhotos": "Outras fotos",
+      "otherPhotosHint": "Um problema, um dano, um esquecimento? Adicione uma foto.",
+      "uploadFailed": "Não foi possível enviar a foto. Nada foi guardado; tente novamente.",
+      "saving": "A guardar…",
+      "missing": "{count, plural, one {Falta # foto obrigatória.} other {Faltam # fotos obrigatórias.}}",
+      "correctionTitle": "Correção pedida",
+      "reviewTitle": "Missão terminada, por validar",
+      "validate": "Validar a missão",
+      "correctionReason": "Motivo da correção",
+      "correctionHint": "O agente verá ao retomar a missão.",
+      "requestCorrection": "Pedir uma correção"
+    }
   },
   "email": {
     "footer": "Veja os detalhes e responda no seu espaço (link recebido para a estadia). E-mail automático.",

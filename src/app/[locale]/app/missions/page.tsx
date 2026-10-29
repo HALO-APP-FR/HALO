@@ -1,5 +1,5 @@
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
-import { redirect } from "@/i18n/navigation";
+import { Link, redirect } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/halo/page-header";
 import { AgentActions, AssignSelect } from "@/components/connected/mission-controls";
@@ -45,7 +45,7 @@ export default async function MissionsPage({ params }: PageProps<"/[locale]/app/
           const p = (Array.isArray(k.properties) ? k.properties[0] : k.properties) as { name: string; address_line: string | null; city: string | null } | null;
           return (
             <div key={k.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5" data-testid="mission-row">
-              <span className="min-w-0 flex-1">
+              <Link href={`/app/missions/${k.id}`} className="min-w-0 flex-1 hover:underline" data-testid="mission-link">
                 <span className="block text-[15px] font-medium">
                   {tt(k.type)} · {p?.name}
                 </span>
@@ -53,7 +53,7 @@ export default async function MissionsPage({ params }: PageProps<"/[locale]/app/
                   {f.dateTime(new Date(k.window_start), { dateStyle: "medium", timeStyle: "short" })} → {f.dateTime(new Date(k.window_end), { timeStyle: "short" })} · {tts(k.status)}
                   {!manager && p?.address_line ? ` · ${[p.address_line, p.city].filter(Boolean).join(", ")}` : ""}
                 </span>
-              </span>
+              </Link>
               {manager ? (
                 <AssignSelect taskId={k.id} current={k.assignee_id} members={people} disabled={!["unassigned", "assigned"].includes(k.status)} />
               ) : (

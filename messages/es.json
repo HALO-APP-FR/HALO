@@ -1327,7 +1327,11 @@
       "missing_photos": "Faltan fotos obligatorias: la misión no puede terminarse.",
       "already_member": "Ya forma parte de esta organización.",
       "invalid_invitation": "Invitación no válida, caducada o ya usada.",
-      "unchanged": "No hay cambios que guardar."
+      "unchanged": "No hay cambios que guardar.",
+      "bad_mime": "Formato de foto no aceptado (JPEG, PNG, WebP o HEIC).",
+      "reason_required": "Indique el motivo de la corrección.",
+      "stale": "Ya existe una versión más reciente: la página se actualiza.",
+      "already": "Ya hecho."
     },
     "home": {
       "subtitle": "Lo que requiere su atención.",
@@ -1779,7 +1783,28 @@
       "inviteSignedAs": "Conectado con {email}."
     },
     "fromDemo": "Esta dirección pertenece a la demo. Inicie sesión para el entorno real o abra la demo explícitamente:",
-    "openDemo": "abrir la demo"
+    "openDemo": "abrir la demo",
+    "mission": {
+      "back": "Misiones",
+      "instructions": "Instrucciones del alojamiento",
+      "start": "Empezar la misión",
+      "finish": "Terminar la misión",
+      "addPhoto": "Foto",
+      "photoAlt": "Foto de la misión",
+      "photoRequired": "foto obligatoria",
+      "photoDone": "foto enviada",
+      "otherPhotos": "Otras fotos",
+      "otherPhotosHint": "¿Un problema, un daño, un olvido? Añada una foto.",
+      "uploadFailed": "No se pudo enviar la foto. No se guardó nada; inténtelo de nuevo.",
+      "saving": "Guardando…",
+      "missing": "{count, plural, one {Falta # foto obligatoria.} other {Faltan # fotos obligatorias.}}",
+      "correctionTitle": "Corrección solicitada",
+      "reviewTitle": "Misión terminada, por validar",
+      "validate": "Validar la misión",
+      "correctionReason": "Motivo de corrección",
+      "correctionHint": "El agente lo verá al retomar la misión.",
+      "requestCorrection": "Solicitar una corrección"
+    }
   },
   "email": {
     "footer": "Consulte los detalles y responda desde su espacio (enlace recibido para su estancia). E-mail automático.",

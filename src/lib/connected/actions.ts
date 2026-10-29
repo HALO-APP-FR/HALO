@@ -397,3 +397,56 @@ export async function acceptInvitation(token: string): Promise<Result<{ orgId: s
   revalidatePath("/", "layout");
   return { ok: true, data: { orgId: data as string } };
 }
+
+// ---------- Compte rendu de mission (agent) et validation (manager) ----------
+export async function saveTaskReport(taskId: string, checked: string[]): Promise<Result> {
+  const ctx = await getContext();
+  if (!ctx.user || !ctx.org) return fail("not_signed_in");
+  const { data, error: e } = await ctx.supabase.rpc("save_task_report", {
+    org: ctx.org.id,
+    task: taskId,
+    report_checked: checked,
+    report_rooms: {},
+    client_at: new Date().toISOString(),
+  });
+  if (e) return fail(errCode(e));
+  if (data !== "applied") return fail(String(data));
+  return { ok: true, data: undefined };
+}
+
+/** Réserve l'emplacement d'une photo ; le fichier est ensuite déposé par le navigateur, avec la session de l'agent. */
+export async function beginTaskPhoto(taskId: string, itemId: string | null, roomId: string | null, mime: string, size: number): Promise<Result<{ path: string }>> {
+  const ctx = await getContext();
+  if (!ctx.user || !ctx.org) return fail("not_signed_in");
+  const { data, error: e } = await ctx.supabase.rpc("begin_upload", {
+    org: ctx.org.id,
+    f_kind: "task_photo",
+    f_mime: mime,
+    f_size: size,
+    task: taskId,
+    item: itemId,
+    room: roomId,
+  });
+  if (e) return fail(e.message?.includes("bad_mime") ? "bad_mime" : errCode(e));
+  return { ok: true, data: { path: data as string } };
+}
+
+export async function validateTask(taskId: string): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.rpc("validate_task", { org: ctx.org!.id, task: taskId });
+  if (e) return fail(errCode(e));
+  if (data !== "applied") return fail(String(data));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+export async function requestCorrection(taskId: string, reason: string): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.rpc("request_correction", { org: ctx.org!.id, task: taskId, reason });
+  if (e) return fail(e.message?.includes("reason_required") ? "reason_required" : errCode(e));
+  if (data !== "applied") return fail(String(data));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}

@@ -1327,7 +1327,11 @@
       "missing_photos": "Mancano foto obbligatorie: la missione non può essere chiusa.",
       "already_member": "Fai già parte di questa organizzazione.",
       "invalid_invitation": "Invito non valido, scaduto o già usato.",
-      "unchanged": "Nessuna modifica da salvare."
+      "unchanged": "Nessuna modifica da salvare.",
+      "bad_mime": "Formato foto non accettato (JPEG, PNG, WebP o HEIC).",
+      "reason_required": "Indica il motivo della correzione.",
+      "stale": "Esiste già una versione più recente: la pagina viene aggiornata.",
+      "already": "Già fatto."
     },
     "home": {
       "subtitle": "Ciò che richiede la tua attenzione.",
@@ -1779,7 +1783,28 @@
       "inviteSignedAs": "Connesso come {email}."
     },
     "fromDemo": "Questo indirizzo appartiene alla demo. Accedi per l'ambiente reale o apri la demo esplicitamente:",
-    "openDemo": "apri la demo"
+    "openDemo": "apri la demo",
+    "mission": {
+      "back": "Missioni",
+      "instructions": "Istruzioni dell'alloggio",
+      "start": "Inizia la missione",
+      "finish": "Termina la missione",
+      "addPhoto": "Foto",
+      "photoAlt": "Foto della missione",
+      "photoRequired": "foto obbligatoria",
+      "photoDone": "foto inviata",
+      "otherPhotos": "Altre foto",
+      "otherPhotosHint": "Un problema, un danno, una dimenticanza? Aggiungi una foto.",
+      "uploadFailed": "Impossibile inviare la foto. Nulla è stato salvato; riprova.",
+      "saving": "Salvataggio…",
+      "missing": "{count, plural, one {Manca ancora # foto obbligatoria.} other {Mancano ancora # foto obbligatorie.}}",
+      "correctionTitle": "Correzione richiesta",
+      "reviewTitle": "Missione terminata, da convalidare",
+      "validate": "Convalida la missione",
+      "correctionReason": "Motivo della correzione",
+      "correctionHint": "L'agente lo vedrà riprendendo la missione.",
+      "requestCorrection": "Chiedi una correzione"
+    }
   },
   "email": {
     "footer": "Vedi i dettagli e rispondi dal tuo spazio ospite (link ricevuto per il soggiorno). E-mail automatica.",

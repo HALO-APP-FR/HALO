@@ -1327,7 +1327,11 @@
       "missing_photos": "Required photos are missing: the mission can't be finished.",
       "already_member": "You're already a member of this organisation.",
       "invalid_invitation": "Invalid, expired or already used invitation.",
-      "unchanged": "No change to save."
+      "unchanged": "No change to save.",
+      "bad_mime": "Photo format not accepted (JPEG, PNG, WebP or HEIC).",
+      "reason_required": "Give the reason for the correction.",
+      "stale": "A newer version of the report already exists: the page is refreshed.",
+      "already": "Already done."
     },
     "home": {
       "subtitle": "What needs your attention.",
@@ -1779,7 +1783,28 @@
       "inviteSignedAs": "Signed in as {email}."
     },
     "fromDemo": "This address belongs to the demo. Sign in for the real environment, or open the demo explicitly:",
-    "openDemo": "open the demo"
+    "openDemo": "open the demo",
+    "mission": {
+      "back": "Missions",
+      "instructions": "Property instructions",
+      "start": "Start the mission",
+      "finish": "Finish the mission",
+      "addPhoto": "Photo",
+      "photoAlt": "Mission photo",
+      "photoRequired": "photo required",
+      "photoDone": "photo sent",
+      "otherPhotos": "Other photos",
+      "otherPhotosHint": "A problem, damage, something left behind? Add a photo.",
+      "uploadFailed": "The photo couldn't be sent. Nothing was saved; try again.",
+      "saving": "Saving…",
+      "missing": "{count, plural, one {# required photo is still missing.} other {# required photos are still missing.}}",
+      "correctionTitle": "Correction requested",
+      "reviewTitle": "Mission finished, to be checked",
+      "validate": "Validate the mission",
+      "correctionReason": "Correction reason",
+      "correctionHint": "The agent will see it when reopening the mission.",
+      "requestCorrection": "Request a correction"
+    }
   },
   "email": {
     "footer": "See the details and reply from your guest space (the link you received for your stay). This is an automatic email.",

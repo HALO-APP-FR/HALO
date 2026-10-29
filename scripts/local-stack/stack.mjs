@@ -54,6 +54,116 @@ function secrets() {
   writeFileSync(file, JSON.stringify(s, null, 2));
   return s;
 }
+const STORE = join(DIR, "storage");
+
+/**
+ * Stockage de fichiers façon Supabase Storage, pour la préproduction LOCALE uniquement.
+ * Les droits ne sont pas réimplémentés : chaque dépôt / lecture est exécuté en base sous le rôle
+ * de la personne (JWT vérifié), donc avec les MÊMES politiques que storage.objects en ligne.
+ */
+function verifyJwt(token, secret) {
+  const [h, p, sig] = (token ?? "").split(".");
+  if (!h || !p || !sig) return null;
+  const expected = createHmac("sha256", secret).update(`${h}.${p}`).digest("base64url");
+  if (expected !== sig) return null;
+  const claims = JSON.parse(Buffer.from(p, "base64url").toString());
+  return claims.exp && claims.exp * 1000 < Date.now() ? null : claims;
+}
+const sqlLit = (v) => `'${String(v).replace(/'/g, "''")}'`;
+function asUser(claims, sql) {
+  const role = claims.role === "service_role" ? "service_role" : claims.role === "authenticated" ? "authenticated" : "anon";
+  const script = `begin; set local role ${role}; select set_config('request.jwt.claims', ${sqlLit(JSON.stringify(claims))}, true); ${sql}; commit;`;
+  return execFileSync("psql", [DB_URL, "-v", "ON_ERROR_STOP=1", "-qAt", "-c", script], { stdio: ["ignore", "pipe", "pipe"] }).toString().trim();
+}
+const signFor = (secret, name, exp) => createHmac("sha256", secret).update(`${name}:${exp}`).digest("base64url");
+
+function storage(req, res, cors, s) {
+  const send = (code, body) => res.writeHead(code, { ...cors, "content-type": "application/json" }).end(JSON.stringify(body));
+  const url = new URL(req.url, "http://x");
+  const path = url.pathname.slice("/storage/v1".length);
+  // Lecture par URL signée
+  let m = /^\/object\/sign\/org-files\/(.+)$/.exec(path);
+  if (req.method === "GET" && m) {
+    const name = decodeURIComponent(m[1]);
+    const [exp, token] = (url.searchParams.get("token") ?? ".").split(".");
+    if (Number(exp) < Date.now() || token !== signFor(s.jwt, name, exp)) return send(400, { error: "InvalidSignature" });
+    const file = join(STORE, name);
+    if (!existsSync(file)) return send(404, { error: "not_found" });
+    const meta = JSON.parse(readFileSync(`${file}.meta.json`, "utf8"));
+    return res.writeHead(200, { ...cors, "content-type": meta.type }).end(readFileSync(file));
+  }
+  const claims = verifyJwt((req.headers.authorization ?? "").replace(/^Bearer /, ""), s.jwt);
+  if (!claims) return send(401, { error: "invalid_jwt" });
+  const chunks = [];
+  req.on("data", (c) => chunks.push(c));
+  req.on("end", () => {
+    const body = Buffer.concat(chunks);
+    try {
+      // Dépôt : refusé par la base si aucun emplacement réservé (begin_upload) pour cette personne
+      m = /^\/object\/org-files\/([\w./-]+)$/.exec(path);
+      if (req.method === "POST" && m) {
+        const name = m[1];
+        let type = req.headers["content-type"] ?? "";
+        let bytes = body;
+        // Envoi multipart (supabase-js avec un Blob) : on extrait la partie fichier
+        const boundary = /multipart\/form-data;\s*boundary=(.+)$/.exec(type)?.[1];
+        if (boundary) {
+          const sep = Buffer.from(`--${boundary}`);
+          let at = body.indexOf(sep);
+          while (at !== -1) {
+            const next = body.indexOf(sep, at + sep.length);
+            if (next === -1) break;
+            const part = body.subarray(at + sep.length + 2, next - 2);
+            const headEnd = part.indexOf("\r\n\r\n");
+            const head = part.subarray(0, headEnd).toString();
+            if (/filename=|content-type/i.test(head) && /content-type:\s*(\S+)/i.test(head)) {
+              type = /content-type:\s*(\S+)/i.exec(head)[1];
+              bytes = part.subarray(headEnd + 4);
+              break;
+            }
+            at = next;
+          }
+        }
+        if (!/^image\/(jpeg|png|webp|heic)$/.test(type)) return send(400, { error: "invalid_mime_type" });
+        if (bytes.length > 15728640) return send(413, { error: "too_large" });
+        asUser(claims, `insert into storage.objects (bucket_id, name, owner, metadata) values ('org-files', ${sqlLit(name)}, ${sqlLit(claims.sub)}, ${sqlLit(JSON.stringify({ size: bytes.length, mimetype: type }))})`);
+        mkdirSync(join(STORE, name, ".."), { recursive: true });
+        writeFileSync(join(STORE, name), bytes);
+        writeFileSync(join(STORE, `${name}.meta.json`), JSON.stringify({ type }));
+        return send(200, { Key: `org-files/${name}` });
+      }
+      // Suppression (même règle que la base : politique « delete » sous le rôle de la personne)
+      if (req.method === "DELETE" && /^\/object\/org-files\/?$/.test(path)) {
+        const names = JSON.parse(body.toString() || "{}").prefixes ?? [];
+        const out = [];
+        for (const name of names) {
+          const n = asUser(claims, `with d as (delete from storage.objects where bucket_id = 'org-files' and name = ${sqlLit(name)} returning 1) select count(*) from d`).split("\n").pop();
+          if (n === "1") out.push({ name });
+        }
+        return send(200, out);
+      }
+      // URL signées : seulement pour les fichiers que la personne a le droit de lire
+      m = /^\/object\/sign\/org-files(?:\/(.+))?$/.exec(path);
+      if (req.method === "POST" && m) {
+        const input = JSON.parse(body.toString() || "{}");
+        const names = m[1] ? [decodeURIComponent(m[1])] : input.paths ?? [];
+        const exp = Date.now() + Number(input.expiresIn ?? 60) * 1000;
+        const out = names.map((name) => {
+          const visible = asUser(claims, `select count(*) from storage.objects where bucket_id = 'org-files' and name = ${sqlLit(name)}`).split("\n").pop() === "1";
+          return visible
+            ? { path: name, signedURL: `/object/sign/org-files/${encodeURIComponent(name)}?token=${exp}.${signFor(s.jwt, name, String(exp))}`, error: null }
+            : { path: name, signedURL: null, error: "Either the object does not exist or you do not have access to it" };
+        });
+        if (m[1]) return out[0].signedURL ? send(200, { signedURL: out[0].signedURL }) : send(400, { error: out[0].error });
+        return send(200, out);
+      }
+      return send(404, { error: "not_found" });
+    } catch (e) {
+      return send(403, { error: "Unauthorized", message: String(e.stderr ?? e).slice(0, 200) });
+    }
+  });
+}
+
 const psql = (url, args) => execFileSync("psql", [url, "-v", "ON_ERROR_STOP=1", "-q", ...args], { stdio: "inherit" });
 
 function writeEnv(s) {
@@ -183,11 +293,12 @@ async function start() {
     const cors = {
       "access-control-allow-origin": req.headers.origin ?? "*",
       "access-control-allow-credentials": "true",
-      "access-control-allow-headers": "authorization, apikey, content-type, x-client-info, prefer, accept-profile, content-profile, range, x-supabase-api-version",
+      "access-control-allow-headers": "authorization, apikey, content-type, x-client-info, prefer, accept-profile, content-profile, range, x-supabase-api-version, x-upsert, cache-control",
       "access-control-allow-methods": "GET, POST, PATCH, PUT, DELETE, OPTIONS",
       "access-control-expose-headers": "content-range, x-total-count",
     };
     if (req.method === "OPTIONS") return res.writeHead(204, cors).end();
+    if (req.url.startsWith("/storage/v1/")) return storage(req, res, cors, s);
     if (req.url.startsWith("/_templates/")) return res.writeHead(200, { "content-type": "text/html" }).end(MAGIC_TEMPLATE);
     const route = req.url.startsWith("/auth/v1") ? { port: PORTS.auth, path: req.url.slice(8) || "/" } : req.url.startsWith("/rest/v1") ? { port: PORTS.rest, path: req.url.slice(8) || "/" } : null;
     if (!route) return res.writeHead(404, cors).end();

@@ -473,3 +473,56 @@ test("11 · démo et environnement connecté impossibles à confondre", async ({
   await expect(page.getByTestId("status-page")).toHaveAttribute("data-ready", "yes");
   await page.context().close();
 });
+
+const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAEklEQVR4nGP8z4AATAxEcQAAzQEJ/0qgqMAAAAAASUVORK5CYII=", "base64");
+
+test("12 · compte rendu agent : checklist, photos réelles, correction puis validation", async ({ browser }) => {
+  const agent = await newPage(browser);
+  await signIn(agent, agentA);
+  await agent.goto("/fr/app/missions");
+  await agent.getByTestId("mission-link").first().click();
+  await expect(agent.getByTestId("checklist-room").first()).toBeVisible();
+  // Terminer est impossible tant que les photos obligatoires manquent
+  await expect(agent.getByTestId("missing-photos")).toBeVisible();
+  await expect(agent.getByTestId("mission-finish")).toBeDisabled();
+  await agent.getByTestId("checklist-item").first().locator("button").first().click();
+  const buttons = agent.getByTestId("photo-add");
+  const n = await buttons.count();
+  expect(n).toBeGreaterThan(0);
+  for (let i = 0; i < n; i++) {
+    const chooser = agent.waitForEvent("filechooser");
+    await agent.getByTestId("photo-add").nth(i).click();
+    await (await chooser).setFiles({ name: "photo.png", mimeType: "image/png", buffer: PNG });
+    await expect(agent.getByTestId("mission-photo")).toHaveCount(i + 1);
+  }
+  await expect(agent.getByTestId("missing-photos")).toHaveCount(0);
+  await agent.getByTestId("mission-finish").click();
+  await expect(agent.getByText(/Terminée, à valider/)).toBeVisible();
+  const missionUrl = agent.url();
+
+  // Manager : voit les preuves, demande une correction
+  const m = await newPage(browser);
+  await signIn(m, managerA);
+  await m.goto(missionUrl);
+  await expect(m.getByTestId("mission-photo")).toHaveCount(n);
+  await m.getByTestId("correction-reason").fill("Refaire la salle de bain");
+  await m.getByTestId("mission-correction").click();
+  await expect(m.getByText(/Correction demandée/).first()).toBeVisible();
+
+  // Agent : voit le motif, reprend et termine ; le manager valide
+  await agent.reload();
+  await expect(agent.getByText("Refaire la salle de bain")).toBeVisible();
+  await agent.getByTestId("mission-start").click();
+  await agent.getByTestId("mission-finish").click();
+  await expect(agent.getByText(/Terminée, à valider/)).toBeVisible();
+  await m.reload();
+  await m.getByTestId("mission-validate").click();
+  await expect(m.getByText(/Validée/).first()).toBeVisible();
+
+  // Un autre manager (autre organisation) ne peut pas ouvrir la mission ni ses photos
+  const other = await newPage(browser);
+  await signIn(other, managerB);
+  const res = await other.goto(missionUrl);
+  expect(res!.status()).toBe(404);
+  for (const c of [agent, m, other]) await c.context().close();
+});

@@ -11,13 +11,13 @@
 | Onboarding Manager | Étapes enregistrées une à une, passables, reprise à l'étape interrompue, propositions à confirmer | `/app/onboarding` |
 | Logements | Création, livret voyageur, checklist issue de la configuration confirmée | `/app/properties` |
 | Séjours | Création, missions générées par le moteur existant (`planTasks`) | `/app/stays` |
-| Missions | Assignation (manager), démarrer / terminer (agent, ses missions seulement) | `/app/missions` |
+| Missions | Assignation (manager) ; agent : checklist, photos déposées dans le stockage privé, fin de mission refusée tant qu'une photo obligatoire manque ; manager : preuves, validation ou correction avec motif | `/app/missions`, `/app/missions/[id]` |
 | Équipe | Lien d'invitation (7 jours), acceptation avec son propre compte | `/app/team`, `/invite/[token]` |
 | Espace voyageur | Lien de séjour sans compte : livret, dates, demandes, réponses, messages | `/s/[token]` |
 | Prestations | Reçue, précisions (question + réponse), acceptée, refusée (motif), modifiée, annulée, réalisée | `/app/services` |
 | Notifications | Dans l'espace voyageur + e-mail si adresse connue **et** fournisseur configuré ; état réel, échec visible, relance | historique d'envoi |
 
-Le reste de l'application (planning, linge, arrivées, alertes, comptes rendus photo de l'agent…) **reste la démo** (navigateur, badge « Démo »). Les deux ne se mélangent pas : la démo n'écrit jamais dans la base, l'environnement connecté n'utilise pas le stockage du navigateur.
+Le reste de l'application (planning, linge, arrivées, alertes…) **reste la démo** (navigateur, badge « Démo »). Les deux ne se mélangent pas : la démo n'écrit jamais dans la base, l'environnement connecté n'utilise pas le stockage du navigateur.
 
 ## Base de données
 
@@ -83,5 +83,4 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 
 - L'import de calendriers (Airbnb, Booking…) n'est pas encore relié à la base : la question d'onboarding sert à le préparer, elle le dit.
 - Les « propositions » de configuration sont des **règles explicites** (aucun modèle d'IA appelé) ; chaque proposition affiche sa raison.
-- Le compte rendu photo de l'agent (checklist + photos) reste dans la démo ; « Terminer » est refusé côté base si des photos obligatoires manquent.
 - Un e-mail resté « en attente » (coupure pendant l'envoi) n'est retraité qu'à la prochaine action de l'organisation ; une tâche planifiée sera ajoutée.

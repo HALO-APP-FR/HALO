@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
   const check = (name: string, ok: boolean, detail?: string) => checks.push({ name, ok, ...(detail ? { detail } : {}) });
   const users: string[] = [];
   const orgs: string[] = [];
+  const stored: string[] = [];
   const origin = new URL(request.url).origin;
 
   try {
@@ -104,6 +105,33 @@ export async function GET(request: NextRequest) {
     const { error: agDecide } = await ag.rpc("create_guest_link", { org: orgA, reservation: rA!.id });
     check("agent_cannot_manage_guest_links", Boolean(agDecide));
 
+    // 4b. Mission de l'agent : photo obligatoire réellement déposée (stockage privé), puis fin de mission
+    const { data: room } = await a1.from("checklist_rooms").insert({ organization_id: orgA, property_id: pA!.id, name: "Salle de bain" }).select("id").single();
+    const { data: item } = await a1.from("checklist_items").insert({ organization_id: orgA, room_id: room!.id, label: "Propre", photo_required: true }).select("id").single();
+    const agentId = (await ag.auth.getUser()).data.user!.id;
+    const { data: task, error: tke } = await a1
+      .from("tasks")
+      .insert({ organization_id: orgA, property_id: pA!.id, type: "turnover", status: "assigned", assignee_id: agentId, window_start: inAt, window_end: outAt, duration_min: 60 })
+      .select("id")
+      .single();
+    check("manager_assigns_mission", !tke && Boolean(task), tke?.message);
+    await ag.rpc("start_task", { org: orgA, task: task!.id, action_id: crypto.randomUUID(), client_at: new Date().toISOString() });
+    const { data: early } = await ag.rpc("finish_task", { org: orgA, task: task!.id, action_id: crypto.randomUUID(), client_at: new Date().toISOString() });
+    check("finish_refused_without_required_photo", early === "missing_photos", String(early));
+    const { data: path } = await ag.rpc("begin_upload", { org: orgA, f_kind: "task_photo", f_mime: "image/jpeg", f_size: 4, task: task!.id, item: item!.id, room: room!.id });
+    const { error: upErr } = await ag.storage.from("org-files").upload(path as string, new Blob([new Uint8Array([255, 216, 255, 217])], { type: "image/jpeg" }), { contentType: "image/jpeg" });
+    if (!upErr) stored.push(path as string);
+    check("agent_uploads_photo_to_private_storage", !upErr, upErr?.message);
+    const { data: fin } = await ag.rpc("finish_task", { org: orgA, task: task!.id, action_id: crypto.randomUUID(), client_at: new Date().toISOString() });
+    check("agent_finishes_mission_with_photo", fin === "applied", String(fin));
+    const { data: mUrl } = await a1.storage.from("org-files").createSignedUrl(path as string, 60);
+    check("manager_reads_photo", Boolean(mUrl?.signedUrl));
+    const { data: bUrl } = await b.storage.from("org-files").createSignedUrl(path as string, 60);
+    check("other_org_cannot_read_photo", !bUrl?.signedUrl);
+    const { data: forgedUp } = await b.storage.from("org-files").upload(`${orgA}/task/${task!.id}/forged.jpg`, new Blob([new Uint8Array([1])], { type: "image/jpeg" }), { contentType: "image/jpeg" });
+    if (forgedUp) stored.push(`${orgA}/task/${task!.id}/forged.jpg`);
+    check("other_org_cannot_upload_into_mission", !forgedUp);
+
     // 5. Voyageur (sans compte, par son lien)
     const guest = fresh();
     const { data: gs } = await guest.rpc("get_guest_stay", { token: tokenA as string });
@@ -136,15 +164,29 @@ export async function GET(request: NextRequest) {
   } finally {
     // Nettoyage : rien de fictif ne reste en base
     let cleaned = true;
+    const why: string[] = [];
+    if (stored.length) {
+      const { error } = await admin.storage.from("org-files").remove(stored);
+      if (error) {
+        cleaned = false;
+        why.push(`storage: ${error.message}`);
+      }
+    }
     for (const id of orgs.filter(Boolean)) {
       const { error } = await admin.from("organizations").delete().eq("id", id);
-      if (error) cleaned = false;
+      if (error) {
+        cleaned = false;
+        why.push(`org: ${error.message}`);
+      }
     }
     for (const id of users) {
       const { error } = await admin.auth.admin.deleteUser(id);
-      if (error) cleaned = false;
+      if (error) {
+        cleaned = false;
+        why.push(`user: ${error.message}`);
+      }
     }
-    check("test_data_deleted", cleaned);
+    check("test_data_deleted", cleaned, why.join(" | ").slice(0, 300) || undefined);
   }
   return NextResponse.json({ ok: checks.every((c) => c.ok), run, at: new Date().toISOString(), checks });
 }

@@ -1327,7 +1327,11 @@
       "missing_photos": "Des photos obligatoires manquent : la mission ne peut pas être terminée.",
       "already_member": "Vous faites déjà partie de cette organisation.",
       "invalid_invitation": "Invitation invalide, expirée ou déjà utilisée.",
-      "unchanged": "Aucun changement à enregistrer."
+      "unchanged": "Aucun changement à enregistrer.",
+      "bad_mime": "Format de photo non accepté (JPEG, PNG, WebP ou HEIC).",
+      "reason_required": "Indiquez le motif de la correction.",
+      "stale": "Une version plus récente du compte rendu existe déjà : la page est actualisée.",
+      "already": "Déjà fait."
     },
     "home": {
       "subtitle": "Ce qui demande votre attention.",
@@ -1779,7 +1783,28 @@
       "inviteSignedAs": "Connecté avec {email}."
     },
     "fromDemo": "Cette adresse appartient à la démo. Connectez-vous pour l'environnement réel, ou ouvrez la démo explicitement :",
-    "openDemo": "ouvrir la démo"
+    "openDemo": "ouvrir la démo",
+    "mission": {
+      "back": "Missions",
+      "instructions": "Consignes du logement",
+      "start": "Commencer la mission",
+      "finish": "Terminer la mission",
+      "addPhoto": "Photo",
+      "photoAlt": "Photo de la mission",
+      "photoRequired": "photo obligatoire",
+      "photoDone": "photo envoyée",
+      "otherPhotos": "Autres photos",
+      "otherPhotosHint": "Un problème, un dégât, un oubli ? Ajoutez une photo.",
+      "uploadFailed": "La photo n'a pas pu être envoyée. Rien n'a été enregistré ; réessayez.",
+      "saving": "Enregistrement…",
+      "missing": "{count, plural, one {# photo obligatoire manque encore.} other {# photos obligatoires manquent encore.}}",
+      "correctionTitle": "Correction demandée",
+      "reviewTitle": "Mission terminée, à valider",
+      "validate": "Valider la mission",
+      "correctionReason": "Motif de correction",
+      "correctionHint": "L'agent le verra en reprenant la mission.",
+      "requestCorrection": "Demander une correction"
+    }
   },
   "email": {
     "footer": "Retrouvez le détail et répondez depuis votre espace voyageur (lien reçu pour votre séjour). Cet e-mail est automatique.",

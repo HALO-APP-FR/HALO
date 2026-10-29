@@ -1327,7 +1327,11 @@
       "missing_photos": "Pflichtfotos fehlen: Der Einsatz kann nicht abgeschlossen werden.",
       "already_member": "Sie gehören bereits zu dieser Organisation.",
       "invalid_invitation": "Einladung ungültig, abgelaufen oder bereits genutzt.",
-      "unchanged": "Keine Änderung zu speichern."
+      "unchanged": "Keine Änderung zu speichern.",
+      "bad_mime": "Fotoformat nicht unterstützt (JPEG, PNG, WebP oder HEIC).",
+      "reason_required": "Geben Sie den Grund an.",
+      "stale": "Es gibt bereits eine neuere Version: Die Seite wird aktualisiert.",
+      "already": "Bereits erledigt."
     },
     "home": {
       "subtitle": "Was Ihre Aufmerksamkeit braucht.",
@@ -1779,7 +1783,28 @@
       "inviteSignedAs": "Angemeldet als {email}."
     },
     "fromDemo": "Diese Adresse gehört zur Demo. Melden Sie sich für die echte Umgebung an oder öffnen Sie die Demo ausdrücklich:",
-    "openDemo": "Demo öffnen"
+    "openDemo": "Demo öffnen",
+    "mission": {
+      "back": "Einsätze",
+      "instructions": "Hinweise zur Unterkunft",
+      "start": "Einsatz starten",
+      "finish": "Einsatz abschließen",
+      "addPhoto": "Foto",
+      "photoAlt": "Einsatzfoto",
+      "photoRequired": "Foto erforderlich",
+      "photoDone": "Foto gesendet",
+      "otherPhotos": "Weitere Fotos",
+      "otherPhotosHint": "Problem, Schaden, Vergessenes? Foto hinzufügen.",
+      "uploadFailed": "Foto konnte nicht gesendet werden. Nichts gespeichert; bitte erneut versuchen.",
+      "saving": "Speichern…",
+      "missing": "{count, plural, one {# Pflichtfoto fehlt noch.} other {# Pflichtfotos fehlen noch.}}",
+      "correctionTitle": "Korrektur angefordert",
+      "reviewTitle": "Einsatz beendet, zu prüfen",
+      "validate": "Einsatz freigeben",
+      "correctionReason": "Grund der Korrektur",
+      "correctionHint": "Der Mitarbeiter sieht ihn beim Wiederaufnehmen.",
+      "requestCorrection": "Korrektur anfordern"
+    }
   },
   "email": {
     "footer": "Details und Antwort in Ihrem Gästebereich (Link zu Ihrem Aufenthalt). Automatische E-Mail.",
