@@ -62,7 +62,9 @@ Résultat : **7 scénarios / 10 vérifications réussis**, et la suite démo exi
 ## Démo et environnement connecté : règle de séparation (décidée le 28/10/2026)
 
 - **Déploiement connecté** (préproduction, puis production) : l'accueil mène à la connexion ; c'est le parcours principal. La démo n'est qu'une entrée secondaire « Démo » vers `/demo`.
-- Les pages de démo (`/today`, `/planning`, `/a/…`, `/g/…`, etc.) ne s'ouvrent qu'après l'entrée explicite `/demo` (marqueur `halo_demo`, 8 h). Sans ce marqueur, le serveur (proxy) renvoie à la connexion avec un message. Elles ne lisent jamais la base.
+- Les pages de démo (`/today`, `/planning`, `/a/…`, `/g/…`, etc.) ne s'ouvrent qu'après l'entrée explicite `/demo` (marqueur `halo_demo`, 8 h). Sans ce marqueur, le serveur (proxy) renvoie à la connexion puis, une fois connecté, vers la page RÉELLE équivalente (`/today` → `/app`, `/a/…` → `/app/missions`…). Elles ne lisent jamais la base.
+- Page connectée sans session : connexion, puis retour à la page demandée (`?next=`).
+- **Comptes de test sans e-mail** (préproduction uniquement : environnement ≠ production ET `HALO_TEST_ACCOUNTS=1` en Preview) : sur la page de connexion, un nom (« manager », « agent »…) donne un compte fictif `test-<nom>@halo.invalid`. Même nom = même compte sur tout appareil. Données réellement enregistrées. Permet de vérifier tout le parcours sans transmettre d'adresse réelle.
 - Pages connectées (`/app/…`) : session vérifiée côté serveur à chaque requête + règles d'accès en base. Voyageur : `/s/<lien>`, sans compte, par conception.
 - **Déploiement sans backend** (production actuelle) : la démo publique, présentée comme telle.
 - `/status` : état vérifié du backend (API, migrations, lecture anonyme refusée, authentification, clé serveur, SMTP), sans aucune valeur secrète. Le libellé « données enregistrées en ligne » n'apparaît que si ces vérifications passent ; sinon l'accueil affiche « Environnement connecté indisponible ».

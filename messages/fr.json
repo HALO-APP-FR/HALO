@@ -1302,7 +1302,9 @@
         "invalid_code": "Code incorrect ou expiré.",
         "rate_limited": "Trop de tentatives. Patientez une minute.",
         "link": "Ce lien de connexion n'est plus valable. Demandez-en un nouveau."
-      }
+      },
+      "continueTo": "Connectez-vous pour continuer : vous serez ramené à la page demandée.",
+      "lookingForDemo": "Vous cherchiez la démo sans compte ?"
     },
     "createOrg": {
       "title": "Créez votre espace",
@@ -1804,6 +1806,18 @@
       "correctionReason": "Motif de correction",
       "correctionHint": "L'agent le verra en reprenant la mission.",
       "requestCorrection": "Demander une correction"
+    },
+    "testAccount": {
+      "title": "Préproduction : compte de test sans e-mail",
+      "text": "Identité fictive, données réellement enregistrées dans la base de préproduction. N'existe pas en production.",
+      "name": "Nom du compte de test",
+      "hint": "Ex. « manager » ou « agent ». Le même nom redonne le même compte, sur n'importe quel appareil.",
+      "submit": "Entrer avec ce compte de test",
+      "errors": {
+        "disabled": "Les comptes de test ne sont pas disponibles ici.",
+        "invalid_name": "Utilisez des lettres et des chiffres.",
+        "server": "Connexion impossible pour le moment. Rien n'a été créé ; réessayez."
+      }
     }
   },
   "email": {

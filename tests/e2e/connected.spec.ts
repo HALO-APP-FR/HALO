@@ -455,15 +455,19 @@ test("11 · démo et environnement connecté impossibles à confondre", async ({
   await page.goto("/fr");
   await expect(page.getByTestId("connected-entry")).toBeVisible();
   await expect(page.getByRole("link", { name: /Espace Manager/ })).toHaveCount(0);
-  for (const path of ["/fr/today", "/fr/a/today", "/fr/tasks", "/fr/properties", "/fr/a/profile", "/fr/g/abc", "/fr/settings"]) {
+  // Pages de démo ouvertes sans entrée explicite : connexion, puis retour à la page RÉELLE équivalente
+  for (const [path, next] of [["/fr/today", "%2Fapp"], ["/fr/a/today", "%2Fapp%2Fmissions"], ["/fr/tasks", "%2Fapp%2Fmissions"], ["/fr/properties", "%2Fapp%2Fproperties"], ["/fr/g/abc", "%2Fapp"], ["/fr/settings", "%2Fapp%2Fonboarding"]]) {
     await page.goto(path);
-    await expect(page, path).toHaveURL(/\/fr\/auth\/sign-in\?from=demo$/);
-    await expect(page.getByTestId("from-demo")).toBeVisible();
+    await expect(page, path).toHaveURL(new RegExp(`/fr/auth/sign-in\\?next=${next}$`));
   }
-  for (const path of ["/fr/app", "/fr/app/stays", "/fr/app/services", "/fr/app/missions", "/fr/app/properties", "/fr/app/onboarding"]) {
+  await expect(page.getByTestId("sign-in-next")).toBeVisible();
+  // Pages connectées sans session : connexion, puis retour à la page demandée
+  for (const path of ["/fr/app/stays", "/fr/app/services", "/fr/app/missions", "/fr/app/properties", "/fr/app/onboarding"]) {
     await page.goto(path);
-    await expect(page, path).toHaveURL(/\/fr\/auth\/sign-in$/);
+    await expect(page, path).toHaveURL(new RegExp(`/fr/auth/sign-in\\?next=${encodeURIComponent(path.slice(3))}$`));
   }
+  await page.goto("/fr/app");
+  await expect(page).toHaveURL(/\/fr\/auth\/sign-in\?next=%2Fapp$/);
   // Entrée explicite dans la démo, étiquetée comme telle
   await page.goto("/fr/demo");
   await expect(page.getByTestId("demo-entry-badge")).toBeVisible();
@@ -525,4 +529,27 @@ test("12 · compte rendu agent : checklist, photos réelles, correction puis val
   const res = await other.goto(missionUrl);
   expect(res!.status()).toBe(404);
   for (const c of [agent, m, other]) await c.context().close();
+});
+
+test("13 · compte de test de préproduction : connexion sans e-mail, retour à la page demandée, même compte sur un autre appareil", async ({ browser }) => {
+  const a = await newPage(browser);
+  await a.context().clearCookies();
+  await a.goto("/fr/app/properties");
+  await expect(a).toHaveURL(/next=%2Fapp%2Fproperties/);
+  await a.getByLabel("Nom du compte de test").fill(`revue ${run}`);
+  await a.getByTestId("test-account-submit").click();
+  await expect(a).toHaveURL(/\/fr\/app\/properties$/);
+  // Nouveau compte sans organisation : la page le renvoie à la création d'espace
+  await a.goto("/fr/app");
+  await a.getByLabel("Nom commercial").fill(`Revue ${run}`);
+  await a.getByRole("button", { name: "Créer et configurer" }).click();
+  await expect(a.getByTestId("onb-title")).toBeVisible();
+  const b = await newPage(browser);
+  await b.context().clearCookies();
+  await b.goto("/fr/auth/sign-in");
+  await b.getByLabel("Nom du compte de test").fill(`revue ${run}`);
+  await b.getByTestId("test-account-submit").click();
+  await expect(b).toHaveURL(/\/fr\/app$/);
+  await expect(b.getByRole("heading", { name: `Revue ${run}` })).toBeVisible();
+  for (const c of [a, b]) await c.context().close();
 });

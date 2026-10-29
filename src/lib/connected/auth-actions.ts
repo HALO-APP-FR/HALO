@@ -2,6 +2,8 @@
 
 import { headers } from "next/headers";
 import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { testAccountsEnabled } from "./test-accounts";
 
 export type AuthResult = { ok: true } | { ok: false; error: "invalid_email" | "send_failed" | "invalid_code" | "rate_limited" };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -34,4 +36,25 @@ export async function verifySignInCode(email: string, code: string): Promise<Aut
 export async function signOut() {
   const supabase = await supabaseServer();
   await supabase.auth.signOut();
+}
+
+/**
+ * Préproduction : connexion à un compte de test fictif (test-<nom>@halo.invalid), sans e-mail.
+ * Même nom → même compte : permet de vérifier la persistance après reconnexion et sur un autre appareil.
+ */
+export async function signInTestAccount(name: string): Promise<{ ok: true; email: string } | { ok: false; error: "disabled" | "invalid_name" | "server" }> {
+  if (!testAccountsEnabled()) return { ok: false, error: "disabled" };
+  const slug = name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24);
+  if (!slug) return { ok: false, error: "invalid_name" };
+  const admin = supabaseAdmin();
+  if (!admin) return { ok: false, error: "server" };
+  const email = `test-${slug}@halo.invalid`;
+  const { error: ce } = await admin.auth.admin.createUser({ email, email_confirm: true });
+  if (ce && !/already/i.test(ce.message)) return { ok: false, error: "server" };
+  const { data, error: le } = await admin.auth.admin.generateLink({ type: "magiclink", email });
+  if (le || !data.properties?.hashed_token) return { ok: false, error: "server" };
+  const supabase = await supabaseServer();
+  const { error: ve } = await supabase.auth.verifyOtp({ token_hash: data.properties.hashed_token, type: "email" });
+  if (ve) return { ok: false, error: "server" };
+  return { ok: true, email };
 }

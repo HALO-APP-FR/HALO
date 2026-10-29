@@ -1302,7 +1302,9 @@
         "invalid_code": "Código incorreto ou expirado.",
         "rate_limited": "Demasiadas tentativas. Aguarde um minuto.",
         "link": "Este link já não é válido. Peça um novo."
-      }
+      },
+      "continueTo": "Inicie sessão para continuar: voltará à página pedida.",
+      "lookingForDemo": "Procura a demo sem conta?"
     },
     "createOrg": {
       "title": "Crie o seu espaço",
@@ -1804,6 +1806,18 @@
       "correctionReason": "Motivo da correção",
       "correctionHint": "O agente verá ao retomar a missão.",
       "requestCorrection": "Pedir uma correção"
+    },
+    "testAccount": {
+      "title": "Pré-produção: conta de teste sem e-mail",
+      "text": "Identidade fictícia, dados realmente guardados na base de pré-produção. Não existe em produção.",
+      "name": "Nome da conta de teste",
+      "hint": "Ex. «manager» ou «agent». O mesmo nome dá a mesma conta em qualquer dispositivo.",
+      "submit": "Entrar com esta conta de teste",
+      "errors": {
+        "disabled": "As contas de teste não estão disponíveis aqui.",
+        "invalid_name": "Use letras e números.",
+        "server": "Não foi possível entrar. Nada foi criado; tente novamente."
+      }
     }
   },
   "email": {

@@ -13,6 +13,17 @@ const intl = createMiddleware(routing);
 /** Pages de la DÉMO (données locales au navigateur), distinctes de l'environnement connecté (/app, /s, /invite). */
 const DEMO_ROUTE = /^\/(fr|en|es|pt|it|de)\/(today|planning|tasks|properties|team|settings|services|alerts|arrivals|linen|login|unlock|a|g)(\/|$)/;
 
+const DEMO_TO_APP: Record<string, string> = {
+  today: "/app",
+  planning: "/app/missions",
+  tasks: "/app/missions",
+  a: "/app/missions",
+  properties: "/app/properties",
+  team: "/app/team",
+  services: "/app/services",
+  settings: "/app/onboarding",
+};
+
 export default async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -21,7 +32,9 @@ export default async function proxy(request: NextRequest) {
   // sinon, retour à la connexion (aucune donnée locale ne peut passer pour l'environnement réel).
   const demo = DEMO_ROUTE.exec(path);
   if (url && key && demo && request.cookies.get("halo_demo")?.value !== "1") {
-    return NextResponse.redirect(new URL(`/${demo[1]}/auth/sign-in?from=demo`, request.url));
+    // Équivalent réel de la page demandée : on y revient après la connexion
+    const next = DEMO_TO_APP[demo[2]] ?? "/app";
+    return NextResponse.redirect(new URL(`/${demo[1]}/auth/sign-in?next=${encodeURIComponent(next)}`, request.url));
   }
   const response = intl(request);
   if (!url || !key || !/\/app(\/|$)/.test(path)) return response;
@@ -34,7 +47,12 @@ export default async function proxy(request: NextRequest) {
       },
     },
   });
-  await supabase.auth.getUser();
+  const { data } = await supabase.auth.getUser();
+  // Page connectée sans session : connexion, puis retour à la page demandée
+  if (!data.user) {
+    const m = /^\/(fr|en|es|pt|it|de)(\/app(?:\/[\w-]*)*)$/.exec(path);
+    if (m) return NextResponse.redirect(new URL(`/${m[1]}/auth/sign-in?next=${encodeURIComponent(m[2])}`, request.url));
+  }
   return response instanceof NextResponse ? response : NextResponse.next();
 }
 

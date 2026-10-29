@@ -1302,7 +1302,9 @@
         "invalid_code": "Falscher oder abgelaufener Code.",
         "rate_limited": "Zu viele Versuche. Bitte eine Minute warten.",
         "link": "Dieser Anmeldelink ist nicht mehr gültig. Fordern Sie einen neuen an."
-      }
+      },
+      "continueTo": "Melden Sie sich an, um fortzufahren: Danach geht es zur gewünschten Seite.",
+      "lookingForDemo": "Sie suchen die Demo ohne Konto?"
     },
     "createOrg": {
       "title": "Erstellen Sie Ihren Bereich",
@@ -1804,6 +1806,18 @@
       "correctionReason": "Grund der Korrektur",
       "correctionHint": "Der Mitarbeiter sieht ihn beim Wiederaufnehmen.",
       "requestCorrection": "Korrektur anfordern"
+    },
+    "testAccount": {
+      "title": "Vorproduktion: Testkonto ohne E-Mail",
+      "text": "Fiktive Identität, Daten werden wirklich in der Vorproduktions-Datenbank gespeichert. Nicht in Produktion verfügbar.",
+      "name": "Name des Testkontos",
+      "hint": "Z. B. „manager“ oder „agent“. Gleicher Name = gleiches Konto, auf jedem Gerät.",
+      "submit": "Mit diesem Testkonto eintreten",
+      "errors": {
+        "disabled": "Testkonten sind hier nicht verfügbar.",
+        "invalid_name": "Buchstaben und Ziffern verwenden.",
+        "server": "Anmeldung derzeit nicht möglich. Nichts wurde erstellt; bitte erneut versuchen."
+      }
     }
   },
   "email": {

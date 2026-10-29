@@ -4,12 +4,14 @@ import { LogoMark } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
 import { EnvBadge } from "@/components/connected/env-badge";
 import { SignInForm } from "@/components/connected/sign-in-form";
+import { TestAccountForm } from "@/components/connected/test-account-form";
+import { testAccountsEnabled } from "@/lib/connected/test-accounts";
 import { isConnected } from "@/lib/supabase/config";
 import { getContext } from "@/lib/connected/context";
 
 export default async function SignInPage({ params, searchParams }: PageProps<"/[locale]/auth/sign-in">) {
   const { locale } = await params;
-  const { error, next, from } = await searchParams;
+  const { error, next } = await searchParams;
   const nextPath = typeof next === "string" ? next : undefined;
   setRequestLocale(locale);
   const t = await getTranslations("connected");
@@ -30,12 +32,9 @@ export default async function SignInPage({ params, searchParams }: PageProps<"/[
             <h1 className="mt-6 text-title-1">{t("signIn.title")}</h1>
             <p className="mt-2 text-body text-muted">{t("signIn.subtitle")}</p>
           </div>
-          {from === "demo" && (
-            <p className="mt-6 rounded-lg bg-warning-soft p-3 text-[14px]" data-testid="from-demo" role="status">
-              {t("fromDemo")}{" "}
-              <Link href="/demo" className="font-medium underline">
-                {t("openDemo")}
-              </Link>
+          {nextPath && nextPath !== "/app" && (
+            <p className="mt-6 rounded-lg bg-accent-soft p-3 text-[14px]" data-testid="sign-in-next" role="status">
+              {t("signIn.continueTo")}
             </p>
           )}
           <div className="mt-8 rounded-xl border border-line bg-surface p-6 shadow-card">
@@ -45,6 +44,13 @@ export default async function SignInPage({ params, searchParams }: PageProps<"/[
               <p className="text-[15px] text-muted">{t("notConfigured")}</p>
             )}
           </div>
+          {testAccountsEnabled() && <TestAccountForm next={nextPath} />}
+          <p className="mt-6 text-center text-[13px] text-muted">
+            {t("signIn.lookingForDemo")}{" "}
+            <Link href="/demo" className="font-medium text-fg underline" data-testid="sign-in-demo-link">
+              {t("openDemo")}
+            </Link>
+          </p>
         </div>
       </main>
     </div>

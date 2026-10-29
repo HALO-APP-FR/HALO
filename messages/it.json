@@ -1302,7 +1302,9 @@
         "invalid_code": "Codice errato o scaduto.",
         "rate_limited": "Troppi tentativi. Attendi un minuto.",
         "link": "Questo link non è più valido. Richiedine uno nuovo."
-      }
+      },
+      "continueTo": "Accedi per continuare: tornerai alla pagina richiesta.",
+      "lookingForDemo": "Cerchi la demo senza account?"
     },
     "createOrg": {
       "title": "Crea il tuo spazio",
@@ -1804,6 +1806,18 @@
       "correctionReason": "Motivo della correzione",
       "correctionHint": "L'agente lo vedrà riprendendo la missione.",
       "requestCorrection": "Chiedi una correzione"
+    },
+    "testAccount": {
+      "title": "Preproduzione: account di test senza e-mail",
+      "text": "Identità fittizia, dati realmente salvati nel database di preproduzione. Non esiste in produzione.",
+      "name": "Nome dell'account di test",
+      "hint": "Es. «manager» o «agent». Lo stesso nome dà lo stesso account su qualsiasi dispositivo.",
+      "submit": "Entra con questo account di test",
+      "errors": {
+        "disabled": "Gli account di test non sono disponibili qui.",
+        "invalid_name": "Usa lettere e numeri.",
+        "server": "Accesso impossibile. Nulla è stato creato; riprova."
+      }
     }
   },
   "email": {

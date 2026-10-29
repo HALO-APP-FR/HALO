@@ -1302,7 +1302,9 @@
         "invalid_code": "Wrong or expired code.",
         "rate_limited": "Too many attempts. Wait a minute.",
         "link": "This sign-in link is no longer valid. Request a new one."
-      }
+      },
+      "continueTo": "Sign in to continue: you'll be taken back to the page you asked for.",
+      "lookingForDemo": "Looking for the no-account demo?"
     },
     "createOrg": {
       "title": "Create your workspace",
@@ -1804,6 +1806,18 @@
       "correctionReason": "Correction reason",
       "correctionHint": "The agent will see it when reopening the mission.",
       "requestCorrection": "Request a correction"
+    },
+    "testAccount": {
+      "title": "Pre-production: test account without email",
+      "text": "Fictitious identity, data really saved in the pre-production database. Not available in production.",
+      "name": "Test account name",
+      "hint": "E.g. “manager” or “agent”. The same name gives the same account, on any device.",
+      "submit": "Enter with this test account",
+      "errors": {
+        "disabled": "Test accounts aren't available here.",
+        "invalid_name": "Use letters and numbers.",
+        "server": "Couldn't sign in right now. Nothing was created; try again."
+      }
     }
   },
   "email": {

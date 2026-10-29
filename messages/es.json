@@ -1302,7 +1302,9 @@
         "invalid_code": "Código incorrecto o caducado.",
         "rate_limited": "Demasiados intentos. Espere un minuto.",
         "link": "Este enlace ya no es válido. Solicite uno nuevo."
-      }
+      },
+      "continueTo": "Inicie sesión para continuar: volverá a la página solicitada.",
+      "lookingForDemo": "¿Busca la demo sin cuenta?"
     },
     "createOrg": {
       "title": "Cree su espacio",
@@ -1804,6 +1806,18 @@
       "correctionReason": "Motivo de corrección",
       "correctionHint": "El agente lo verá al retomar la misión.",
       "requestCorrection": "Solicitar una corrección"
+    },
+    "testAccount": {
+      "title": "Preproducción: cuenta de prueba sin e-mail",
+      "text": "Identidad ficticia, datos guardados de verdad en la base de preproducción. No existe en producción.",
+      "name": "Nombre de la cuenta de prueba",
+      "hint": "Ej. «manager» o «agent». El mismo nombre da la misma cuenta en cualquier dispositivo.",
+      "submit": "Entrar con esta cuenta de prueba",
+      "errors": {
+        "disabled": "Las cuentas de prueba no están disponibles aquí.",
+        "invalid_name": "Use letras y números.",
+        "server": "No se pudo iniciar sesión. No se creó nada; inténtelo de nuevo."
+      }
     }
   },
   "email": {
