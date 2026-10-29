@@ -306,13 +306,14 @@ test("7b · échec d'envoi visible et relançable, jamais affiché « envoyé »
   await guest.getByTestId("guest-request-send").click();
   await expect(guest.getByTestId("guest-request-ok")).toBeVisible();
   await page.reload();
-  const row = page.getByTestId("outbox-row").first();
+  // Envoi au voyageur (adresse refusée par le fournisseur) ; les envois à l'équipe sont listés à part
+  const row = page.getByTestId("outbox-row").filter({ hasText: `bounce-${run}` }).first();
   await expect(row).toHaveAttribute("data-status", "failed");
   await expect(row).toContainText("Échec d'envoi");
   await expect(row).not.toContainText("Envoyé");
   await row.getByTestId("outbox-retry").click();
-  await expect(page.getByTestId("outbox-row").first()).toContainText("2 tentatives");
-  await expect(page.getByTestId("outbox-row").first()).toHaveAttribute("data-status", "failed");
+  await expect(row).toContainText("2 tentatives");
+  await expect(row).toHaveAttribute("data-status", "failed");
   await guest.context().close();
 });
 
@@ -517,6 +518,17 @@ test("12 · compte rendu agent : checklist, photos réelles, correction puis val
   await agent.reload();
   await expect(agent.getByText("Refaire la salle de bain")).toBeVisible();
   await agent.getByTestId("mission-start").click();
+  // Les anciennes photos ne comptent plus : nouvelle preuve exigée, l'ancienne reste visible en historique
+  await expect(agent.getByTestId("missing-photos")).toBeVisible();
+  await expect(agent.getByTestId("mission-finish")).toBeDisabled();
+  await expect(agent.getByTestId("old-photos").first()).toBeVisible();
+  for (let i = 0; i < n; i++) {
+    const chooser = agent.waitForEvent("filechooser");
+    await agent.getByTestId("photo-add").nth(i).click();
+    await (await chooser).setFiles({ name: "photo2.png", mimeType: "image/png", buffer: PNG });
+    await expect(agent.getByTestId("mission-photo")).toHaveCount(i + 1);
+  }
+  await expect(agent.getByTestId("missing-photos")).toHaveCount(0);
   await agent.getByTestId("mission-finish").click();
   await expect(agent.getByText(/Terminée, à valider/)).toBeVisible();
   await m.reload();
@@ -653,4 +665,52 @@ test("15 · linge (blanchisserie) et maintenance comptent dans « logement prêt
   await mission.getByTestId("mission-link").click();
   await expect(agent.getByTestId("mission-notes")).toContainText("Fuite sous l'évier");
   for (const c of [m, agent]) await c.context().close();
+});
+
+test("16 · scénario de test complet, journal des envois et affectation hors fenêtre confirmée", async ({ browser }) => {
+  const m = await newPage(browser);
+  await m.context().clearCookies();
+  await m.goto("/fr/auth/sign-in");
+  await m.getByLabel("Nom du compte de test").fill(`scen ${run}`);
+  await m.getByTestId("test-scenario-submit").click();
+  await expect(m.getByTestId("test-scenario-ready")).toBeVisible();
+  const guestHref = await m.getByTestId("test-scenario-guest").getAttribute("href");
+  await m.getByTestId("test-scenario-continue").click();
+  await expect(m).toHaveURL(/\/fr\/app$/);
+  await expect(m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" })).toContainText("Linge : rien de prévu");
+
+  // Voyageur : demande → l'équipe est prévenue (adresse fictive : échec tracé, jamais « envoyé »)
+  const guest = await newPage(browser);
+  await guest.goto(guestHref!);
+  await guest.waitForLoadState("networkidle");
+  await guest.getByLabel("Date et heure souhaitées").fill(local(new Date(Date.now() + 2 * 86_400_000)));
+  await guest.getByTestId("guest-request-send").click();
+  await expect(guest.getByTestId("guest-request-ok")).toBeVisible();
+  await m.goto("/fr/app/notifications");
+  const row = m.getByTestId("outbox-row").filter({ hasText: "Équipe : nouvelle demande" });
+  await expect(row.first()).toHaveAttribute("data-status", "failed");
+  await expect(row.first()).toContainText("Adresse fictive");
+
+  // Agent du scénario : retrouve sa mission
+  const agent = await newPage(browser);
+  await agent.context().clearCookies();
+  await agent.goto("/fr/auth/sign-in");
+  await agent.getByLabel("Nom du compte de test").fill(`scen-${run}-agent`);
+  await agent.getByTestId("test-account-submit").click();
+  await agent.waitForURL(/\/fr\/app/);
+  await agent.goto("/fr/app/missions");
+  await expect(agent.getByTestId("mission-row")).toContainText("Ménage · Appartement test");
+
+  // Mission dont la fenêtre est dépassée : affectation impossible sans nouvelle fin confirmée
+  const { data: t } = await admin.from("tasks").select("id, organization_id, property_id").eq("type", "turnover").eq("is_auto_generated", false).order("created_at", { ascending: false }).limit(1).single();
+  const past = Date.now() - 3 * 3_600_000;
+  await admin.from("tasks").insert({ organization_id: t!.organization_id, property_id: t!.property_id, type: "other", window_start: new Date(past - 3_600_000).toISOString(), window_end: new Date(past).toISOString(), duration_min: 30 });
+  await m.goto("/fr/app/missions");
+  const late = m.getByTestId("mission-row").filter({ hasText: "Autre · Appartement test" });
+  await late.getByTestId("assign-select").selectOption({ label: "Agent test" });
+  await expect(late.getByTestId("out-of-window")).toBeVisible();
+  await late.getByTestId("out-of-window-confirm").click();
+  await expect(late.getByTestId("out-of-window")).toHaveCount(0);
+  await expect(late.getByTestId("assign-select")).toHaveValue(/.+/);
+  for (const c of [m, guest, agent]) await c.context().close();
 });

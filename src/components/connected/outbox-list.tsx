@@ -34,12 +34,16 @@ export function OutboxList({ items }: { items: OutboxItem[] }) {
               <span className="block text-[12px] text-faint">{fmt(o.created_at)}{o.attempts > 1 ? ` · ${t("attempts", { n: o.attempts })}` : ""}</span>
             </span>
             <span className={`font-medium ${tone[o.status]}`}>{t(`status.${o.status}`)}</span>
-            {(o.status === "failed" || o.status === "not_configured") && (
+            {(o.status === "failed" || o.status === "not_configured") && o.last_error !== "undeliverable_test_address" && (
               <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => retryNotification(o.id))} data-testid="outbox-retry">
                 {t("retry")}
               </Button>
             )}
-            {o.status === "failed" && o.last_error && <span className="w-full text-[12px] text-danger">{o.last_error}</span>}
+            {o.status === "failed" && o.last_error && (
+              <span className="w-full text-[12px] text-danger" data-testid="outbox-error">
+                {o.last_error === "undeliverable_test_address" ? t("testAddress") : o.last_error}
+              </span>
+            )}
           </li>
         ))}
       </ul>

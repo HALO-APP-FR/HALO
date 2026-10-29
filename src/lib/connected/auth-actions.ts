@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { supabaseServer } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { testAccountsEnabled } from "./test-accounts";
+import { buildTestScenario } from "./test-scenario";
 
 export type AuthResult = { ok: true } | { ok: false; error: "invalid_email" | "send_failed" | "invalid_code" | "rate_limited" };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -57,4 +58,20 @@ export async function signInTestAccount(name: string): Promise<{ ok: true; email
   const { error: ve } = await supabase.auth.verifyOtp({ token_hash: data.properties.hashed_token, type: "email" });
   if (ve) return { ok: false, error: "server" };
   return { ok: true, email };
+}
+
+/** Préproduction : scénario complet (manager, agent, logement, séjour, mission, lien voyageur). */
+export async function prepareTestScenario(name: string): Promise<
+  { ok: true; agentLabel: string; guestPath: string | null; existed: boolean } | { ok: false; error: "disabled" | "invalid_name" | "server" }
+> {
+  if (!testAccountsEnabled()) return { ok: false, error: "disabled" };
+  const slug = name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 20);
+  if (!slug) return { ok: false, error: "invalid_name" };
+  try {
+    const res = await buildTestScenario(slug);
+    // Connexion du manager au clic suivant (la page de connexion redirigerait aussitôt une session ouverte)
+    return { ok: true, agentLabel: res.agentLabel, guestPath: res.guestToken ? `/s/${res.guestToken}` : null, existed: res.existed };
+  } catch {
+    return { ok: false, error: "server" };
+  }
 }

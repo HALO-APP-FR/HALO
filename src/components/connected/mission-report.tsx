@@ -46,6 +46,7 @@ export function MissionReport(props: {
   checklist: ReportRoom[];
   checked: string[];
   photos: Photo[];
+  oldPhotos: Photo[];
   canEdit: boolean;
   canStart: boolean;
   canFinish: boolean;
@@ -60,6 +61,8 @@ export function MissionReport(props: {
   const [saving, startSave] = useTransition();
   const [uploading, setUploading] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  // Points à refaire : par défaut, ceux qui exigent une photo (une nouvelle preuve sera exigée)
+  const [redo, setRedo] = useState<string[]>(() => props.checklist.flatMap((r) => r.items).filter((i) => i.photoRequired).map((i) => i.id));
   const fileFor = useRef<{ itemId: string | null; roomId: string | null }>({ itemId: null, roomId: null });
   const input = useRef<HTMLInputElement>(null);
 
@@ -175,6 +178,19 @@ export function MissionReport(props: {
                     {item.photoRequired && photoButton(item.id, room.id, "photo-add")}
                   </div>
                   {thumbs(list)}
+                  {props.oldPhotos.some((p) => p.itemId === item.id) && (
+                    <div className="mt-2" data-testid="old-photos">
+                      <p className="text-[12px] text-muted">{t("oldProof")}</p>
+                      <div className="mt-1 flex flex-wrap gap-2 opacity-60">
+                        {props.oldPhotos
+                          .filter((p) => p.itemId === item.id)
+                          .map((p) => (
+                            // eslint-disable-next-line @next/next/no-img-element -- URL signée privée et temporaire
+                            <img key={p.id} src={p.url} alt={t("oldProof")} className="size-14 rounded-md border border-dashed border-line object-cover grayscale" />
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </li>
               );
             })}
@@ -226,7 +242,21 @@ export function MissionReport(props: {
           <Field label={t("correctionReason")} htmlFor="corr" hint={t("correctionHint")}>
             <Textarea id="corr" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={2000} data-testid="correction-reason" />
           </Field>
-          <Button variant="outline" onClick={() => run(() => requestCorrection(props.taskId, reason), () => setReason(""))} disabled={pending || !reason.trim()} data-testid="mission-correction">
+          {props.checklist.length > 0 && (
+            <fieldset className="space-y-1.5" data-testid="correction-items">
+              <legend className="text-[13px] font-medium text-muted">{t("redoItems")}</legend>
+              {props.checklist.flatMap((r) =>
+                r.items.map((i) => (
+                  <label key={i.id} className="flex items-center gap-2 text-[14px]">
+                    <input type="checkbox" checked={redo.includes(i.id)} onChange={(e) => setRedo(e.target.checked ? [...redo, i.id] : redo.filter((x) => x !== i.id))} />
+                    {r.name} — {i.label}
+                    {i.photoRequired && <span className="text-[12px] text-muted">({t("newPhotoRequired")})</span>}
+                  </label>
+                )),
+              )}
+            </fieldset>
+          )}
+          <Button variant="outline" onClick={() => run(() => requestCorrection(props.taskId, reason, redo), () => setReason(""))} disabled={pending || !reason.trim()} data-testid="mission-correction">
             {t("requestCorrection")}
           </Button>
         </Card>

@@ -3,6 +3,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, haloEnv, isConnected } from "@/lib/supabase/config";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { processOutbox } from "@/lib/connected/outbox";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
   if (!admin) return NextResponse.json({ ok: false, error: "server_key_missing" });
 
   const run = randomBytes(4).toString("hex");
+  const realEmail = new URL(request.url).searchParams.get("email") === "1";
   const checks: Check[] = [];
   const check = (name: string, ok: boolean, detail?: string) => checks.push({ name, ok, ...(detail ? { detail } : {}) });
   const users: string[] = [];
@@ -74,7 +76,14 @@ export async function GET(request: NextRequest) {
     check("manager_writes_guide", !ge, ge?.message);
     const inAt = new Date(Date.now() + 86_400_000).toISOString();
     const outAt = new Date(Date.now() + 3 * 86_400_000).toISOString();
-    const { data: rA, error: re } = await a1.from("reservations").insert({ organization_id: orgA, property_id: pA!.id, guest_name: "Voyageur A", check_in_at: inAt, check_out_at: outAt }).select("id").single();
+    // email=1 : le voyageur fictif reçoit VRAIMENT les e-mails (adresse « +selftest » de l'expéditeur configuré)
+    const from = /<([^>]+)>/.exec(process.env.EMAIL_FROM ?? "")?.[1] ?? process.env.EMAIL_FROM ?? "";
+    const guestEmail = realEmail && from.includes("@") ? from.replace("@", `+selftest-${run}@`) : null;
+    const { data: rA, error: re } = await a1
+      .from("reservations")
+      .insert({ organization_id: orgA, property_id: pA!.id, guest_name: "Voyageur A", guest_email: guestEmail, check_in_at: inAt, check_out_at: outAt })
+      .select("id")
+      .single();
     check("manager_creates_stay", !re && Boolean(rA), re?.message);
     const { data: tokenA, error: le } = await a1.rpc("create_guest_link", { org: orgA, reservation: rA!.id });
     check("manager_creates_guest_link", !le && typeof tokenA === "string", le?.message);
@@ -164,6 +173,19 @@ export async function GET(request: NextRequest) {
     const { data: gProblems } = await guest.rpc("guest_problems", { token: tokenA as string });
     const gpt = JSON.stringify(gProblems);
     check("guest_sees_resolution_not_internal_note", !rse && (rs as { status: string })?.status === "ok" && gpt.includes(`Réparé ${run}`) && !gpt.includes(`INTERNE-${run}`));
+
+    // 6c. Notifications : chaque événement crée un envoi traçable ; l'équipe est prévenue des demandes et problèmes voyageur
+    const { data: outA } = await admin.from("notification_outbox").select("template, status, last_error, recipient").eq("organization_id", orgA);
+    const tpl = (name: string) => (outA ?? []).filter((o) => o.template === name);
+    check("team_notified_of_guest_request", tpl("team_service_requested").length > 0 && tpl("team_service_requested").every((o) => o.status !== "sent" || !o.recipient.endsWith(".invalid")));
+    check("team_notified_of_guest_problem", tpl("team_guest_problem").length > 0);
+    check("fictitious_addresses_never_sent", (outA ?? []).filter((o) => o.recipient.endsWith(".invalid")).every((o) => o.status === "failed" && o.last_error === "undeliverable_test_address"));
+    if (guestEmail) {
+      await processOutbox(orgA);
+      const { data: sentRows } = await admin.from("notification_outbox").select("template, status, last_error").eq("organization_id", orgA).eq("recipient", guestEmail);
+      const ok = (sentRows ?? []).length >= 3 && (sentRows ?? []).every((o) => o.status === "sent");
+      check("guest_emails_really_sent", ok, (sentRows ?? []).map((o) => `${o.template}:${o.status}${o.last_error ? `(${o.last_error})` : ""}`).join(",").slice(0, 300));
+    }
 
     // 7. Révocation
     const { data: links } = await a1.from("guest_links").select("id").eq("reservation_id", rA!.id).is("revoked_at", null);

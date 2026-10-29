@@ -226,7 +226,11 @@
     "deadline": "Fertig bis {date}",
     "slot": "Geplanter Slot",
     "notScheduled": "Nicht geplant",
-    "estimatedDuration": "Geschätzt {time}"
+    "estimatedDuration": "Geschätzt {time}",
+    "outOfWindowTitle": "Reinigungsfenster überschritten",
+    "outOfWindowText": "Das Fenster endete um {end}. Jetzt zuzuweisen verschiebt das Ende auf {newEnd}; Anreise: {arrival}. Die Unterkunft ist evtl. nicht rechtzeitig bereit.",
+    "outOfWindowConfirm": "Trotzdem {name} zuweisen",
+    "outOfWindowCancel": "Abbrechen"
   },
   "source": {
     "manual": "Manuelle Eingabe",
@@ -308,7 +312,8 @@
     "learnDurationHint": "HALO richtet kommende Reinigungen an den tatsächlich erfassten Zeiten aus.",
     "learnedValue": "Gelernte Dauer: {time} ({count, plural, one {# Reinigung} other {# Reinigungen}})",
     "learnedNone": "{count, plural, one {# erfasste Reinigung nötig, um die Dauer zu lernen.} other {# erfasste Reinigungen nötig, um die Dauer zu lernen.}}",
-    "linenFromBeds": "Das Wäscheset jeder Reinigung wird aus diesen Betten und den Regeln unter Wäsche › Artikel & Einstellungen berechnet (z. B. 1 Spannbettlaken 140 pro Doppelbett), plus Gäste und Babys."
+    "linenFromBeds": "Das Wäscheset jeder Reinigung wird aus diesen Betten und den Regeln unter Wäsche › Artikel & Einstellungen berechnet (z. B. 1 Spannbettlaken 140 pro Doppelbett), plus Gäste und Babys.",
+    "noCodes": "HALO verwaltet keine Türcodes: hier keine eintragen. Der Zugang wird außerhalb der App mitgeteilt."
   },
   "properties": {
     "free": "Frei",
@@ -1286,7 +1291,8 @@
       "properties": "Unterkünfte",
       "team": "Team",
       "setup": "Einrichtung",
-      "incidents": "Vorfälle"
+      "incidents": "Vorfälle",
+      "notifications": "Versand"
     },
     "env": {
       "demo": "Demo",
@@ -1349,7 +1355,8 @@
       "empty": "Beschreibung hinzufügen.",
       "too_late": "Zu spät: Die Anreise ist bereits vorbei.",
       "resolution_required": "Geben Sie an, was getan wurde.",
-      "invalid_window": "Ungültiges Zeitfenster (Ende nach Beginn, mind. 5 Min.)."
+      "invalid_window": "Ungültiges Zeitfenster (Ende nach Beginn, mind. 5 Min.).",
+      "out_of_window": "Der Einsatz passt nicht mehr ins Fenster: neues Ende bestätigen."
     },
     "home": {
       "subtitle": "Was Ihre Aufmerksamkeit braucht.",
@@ -1699,8 +1706,15 @@
         "service_cancelled": "Anfrage storniert",
         "service_updated": "Anfrage geändert",
         "stay_message": "Nachricht vom Team",
-        "problem_resolved": "Problem gelöst"
-      }
+        "problem_resolved": "Problem gelöst",
+        "team_service_requested": "Team: neue Anfrage",
+        "team_guest_reply": "Team: Antwort des Gastes",
+        "team_guest_problem": "Team: Gastproblem",
+        "team_agent_blocker": "Team: dringender Blocker",
+        "team_guest_message": "Team: Gastnachricht",
+        "problem_taken": "Problem in Bearbeitung"
+      },
+      "testAddress": "Fiktive Adresse (Testkonto): Es wird nichts gesendet."
     },
     "services": {
       "title": "Leistungen",
@@ -1787,7 +1801,13 @@
       "loadError": "Einsätze konnten nicht geladen werden.",
       "empty": "Keine kommenden Einsätze.",
       "mineEmpty": "Ihnen ist derzeit kein Einsatz zugewiesen.",
-      "noName": "Ohne Namen"
+      "noName": "Ohne Namen",
+      "outOfWindowTitle": "Fenster überschritten: Zuweisung bestätigen",
+      "outOfWindowArrival": "Der Einsatz passt nicht mehr ins Fenster. Neues Ende festlegen; Anreise: {arrival}. Endet er danach, ist die Unterkunft nicht bereit.",
+      "outOfWindowText": "Der Einsatz passt nicht mehr ins Fenster. Vor dem Zuweisen neues Ende festlegen.",
+      "newWindowEnd": "Neues Fensterende",
+      "confirmOutOfWindow": "Zuweisung bestätigen",
+      "cancel": "Abbrechen"
     },
     "team": {
       "title": "Team",
@@ -1830,7 +1850,10 @@
       "correctionReason": "Grund der Korrektur",
       "correctionHint": "Der Mitarbeiter sieht ihn beim Wiederaufnehmen.",
       "requestCorrection": "Korrektur anfordern",
-      "notes": "Zu erledigen"
+      "notes": "Zu erledigen",
+      "oldProof": "Frühere Nachweis (nach Korrektur ersetzt)",
+      "redoItems": "Zu wiederholende Punkte",
+      "newPhotoRequired": "neues Foto erforderlich"
     },
     "testAccount": {
       "title": "Vorproduktion: Testkonto ohne E-Mail",
@@ -1842,7 +1865,13 @@
         "disabled": "Testkonten sind hier nicht verfügbar.",
         "invalid_name": "Buchstaben und Ziffern verwenden.",
         "server": "Anmeldung derzeit nicht möglich. Nichts wurde erstellt; bitte erneut versuchen."
-      }
+      },
+      "scenario": "Komplettes Szenario vorbereiten (Manager, Mitarbeiter, Unterkunft, Aufenthalt, Einsatz, Gästelink)",
+      "scenarioReady": "Szenario bereit (fiktive Daten wirklich gespeichert).",
+      "scenarioExisted": "Dieses Szenario existiert bereits, mit seinen Daten.",
+      "scenarioAgent": "Mitarbeiter: auf einem anderen Gerät, Testkonto „{name}“.",
+      "scenarioGuest": "Gästelink (auf einem Telefon öffnen, ohne Konto):",
+      "scenarioContinue": "Als Manager eintreten"
     },
     "incidents": {
       "title": "Vorfälle und Blocker",
@@ -1902,6 +1931,12 @@
       "planHint": "Der Einsatz ist mit der nächsten Anreise verknüpft: Bis er erledigt ist, gilt sie nicht als „bereit“.",
       "planConfirm": "Einsatz erstellen",
       "openIntervention": "Einsatz ansehen"
+    },
+    "notifications": {
+      "title": "Versand und Benachrichtigungen",
+      "subtitle": "Jede E-Mail an Gäste und Team mit tatsächlichem Status.",
+      "loadError": "Versand konnte nicht geladen werden.",
+      "summary": "{sent} gesendet · {pending} wartend · {failed} fehlgeschlagen · {notConfigured} ohne Dienst"
     }
   },
   "email": {
@@ -1941,6 +1976,32 @@
     "problem_resolved": {
       "subject": "{org} — Ihre Meldung wurde gelöst",
       "body": "Das Team hat das gemeldete Problem als gelöst markiert."
+    },
+    "open": "In HALO öffnen",
+    "teamFooter": "Automatische HALO-Benachrichtigung für das Team.",
+    "team_service_requested": {
+      "subject": "Neue Anfrage: {kind} — {property}",
+      "body": "{guest} fragt „{kind}“ an ({property}). Annehmen, ablehnen oder nachfragen."
+    },
+    "team_guest_reply": {
+      "subject": "Der Gast hat geantwortet: {kind}",
+      "body": "Der Gast hat geantwortet. Die Anfrage wartet auf Ihre Entscheidung."
+    },
+    "team_guest_problem": {
+      "subject": "Problem von einem Gast gemeldet — {property}",
+      "body": "Ein Gast meldet ein Problem in {property}."
+    },
+    "team_agent_blocker": {
+      "subject": "Dringender Blocker von einem Mitarbeiter — {property}",
+      "body": "Ein Mitarbeiter meldet einen dringenden Blocker in {property}."
+    },
+    "team_guest_message": {
+      "subject": "Nachricht von {guest} — {property}",
+      "body": "{guest} hat Ihnen zum Aufenthalt geschrieben."
+    },
+    "problem_taken": {
+      "subject": "{org} — Ihre Meldung wird bearbeitet",
+      "body": "Das Team bearbeitet Ihr Problem. Den Stand sehen Sie in Ihrem Gästebereich."
     }
   },
   "guestSpace": {

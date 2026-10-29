@@ -36,7 +36,7 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     { key: "services", n: services.count ?? 0, href: "/app/services", icon: ConciergeBell, danger: true },
     { key: "messages", n: messages.count ?? 0, href: "/app/stays", icon: MessageSquare, danger: true },
     { key: "unassigned", n: unassigned.count ?? 0, href: "/app/missions", icon: UserRoundX, danger: true },
-    { key: "emails", n: outbox.count ?? 0, href: "/app/services", icon: MailWarning, danger: false },
+    { key: "emails", n: outbox.count ?? 0, href: "/app/notifications", icon: MailWarning, danger: false },
     { key: "stays7", n: stays.count ?? 0, href: "/app/stays", icon: CalendarDays, danger: false },
   ] as const;
   const alertOf = { incidents: "pending_services", services: "pending_services", messages: "unread_messages", unassigned: "unassigned_missions", emails: "failed_emails", stays7: "upcoming_stays" } as const;

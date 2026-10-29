@@ -17,7 +17,8 @@ async function call(fn: string, args: Record<string, unknown>, token: string): P
   if (error) return { ok: false, error: error.code === "23514" || error.code === "22P02" ? "invalid" : "server" };
   const res = data as Rpc;
   if (res.status !== "ok") return { ok: false, error: res.status === "empty" ? "empty" : res.status === "invalid" ? "invalid" : "unavailable" };
-  if (res.email_queued) await processOutbox();
+  // Voyageur (accusé de réception) et responsables (nouvelle demande, problème, message) : envois réels, état tracé
+  await processOutbox();
   revalidatePath(`/[locale]/s/${token}`, "page");
   return { ok: true };
 }

@@ -1,17 +1,53 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { agentTaskAction, assignTask } from "@/lib/connected/actions";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { useRun } from "./use-run";
 
-export function AssignSelect({ taskId, current, members, disabled }: { taskId: string; current: string | null; members: { id: string; name: string }[]; disabled?: boolean }) {
+const local = (d: Date) => {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+
+export function AssignSelect({
+  taskId,
+  current,
+  members,
+  disabled,
+  outOfWindow,
+  durationMin = 60,
+  arrival,
+}: {
+  taskId: string;
+  current: string | null;
+  members: { id: string; name: string }[];
+  disabled?: boolean;
+  /** La mission ne peut plus être faite dans sa fenêtre : affectation seulement avec une nouvelle fin confirmée. */
+  outOfWindow?: boolean;
+  durationMin?: number;
+  arrival?: string | null;
+}) {
   const t = useTranslations("connected.missions");
   const { pending, error, run } = useRun();
+  const [pendingMember, setPendingMember] = useState<string | null>(null);
+  const [end, setEnd] = useState(() => local(new Date(Math.ceil((Date.now() + (durationMin + 30) * 60_000) / 900_000) * 900_000)));
   return (
     <div className="min-w-44">
-      <Select aria-label={t("assignee")} value={current ?? ""} disabled={pending || disabled} onChange={(e) => run(() => assignTask(taskId, e.target.value || null))} data-testid="assign-select">
+      <Select
+        aria-label={t("assignee")}
+        value={pendingMember ?? current ?? ""}
+        disabled={pending || disabled}
+        onChange={(e) => {
+          const v = e.target.value || null;
+          if (v && outOfWindow) return setPendingMember(v);
+          run(() => assignTask(taskId, v));
+        }}
+        data-testid="assign-select"
+      >
         <option value="">{t("unassigned")}</option>
         {members.map((m) => (
           <option key={m.id} value={m.id}>
@@ -19,6 +55,24 @@ export function AssignSelect({ taskId, current, members, disabled }: { taskId: s
           </option>
         ))}
       </Select>
+      {pendingMember && (
+        <div className="mt-2 max-w-72 rounded-md border border-danger bg-danger-soft p-3 text-[13px]" role="alert" data-testid="out-of-window">
+          <p className="font-semibold text-danger">{t("outOfWindowTitle")}</p>
+          <p className="mt-1">{arrival ? t("outOfWindowArrival", { arrival }) : t("outOfWindowText")}</p>
+          <label className="mt-2 block text-[12px] font-medium text-muted" htmlFor={`end-${taskId}`}>
+            {t("newWindowEnd")}
+          </label>
+          <Input id={`end-${taskId}`} type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} className="mt-1" />
+          <div className="mt-2 flex gap-2">
+            <Button size="sm" variant="danger" onClick={() => run(() => assignTask(taskId, pendingMember, new Date(end).toISOString()), () => setPendingMember(null))} disabled={pending} data-testid="out-of-window-confirm">
+              {t("confirmOutOfWindow")}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setPendingMember(null)}>
+              {t("cancel")}
+            </Button>
+          </div>
+        </div>
+      )}
       {error && <p role="alert" className="mt-1 text-[13px] text-danger">{error}</p>}
     </div>
   );

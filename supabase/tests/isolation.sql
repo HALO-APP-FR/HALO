@@ -277,7 +277,7 @@ select t.err('begin_upload : a_manager vers une mission de B', t.q('a_manager', 
 select t.err('begin_upload : a_manager mission de B déclarée en A', t.q('a_manager', format('select public.begin_upload(%L, ''task_photo'', ''image/jpeg'', 100, %L)', t.id('A'), t.id('TB1'))), '42501');
 select t.err('begin_upload : a_manager logement de B déclaré en A', t.q('a_manager', format('select public.begin_upload(%L, ''property_reference'', ''image/jpeg'', 100, null, %L)', t.id('A'), t.id('PB1'))), '42501');
 select t.err('set_property_access : a_manager sur B', t.q('a_manager', format('select public.set_property_access(%L, %L, ''keypad'', ''0000'', null)', t.id('B'), t.id('PB1'))), '42501');
-select t.err('set_property_access : a_manager logement de B déclaré en A', t.q('a_manager', format('select public.set_property_access(%L, %L, ''keypad'', ''0000'', null)', t.id('A'), t.id('PB1'))), 'P0002');
+select t.err('set_property_access : fermée (aucun code dans HALO)', t.q('a_manager', format('select public.set_property_access(%L, %L, ''keypad'', ''0000'', null)', t.id('A'), t.id('PB1'))), '42501');
 select t.err('create_invitation : a_owner dans B', t.q('a_owner', format('select public.create_invitation(%L, ''owner'')', t.id('B'))), '42501');
 select t.err('set_member_role : a_owner dans B', t.q('a_owner', format('select public.set_member_role(%L, %L, ''owner'')', t.id('B'), t.id('b_agent'))), '42501');
 select t.err('set_member_role : dual (agent en A, manager en B) dans A', t.q('dual', format('select public.set_member_role(%L, %L, ''owner'')', t.id('A'), t.id('dual'))), '42501');
@@ -341,17 +341,16 @@ select t.deny('agent : ne supprime pas la photo de référence', t.dml('a_agent'
 -- 2.3 Codes d'accès
 select t.err('codes : lecture directe refusée même au owner', t.q('a_owner', 'select count(*) from public.property_access'), '42501');
 select t.err('codes : écriture directe refusée même au owner', t.dml('a_owner', format('update public.property_access set code = ''x'' where property_id = %L', t.id('PA1'))), '42501');
-select t.is('codes : agent, sa mission en cours', t.q('a_agent', format('select code from public.reveal_access(%L, %L)', t.id('A'), t.id('TA1'))), 'A-1234');
+-- Règle produit (29/10) : HALO ne gère aucun code de serrure ; plus aucune consultation possible, même par le manager
+select t.err('codes : agent, plus de consultation (aucun code dans HALO)', t.q('a_agent', format('select code from public.reveal_access(%L, %L)', t.id('A'), t.id('TA1'))), '42501');
 select t.err('codes : agent, mission d''un collègue', t.q('a_agent', format('select code from public.reveal_access(%L, %L)', t.id('A'), t.id('TA2'))), '42501');
 select t.err('codes : agent, sa mission dans 3 jours (hors fenêtre)', t.q('a_agent', format('select code from public.reveal_access(%L, %L)', t.id('A'), t.id('TA3'))), '42501');
 select t.err('codes : agent, sa mission annulée', t.q('a_agent', format('select code from public.reveal_access(%L, %L)', t.id('A'), t.id('TA4'))), '42501');
 select t.err('codes : agent, par logement sans mission', t.q('a_agent', format('select code from public.reveal_access(%L, null, %L)', t.id('A'), t.id('PA1'))), '42501');
-select t.is('codes : manager, par logement', t.q('a_manager', format('select code from public.reveal_access(%L, null, %L)', t.id('A'), t.id('PA2'))), 'A-5678');
-select t.is('codes : chaque consultation est journalisée',
-  t.keep('a_agent', format('select code from public.reveal_access(%L, %L)', t.id('A'), t.id('TA1'))) || '/' ||
-  t.q('a_manager', format('select count(*) from public.access_reveals where task_id = %L and user_id = %L', t.id('TA1'), t.id('a_agent'))), 'A-1234/1');
+select t.err('codes : manager, plus de consultation', t.q('a_manager', format('select code from public.reveal_access(%L, null, %L)', t.id('A'), t.id('PA2'))), '42501');
+select t.is('codes : aucune consultation journalisée (fonction fermée)', t.q('a_manager', format('select count(*) from public.access_reveals where task_id = %L', t.id('TA1'))), '0');
 select t.err('codes : agent ne change pas un code', t.q('a_agent', format('select public.set_property_access(%L, %L, ''keypad'', ''0000'', null)', t.id('A'), t.id('PA1'))), '42501');
-select t.is('codes : manager change un code', t.q('a_manager', format('select public.set_property_access(%L, %L, ''keypad'', ''4321'', null)', t.id('A'), t.id('PA1'))), '');
+select t.err('codes : manager ne saisit plus de code', t.q('a_manager', format('select public.set_property_access(%L, %L, ''keypad'', ''4321'', null)', t.id('A'), t.id('PA1'))), '42501');
 select t.err('codes : extérieur', t.q('outsider', format('select code from public.reveal_access(%L, %L)', t.id('A'), t.id('TA1'))), '42501');
 select t.err('codes : anonyme', t.q(null, format('select code from public.reveal_access(%L, %L)', t.id('A'), t.id('TA1'))), '42501');
 
@@ -530,6 +529,31 @@ select t.is('preuves : validation refusée sans la photo exigée', t.q('a_manage
 select t.is('preuves : la mission reste à valider', (select status::text from public.tasks where id = t.id('TC3')), 'done');
 select t.is('preuves : une correction reste possible', t.q('a_manager', format('select public.request_correction(%L, %L, ''Photo de la douche manquante'')', t.id('A'), t.id('TC3'))), 'applied');
 
+-- 3.7 Correction ciblée : l'ancienne preuve reste en historique mais ne compte plus ; une nouvelle photo est exigée
+insert into t.ids select k, gen_random_uuid() from unnest(array['PA3', 'roomA3', 'itemA3', 'TC4']) k;
+insert into public.properties (id, organization_id, name) values (t.id('PA3'), t.id('A'), 'Logement preuves');
+insert into public.checklist_rooms (id, organization_id, property_id, name) values (t.id('roomA3'), t.id('A'), t.id('PA3'), 'Salle de bain');
+insert into public.checklist_items (id, organization_id, room_id, label, photo_required) values (t.id('itemA3'), t.id('A'), t.id('roomA3'), 'Douche', true);
+insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, window_start, window_end, duration_min) values
+  (t.id('TC4'), t.id('A'), t.id('PA3'), 'turnover', 'assigned', t.id('a_agent2'), now() - interval '1 hour', now() + interval '3 hours', 60);
+insert into public.files (organization_id, kind, task_id, property_id, checklist_item_id, room_id, path, mime, size_bytes, created_by)
+values (t.id('A'), 'task_photo', t.id('TC4'), t.id('PA3'), t.id('itemA3'), t.id('roomA3'), t.id('A') || '/task/' || t.id('TC4') || '/old.jpg', 'image/jpeg', 10, t.id('a_agent2'));
+insert into storage.objects (bucket_id, name, owner) values ('org-files', t.id('A') || '/task/' || t.id('TC4') || '/old.jpg', t.id('a_agent2'));
+insert into public.task_reports (task_id, organization_id, checked) values (t.id('TC4'), t.id('A'), jsonb_build_array(t.id('itemA3')::text));
+update public.tasks set status = 'done' where id = t.id('TC4');
+select t.is('correction ciblée : photo présente avant correction', (select public.missing_required_photos(t.id('A'), t.id('TC4'))::text), '0');
+select t.is('correction ciblée : demandée sur la douche', t.keep('a_manager', format('select public.request_correction(%L, %L, ''Refaire la photo de la douche'', array[%L]::uuid[])', t.id('A'), t.id('TC4'), t.id('itemA3'))), 'applied');
+select t.is('correction ciblée : l''ancienne photo ne compte plus', (select public.missing_required_photos(t.id('A'), t.id('TC4'))::text), '1');
+select t.is('correction ciblée : l''ancienne photo est gardée en historique', (select count(*)::text || '/' || count(superseded_at)::text from public.files where task_id = t.id('TC4')), '1/1');
+select t.is('correction ciblée : le point est décoché', (select checked::text from public.task_reports where task_id = t.id('TC4')), '[]');
+select t.is('correction ciblée : reprise', t.keep('a_agent2', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC4'))), 'applied');
+select t.is('correction ciblée : terminer refusé sans nouvelle photo', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC4'))), 'missing_photos');
+insert into public.files (organization_id, kind, task_id, property_id, checklist_item_id, room_id, path, mime, size_bytes, created_by)
+values (t.id('A'), 'task_photo', t.id('TC4'), t.id('PA3'), t.id('itemA3'), t.id('roomA3'), t.id('A') || '/task/' || t.id('TC4') || '/new.jpg', 'image/jpeg', 10, t.id('a_agent2'));
+insert into storage.objects (bucket_id, name, owner) values ('org-files', t.id('A') || '/task/' || t.id('TC4') || '/new.jpg', t.id('a_agent2'));
+select t.is('correction ciblée : terminée avec la nouvelle photo', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC4'))), 'applied');
+select t.err('correction ciblée : un agent ne demande pas de correction', t.q('a_agent2', format('select public.request_correction(%L, %L, ''x'', null)', t.id('A'), t.id('TC4'))), '42501');
+
 -- 3.4 Mission sans validation requise : validée automatiquement à la soumission
 select t.is('auto : démarrer un accueil', t.keep('a_agent2', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC2'))), 'applied');
 select t.is('auto : soumettre', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC2'))), 'applied');
@@ -626,7 +650,10 @@ create function t.sv(n text) returns uuid language sql stable as $$ select id fr
 
 select t.check('voyageur : demande créée sans compte, via son lien', t.sv('SA')::text, t.sv('SA') is not null);
 select t.is('voyageur : accusé de réception mis en file (adresse connue)', (select count(*)::text from public.notification_outbox where service_id = t.sv('SA') and template = 'service_received'), '1');
-select t.is('voyageur : pas d''e-mail sans adresse (rien n''est simulé)', (select count(*)::text from public.notification_outbox where service_id = t.sv('SB')), '0');
+select t.is('voyageur : pas d''e-mail sans adresse (rien n''est simulé)', (select count(*)::text from public.notification_outbox where service_id = t.sv('SB') and template not like 'team_%'), '0');
+select t.is('équipe : les responsables de B sont prévenus de la demande (adresses de test : échec tracé, jamais « envoyé »)',
+  (select string_agg(status || ':' || coalesce(last_error, ''), ',') from public.notification_outbox where service_id = t.sv('SB') and template = 'team_service_requested'),
+  'failed:undeliverable_test_address,failed:undeliverable_test_address,failed:undeliverable_test_address');
 select t.is('voyageur : sa demande apparaît dans son espace', t.guest(t.tk('GA'), '{services,0,status}'), 'requested');
 select t.is('voyageur : il ne voit pas la demande de B', t.q(null, format('select jsonb_array_length(public.get_guest_stay(%L) -> ''services'')', t.tk('GA'))), '1');
 select t.is('voyageur : lien faux = aucune création', (t.q(null, format('select public.guest_request_service(%L, ''spa'', now(), 1, null)', repeat('0', 64)))::jsonb ->> 'status'), 'unavailable');
@@ -651,7 +678,7 @@ select t.is('équipe : la réponse du voyageur est dans l''historique', t.q('a_m
 select t.is('acceptation : confirmée', (t.keep('a_manager', format('select public.decide_service(%L, %L, ''confirmed'', ''Réservé pour 20 h'')', t.id('A'), t.sv('SA')))::jsonb ->> 'status'), 'ok');
 select t.is('acceptation : le voyageur voit la confirmation', t.guest(t.tk('GA'), '{services,0,status}'), 'confirmed');
 select t.is('acceptation : un e-mail par étape, état « en attente » tant qu''il n''est pas parti',
-  (select string_agg(template || ':' || status, ',' order by created_at) from public.notification_outbox where service_id = t.sv('SA')),
+  (select string_agg(template || ':' || status, ',' order by created_at) from public.notification_outbox where service_id = t.sv('SA') and template not like 'team_%'),
   'service_received:pending,service_info_requested:pending,service_confirmed:pending');
 select t.is('historique : chaque étape horodatée', t.q('a_manager', format('select string_agg(kind || coalesce('':'' || status, ''''), '','' order by id) from public.service_events where service_id = %L', t.sv('SA'))),
   'created:requested,status:info_requested,internal_note,guest_message,status:requested,status:confirmed');
@@ -704,6 +731,16 @@ select t.is('problème voyageur : résolu avec note interne et message', (t.keep
 select t.is('problème voyageur : il voit la réponse, jamais la note interne',
   t.q(null, format('select (public.guest_problems(%L))::text like ''%%eau chaude est revenue%%'' and (public.guest_problems(%L))::text not like ''%%facture%%''', t.tk('GA'), t.tk('GA'))), 'true');
 select t.is('problème voyageur : e-mail mis en file', (select count(*)::text from public.notification_outbox where template = 'problem_resolved'), '1');
+
+-- Notifications de l'équipe : chaque événement voyageur (et blocage urgent d'agent) crée un envoi traçable
+select t.is('équipe : blocage urgent d''agent → responsables prévenus', (select count(*)::text from public.notification_outbox o join public.incidents i on i.id = o.incident_id where i.source = 'agent' and o.template = 'team_agent_blocker'), '2');
+select t.is('équipe : problème voyageur → responsables prévenus', (select count(*)::text from public.notification_outbox where template = 'team_guest_problem'), '2');
+select t.is('équipe : message voyageur → responsables prévenus', (select count(*)::text from public.notification_outbox where template = 'team_guest_message' and organization_id = t.id('A')), '4');
+select t.check('équipe : réponse du voyageur à une question → responsables prévenus', '', (select count(*) from public.notification_outbox where template = 'team_guest_reply' and organization_id = t.id('A')) > 0);
+select t.is('équipe : jamais d''agent parmi les destinataires', (select count(*)::text from public.notification_outbox where recipient like 'a_agent%' or recipient like 'b_agent%'), '0');
+select t.check('équipe : seules les adresses fictives sont en échec', '', not exists (select 1 from public.notification_outbox where template like 'team_%' and status = 'failed' and recipient not like '%.invalid'));
+select t.is('voyageur : problème pris en charge → e-mail au voyageur s''il a une adresse', (select count(*)::text from public.notification_outbox where template = 'problem_taken'), '1');
+select t.is('équipe : une autre organisation ne voit pas ces envois', t.q('b_manager', format('select count(*) from public.notification_outbox where organization_id = %L', t.id('A'))), '0');
 
 -- Intervention de maintenance suite à un incident
 select t.err('intervention : un agent ne la crée pas', t.q('a_agent', format('select public.create_intervention(%L, (select id from public.incidents where organization_id = %L and source = ''agent''), null, now(), now() + interval ''2 hours'', 60)', t.id('A'), t.id('A'))), '42501');

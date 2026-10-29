@@ -226,7 +226,11 @@
     "deadline": "À terminer avant {date}",
     "slot": "Créneau planifié",
     "notScheduled": "Non planifié",
-    "estimatedDuration": "Durée estimée {time}"
+    "estimatedDuration": "Durée estimée {time}",
+    "outOfWindowTitle": "Fenêtre de ménage dépassée",
+    "outOfWindowText": "La fenêtre se terminait à {end}. Attribuer maintenant repousse sa fin à {newEnd} ; arrivée du voyageur : {arrival}. Le logement risque de ne pas être prêt à temps.",
+    "outOfWindowConfirm": "Attribuer quand même à {name}",
+    "outOfWindowCancel": "Annuler"
   },
   "source": {
     "manual": "Saisie manuelle",
@@ -308,7 +312,8 @@
     "learnDurationHint": "HALO cale les prochains ménages sur les durées réellement pointées par l'équipe.",
     "learnedValue": "Durée apprise : {time} (sur {count, plural, one {# ménage} other {# ménages}})",
     "learnedNone": "{count, plural, one {Encore # ménage pointé nécessaire pour apprendre la durée.} other {Encore # ménages pointés nécessaires pour apprendre la durée.}}",
-    "linenFromBeds": "Le kit de linge de chaque ménage est calculé à partir de ces couchages et des règles de Linge › Articles et réglages (ex. 1 drap-housse 140 par lit double), plus les voyageurs et bébés du séjour."
+    "linenFromBeds": "Le kit de linge de chaque ménage est calculé à partir de ces couchages et des règles de Linge › Articles et réglages (ex. 1 drap-housse 140 par lit double), plus les voyageurs et bébés du séjour.",
+    "noCodes": "HALO ne gère aucun code de serrure : n'en saisissez pas ici. L'accès est communiqué par le responsable, hors de l'application."
   },
   "properties": {
     "free": "Libre",
@@ -1286,7 +1291,8 @@
       "properties": "Logements",
       "team": "Équipe",
       "setup": "Configuration",
-      "incidents": "Incidents"
+      "incidents": "Incidents",
+      "notifications": "Envois"
     },
     "env": {
       "demo": "Démo",
@@ -1349,7 +1355,8 @@
       "empty": "Ajoutez une description.",
       "too_late": "Trop tard : l'arrivée est déjà passée.",
       "resolution_required": "Indiquez ce qui a été fait.",
-      "invalid_window": "Le créneau n'est pas valide (fin après début, durée d'au moins 5 min)."
+      "invalid_window": "Le créneau n'est pas valide (fin après début, durée d'au moins 5 min).",
+      "out_of_window": "La mission ne tient plus dans sa fenêtre : confirmez une nouvelle fin avant d'attribuer."
     },
     "home": {
       "subtitle": "Ce qui demande votre attention.",
@@ -1699,8 +1706,15 @@
         "service_cancelled": "Demande annulée",
         "service_updated": "Demande modifiée",
         "stay_message": "Message de l'équipe",
-        "problem_resolved": "Problème résolu"
-      }
+        "problem_resolved": "Problème résolu",
+        "team_service_requested": "Équipe : nouvelle demande",
+        "team_guest_reply": "Équipe : réponse du voyageur",
+        "team_guest_problem": "Équipe : problème voyageur",
+        "team_agent_blocker": "Équipe : blocage urgent",
+        "team_guest_message": "Équipe : message voyageur",
+        "problem_taken": "Problème pris en charge"
+      },
+      "testAddress": "Adresse fictive (compte de test) : rien n'est envoyé."
     },
     "services": {
       "title": "Prestations",
@@ -1787,7 +1801,13 @@
       "loadError": "Impossible de charger les missions.",
       "empty": "Aucune mission à venir.",
       "mineEmpty": "Aucune mission ne vous est confiée pour l'instant.",
-      "noName": "Sans nom"
+      "noName": "Sans nom",
+      "outOfWindowTitle": "Fenêtre dépassée : affectation à confirmer",
+      "outOfWindowArrival": "Cette mission ne tient plus dans sa fenêtre. Fixez une nouvelle fin ; arrivée du voyageur : {arrival}. Si la fin dépasse l'arrivée, le logement ne sera pas prêt.",
+      "outOfWindowText": "Cette mission ne tient plus dans sa fenêtre. Fixez une nouvelle fin avant d'attribuer.",
+      "newWindowEnd": "Nouvelle fin de fenêtre",
+      "confirmOutOfWindow": "Confirmer l'affectation",
+      "cancel": "Annuler"
     },
     "team": {
       "title": "Équipe",
@@ -1830,7 +1850,10 @@
       "correctionReason": "Motif de correction",
       "correctionHint": "L'agent le verra en reprenant la mission.",
       "requestCorrection": "Demander une correction",
-      "notes": "À traiter"
+      "notes": "À traiter",
+      "oldProof": "Ancienne preuve (remplacée après correction)",
+      "redoItems": "Points à refaire",
+      "newPhotoRequired": "nouvelle photo exigée"
     },
     "testAccount": {
       "title": "Préproduction : compte de test sans e-mail",
@@ -1842,7 +1865,13 @@
         "disabled": "Les comptes de test ne sont pas disponibles ici.",
         "invalid_name": "Utilisez des lettres et des chiffres.",
         "server": "Connexion impossible pour le moment. Rien n'a été créé ; réessayez."
-      }
+      },
+      "scenario": "Préparer un scénario complet (manager, agent, logement, séjour, mission, lien voyageur)",
+      "scenarioReady": "Scénario prêt (données fictives réellement enregistrées).",
+      "scenarioExisted": "Ce scénario existe déjà, avec ses données.",
+      "scenarioAgent": "Agent : sur un autre appareil, compte de test « {name} ».",
+      "scenarioGuest": "Lien voyageur (à ouvrir sur un téléphone, sans compte) :",
+      "scenarioContinue": "Entrer comme manager"
     },
     "incidents": {
       "title": "Incidents et blocages",
@@ -1902,6 +1931,12 @@
       "planHint": "La mission est reliée à la prochaine arrivée du logement : tant qu'elle n'est pas faite, l'arrivée n'est pas « prête ».",
       "planConfirm": "Créer l'intervention",
       "openIntervention": "Voir l'intervention"
+    },
+    "notifications": {
+      "title": "Envois et notifications",
+      "subtitle": "Chaque e-mail aux voyageurs et à l'équipe, avec son état réel. Rien n'est affiché « envoyé » sans l'accord du service d'envoi.",
+      "loadError": "Impossible de charger les envois.",
+      "summary": "{sent} envoyé(s) · {pending} en attente · {failed} en échec · {notConfigured} non envoyé(s) faute de service"
     }
   },
   "email": {
@@ -1941,6 +1976,32 @@
     "problem_resolved": {
       "subject": "{org} — votre signalement est résolu",
       "body": "Le problème que vous avez signalé est indiqué comme résolu par l'équipe."
+    },
+    "open": "Ouvrir dans HALO",
+    "teamFooter": "Notification automatique de HALO à l'équipe.",
+    "team_service_requested": {
+      "subject": "Nouvelle demande : {kind} — {property}",
+      "body": "{guest} demande « {kind} » ({property}). À accepter, refuser ou préciser."
+    },
+    "team_guest_reply": {
+      "subject": "Le voyageur a répondu : {kind}",
+      "body": "Le voyageur a répondu à votre question. La demande attend votre décision."
+    },
+    "team_guest_problem": {
+      "subject": "Problème signalé par un voyageur — {property}",
+      "body": "Un voyageur signale un problème dans {property}."
+    },
+    "team_agent_blocker": {
+      "subject": "Blocage urgent signalé par un agent — {property}",
+      "body": "Un agent signale un blocage urgent dans {property}."
+    },
+    "team_guest_message": {
+      "subject": "Message de {guest} — {property}",
+      "body": "{guest} vous a écrit au sujet de son séjour."
+    },
+    "problem_taken": {
+      "subject": "{org} — votre signalement est pris en charge",
+      "body": "L'équipe a pris en charge le problème que vous avez signalé. Vous suivez son avancement dans votre espace voyageur."
     }
   },
   "guestSpace": {

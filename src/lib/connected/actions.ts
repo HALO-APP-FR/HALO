@@ -10,6 +10,7 @@ import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { planTasks } from "@/lib/engine/tasks";
+import { infeasibility } from "@/lib/engine/conflicts";
 import { getContext, isManagerRole, ORG_COOKIE } from "./context";
 import { toProperty, toReservation, toTask } from "./mappers";
 import { processOutbox } from "./outbox";
@@ -258,15 +259,26 @@ export async function syncTasks(propertyId: string): Promise<Result<{ created: n
   return { ok: true, data: { created: plan.create.length, updated: plan.update.length, cancelled: plan.cancel.length } };
 }
 
-export async function assignTask(taskId: string, memberId: string | null): Promise<Result> {
+export async function assignTask(taskId: string, memberId: string | null, newWindowEnd?: string): Promise<Result> {
   const { ctx, error } = await manager();
   if (error) return fail(error);
-  const { error: e } = await ctx.supabase
-    .from("tasks")
-    .update({ assignee_id: memberId, status: memberId ? "assigned" : "unassigned" })
-    .eq("organization_id", ctx.org!.id)
-    .eq("id", taskId)
-    .in("status", ["unassigned", "assigned"]);
+  const o = ctx.org!.id;
+  const patch: Record<string, unknown> = { assignee_id: memberId, status: memberId ? "assigned" : "unassigned" };
+  if (memberId) {
+    // Affectation hors fenêtre : jamais silencieuse ; le responsable doit fixer une nouvelle fin de fenêtre
+    const { data: t } = await ctx.supabase.from("tasks").select("*").eq("organization_id", o).eq("id", taskId).maybeSingle();
+    if (!t) return fail("not_found");
+    const issue = infeasibility(toTask(t), new Date());
+    if (issue && !newWindowEnd) return fail("out_of_window");
+    if (newWindowEnd) {
+      const end = new Date(newWindowEnd).getTime();
+      if (!(end > Date.now() + (t.duration_min as number) * 60_000)) return fail("invalid_window");
+      patch.window_end = new Date(end).toISOString();
+      if (new Date(t.window_start as string).getTime() > end) patch.window_start = new Date().toISOString();
+      patch.is_auto_generated = false; // décision explicite du responsable : la synchro automatique ne la remplace pas
+    }
+  }
+  const { error: e } = await ctx.supabase.from("tasks").update(patch).eq("organization_id", o).eq("id", taskId).in("status", ["unassigned", "assigned"]);
   if (e) return fail(errCode(e));
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };
@@ -441,10 +453,11 @@ export async function validateTask(taskId: string): Promise<Result> {
   return { ok: true, data: undefined };
 }
 
-export async function requestCorrection(taskId: string, reason: string): Promise<Result> {
+export async function requestCorrection(taskId: string, reason: string, redoItems: string[] = []): Promise<Result> {
   const { ctx, error } = await manager();
   if (error) return fail(error);
-  const { data, error: e } = await ctx.supabase.rpc("request_correction", { org: ctx.org!.id, task: taskId, reason });
+  // Points à refaire : leur ancienne photo est gardée en historique mais une NOUVELLE preuve est exigée
+  const { data, error: e } = await ctx.supabase.rpc("request_correction", { org: ctx.org!.id, task: taskId, reason, redo_items: redoItems.length ? redoItems : null });
   if (e) return fail(e.message?.includes("reason_required") ? "reason_required" : errCode(e));
   if (data !== "applied") return fail(String(data));
   revalidatePath("/", "layout");
@@ -458,6 +471,7 @@ export async function reportIncident(taskId: string, category: string, descripti
   if (description.trim().length < 3) return fail("empty");
   const { data, error: e } = await ctx.supabase.rpc("report_incident", { org: ctx.org.id, task: taskId, i_category: category, i_description: description, i_urgent: urgent });
   if (e) return fail(errCode(e));
+  await processOutbox(ctx.org.id); // blocage urgent : responsables prévenus
   revalidatePath("/", "layout");
   return { ok: true, data: { id: data as string } };
 }
@@ -468,6 +482,7 @@ export async function takeIncident(incidentId: string): Promise<Result> {
   const { data, error: e } = await ctx.supabase.rpc("take_incident", { org: ctx.org!.id, incident: incidentId });
   if (e) return fail(errCode(e));
   if (data !== "applied") return fail(String(data));
+  await processOutbox(ctx.org!.id); // voyageur prévenu de la prise en charge
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
@@ -530,6 +545,7 @@ export async function createIntervention(incidentId: string, assigneeId: string 
     duration: durationMin,
   });
   if (e) return fail(e.message?.includes("invalid_window") ? "invalid_window" : e.message?.includes("already_resolved") ? "conflict" : errCode(e));
+  await processOutbox(ctx.org!.id);
   revalidatePath("/", "layout");
   return { ok: true, data: { id: data as string } };
 }

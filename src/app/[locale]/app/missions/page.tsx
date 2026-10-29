@@ -4,7 +4,9 @@ import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/halo/page-header";
 import { AgentActions, AssignSelect } from "@/components/connected/mission-controls";
 import { getContext, isManagerRole } from "@/lib/connected/context";
-import { isoFromNow } from "@/lib/connected/time";
+import { isoFromNow, nowDate } from "@/lib/connected/time";
+import { infeasibility } from "@/lib/engine/conflicts";
+import { toTask, type Row } from "@/lib/connected/mappers";
 
 export default async function MissionsPage({ params }: PageProps<"/[locale]/app/missions">) {
   const { locale } = await params;
@@ -19,7 +21,7 @@ export default async function MissionsPage({ params }: PageProps<"/[locale]/app/
   const since = isoFromNow(-86_400_000);
   let q = supabase
     .from("tasks")
-    .select("id, type, status, window_start, window_end, assignee_id, guests_count, properties(name, address_line, city)")
+    .select("*, properties(name, address_line, city), next:reservations!tasks_organization_id_next_reservation_id_fkey(check_in_at)")
     .eq("organization_id", org!.id)
     .neq("status", "cancelled")
     .gte("window_end", since)
@@ -31,6 +33,8 @@ export default async function MissionsPage({ params }: PageProps<"/[locale]/app/
     q,
     manager ? supabase.from("memberships").select("user_id, role, profiles(full_name)").eq("organization_id", org!.id).eq("is_active", true) : Promise.resolve({ data: [] as never[] }),
   ]);
+  const now = nowDate();
+  const nextArrival = (k: { next?: unknown }) => ((Array.isArray(k.next) ? k.next[0] : k.next) as { check_in_at: string } | null)?.check_in_at ?? null;
   const people = (members ?? []).map((m: { user_id: string; profiles: unknown }) => {
     const p = (Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as { full_name: string } | null;
     return { id: m.user_id, name: p?.full_name || t("noName") };
@@ -55,7 +59,15 @@ export default async function MissionsPage({ params }: PageProps<"/[locale]/app/
                 </span>
               </Link>
               {manager ? (
-                <AssignSelect taskId={k.id} current={k.assignee_id} members={people} disabled={!["unassigned", "assigned"].includes(k.status)} />
+                <AssignSelect
+                  taskId={k.id}
+                  current={k.assignee_id}
+                  members={people}
+                  disabled={!["unassigned", "assigned"].includes(k.status)}
+                  outOfWindow={Boolean(infeasibility(toTask(k as Row), now))}
+                  durationMin={k.duration_min}
+                  arrival={nextArrival(k) ? f.dateTime(new Date(nextArrival(k)!), { dateStyle: "medium", timeStyle: "short" }) : null}
+                />
               ) : (
                 <AgentActions taskId={k.id} status={k.status} />
               )}

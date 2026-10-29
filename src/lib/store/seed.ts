@@ -106,7 +106,7 @@ export function buildDemoData(now: Date, locale: string): HaloData {
     cleaningDurationMin: 120,
     checkInService: false,
     checkOutService: false,
-    access: { type: "key_box", code: "4821", instructions: "" },
+    access: { type: "key_box", instructions: "" },
     amenities: ["wifi", "tv", "hob", "fridge", "coffee_machine", "kettle", "hair_dryer", "heating", "smoke_detector", "iron"],
     customAmenities: [],
     guide: {
@@ -130,7 +130,7 @@ export function buildDemoData(now: Date, locale: string): HaloData {
     base({ id: "p_canal", name: "Appartement Canal", area: "Paris 10e", addressLine: "45 quai de Valmy", city: "Paris", postalCode: "75010", countryCode: "FR", timezone: "Europe/Paris", capacity: 4, beds: [{ id: newId("bed"), size: "double" }, { id: newId("bed"), size: "single" }, { id: newId("bed"), size: "single" }] }, "apartment"),
     base({ amenities: ["wifi", "tv", "oven", "microwave", "hob", "fridge", "freezer", "dishwasher", "coffee_machine", "washing_machine", "dryer", "garden", "terrace", "bbq", "outdoor_furniture", "baby_cot", "high_chair", "heating", "fireplace", "smoke_detector", "first_aid_kit"], id: "p_belleville", name: "Maison Belleville", area: "Paris 20e", addressLine: "3 villa de l'Ermitage", city: "Paris", postalCode: "75020", countryCode: "FR", timezone: "Europe/Paris", capacity: 6, cleaningDurationMin: 180, checkInService: true, access: { type: "in_person", instructions: "Remise des clés en main propre" }, beds: [{ id: newId("bed"), size: "king" }, { id: newId("bed"), size: "double" }, { id: newId("bed"), size: "single" }, { id: newId("bed"), size: "single" }] }, "house"),
     base({ id: "p_montmartre", name: "Duplex Montmartre", area: "Paris 18e", addressLine: "21 rue Lepic", city: "Paris", postalCode: "75018", countryCode: "FR", timezone: "Europe/Paris", capacity: 6, cleaningDurationMin: 180, beds: [{ id: newId("bed"), size: "queen" }, { id: newId("bed"), size: "double" }, { id: newId("bed"), size: "sofa_bed" }] }, "apartment"),
-    base({ amenities: ["wifi", "tv", "hob", "fridge", "coffee_machine", "washing_machine", "terrace", "air_conditioning", "smoke_detector"], id: "p_alfama", name: "Casa Alfama", area: "Alfama", addressLine: "Rua de São Miguel 14", city: "Lisboa", postalCode: "1100-544", countryCode: "PT", timezone: "Europe/Lisbon", capacity: 2, access: { type: "keypad", code: "1907" } }, "studio"),
+    base({ amenities: ["wifi", "tv", "hob", "fridge", "coffee_machine", "washing_machine", "terrace", "air_conditioning", "smoke_detector"], id: "p_alfama", name: "Casa Alfama", area: "Alfama", addressLine: "Rua de São Miguel 14", city: "Lisboa", postalCode: "1100-544", countryCode: "PT", timezone: "Europe/Lisbon", capacity: 2, access: { type: "keypad" } }, "studio"),
   ];
 
   // Séjours relatifs à aujourd'hui (jour local du logement) : [arrivée, départ, voyageurs, heure d'arrivée?]

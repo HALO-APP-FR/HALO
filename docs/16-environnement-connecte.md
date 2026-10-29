@@ -18,6 +18,7 @@
 | Logement prêt ? | Accueil manager : arrivées des 48 h avec état (bloquée, à surveiller, en préparation, prête), cause, qui agit et action ; même moteur que la démo, sur les données réelles ; « Créer le ménage » si aucun ménage avant l'arrivée | `/app` |
 | Linge et maintenance | Étapes réellement suivies dans « logement prêt » : livraison de linge exigée si l'organisation a répondu « blanchisserie » à l'onboarding (sinon rien n'est exigé), intervention de maintenance planifiée depuis un incident et reliée à la prochaine arrivée, contrôle qualité s'il existe. Une étape en retard bloque l'arrivée ; non faite, elle l'empêche d'être « prête » | `/app`, `/app/incidents` |
 | Incidents et blocages | Agent depuis sa mission (blocage, manque de matériel, dégât…), voyageur depuis son espace ; prise en charge et résolution par l'équipe ; note interne séparée du message au voyageur (e-mail s'il a une adresse) ; incidents ouverts pris en compte dans « logement prêt » | `/app/incidents`, mission, `/s/<lien>` |
+| Notifications de l'équipe | Chaque demande, réponse, problème ou message d'un voyageur, et chaque blocage urgent d'un agent, prévient les responsables par e-mail (lien vers l'objet). Adresse fictive (comptes de test) : tracée « échec », jamais « envoyée ». Journal complet avec relance | `/app/notifications` |
 | Notifications | Dans l'espace voyageur + e-mail si adresse connue **et** fournisseur configuré ; état réel, échec visible, relance | historique d'envoi |
 
 Le reste de l'application (planning, linge, arrivées, alertes…) **reste la démo** (navigateur, badge « Démo »). Les deux ne se mélangent pas : la démo n'écrit jamais dans la base, l'environnement connecté n'utilise pas le stockage du navigateur.
@@ -89,3 +90,11 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 - L'import de calendriers (Airbnb, Booking…) n'est pas encore relié à la base : la question d'onboarding sert à le préparer, elle le dit.
 - Les « propositions » de configuration sont des **règles explicites** (aucun modèle d'IA appelé) ; chaque proposition affiche sa raison.
 - Un e-mail resté « en attente » (coupure pendant l'envoi) n'est retraité qu'à la prochaine action de l'organisation ; une tâche planifiée sera ajoutée.
+
+## Règles confirmées le 29/10 (retour de test)
+
+- **Codes de serrure** : HALO n'en gère aucun. Les fonctions de consultation et de saisie des codes sont fermées en base ; la démo n'affiche plus de code et le formulaire ne permet plus d'en saisir.
+- **Correction avec preuve** : le responsable choisit les points à refaire ; leur ancienne photo est conservée en historique mais ne compte plus, le point est décoché et une nouvelle photo est exigée avant de terminer.
+- **Affectation hors fenêtre** : jamais silencieuse. Connecté : refusée par le serveur sans nouvelle fin de fenêtre confirmée (avec l'heure d'arrivée du voyageur). Démo : confirmation explicite avec la nouvelle fin et l'heure d'arrivée.
+- **Scénario de test complet** (préproduction) : depuis la page de connexion, un bouton crée manager, agent, logement avec livret et checklist, séjour d'arrivée demain, ménage assigné et lien voyageur, à travers les vraies fonctions de la base.
+- **Auto-test** `/api/selftest?token=…&email=1` : en plus des droits, vérifie que chaque événement crée un envoi et que les e-mails voyageur partent réellement (adresse « +selftest » de l'expéditeur).

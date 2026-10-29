@@ -13,6 +13,10 @@ function smtpTransport() {
   return nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } });
 }
 
+/** Adresse publique de l'application (liens dans les e-mails de l'équipe). */
+const appUrl = () =>
+  process.env.APP_URL ?? (process.env.VERCEL_BRANCH_URL ? `https://${process.env.VERCEL_BRANCH_URL}` : process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+
 export interface OutboxRow {
   id: string;
   recipient: string;
@@ -38,6 +42,11 @@ export async function processOutbox(orgId?: string) {
   const transport = smtpTransport();
   const orgNames = new Map<string, string>();
   for (const row of rows as OutboxRow[]) {
+    // Adresse fictive (comptes de test) : jamais envoyée, jamais comptée « envoyée »
+    if (/\.invalid$/i.test(row.recipient)) {
+      await admin.from("notification_outbox").update({ status: "failed", last_error: "undeliverable_test_address" }).eq("id", row.id);
+      continue;
+    }
     if (!transport) {
       await admin.from("notification_outbox").update({ status: "not_configured", last_error: "no_email_provider" }).eq("id", row.id);
       continue;
@@ -52,8 +61,18 @@ export async function processOutbox(orgId?: string) {
       const kind = typeof row.payload.kind === "string" ? (await getTranslations({ locale, namespace: "serviceKind" }))(row.payload.kind) : "";
       const message = typeof row.payload.message === "string" ? row.payload.message : "";
       const org = orgNames.get(row.organization_id)!;
-      const subject = t(`${row.template}.subject`, { org, kind });
-      const text = [t(`${row.template}.body`, { org, kind }), message ? `\n« ${message} »` : "", `\n${t("footer")}`].join("\n");
+      const str = (k: string) => (typeof row.payload[k] === "string" ? (row.payload[k] as string) : "");
+      const params = { org, kind, property: str("property") || "—", guest: str("guest") || "—" };
+      const team = row.template.startsWith("team_");
+      const base = appUrl();
+      const link = team && str("path") && base ? `${base}/${locale}${str("path")}` : "";
+      const subject = t(`${row.template}.subject`, params);
+      const text = [
+        t(`${row.template}.body`, params),
+        message ? `\n« ${message} »` : "",
+        link ? `\n${t("open")} : ${link}` : "",
+        `\n${team ? t("teamFooter") : t("footer")}`,
+      ].join("\n");
       await transport.sendMail({ from: process.env.EMAIL_FROM ?? "HALO <no-reply@halo.app>", to: row.recipient, subject, text });
       await admin.from("notification_outbox").update({ status: "sent", sent_at: new Date().toISOString(), last_error: null }).eq("id", row.id);
     } catch (e) {

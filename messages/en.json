@@ -226,7 +226,11 @@
     "deadline": "Must be done by {date}",
     "slot": "Planned slot",
     "notScheduled": "Not scheduled",
-    "estimatedDuration": "Estimated {time}"
+    "estimatedDuration": "Estimated {time}",
+    "outOfWindowTitle": "Cleaning window exceeded",
+    "outOfWindowText": "The window ended at {end}. Assigning now moves its end to {newEnd}; guest arrival: {arrival}. The property may not be ready in time.",
+    "outOfWindowConfirm": "Assign to {name} anyway",
+    "outOfWindowCancel": "Cancel"
   },
   "source": {
     "manual": "Manual entry",
@@ -308,7 +312,8 @@
     "learnDurationHint": "HALO sets upcoming cleanings to the durations your team actually clocks.",
     "learnedValue": "Learned duration: {time} (from {count, plural, one {# cleaning} other {# cleanings}})",
     "learnedNone": "{count, plural, one {# clocked cleaning needed to learn the duration.} other {# clocked cleanings needed to learn the duration.}}",
-    "linenFromBeds": "Each cleaning's linen kit is calculated from these beds and the rules in Linen › Items & settings (e.g. 1 fitted sheet 140 per double bed), plus the stay's guests and babies."
+    "linenFromBeds": "Each cleaning's linen kit is calculated from these beds and the rules in Linen › Items & settings (e.g. 1 fitted sheet 140 per double bed), plus the stay's guests and babies.",
+    "noCodes": "HALO doesn't manage any lock codes: don't enter any here. Access is shared by the manager outside the app."
   },
   "properties": {
     "free": "Available",
@@ -1286,7 +1291,8 @@
       "properties": "Properties",
       "team": "Team",
       "setup": "Setup",
-      "incidents": "Incidents"
+      "incidents": "Incidents",
+      "notifications": "Notifications"
     },
     "env": {
       "demo": "Demo",
@@ -1349,7 +1355,8 @@
       "empty": "Add a description.",
       "too_late": "Too late: the arrival time has passed.",
       "resolution_required": "Say what was done.",
-      "invalid_window": "The time slot isn't valid (end after start, at least 5 min)."
+      "invalid_window": "The time slot isn't valid (end after start, at least 5 min).",
+      "out_of_window": "The mission no longer fits its window: confirm a new end before assigning."
     },
     "home": {
       "subtitle": "What needs your attention.",
@@ -1699,8 +1706,15 @@
         "service_cancelled": "Request cancelled",
         "service_updated": "Request changed",
         "stay_message": "Message from the team",
-        "problem_resolved": "Problem resolved"
-      }
+        "problem_resolved": "Problem resolved",
+        "team_service_requested": "Team: new request",
+        "team_guest_reply": "Team: guest reply",
+        "team_guest_problem": "Team: guest problem",
+        "team_agent_blocker": "Team: urgent blocker",
+        "team_guest_message": "Team: guest message",
+        "problem_taken": "Problem being handled"
+      },
+      "testAddress": "Fictitious address (test account): nothing is sent."
     },
     "services": {
       "title": "Services",
@@ -1787,7 +1801,13 @@
       "loadError": "Couldn't load missions.",
       "empty": "No upcoming mission.",
       "mineEmpty": "No mission assigned to you yet.",
-      "noName": "No name"
+      "noName": "No name",
+      "outOfWindowTitle": "Window exceeded: confirm the assignment",
+      "outOfWindowArrival": "This mission no longer fits its window. Set a new end; guest arrival: {arrival}. If it ends after arrival, the property won't be ready.",
+      "outOfWindowText": "This mission no longer fits its window. Set a new end before assigning.",
+      "newWindowEnd": "New window end",
+      "confirmOutOfWindow": "Confirm assignment",
+      "cancel": "Cancel"
     },
     "team": {
       "title": "Team",
@@ -1830,7 +1850,10 @@
       "correctionReason": "Correction reason",
       "correctionHint": "The agent will see it when reopening the mission.",
       "requestCorrection": "Request a correction",
-      "notes": "To handle"
+      "notes": "To handle",
+      "oldProof": "Previous proof (replaced after correction)",
+      "redoItems": "Items to redo",
+      "newPhotoRequired": "new photo required"
     },
     "testAccount": {
       "title": "Pre-production: test account without email",
@@ -1842,7 +1865,13 @@
         "disabled": "Test accounts aren't available here.",
         "invalid_name": "Use letters and numbers.",
         "server": "Couldn't sign in right now. Nothing was created; try again."
-      }
+      },
+      "scenario": "Prepare a full scenario (manager, agent, property, stay, mission, guest link)",
+      "scenarioReady": "Scenario ready (fictitious data really saved).",
+      "scenarioExisted": "This scenario already exists, with its data.",
+      "scenarioAgent": "Agent: on another device, test account “{name}”.",
+      "scenarioGuest": "Guest link (open on a phone, no account):",
+      "scenarioContinue": "Enter as manager"
     },
     "incidents": {
       "title": "Incidents and blockers",
@@ -1902,6 +1931,12 @@
       "planHint": "The mission is linked to the property's next arrival: until it's done, that arrival isn't “ready”.",
       "planConfirm": "Create the intervention",
       "openIntervention": "See the intervention"
+    },
+    "notifications": {
+      "title": "Notifications sent",
+      "subtitle": "Every email to guests and the team, with its real status. Nothing shows “sent” unless the provider accepted it.",
+      "loadError": "Couldn't load notifications.",
+      "summary": "{sent} sent · {pending} pending · {failed} failed · {notConfigured} not sent (no provider)"
     }
   },
   "email": {
@@ -1941,6 +1976,32 @@
     "problem_resolved": {
       "subject": "{org} — your report has been resolved",
       "body": "The problem you reported has been marked as resolved by the team."
+    },
+    "open": "Open in HALO",
+    "teamFooter": "Automatic HALO notification for the team.",
+    "team_service_requested": {
+      "subject": "New request: {kind} — {property}",
+      "body": "{guest} requests “{kind}” ({property}). Accept, decline or ask for details."
+    },
+    "team_guest_reply": {
+      "subject": "The guest replied: {kind}",
+      "body": "The guest answered your question. The request awaits your decision."
+    },
+    "team_guest_problem": {
+      "subject": "Problem reported by a guest — {property}",
+      "body": "A guest reports a problem in {property}."
+    },
+    "team_agent_blocker": {
+      "subject": "Urgent blocker reported by an agent — {property}",
+      "body": "An agent reports an urgent blocker in {property}."
+    },
+    "team_guest_message": {
+      "subject": "Message from {guest} — {property}",
+      "body": "{guest} wrote to you about their stay."
+    },
+    "problem_taken": {
+      "subject": "{org} — your report is being handled",
+      "body": "The team is handling the problem you reported. Follow its progress in your guest space."
     }
   },
   "guestSpace": {

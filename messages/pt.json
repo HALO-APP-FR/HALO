@@ -226,7 +226,11 @@
     "deadline": "Terminar até {date}",
     "slot": "Horário planeado",
     "notScheduled": "Não planeado",
-    "estimatedDuration": "Duração estimada {time}"
+    "estimatedDuration": "Duração estimada {time}",
+    "outOfWindowTitle": "Janela de limpeza ultrapassada",
+    "outOfWindowText": "A janela terminava às {end}. Atribuir agora prolonga-a até {newEnd}; chegada: {arrival}. O alojamento pode não estar pronto a tempo.",
+    "outOfWindowConfirm": "Atribuir mesmo assim a {name}",
+    "outOfWindowCancel": "Cancelar"
   },
   "source": {
     "manual": "Introdução manual",
@@ -308,7 +312,8 @@
     "learnDurationHint": "O HALO ajusta as próximas limpezas às durações realmente registadas.",
     "learnedValue": "Duração aprendida: {time} ({count, plural, one {# limpeza} other {# limpezas}})",
     "learnedNone": "{count, plural, one {É precisa # limpeza registada para aprender a duração.} other {São precisas # limpezas registadas para aprender a duração.}}",
-    "linenFromBeds": "O kit de cada limpeza é calculado com estas camas e as regras de Roupa › Artigos e definições (ex. 1 lençol 140 por cama de casal), mais hóspedes e bebés da estadia."
+    "linenFromBeds": "O kit de cada limpeza é calculado com estas camas e as regras de Roupa › Artigos e definições (ex. 1 lençol 140 por cama de casal), mais hóspedes e bebés da estadia.",
+    "noCodes": "O HALO não gere códigos de fechadura: não os introduza aqui. O acesso é comunicado pelo responsável fora da aplicação."
   },
   "properties": {
     "free": "Livre",
@@ -1286,7 +1291,8 @@
       "properties": "Alojamentos",
       "team": "Equipa",
       "setup": "Configuração",
-      "incidents": "Incidentes"
+      "incidents": "Incidentes",
+      "notifications": "Envios"
     },
     "env": {
       "demo": "Demo",
@@ -1349,7 +1355,8 @@
       "empty": "Adicione uma descrição.",
       "too_late": "Tarde demais: a chegada já passou.",
       "resolution_required": "Indique o que foi feito.",
-      "invalid_window": "Intervalo inválido (fim depois do início, pelo menos 5 min)."
+      "invalid_window": "Intervalo inválido (fim depois do início, pelo menos 5 min).",
+      "out_of_window": "A missão já não cabe na janela: confirme um novo fim."
     },
     "home": {
       "subtitle": "O que precisa da sua atenção.",
@@ -1699,8 +1706,15 @@
         "service_cancelled": "Pedido cancelado",
         "service_updated": "Pedido alterado",
         "stay_message": "Mensagem da equipa",
-        "problem_resolved": "Problema resolvido"
-      }
+        "problem_resolved": "Problema resolvido",
+        "team_service_requested": "Equipa: novo pedido",
+        "team_guest_reply": "Equipa: resposta do hóspede",
+        "team_guest_problem": "Equipa: problema do hóspede",
+        "team_agent_blocker": "Equipa: bloqueio urgente",
+        "team_guest_message": "Equipa: mensagem do hóspede",
+        "problem_taken": "Problema em tratamento"
+      },
+      "testAddress": "Endereço fictício (conta de teste): nada é enviado."
     },
     "services": {
       "title": "Serviços",
@@ -1787,7 +1801,13 @@
       "loadError": "Não foi possível carregar as missões.",
       "empty": "Nenhuma missão futura.",
       "mineEmpty": "Nenhuma missão atribuída por agora.",
-      "noName": "Sem nome"
+      "noName": "Sem nome",
+      "outOfWindowTitle": "Janela ultrapassada: confirmar a atribuição",
+      "outOfWindowArrival": "A missão já não cabe na janela. Defina um novo fim; chegada: {arrival}. Se terminar depois, o alojamento não estará pronto.",
+      "outOfWindowText": "A missão já não cabe na janela. Defina um novo fim antes de atribuir.",
+      "newWindowEnd": "Novo fim da janela",
+      "confirmOutOfWindow": "Confirmar a atribuição",
+      "cancel": "Cancelar"
     },
     "team": {
       "title": "Equipa",
@@ -1830,7 +1850,10 @@
       "correctionReason": "Motivo da correção",
       "correctionHint": "O agente verá ao retomar a missão.",
       "requestCorrection": "Pedir uma correção",
-      "notes": "Por tratar"
+      "notes": "Por tratar",
+      "oldProof": "Prova anterior (substituída após correção)",
+      "redoItems": "Pontos a refazer",
+      "newPhotoRequired": "nova foto obrigatória"
     },
     "testAccount": {
       "title": "Pré-produção: conta de teste sem e-mail",
@@ -1842,7 +1865,13 @@
         "disabled": "As contas de teste não estão disponíveis aqui.",
         "invalid_name": "Use letras e números.",
         "server": "Não foi possível entrar. Nada foi criado; tente novamente."
-      }
+      },
+      "scenario": "Preparar um cenário completo (manager, agente, alojamento, estadia, missão, link)",
+      "scenarioReady": "Cenário pronto (dados fictícios realmente guardados).",
+      "scenarioExisted": "Este cenário já existe, com os seus dados.",
+      "scenarioAgent": "Agente: noutro dispositivo, conta de teste «{name}».",
+      "scenarioGuest": "Link do hóspede (abrir num telemóvel, sem conta):",
+      "scenarioContinue": "Entrar como manager"
     },
     "incidents": {
       "title": "Incidentes e bloqueios",
@@ -1902,6 +1931,12 @@
       "planHint": "A missão fica ligada à próxima chegada: enquanto não for feita, a chegada não está «pronta».",
       "planConfirm": "Criar a intervenção",
       "openIntervention": "Ver a intervenção"
+    },
+    "notifications": {
+      "title": "Envios e notificações",
+      "subtitle": "Cada e-mail a hóspedes e equipa, com o estado real.",
+      "loadError": "Não foi possível carregar os envios.",
+      "summary": "{sent} enviados · {pending} pendentes · {failed} falhados · {notConfigured} sem serviço"
     }
   },
   "email": {
@@ -1941,6 +1976,32 @@
     "problem_resolved": {
       "subject": "{org} — o seu problema foi resolvido",
       "body": "A equipa marcou como resolvido o problema que comunicou."
+    },
+    "open": "Abrir no HALO",
+    "teamFooter": "Notificação automática do HALO para a equipa.",
+    "team_service_requested": {
+      "subject": "Novo pedido: {kind} — {property}",
+      "body": "{guest} pede «{kind}» ({property}). Aceitar, recusar ou pedir detalhes."
+    },
+    "team_guest_reply": {
+      "subject": "O hóspede respondeu: {kind}",
+      "body": "O hóspede respondeu. O pedido aguarda a sua decisão."
+    },
+    "team_guest_problem": {
+      "subject": "Problema comunicado por um hóspede — {property}",
+      "body": "Um hóspede comunica um problema em {property}."
+    },
+    "team_agent_blocker": {
+      "subject": "Bloqueio urgente comunicado por um agente — {property}",
+      "body": "Um agente comunica um bloqueio urgente em {property}."
+    },
+    "team_guest_message": {
+      "subject": "Mensagem de {guest} — {property}",
+      "body": "{guest} escreveu-lhe sobre a estadia."
+    },
+    "problem_taken": {
+      "subject": "{org} — o seu problema está a ser tratado",
+      "body": "A equipa está a tratar o problema. Acompanhe no seu espaço."
     }
   },
   "guestSpace": {

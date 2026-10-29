@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Camera, Eye, EyeOff, Plus, Sparkles, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Camera, Plus, Sparkles, Trash2 } from "lucide-react";
 import type { AccessType, BedSize, ChecklistRoom, Property } from "@/lib/domain/types";
 import { COUNTRY_TZ, allTimezones, sortedCountries, timezoneLabel } from "@/lib/domain/geo";
 import { CHECKLIST_TEMPLATES, buildChecklist, newId } from "@/lib/domain/templates";
@@ -190,7 +190,6 @@ const ACCESS_TYPES: AccessType[] = ["key_box", "keypad", "smart_lock", "in_perso
 export function PropertyAccessForm({ property }: { property: Property }) {
   const t = useTranslations();
   const [draft, setDraft] = useState(property.access);
-  const [show, setShow] = useState(false);
   const dirty = JSON.stringify(draft) !== JSON.stringify(property.access);
   return (
     <Card className="max-w-xl">
@@ -207,28 +206,7 @@ export function PropertyAccessForm({ property }: { property: Property }) {
             ))}
           </Select>
         </Field>
-        {draft.type !== "in_person" && (
-          <Field label={t("property.accessCode")} htmlFor="a-code" hint={t("property.accessCodeHint")}>
-            <div className="relative">
-              <Input
-                id="a-code"
-                type={show ? "text" : "password"}
-                autoComplete="off"
-                value={draft.code ?? ""}
-                onChange={(e) => setDraft({ ...draft, code: e.target.value })}
-                className="pe-11 text-[17px] tracking-[0.2em] tabular"
-              />
-              <button
-                type="button"
-                onClick={() => setShow(!show)}
-                className="absolute end-1 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-md text-muted hover:text-fg"
-                aria-label={show ? t("property.hideCode") : t("property.showCode")}
-              >
-                {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
-            </div>
-          </Field>
-        )}
+        <p className="text-[13px] text-muted">{t("property.noCodes")}</p>
         <Field label={t("property.accessInstructions")} htmlFor="a-instr">
           <Textarea id="a-instr" value={draft.instructions ?? ""} onChange={(e) => setDraft({ ...draft, instructions: e.target.value })} />
         </Field>

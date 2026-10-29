@@ -32,14 +32,17 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
       ? supabase.from("checklist_rooms").select("id, name, sort, checklist_items(id, label, photo_required, sort)").eq("organization_id", o).eq("property_id", task.property_id).order("sort")
       : Promise.resolve({ data: [] as never[] }),
     supabase.from("task_reports").select("checked").eq("organization_id", o).eq("task_id", id).maybeSingle(),
-    supabase.from("files").select("id, path, checklist_item_id, created_at").eq("organization_id", o).eq("task_id", id).order("created_at"),
+    supabase.from("files").select("id, path, checklist_item_id, created_at, superseded_at").eq("organization_id", o).eq("task_id", id).order("created_at"),
     supabase.from("incidents").select("id, category, status, description").eq("organization_id", o).eq("task_id", id).order("created_at", { ascending: false }),
   ]);
   const paths = (files ?? []).map((x) => x.path);
   const signed = paths.length ? (await supabase.storage.from("org-files").createSignedUrls(paths, 900)).data ?? [] : [];
   const urlOf = new Map(signed.filter((s) => s.signedUrl).map((s) => [s.path, s.signedUrl]));
   // Seules les photos réellement déposées (lisibles) comptent
-  const photos = (files ?? []).filter((x) => urlOf.has(x.path)).map((x) => ({ id: x.id, itemId: x.checklist_item_id, url: urlOf.get(x.path)! }));
+  const readable = (files ?? []).filter((x) => urlOf.has(x.path));
+  const photos = readable.filter((x) => !x.superseded_at).map((x) => ({ id: x.id, itemId: x.checklist_item_id, url: urlOf.get(x.path)! }));
+  // Preuves écartées par une demande de correction : gardées en historique, elles ne comptent plus
+  const oldPhotos = readable.filter((x) => x.superseded_at).map((x) => ({ id: x.id, itemId: x.checklist_item_id, url: urlOf.get(x.path)! }));
   const p = (Array.isArray(task.properties) ? task.properties[0] : task.properties) as { name: string; address_line: string | null; city: string | null; instructions: string | null } | null;
   const checklist: ReportRoom[] = (rooms ?? []).map((r: { id: string; name: string; checklist_items: { id: string; label: string; photo_required: boolean; sort: number }[] }) => ({
     id: r.id,
@@ -81,6 +84,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
         checklist={checklist}
         checked={(report?.checked as string[]) ?? []}
         photos={photos}
+        oldPhotos={oldPhotos}
         canEdit={mine && ["assigned", "in_progress", "to_redo"].includes(task.status)}
         canStart={mine && ["assigned", "to_redo"].includes(task.status)}
         canFinish={mine && task.status === "in_progress"}

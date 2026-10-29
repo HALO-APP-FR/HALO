@@ -183,3 +183,38 @@ describe("départ anticipé", () => {
     expect(drafts[0].windowStart).toBe("2026-11-05T08:10:00.000Z");
   });
 });
+
+describe("prévision de linge : cas réaliste d'un week-end chargé", () => {
+  // 3 rotations le vendredi, 4 le samedi ; 5 draps doubles et 12 serviettes propres ;
+  // le linge sale du vendredi revient de la blanchisserie le dimanche matin (48 h).
+  const kit = [
+    { linenTypeId: "fitted_140", qty: 1 },
+    { linenTypeId: "bath_towel", qty: 2 },
+  ];
+  const turnover = (day: string, hour: number) => ({ dayKey: day, start: `${day}T${String(hour).padStart(2, "0")}:00:00.000Z`, kit });
+  const tasks = [
+    turnover("2026-11-06", 10), turnover("2026-11-06", 11), turnover("2026-11-06", 13),
+    turnover("2026-11-07", 9), turnover("2026-11-07", 10), turnover("2026-11-07", 12), turnover("2026-11-07", 14),
+  ];
+  const stock = new Map([["clean", new Map([["fitted_140", 5], ["bath_towel", 12]])]]) as Parameters<typeof forecastLinen>[0]["stock"];
+  const returns = [
+    { linenTypeId: "fitted_140", qty: 3, at: "2026-11-08T08:00:00.000Z", dayKey: "2026-11-08", late: false },
+    { linenTypeId: "bath_towel", qty: 6, at: "2026-11-08T08:00:00.000Z", dayKey: "2026-11-08", late: false },
+  ];
+  const rows = forecastLinen({ tasks, types, stock, todayKey: "2026-11-06", days: 3, returns });
+  const sheet = rows.find((r) => r.linenTypeId === "fitted_140")!;
+  const towel = rows.find((r) => r.linenTypeId === "bath_towel")!;
+
+  it("le manque est daté au samedi, à la 6e rotation, même si le retour du dimanche couvre la fin de période", () => {
+    expect(sheet).toMatchObject({ need: 7, clean: 5, incoming: 3, available: 8, gap: 1, shortageDay: "2026-11-07", needAtShortage: 6, availableAtShortage: 5 });
+  });
+  it("serviettes : manque à la 7e rotation (14 nécessaires pour 12)", () => {
+    expect(towel).toMatchObject({ need: 14, shortageDay: "2026-11-07", needAtShortage: 14, availableAtShortage: 12, gap: 4 });
+  });
+  it("un retour prévu avant les rotations du samedi supprime le manque", () => {
+    const early = returns.map((r) => ({ ...r, at: "2026-11-07T07:00:00.000Z", dayKey: "2026-11-07" }));
+    const ok = forecastLinen({ tasks, types, stock, todayKey: "2026-11-06", days: 3, returns: early });
+    expect(ok.find((r) => r.linenTypeId === "fitted_140")!.shortageDay).toBeUndefined();
+    expect(ok.find((r) => r.linenTypeId === "bath_towel")!.shortageDay).toBeUndefined();
+  });
+});

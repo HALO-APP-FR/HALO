@@ -212,7 +212,6 @@ function AgentTaskInner({ taskId }: { taskId: string }) {
             <KeyRound className="size-5 shrink-0 text-muted" strokeWidth={1.9} />
             <div className="min-w-0">
               <div className="text-caption text-muted">{t(`access.${property.access.type}`)}</div>
-              {property.access.code && <div className="text-[24px] font-bold tracking-[0.2em] tabular">{property.access.code}</div>}
               {property.access.instructions && <div className="text-[14px]">{property.access.instructions}</div>}
             </div>
           </Card>

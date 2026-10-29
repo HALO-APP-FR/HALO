@@ -58,6 +58,8 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
   const agents = activeAgents(members);
   const [redoReason, setRedoReason] = useState("");
   const [showRedo, setShowRedo] = useState(false);
+  // Affectation hors fenêtre : jamais silencieuse, confirmation explicite d'une nouvelle fin de fenêtre
+  const [pendingAgent, setPendingAgent] = useState<string | null>(null);
 
   const slots = useMemo(() => (task ? startSlots(task) : []), [task]);
   const [lastTaskId, setLastTaskId] = useState(taskId);
@@ -65,6 +67,7 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
     setLastTaskId(taskId);
     setShowRedo(false);
     setRedoReason("");
+    setPendingAgent(null);
   }
 
   if (!task || !property) return null;
@@ -85,7 +88,15 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
   const dayKey = taskDayKey(task, property);
   const learned = property.learnDuration === false ? null : learnedCleaningDuration(property.id, tasks);
 
+  const slotEnd = new Date(selectedStart).getTime() + task.durationMin * 60_000;
+  const outOfWindow = slotEnd > new Date(task.windowEnd).getTime();
   const assign = (agentId: string | undefined) => {
+    if (agentId && outOfWindow && pendingAgent !== agentId) {
+      setPendingAgent(agentId);
+      return;
+    }
+    if (agentId && outOfWindow) updateTask(task.id, { windowEnd: new Date(slotEnd).toISOString() });
+    setPendingAgent(null);
     const overlap = agentId ? conflictsIfAssigned(task, agentId, selectedStart, tasks).some((c) => c.kind === "overlap") : false;
     assignTask(task.id, agentId, agentId ? selectedStart : undefined);
     const name = members.find((m) => m.id === agentId)?.name;
@@ -214,6 +225,28 @@ export function TaskSheet({ taskId, onClose }: { taskId: string | null; onClose:
                   ))}
                 </Select>
               </Field>
+              {outOfWindow && (
+                <div className="mt-3 rounded-lg border border-danger bg-danger-soft p-3 text-[14px]" role="alert" data-testid="out-of-window">
+                  <p className="font-semibold text-danger">{t("taskSheet.outOfWindowTitle")}</p>
+                  <p className="mt-1">
+                    {t("taskSheet.outOfWindowText", {
+                      end: fmt(task.windowEnd),
+                      newEnd: fmt(new Date(slotEnd).toISOString()),
+                      arrival: incoming ? fmt(incoming.checkInAt) : "—",
+                    })}
+                  </p>
+                  {pendingAgent && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Button size="sm" variant="danger" onClick={() => assign(pendingAgent)} data-testid="out-of-window-confirm">
+                        {t("taskSheet.outOfWindowConfirm", { name: members.find((m) => m.id === pendingAgent)?.name ?? "" })}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setPendingAgent(null)}>
+                        {t("taskSheet.outOfWindowCancel")}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
               <ul className="mt-3 divide-y divide-line rounded-lg border border-line">
                 {agents.map((agent) => {
                   const conflicts = conflictsIfAssigned(task, agent.id, selectedStart, tasks);
