@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
-import { guestReplyService, guestRequestService, guestSendMessage, type GuestResult } from "@/lib/connected/guest-actions";
+import { guestReplyService, guestReportProblem, guestRequestService, guestSendMessage, type GuestResult } from "@/lib/connected/guest-actions";
 import { Button } from "@/components/ui/button";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -114,6 +114,48 @@ export function GuestMessageForm({ token }: { token: string }) {
       {error && <p role="alert" className="text-[14px] text-danger">{error}</p>}
       <Button type="submit" disabled={pending || !body.trim()} data-testid="guest-message-send">
         {t("contact.send")}
+      </Button>
+    </form>
+  );
+}
+
+const PROBLEM_CATEGORIES = ["breakdown", "cleanliness", "leak", "missing_item", "access", "noise", "pests", "damage", "other"] as const;
+
+export function GuestProblemForm({ token }: { token: string }) {
+  const t = useTranslations("guestSpace");
+  const tc = useTranslations("connected.incidents.category");
+  const { pending, error, run } = useGuestRun();
+  const [f, setF] = useState({ category: "breakdown", description: "", urgent: false });
+  const [ok, setOk] = useState(false);
+  return (
+    <form
+      className="mt-3 space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        setOk(false);
+        run(() => guestReportProblem(token, { ...f, description: f.description.trim() }), () => (setOk(true), setF({ category: "breakdown", description: "", urgent: false })));
+      }}
+    >
+      <Field label={t("problem.category")} htmlFor="gp-cat">
+        <Select id="gp-cat" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
+          {PROBLEM_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {tc(c)}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Field label={t("problem.description")} htmlFor="gp-desc">
+        <Textarea id="gp-desc" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} maxLength={2000} data-testid="guest-problem-description" />
+      </Field>
+      <label className="flex items-center gap-2 text-[15px]">
+        <input type="checkbox" checked={f.urgent} onChange={(e) => setF({ ...f, urgent: e.target.checked })} />
+        {t("problem.urgent")}
+      </label>
+      {error && <p role="alert" className="text-[14px] text-danger">{error}</p>}
+      {ok && <p role="status" className="text-[14px] text-success" data-testid="guest-problem-ok">{t("problem.sent")}</p>}
+      <Button type="submit" disabled={pending || f.description.trim().length < 3} data-testid="guest-problem-send">
+        {t("problem.send")}
       </Button>
     </form>
   );

@@ -1274,7 +1274,8 @@
       "missions": "Missions",
       "properties": "Properties",
       "team": "Team",
-      "setup": "Setup"
+      "setup": "Setup",
+      "incidents": "Incidents"
     },
     "env": {
       "demo": "Demo",
@@ -1333,7 +1334,10 @@
       "bad_mime": "Photo format not accepted (JPEG, PNG, WebP or HEIC).",
       "reason_required": "Give the reason for the correction.",
       "stale": "A newer version of the report already exists: the page is refreshed.",
-      "already": "Already done."
+      "already": "Already done.",
+      "empty": "Add a description.",
+      "too_late": "Too late: the arrival time has passed.",
+      "resolution_required": "Say what was done."
     },
     "home": {
       "subtitle": "What needs your attention.",
@@ -1344,7 +1348,13 @@
       "messages": "{count, plural, =0 {No unread guest message} one {# unread guest message} other {# unread guest messages}}",
       "unassigned": "{count, plural, =0 {No mission without an agent} one {# mission without an agent} other {# missions without an agent}}",
       "emails": "{count, plural, =0 {No failed guest email} one {# guest email not sent} other {# guest emails not sent}}",
-      "stays7": "{count, plural, =0 {No arrival in the next 7 days} one {# arrival in the next 7 days} other {# arrivals in the next 7 days}}"
+      "stays7": "{count, plural, =0 {No arrival in the next 7 days} one {# arrival in the next 7 days} other {# arrivals in the next 7 days}}",
+      "incidents": "{count, plural, =0 {No open incident} one {# open incident or blocker} other {# open incidents or blockers}}",
+      "arrivalsTitle": "Arrivals in the next 48 hours: will the property be ready?",
+      "queueTitle": "To handle",
+      "noArrivals": "No arrival in the next 48 hours.",
+      "allReady": "All arrivals are ready: cleaning validated and no open incident.",
+      "you": "you"
     },
     "onb": {
       "progress": "Step {n} of {total}",
@@ -1675,7 +1685,8 @@
         "service_done": "Service completed",
         "service_cancelled": "Request cancelled",
         "service_updated": "Request changed",
-        "stay_message": "Message from the team"
+        "stay_message": "Message from the team",
+        "problem_resolved": "Problem resolved"
       }
     },
     "services": {
@@ -1818,6 +1829,56 @@
         "invalid_name": "Use letters and numbers.",
         "server": "Couldn't sign in right now. Nothing was created; try again."
       }
+    },
+    "incidents": {
+      "title": "Incidents and blockers",
+      "subtitle": "Reported by your agents or guests, until resolved.",
+      "loadError": "Couldn't load incidents.",
+      "empty": "No incident reported.",
+      "urgent": "Urgent",
+      "status": {
+        "open": "New",
+        "in_progress": "Being handled",
+        "resolved": "Resolved"
+      },
+      "source": {
+        "agent": "Agent",
+        "guest": "Guest",
+        "manager": "Team"
+      },
+      "category": {
+        "blocker": "Blocker (access, property occupied…)",
+        "missing_supplies": "Missing supplies",
+        "damage": "Damage",
+        "breakdown": "Equipment breakdown",
+        "leak": "Water leak",
+        "cleanliness": "Cleanliness",
+        "missing_item": "Missing item",
+        "access": "Access to the property",
+        "noise": "Noise",
+        "pests": "Pests",
+        "other": "Other"
+      },
+      "resolvedNote": "Internal note",
+      "sentToGuest": "Message to the guest",
+      "openMission": "Open the mission",
+      "openStay": "Open the stay",
+      "take": "Take it",
+      "resolve": "Resolve",
+      "resolution": "What was done (internal note)",
+      "resolutionHint": "Never visible to the guest.",
+      "guestMessage": "Message to the guest",
+      "guestMessageHint": "Visible in their guest space (no email known).",
+      "guestMessageHintEmail": "Visible in their space, and emailed.",
+      "confirmResolve": "Mark as resolved",
+      "reportTitle": "A problem on site?",
+      "report": "Report",
+      "reported": "Reported: your manager has been notified.",
+      "categoryLabel": "Problem type",
+      "description": "What's happening",
+      "urgentLabel": "Urgent: prevents finishing or the guest's arrival",
+      "cancel": "Cancel",
+      "send": "Send report"
     }
   },
   "email": {
@@ -1853,6 +1914,10 @@
     "stay_message": {
       "subject": "{org} — new message about your stay",
       "body": "The team wrote to you:"
+    },
+    "problem_resolved": {
+      "subject": "{org} — your report has been resolved",
+      "body": "The problem you reported has been marked as resolved by the team."
     }
   },
   "guestSpace": {
@@ -1926,7 +1991,21 @@
       "received": "Request received",
       "updated": "Request changed by the team"
     },
-    "linkValid": "This personal link is valid until {until}. Don't share it."
+    "linkValid": "This personal link is valid until {until}. Don't share it.",
+    "problem": {
+      "title": "A problem in the property?",
+      "text": "Report it here: the team is notified and you can follow how it's handled.",
+      "category": "Problem type",
+      "description": "Describe the problem",
+      "urgent": "Urgent (water, heating, access, safety)",
+      "sent": "Report sent. It appears above with its status.",
+      "send": "Report the problem",
+      "status": {
+        "open": "Received",
+        "in_progress": "Being handled",
+        "resolved": "Resolved"
+      }
+    }
   },
   "demoEntry": {
     "badge": "Demo",

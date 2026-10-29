@@ -184,9 +184,9 @@ where n.nspname = 'public' and c.relkind = 'r' group by c.relname;
 select t.check('aucune fonction exécutable par anon (hors exception invité) : ' || p.proname, p.proname, false)
 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')
-  and p.proname not in ('get_guest_stay', 'guest_request_service', 'guest_reply_service', 'guest_send_message');
+  and p.proname not in ('get_guest_stay', 'guest_request_service', 'guest_reply_service', 'guest_send_message', 'guest_report_problem', 'guest_problems');
 select t.is('exceptions anonymes : uniquement la porte d''entrée voyageur (lien de séjour)', (select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'get_guest_stay,guest_reply_service,guest_request_service,guest_send_message');
+  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'get_guest_stay,guest_problems,guest_reply_service,guest_report_problem,guest_request_service,guest_send_message');
 
 select t.check('fonction security definer avec search_path fixé : ' || p.proname,
   coalesce(array_to_string(p.proconfig, ','), 'aucun'), coalesce(array_to_string(p.proconfig, ','), '') like '%search_path=%')
@@ -681,6 +681,29 @@ update public.notification_outbox set status = 'failed', last_error = 'smtp down
 select t.err('envoi : le manager de B ne relance pas un envoi de A', t.q('b_manager', format('select public.retry_notification(%L, (select id from public.notification_outbox where service_id = %L and template = ''service_confirmed''))', t.id('A'), t.sv('SA'))), '42501');
 select t.is('envoi : le manager de A relance un envoi en échec', t.keep('a_manager', format('select public.retry_notification(%L, (select id from public.notification_outbox where service_id = %L and template = ''service_confirmed''))', t.id('A'), t.sv('SA'))), '');
 select t.is('envoi : de nouveau « en attente »', (select status from public.notification_outbox where service_id = t.sv('SA') and template = 'service_confirmed'), 'pending');
+
+-- Incidents : agent sur sa mission, voyageur sur son séjour ; traitement par l'équipe seulement
+select t.is('incident : l''agent signale un blocage sur sa mission', (t.keep('a_agent', format('select public.report_incident(%L, %L, ''missing_supplies'', ''Plus de produit vaisselle'', true) is not null', t.id('A'), t.id('TA1')))), 'true');
+select t.err('incident : pas sur la mission d''un collègue', t.q('a_agent', format('select public.report_incident(%L, %L, ''other'', ''abc'', false)', t.id('A'), t.id('TA2'))), '42501');
+select t.err('incident : pas dans une autre organisation', t.q('b_agent', format('select public.report_incident(%L, %L, ''other'', ''abc'', false)', t.id('A'), t.id('TA1'))), '42501');
+select t.err('incident : aucune écriture directe', t.dml('a_manager', format('insert into public.incidents (organization_id, property_id, source, category, description) values (%L, %L, ''manager'', ''other'', ''abc'')', t.id('A'), t.id('PA1'))), '42501');
+select t.is('incident : le manager de A le voit', t.q('a_manager', format('select count(*) from public.incidents where organization_id = %L and source = ''agent''', t.id('A'))), '1');
+select t.is('incident : le manager de B ne le voit pas', t.q('b_manager', 'select count(*) from public.incidents'), '0');
+select t.is('incident : un autre agent de A ne le voit pas', t.q('a_agent2', 'select count(*) from public.incidents'), '0');
+select t.is('incident : l''agent voit le sien', t.q('a_agent', 'select count(*) from public.incidents'), '1');
+select t.is('problème voyageur : signalé par son lien', (t.keep(null, format('select public.guest_report_problem(%L, ''breakdown'', ''Chauffe-eau en panne'', true)', t.tk('GA')))::jsonb ->> 'status'), 'ok');
+select t.is('problème voyageur : catégorie interne refusée', (t.q(null, format('select public.guest_report_problem(%L, ''blocker'', ''abcdef'', false)', t.tk('GA')))::jsonb ->> 'status'), 'invalid');
+select t.is('problème voyageur : lien inventé refusé', (t.q(null, format('select public.guest_report_problem(%L, ''other'', ''abcdef'', false)', repeat('e', 64)))::jsonb ->> 'status'), 'unavailable');
+select t.is('problème voyageur : il voit le sien', t.q(null, format('select jsonb_array_length(public.guest_problems(%L) -> ''problems'')', t.tk('GA'))), '1');
+select t.is('problème voyageur : le voyageur de B ne le voit pas', t.q(null, format('select jsonb_array_length(public.guest_problems(%L) -> ''problems'')', t.tk('GB'))), '0');
+select t.is('problème voyageur : jamais l''incident d''un agent', t.q(null, format('select (public.guest_problems(%L))::text like ''%%vaisselle%%''', t.tk('GA'))), 'false');
+select t.err('problème voyageur : un agent ne le résout pas', t.q('a_agent', format('select public.resolve_incident(%L, (select id from public.incidents where source = ''guest'' limit 1), ''x'')', t.id('A'))), '42501');
+select t.err('problème voyageur : le manager de B ne le résout pas', t.q('b_manager', format('select public.resolve_incident(%L, (select id from public.incidents where organization_id = %L and source = ''guest''), ''x'')', t.id('A'), t.id('A'))), '42501');
+select t.is('problème voyageur : pris en charge', t.keep('a_manager', format('select public.take_incident(%L, (select id from public.incidents where organization_id = %L and source = ''guest''))', t.id('A'), t.id('A'))), 'applied');
+select t.is('problème voyageur : résolu avec note interne et message', (t.keep('a_manager', format('select public.resolve_incident(%L, (select id from public.incidents where organization_id = %L and source = ''guest''), ''Pièce changée, facture 120 €'', ''Le technicien est passé, l''''eau chaude est revenue.'')', t.id('A'), t.id('A')))::jsonb ->> 'status'), 'ok');
+select t.is('problème voyageur : il voit la réponse, jamais la note interne',
+  t.q(null, format('select (public.guest_problems(%L))::text like ''%%eau chaude est revenue%%'' and (public.guest_problems(%L))::text not like ''%%facture%%''', t.tk('GA'), t.tk('GA'))), 'true');
+select t.is('problème voyageur : e-mail mis en file', (select count(*)::text from public.notification_outbox where template = 'problem_resolved'), '1');
 
 -- Lien révoqué : plus aucune action voyageur
 select t.keep('a_manager', format('select public.revoke_guest_link(%L, (select id from public.guest_links where reservation_id = %L and revoked_at is null))', t.id('A'), t.id('RA4')));

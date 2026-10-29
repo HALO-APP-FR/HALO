@@ -4,6 +4,7 @@ import { MapPin } from "lucide-react";
 import { Link, redirect } from "@/i18n/navigation";
 import { PageHeader } from "@/components/halo/page-header";
 import { MissionReport, type ReportRoom } from "@/components/connected/mission-report";
+import { ReportIncident } from "@/components/connected/report-incident";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 
 export default async function MissionPage({ params }: PageProps<"/[locale]/app/missions/[id]">) {
@@ -26,12 +27,13 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
     .maybeSingle();
   if (!task) notFound();
   const withChecklist = task.type === "turnover" || task.type === "inspection";
-  const [{ data: rooms }, { data: report }, { data: files }] = await Promise.all([
+  const [{ data: rooms }, { data: report }, { data: files }, { data: incidents }] = await Promise.all([
     withChecklist
       ? supabase.from("checklist_rooms").select("id, name, sort, checklist_items(id, label, photo_required, sort)").eq("organization_id", o).eq("property_id", task.property_id).order("sort")
       : Promise.resolve({ data: [] as never[] }),
     supabase.from("task_reports").select("checked").eq("organization_id", o).eq("task_id", id).maybeSingle(),
     supabase.from("files").select("id, path, checklist_item_id, created_at").eq("organization_id", o).eq("task_id", id).order("created_at"),
+    supabase.from("incidents").select("id, category, status, description").eq("organization_id", o).eq("task_id", id).order("created_at", { ascending: false }),
   ]);
   const paths = (files ?? []).map((x) => x.path);
   const signed = paths.length ? (await supabase.storage.from("org-files").createSignedUrls(paths, 900)).data ?? [] : [];
@@ -79,6 +81,11 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
         canReview={manager && task.status === "done"}
         canReopen={manager && (task.status === "done" || task.status === "validated")}
       />
+      {(mine || manager) && task.status !== "cancelled" && (
+        <div className="mt-4">
+          <ReportIncident taskId={task.id} reported={incidents ?? []} />
+        </div>
+      )}
     </>
   );
 }

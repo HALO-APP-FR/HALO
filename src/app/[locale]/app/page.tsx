@@ -1,10 +1,12 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowRight, CalendarDays, ConciergeBell, MailWarning, MessageSquare, Settings2, UserRoundX } from "lucide-react";
+import { ArrowRight, CalendarDays, ConciergeBell, MailWarning, MessageSquare, Settings2, TriangleAlert, UserRoundX } from "lucide-react";
 import { Link, redirect } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/halo/page-header";
 import { CreateOrgCard } from "@/components/connected/create-org";
 import { getContext, isManagerRole } from "@/lib/connected/context";
+import { nowDate } from "@/lib/connected/time";
+import { ArrivalsNow } from "@/components/connected/arrivals-now";
 
 export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
   const { locale } = await params;
@@ -14,27 +16,29 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
   if (!org) return <CreateOrgCard />;
   if (!isManagerRole(org.role)) redirect({ href: "/app/missions", locale });
 
-  const now = new Date();
+  const now = nowDate();
   const in7 = new Date(now.getTime() + 7 * 86_400_000).toISOString();
-  const [services, messages, outbox, stays, unassigned] = await Promise.all([
+  const [services, messages, outbox, stays, unassigned, incidents] = await Promise.all([
     supabase.from("service_requests").select("id", { count: "exact", head: true }).eq("organization_id", org.id).or("manager_unread.eq.true,status.eq.requested"),
     supabase.from("stay_messages").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("author_kind", "guest").is("read_by_team_at", null),
     supabase.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org.id).in("status", ["failed", "not_configured"]),
     supabase.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "confirmed").gte("check_in_at", now.toISOString()).lte("check_in_at", in7),
     supabase.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "unassigned").gte("window_end", now.toISOString()),
+    supabase.from("incidents").select("id", { count: "exact", head: true }).eq("organization_id", org.id).neq("status", "resolved"),
   ]);
   const onboardingDone = Boolean(org.onboarding?.completed_at);
   const enabled = ((org.onboarding?.config as { alerts?: string[] } | undefined)?.alerts ?? null) as string[] | null;
   const allRows = [
+    { key: "incidents", n: incidents.count ?? 0, href: "/app/incidents", icon: TriangleAlert, danger: true },
     { key: "services", n: services.count ?? 0, href: "/app/services", icon: ConciergeBell, danger: true },
     { key: "messages", n: messages.count ?? 0, href: "/app/stays", icon: MessageSquare, danger: true },
     { key: "unassigned", n: unassigned.count ?? 0, href: "/app/missions", icon: UserRoundX, danger: true },
     { key: "emails", n: outbox.count ?? 0, href: "/app/services", icon: MailWarning, danger: false },
     { key: "stays7", n: stays.count ?? 0, href: "/app/stays", icon: CalendarDays, danger: false },
   ] as const;
-  const alertOf = { services: "pending_services", messages: "unread_messages", unassigned: "unassigned_missions", emails: "failed_emails", stays7: "upcoming_stays" } as const;
+  const alertOf = { incidents: "pending_services", services: "pending_services", messages: "unread_messages", unassigned: "unassigned_missions", emails: "failed_emails", stays7: "upcoming_stays" } as const;
   // Alertes choisies à l'onboarding ; les demandes et messages voyageurs restent toujours visibles
-  const rows = allRows.filter((r) => !enabled || r.key === "services" || r.key === "messages" || enabled.includes(alertOf[r.key]));
+  const rows = allRows.filter((r) => !enabled || r.key === "services" || r.key === "messages" || r.key === "incidents" || enabled.includes(alertOf[r.key]));
 
   return (
     <>
@@ -49,6 +53,11 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
           <ArrowRight className="size-5 text-accent-text rtl:-scale-x-100" />
         </Link>
       )}
+      <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">{t("home.arrivalsTitle")}</h2>
+      <div className="mb-6">
+        <ArrivalsNow supabase={supabase} orgId={org.id} now={now} />
+      </div>
+      <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">{t("home.queueTitle")}</h2>
       <Card className="divide-y divide-line">
         {rows.map(({ key, n, href, icon: Icon, danger }) => (
           <Link key={key} href={href} className="flex items-center gap-3 px-4 py-3.5 hover:bg-surface-hover md:px-5" data-testid={`home-${key}`}>

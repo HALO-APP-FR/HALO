@@ -1274,7 +1274,8 @@
       "missions": "Missões",
       "properties": "Alojamentos",
       "team": "Equipa",
-      "setup": "Configuração"
+      "setup": "Configuração",
+      "incidents": "Incidentes"
     },
     "env": {
       "demo": "Demo",
@@ -1333,7 +1334,10 @@
       "bad_mime": "Formato de foto não aceite (JPEG, PNG, WebP ou HEIC).",
       "reason_required": "Indique o motivo da correção.",
       "stale": "Já existe uma versão mais recente: a página é atualizada.",
-      "already": "Já feito."
+      "already": "Já feito.",
+      "empty": "Adicione uma descrição.",
+      "too_late": "Tarde demais: a chegada já passou.",
+      "resolution_required": "Indique o que foi feito."
     },
     "home": {
       "subtitle": "O que precisa da sua atenção.",
@@ -1344,7 +1348,13 @@
       "messages": "{count, plural, =0 {Nenhuma mensagem de hóspede por ler} one {# mensagem de hóspede por ler} other {# mensagens de hóspedes por ler}}",
       "unassigned": "{count, plural, =0 {Nenhuma missão sem agente} one {# missão sem agente} other {# missões sem agente}}",
       "emails": "{count, plural, =0 {Nenhum e-mail falhado} one {# e-mail ao hóspede não enviado} other {# e-mails a hóspedes não enviados}}",
-      "stays7": "{count, plural, =0 {Nenhuma chegada nos próximos 7 dias} one {# chegada nos próximos 7 dias} other {# chegadas nos próximos 7 dias}}"
+      "stays7": "{count, plural, =0 {Nenhuma chegada nos próximos 7 dias} one {# chegada nos próximos 7 dias} other {# chegadas nos próximos 7 dias}}",
+      "incidents": "{count, plural, =0 {Nenhum incidente aberto} one {# incidente ou bloqueio aberto} other {# incidentes ou bloqueios abertos}}",
+      "arrivalsTitle": "Chegadas nas próximas 48 h: o alojamento estará pronto?",
+      "queueTitle": "Por tratar",
+      "noArrivals": "Nenhuma chegada nas próximas 48 h.",
+      "allReady": "Todas as chegadas estão prontas: limpeza validada e sem incidentes.",
+      "you": "você"
     },
     "onb": {
       "progress": "Passo {n} de {total}",
@@ -1675,7 +1685,8 @@
         "service_done": "Serviço realizado",
         "service_cancelled": "Pedido cancelado",
         "service_updated": "Pedido alterado",
-        "stay_message": "Mensagem da equipa"
+        "stay_message": "Mensagem da equipa",
+        "problem_resolved": "Problema resolvido"
       }
     },
     "services": {
@@ -1818,6 +1829,56 @@
         "invalid_name": "Use letras e números.",
         "server": "Não foi possível entrar. Nada foi criado; tente novamente."
       }
+    },
+    "incidents": {
+      "title": "Incidentes e bloqueios",
+      "subtitle": "Comunicados pelos agentes ou hóspedes, até à resolução.",
+      "loadError": "Não foi possível carregar os incidentes.",
+      "empty": "Nenhum incidente.",
+      "urgent": "Urgente",
+      "status": {
+        "open": "Novo",
+        "in_progress": "Em tratamento",
+        "resolved": "Resolvido"
+      },
+      "source": {
+        "agent": "Agente",
+        "guest": "Hóspede",
+        "manager": "Equipa"
+      },
+      "category": {
+        "blocker": "Bloqueio (acesso, ocupado…)",
+        "missing_supplies": "Falta de material ou produtos",
+        "damage": "Dano",
+        "breakdown": "Avaria",
+        "leak": "Fuga de água",
+        "cleanliness": "Limpeza",
+        "missing_item": "Objeto em falta",
+        "access": "Acesso ao alojamento",
+        "noise": "Ruído",
+        "pests": "Pragas",
+        "other": "Outro"
+      },
+      "resolvedNote": "Nota interna",
+      "sentToGuest": "Mensagem ao hóspede",
+      "openMission": "Abrir a missão",
+      "openStay": "Abrir a estadia",
+      "take": "Assumir",
+      "resolve": "Resolver",
+      "resolution": "O que foi feito (nota interna)",
+      "resolutionHint": "Nunca visível ao hóspede.",
+      "guestMessage": "Mensagem ao hóspede",
+      "guestMessageHint": "Visível no espaço (sem e-mail).",
+      "guestMessageHintEmail": "Visível no espaço e enviado por e-mail.",
+      "confirmResolve": "Marcar como resolvido",
+      "reportTitle": "Um problema no local?",
+      "report": "Comunicar",
+      "reported": "Comunicado: o responsável foi avisado.",
+      "categoryLabel": "Tipo de problema",
+      "description": "O que se passa",
+      "urgentLabel": "Urgente: impede terminar ou a chegada",
+      "cancel": "Cancelar",
+      "send": "Enviar"
     }
   },
   "email": {
@@ -1853,6 +1914,10 @@
     "stay_message": {
       "subject": "{org} — nova mensagem sobre a sua estadia",
       "body": "A equipa escreveu-lhe:"
+    },
+    "problem_resolved": {
+      "subject": "{org} — o seu problema foi resolvido",
+      "body": "A equipa marcou como resolvido o problema que comunicou."
     }
   },
   "guestSpace": {
@@ -1926,7 +1991,21 @@
       "received": "Pedido recebido",
       "updated": "Pedido alterado pela equipa"
     },
-    "linkValid": "Este link pessoal é válido até {until}. Não o partilhe."
+    "linkValid": "Este link pessoal é válido até {until}. Não o partilhe.",
+    "problem": {
+      "title": "Um problema no alojamento?",
+      "text": "Comunique aqui: a equipa é avisada e acompanha o tratamento.",
+      "category": "Tipo de problema",
+      "description": "Descreva o problema",
+      "urgent": "Urgente (água, aquecimento, acesso, segurança)",
+      "sent": "Enviado. Aparece acima com o estado.",
+      "send": "Comunicar o problema",
+      "status": {
+        "open": "Recebido",
+        "in_progress": "Em tratamento",
+        "resolved": "Resolvido"
+      }
+    }
   },
   "demoEntry": {
     "badge": "Demo",

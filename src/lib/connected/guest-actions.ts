@@ -16,7 +16,7 @@ async function call(fn: string, args: Record<string, unknown>, token: string): P
   const { data, error } = await supabaseAnon().rpc(fn, args);
   if (error) return { ok: false, error: error.code === "23514" || error.code === "22P02" ? "invalid" : "server" };
   const res = data as Rpc;
-  if (res.status !== "ok") return { ok: false, error: res.status === "empty" ? "empty" : "unavailable" };
+  if (res.status !== "ok") return { ok: false, error: res.status === "empty" ? "empty" : res.status === "invalid" ? "invalid" : "unavailable" };
   if (res.email_queued) await processOutbox();
   revalidatePath(`/[locale]/s/${token}`, "page");
   return { ok: true };
@@ -32,4 +32,8 @@ export async function guestReplyService(token: string, serviceId: string, messag
 
 export async function guestSendMessage(token: string, message: string) {
   return call("guest_send_message", { token, message }, token);
+}
+
+export async function guestReportProblem(token: string, input: { category: string; description: string; urgent: boolean }) {
+  return call("guest_report_problem", { token, i_category: input.category, i_description: input.description, i_urgent: input.urgent }, token);
 }

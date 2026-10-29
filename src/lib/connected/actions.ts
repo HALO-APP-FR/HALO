@@ -450,3 +450,69 @@ export async function requestCorrection(taskId: string, reason: string): Promise
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
+
+// ---------- Incidents et blocages ----------
+export async function reportIncident(taskId: string, category: string, description: string, urgent: boolean): Promise<Result<{ id: string }>> {
+  const ctx = await getContext();
+  if (!ctx.user || !ctx.org) return fail("not_signed_in");
+  if (description.trim().length < 3) return fail("empty");
+  const { data, error: e } = await ctx.supabase.rpc("report_incident", { org: ctx.org.id, task: taskId, i_category: category, i_description: description, i_urgent: urgent });
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: { id: data as string } };
+}
+
+export async function takeIncident(incidentId: string): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.rpc("take_incident", { org: ctx.org!.id, incident: incidentId });
+  if (e) return fail(errCode(e));
+  if (data !== "applied") return fail(String(data));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+export async function resolveIncident(incidentId: string, resolution: string, guestMessage: string): Promise<Result<{ emailQueued: boolean }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.rpc("resolve_incident", { org: ctx.org!.id, incident: incidentId, i_resolution: resolution, i_guest_message: guestMessage || null });
+  if (e) return fail(e.message?.includes("resolution_required") ? "resolution_required" : errCode(e));
+  const res = data as { status: string; email_queued?: boolean; current?: string };
+  if (res.status !== "ok") return fail(`conflict:${res.current}`);
+  if (res.email_queued) await processOutbox(ctx.org!.id);
+  revalidatePath("/", "layout");
+  return { ok: true, data: { emailQueued: Boolean(res.email_queued) } };
+}
+
+/** Ménage manquant avant une arrivée (premier séjour, séjour ajouté tard) : créé explicitement par le responsable. */
+export async function createCleaningForStay(stayId: string): Promise<Result<{ id: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const o = ctx.org!.id;
+  const { data: r } = await ctx.supabase.from("reservations").select("id, property_id, check_in_at").eq("organization_id", o).eq("id", stayId).maybeSingle();
+  if (!r) return fail("not_found");
+  const [{ data: p }, { data: prev }] = await Promise.all([
+    ctx.supabase.from("properties").select("cleaning_duration_min").eq("organization_id", o).eq("id", r.property_id).single(),
+    ctx.supabase.from("reservations").select("check_out_at").eq("organization_id", o).eq("property_id", r.property_id).eq("status", "confirmed").lte("check_out_at", r.check_in_at).order("check_out_at", { ascending: false }).limit(1),
+  ]);
+  const checkIn = new Date(r.check_in_at).getTime();
+  const start = Math.max(Date.now(), prev?.[0] ? new Date(prev[0].check_out_at).getTime() : 0);
+  if (start >= checkIn) return fail("too_late");
+  const { data, error: e } = await ctx.supabase
+    .from("tasks")
+    .insert({
+      organization_id: o,
+      property_id: r.property_id,
+      next_reservation_id: r.id,
+      type: "turnover",
+      is_auto_generated: false,
+      window_start: new Date(start).toISOString(),
+      window_end: new Date(checkIn).toISOString(),
+      duration_min: Math.min(p?.cleaning_duration_min ?? 90, Math.max(5, Math.floor((checkIn - start) / 60_000))),
+    })
+    .select("id")
+    .single();
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: { id: data.id as string } };
+}

@@ -1274,7 +1274,8 @@
       "missions": "Einsätze",
       "properties": "Unterkünfte",
       "team": "Team",
-      "setup": "Einrichtung"
+      "setup": "Einrichtung",
+      "incidents": "Vorfälle"
     },
     "env": {
       "demo": "Demo",
@@ -1333,7 +1334,10 @@
       "bad_mime": "Fotoformat nicht unterstützt (JPEG, PNG, WebP oder HEIC).",
       "reason_required": "Geben Sie den Grund an.",
       "stale": "Es gibt bereits eine neuere Version: Die Seite wird aktualisiert.",
-      "already": "Bereits erledigt."
+      "already": "Bereits erledigt.",
+      "empty": "Beschreibung hinzufügen.",
+      "too_late": "Zu spät: Die Anreise ist bereits vorbei.",
+      "resolution_required": "Geben Sie an, was getan wurde."
     },
     "home": {
       "subtitle": "Was Ihre Aufmerksamkeit braucht.",
@@ -1344,7 +1348,13 @@
       "messages": "{count, plural, =0 {Keine ungelesene Gästenachricht} one {# ungelesene Gästenachricht} other {# ungelesene Gästenachrichten}}",
       "unassigned": "{count, plural, =0 {Kein Einsatz ohne Mitarbeiter} one {# Einsatz ohne Mitarbeiter} other {# Einsätze ohne Mitarbeiter}}",
       "emails": "{count, plural, =0 {Keine fehlgeschlagene Gäste-E-Mail} one {# Gäste-E-Mail nicht gesendet} other {# Gäste-E-Mails nicht gesendet}}",
-      "stays7": "{count, plural, =0 {Keine Anreise in den nächsten 7 Tagen} one {# Anreise in den nächsten 7 Tagen} other {# Anreisen in den nächsten 7 Tagen}}"
+      "stays7": "{count, plural, =0 {Keine Anreise in den nächsten 7 Tagen} one {# Anreise in den nächsten 7 Tagen} other {# Anreisen in den nächsten 7 Tagen}}",
+      "incidents": "{count, plural, =0 {Kein offener Vorfall} one {# offener Vorfall oder Blocker} other {# offene Vorfälle oder Blocker}}",
+      "arrivalsTitle": "Anreisen in den nächsten 48 Std.: Ist die Unterkunft bereit?",
+      "queueTitle": "Zu erledigen",
+      "noArrivals": "Keine Anreise in den nächsten 48 Std.",
+      "allReady": "Alle Anreisen sind bereit: Reinigung freigegeben, kein offener Vorfall.",
+      "you": "Sie"
     },
     "onb": {
       "progress": "Schritt {n} von {total}",
@@ -1675,7 +1685,8 @@
         "service_done": "Leistung erbracht",
         "service_cancelled": "Anfrage storniert",
         "service_updated": "Anfrage geändert",
-        "stay_message": "Nachricht vom Team"
+        "stay_message": "Nachricht vom Team",
+        "problem_resolved": "Problem gelöst"
       }
     },
     "services": {
@@ -1818,6 +1829,56 @@
         "invalid_name": "Buchstaben und Ziffern verwenden.",
         "server": "Anmeldung derzeit nicht möglich. Nichts wurde erstellt; bitte erneut versuchen."
       }
+    },
+    "incidents": {
+      "title": "Vorfälle und Blocker",
+      "subtitle": "Von Mitarbeitern oder Gästen gemeldet, bis zur Lösung.",
+      "loadError": "Vorfälle konnten nicht geladen werden.",
+      "empty": "Kein Vorfall gemeldet.",
+      "urgent": "Dringend",
+      "status": {
+        "open": "Neu",
+        "in_progress": "In Bearbeitung",
+        "resolved": "Gelöst"
+      },
+      "source": {
+        "agent": "Mitarbeiter",
+        "guest": "Gast",
+        "manager": "Team"
+      },
+      "category": {
+        "blocker": "Blockade (Zugang, belegt…)",
+        "missing_supplies": "Fehlendes Material",
+        "damage": "Schaden",
+        "breakdown": "Gerätedefekt",
+        "leak": "Wasserleck",
+        "cleanliness": "Sauberkeit",
+        "missing_item": "Fehlender Gegenstand",
+        "access": "Zugang zur Unterkunft",
+        "noise": "Lärm",
+        "pests": "Schädlinge",
+        "other": "Sonstiges"
+      },
+      "resolvedNote": "Interne Notiz",
+      "sentToGuest": "Nachricht an den Gast",
+      "openMission": "Einsatz öffnen",
+      "openStay": "Aufenthalt öffnen",
+      "take": "Übernehmen",
+      "resolve": "Lösen",
+      "resolution": "Was getan wurde (interne Notiz)",
+      "resolutionHint": "Nie für den Gast sichtbar.",
+      "guestMessage": "Nachricht an den Gast",
+      "guestMessageHint": "Im Gästebereich sichtbar (keine E-Mail).",
+      "guestMessageHintEmail": "Im Gästebereich sichtbar und per E-Mail gesendet.",
+      "confirmResolve": "Als gelöst markieren",
+      "reportTitle": "Ein Problem vor Ort?",
+      "report": "Melden",
+      "reported": "Gemeldet: Ihr Verantwortlicher ist informiert.",
+      "categoryLabel": "Art des Problems",
+      "description": "Was ist los",
+      "urgentLabel": "Dringend: verhindert Abschluss oder Anreise",
+      "cancel": "Abbrechen",
+      "send": "Meldung senden"
     }
   },
   "email": {
@@ -1853,6 +1914,10 @@
     "stay_message": {
       "subject": "{org} — neue Nachricht zu Ihrem Aufenthalt",
       "body": "Das Team schreibt Ihnen:"
+    },
+    "problem_resolved": {
+      "subject": "{org} — Ihre Meldung wurde gelöst",
+      "body": "Das Team hat das gemeldete Problem als gelöst markiert."
     }
   },
   "guestSpace": {
@@ -1926,7 +1991,21 @@
       "received": "Anfrage erhalten",
       "updated": "Anfrage vom Team geändert"
     },
-    "linkValid": "Dieser persönliche Link gilt bis {until}. Bitte nicht teilen."
+    "linkValid": "Dieser persönliche Link gilt bis {until}. Bitte nicht teilen.",
+    "problem": {
+      "title": "Ein Problem in der Unterkunft?",
+      "text": "Hier melden: Das Team wird informiert, Sie verfolgen die Bearbeitung.",
+      "category": "Art des Problems",
+      "description": "Problem beschreiben",
+      "urgent": "Dringend (Wasser, Heizung, Zugang, Sicherheit)",
+      "sent": "Gesendet. Es erscheint oben mit Status.",
+      "send": "Problem melden",
+      "status": {
+        "open": "Erhalten",
+        "in_progress": "In Bearbeitung",
+        "resolved": "Gelöst"
+      }
+    }
   },
   "demoEntry": {
     "badge": "Demo",

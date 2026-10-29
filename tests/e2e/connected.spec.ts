@@ -553,3 +553,65 @@ test("13 · compte de test de préproduction : connexion sans e-mail, retour à 
   await expect(b.getByRole("heading", { name: `Revue ${run}` })).toBeVisible();
   for (const c of [a, b]) await c.context().close();
 });
+
+test("14 · logement prêt ? arrivées réelles, ménage manquant, incidents agent et voyageur jusqu'à résolution", async ({ browser }) => {
+  const m = await newPage(browser);
+  await signIn(m, managerA);
+  // Premier séjour du logement : aucun ménage avant l'arrivée → bloquée, action « Créer le ménage »
+  const row = m.getByTestId("arrival-row").filter({ hasText: "Alex Martin" });
+  await expect(row).toHaveAttribute("data-state", "blocked");
+  await expect(row).toContainText("Aucun ménage relié à ce séjour");
+  await row.getByTestId("create-cleaning").click();
+  await expect(row).toContainText("Ménage sans agent");
+
+  // Agent : signale un manque de matériel urgent depuis sa mission
+  const agent = await newPage(browser);
+  await signIn(agent, agentA);
+  await agent.goto("/fr/app/missions");
+  await agent.getByTestId("mission-link").first().click();
+  await agent.getByTestId("report-open").click();
+  await agent.getByLabel("Type de problème").selectOption("missing_supplies");
+  await agent.getByTestId("report-description").fill("Plus de produit vaisselle");
+  await agent.getByTestId("report-urgent").check();
+  await agent.getByTestId("report-send").click();
+  await expect(agent.getByText("Signalé : votre responsable est prévenu.")).toBeVisible();
+  await expect(agent.getByTestId("reported-incident")).toContainText("Manque de matériel");
+
+  // Manager : le voit, le prend en charge, le résout
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-incidents")).toContainText("1 incident ou blocage ouvert");
+  await m.goto("/fr/app/incidents");
+  const inc = m.getByTestId("incident-row").filter({ hasText: "Plus de produit vaisselle" });
+  await inc.getByTestId("incident-take").click();
+  await expect(inc).toHaveAttribute("data-status", "in_progress");
+  await inc.getByTestId("incident-resolve-open").click();
+  await inc.getByTestId("incident-resolution").fill("Livraison de produits à 14 h");
+  await inc.getByTestId("incident-resolve").click();
+  await expect(inc).toHaveAttribute("data-status", "resolved");
+
+  // Voyageur : signale un problème, l'équipe répond, il voit la réponse (pas la note interne) et reçoit l'e-mail
+  await m.goto(`/fr/app/stays/${s.stayA}`);
+  await m.getByTestId("link-create").click();
+  const token = (await m.getByTestId("guest-link-url").inputValue()).split("/").pop()!;
+  const guest = await newPage(browser);
+  await guest.goto(`/fr/s/${token}`);
+  await guest.waitForLoadState("networkidle");
+  await guest.getByLabel("Type de problème").selectOption("breakdown");
+  await guest.getByTestId("guest-problem-description").fill("Le chauffe-eau ne marche pas");
+  await guest.getByTestId("guest-problem-send").click();
+  await expect(guest.getByTestId("guest-problem-ok")).toBeVisible();
+  await expect(guest.getByTestId("guest-problem").first()).toHaveAttribute("data-status", "open");
+  await m.goto("/fr/app/incidents");
+  const gi = m.getByTestId("incident-row").filter({ hasText: "Le chauffe-eau ne marche pas" });
+  await gi.getByTestId("incident-resolve-open").click();
+  await gi.getByTestId("incident-resolution").fill("Plombier Dupont, 90 €");
+  await gi.getByTestId("incident-guest-message").fill("Un plombier est passé, l'eau chaude est revenue.");
+  await gi.getByTestId("incident-resolve").click();
+  await expect(gi).toHaveAttribute("data-status", "resolved");
+  await guest.reload();
+  await expect(guest.getByTestId("guest-problem").first()).toHaveAttribute("data-status", "resolved");
+  await expect(guest.getByTestId("guest-problem").first()).toContainText("l'eau chaude est revenue");
+  await expect(guest.locator("body")).not.toContainText("90 €");
+  await expect.poll(async () => (await mailsFor(guestEmail)).map((x) => x.subject).join("|")).toContain("votre signalement est résolu");
+  for (const c of [m, agent, guest]) await c.context().close();
+});

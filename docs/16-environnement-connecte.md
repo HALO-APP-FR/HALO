@@ -15,6 +15,8 @@
 | Équipe | Lien d'invitation (7 jours), acceptation avec son propre compte | `/app/team`, `/invite/[token]` |
 | Espace voyageur | Lien de séjour sans compte : livret, dates, demandes, réponses, messages | `/s/[token]` |
 | Prestations | Reçue, précisions (question + réponse), acceptée, refusée (motif), modifiée, annulée, réalisée | `/app/services` |
+| Logement prêt ? | Accueil manager : arrivées des 48 h avec état (bloquée, à surveiller, en préparation, prête), cause, qui agit et action ; même moteur que la démo, sur les données réelles ; « Créer le ménage » si aucun ménage avant l'arrivée | `/app` |
+| Incidents et blocages | Agent depuis sa mission (blocage, manque de matériel, dégât…), voyageur depuis son espace ; prise en charge et résolution par l'équipe ; note interne séparée du message au voyageur (e-mail s'il a une adresse) ; incidents ouverts pris en compte dans « logement prêt » | `/app/incidents`, mission, `/s/<lien>` |
 | Notifications | Dans l'espace voyageur + e-mail si adresse connue **et** fournisseur configuré ; état réel, échec visible, relance | historique d'envoi |
 
 Le reste de l'application (planning, linge, arrivées, alertes…) **reste la démo** (navigateur, badge « Démo »). Les deux ne se mélangent pas : la démo n'écrit jamais dans la base, l'environnement connecté n'utilise pas le stockage du navigateur.

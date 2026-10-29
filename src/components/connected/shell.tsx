@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { Building2, CalendarDays, ConciergeBell, House, ListChecks, Settings2, Users } from "lucide-react";
+import { Building2, CalendarDays, ConciergeBell, House, ListChecks, Settings2, TriangleAlert, Users } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Logo } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
@@ -11,6 +11,7 @@ const MANAGER_NAV = [
   { key: "home", href: "/app", icon: House },
   { key: "stays", href: "/app/stays", icon: CalendarDays },
   { key: "services", href: "/app/services", icon: ConciergeBell },
+  { key: "incidents", href: "/app/incidents", icon: TriangleAlert },
   { key: "missions", href: "/app/missions", icon: ListChecks },
   { key: "properties", href: "/app/properties", icon: Building2 },
   { key: "team", href: "/app/team", icon: Users },

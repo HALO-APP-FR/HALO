@@ -154,6 +154,17 @@ export async function GET(request: NextRequest) {
     const { data: bSvc } = await b.from("service_requests").select("id").eq("id", svc!.id);
     check("other_org_cannot_read_service", (bSvc ?? []).length === 0);
 
+    // 6b. Incidents : problème signalé par le voyageur, invisible pour une autre organisation, résolu par l'équipe
+    const { data: gp } = await guest.rpc("guest_report_problem", { token: tokenA as string, i_category: "breakdown", i_description: `Panne ${run}`, i_urgent: true });
+    check("guest_reports_problem", (gp as { status: string })?.status === "ok");
+    const { data: bInc } = await b.from("incidents").select("id");
+    check("other_org_cannot_read_incidents", (bInc ?? []).length === 0);
+    const { data: aInc } = await a1.from("incidents").select("id").eq("organization_id", orgA).eq("source", "guest").single();
+    const { data: rs, error: rse } = await a1.rpc("resolve_incident", { org: orgA, incident: aInc!.id, i_resolution: `INTERNE-${run}`, i_guest_message: `Réparé ${run}` });
+    const { data: gProblems } = await guest.rpc("guest_problems", { token: tokenA as string });
+    const gpt = JSON.stringify(gProblems);
+    check("guest_sees_resolution_not_internal_note", !rse && (rs as { status: string })?.status === "ok" && gpt.includes(`Réparé ${run}`) && !gpt.includes(`INTERNE-${run}`));
+
     // 7. Révocation
     const { data: links } = await a1.from("guest_links").select("id").eq("reservation_id", rA!.id).is("revoked_at", null);
     await a1.rpc("revoke_guest_link", { org: orgA, link: links![0].id });

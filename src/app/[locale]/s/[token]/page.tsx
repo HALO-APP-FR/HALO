@@ -4,7 +4,7 @@ import { Bell, CalendarDays, MapPin } from "lucide-react";
 import { LogoMark } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
 import { Card } from "@/components/ui/card";
-import { GuestMessageForm, GuestReply, GuestRequestForm } from "@/components/connected/guest-forms";
+import { GuestMessageForm, GuestProblemForm, GuestReply, GuestRequestForm } from "@/components/connected/guest-forms";
 import { supabaseAnon } from "@/lib/supabase/server";
 import { isConnected } from "@/lib/supabase/config";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 
 interface GEvent { kind: string; status: string | null; body: string | null; author: string; at: string }
 interface GService { id: string; kind: string; start_at: string; people: number | null; details: string | null; status: string; created_at: string; events: GEvent[] }
+interface GProblem { id: string; category: string; description: string; urgent: boolean; status: string; created_at: string; resolved_at: string | null; message: string | null }
 interface GStay {
   status: "ok";
   previously_opened_at: string | null;
@@ -36,14 +37,21 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
   const t = await getTranslations("guestSpace");
   const tk = await getTranslations("serviceKind");
   const ts = await getTranslations("serviceStatus");
+  const tcat = await getTranslations("connected.incidents.category");
   const f = await getFormatter();
 
   let data: GStay | { status: string } | null = null;
+  let problems: GProblem[] = [];
   let failed = false;
   if (isConnected()) {
-    const { data: d, error } = await supabaseAnon().rpc("get_guest_stay", { token });
+    const anon = supabaseAnon();
+    const { data: d, error } = await anon.rpc("get_guest_stay", { token });
     if (error) failed = true;
     else data = d as GStay | { status: string };
+    if (!failed && data?.status === "ok") {
+      const { data: pr } = await anon.rpc("guest_problems", { token });
+      problems = ((pr as { problems?: GProblem[] } | null)?.problems ?? []) as GProblem[];
+    }
   }
 
   if (!data || data.status !== "ok") {
@@ -143,6 +151,28 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
           <h2 className="text-[17px] font-semibold">{t("request.title")}</h2>
           <p className="mb-4 mt-1 text-[14px] text-muted">{t("request.text")}</p>
           <GuestRequestForm token={token} kinds={kinds} minDate={toLocal(new Date().toISOString())} />
+        </Card>
+
+        <Card className="p-5" data-testid="guest-problems">
+          <h2 className="text-[17px] font-semibold">{t("problem.title")}</h2>
+          <p className="mt-1 text-[14px] text-muted">{t("problem.text")}</p>
+          {problems.length > 0 && (
+            <ul className="mt-3 space-y-2">
+              {problems.map((p) => (
+                <li key={p.id} className="rounded-md border border-line p-3 text-[14px]" data-testid="guest-problem" data-status={p.status}>
+                  <p className="flex flex-wrap items-center gap-2 font-medium">
+                    <span className="flex-1">{tcat(p.category)}</span>
+                    <span className={cn("rounded-full px-2 py-0.5 text-[12px] font-semibold", p.status === "resolved" ? "bg-success-soft text-success" : p.status === "in_progress" ? "bg-accent-soft text-accent-text" : "bg-subtle text-muted")}>
+                      {t(`problem.status.${p.status}`)}
+                    </span>
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap text-muted">{p.description}</p>
+                  {p.message && <p className="mt-2 whitespace-pre-wrap">« {p.message} »</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+          <GuestProblemForm token={token} />
         </Card>
 
         <Card className="p-5" data-testid="guest-messages">
