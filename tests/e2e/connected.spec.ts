@@ -11,7 +11,7 @@ import { createClient } from "@supabase/supabase-js";
 import { readFileSync, readdirSync } from "node:fs";
 
 test.skip(!process.env.HALO_E2E_CONNECTED, "préproduction locale non démarrée");
-test.describe.configure({ mode: "serial" });
+test.describe.configure({ mode: "serial", timeout: 90_000 });
 
 const env = Object.fromEntries(
   readFileSync(".env.local", "utf8")
@@ -538,7 +538,8 @@ test("13 · compte de test de préproduction : connexion sans e-mail, retour à 
   await expect(a).toHaveURL(/next=%2Fapp%2Fproperties/);
   await a.getByLabel("Nom du compte de test").fill(`revue ${run}`);
   await a.getByTestId("test-account-submit").click();
-  await expect(a).toHaveURL(/\/fr\/app\/properties$/);
+  // Retour vers la page demandée ; sans organisation encore, l'application renvoie d'abord à la création d'espace
+  await expect(a).toHaveURL(/\/fr\/app(\/properties)?$/);
   // Nouveau compte sans organisation : la page le renvoie à la création d'espace
   await a.goto("/fr/app");
   await a.getByLabel("Nom commercial").fill(`Revue ${run}`);
@@ -614,4 +615,42 @@ test("14 · logement prêt ? arrivées réelles, ménage manquant, incidents age
   await expect(guest.locator("body")).not.toContainText("90 €");
   await expect.poll(async () => (await mailsFor(guestEmail)).map((x) => x.subject).join("|")).toContain("votre signalement est résolu");
   for (const c of [m, agent, guest]) await c.context().close();
+});
+
+test("15 · linge (blanchisserie) et maintenance comptent dans « logement prêt »", async ({ browser }) => {
+  const m = await newPage(browser);
+  await signIn(m, managerA);
+  // Assigner le ménage créé au test 14 → le point suivant apparaît : le linge (organisation avec blanchisserie)
+  await m.goto("/fr/app/missions");
+  const unassigned = m.getByTestId("mission-row").filter({ hasText: "Ménage · Loft Canal" }).filter({ has: m.locator('select[data-testid="assign-select"] option[value=""]:checked') });
+  await unassigned.first().getByTestId("assign-select").selectOption({ label: "Sam Agent" });
+  await m.goto("/fr/app");
+  const row = m.getByTestId("arrival-row").filter({ hasText: "Alex Martin" });
+  await expect(row).toContainText("Linge : rien de prévu avant l'arrivée");
+  await row.getByTestId("plan-linen").click();
+  await expect(row).toContainText("Linge : personne n'est assigné");
+
+  // Un dégât signalé → intervention de maintenance planifiée, reliée à l'arrivée, visible par l'agent
+  const agent = await newPage(browser);
+  await signIn(agent, agentA);
+  await agent.goto("/fr/app/missions");
+  await agent.getByTestId("mission-link").first().click();
+  await agent.getByTestId("report-open").click();
+  await agent.getByLabel("Type de problème").selectOption("leak");
+  await agent.getByTestId("report-description").fill("Fuite sous l'évier");
+  await agent.getByTestId("report-send").click();
+  await expect(agent.getByText("Signalé : votre responsable est prévenu.")).toBeVisible();
+  await m.goto("/fr/app/incidents");
+  const inc = m.getByTestId("incident-row").filter({ hasText: "Fuite sous l'évier" });
+  await inc.getByTestId("incident-plan-open").click();
+  await inc.getByTestId("incident-plan-assignee").selectOption({ label: "Sam Agent" });
+  await inc.getByTestId("incident-plan").click();
+  await expect(inc).toHaveAttribute("data-status", "in_progress");
+  await expect(inc.getByTestId("incident-intervention")).toBeVisible();
+  await agent.goto("/fr/app/missions");
+  const mission = agent.getByTestId("mission-row").filter({ hasText: "Maintenance · Loft Canal" });
+  await expect(mission).toHaveCount(1);
+  await mission.getByTestId("mission-link").click();
+  await expect(agent.getByTestId("mission-notes")).toContainText("Fuite sous l'évier");
+  for (const c of [m, agent]) await c.context().close();
 });

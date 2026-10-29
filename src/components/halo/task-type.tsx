@@ -6,6 +6,7 @@ import {
   KeyRound,
   Package,
   Sparkles,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import type { TaskType } from "@/lib/domain/types";
@@ -18,6 +19,7 @@ export const TASK_TYPE_META: Record<TaskType, { icon: LucideIcon; text: string; 
   linen_delivery: { icon: BedDouble, text: "text-type-linen", bg: "bg-type-linen/10", bar: "bg-type-linen" },
   linen_pickup: { icon: Package, text: "text-type-linen", bg: "bg-type-linen/10", bar: "bg-type-linen" },
   inspection: { icon: ClipboardCheck, text: "text-type-other", bg: "bg-type-other/10", bar: "bg-type-other" },
+  maintenance: { icon: Wrench, text: "text-type-other", bg: "bg-type-other/10", bar: "bg-type-other" },
   other: { icon: CircleDot, text: "text-type-other", bg: "bg-type-other/10", bar: "bg-type-other" },
 };
 

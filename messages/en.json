@@ -50,7 +50,8 @@
     "linen_delivery": "Linen drop-off",
     "linen_pickup": "Linen pickup",
     "inspection": "Inspection",
-    "other": "Other"
+    "other": "Other",
+    "maintenance": "Maintenance"
   },
   "taskStatus": {
     "unassigned": "Unassigned",
@@ -1251,7 +1252,11 @@
       "open_incident": "Incident open in the property",
       "linen_shortage": "Linen shortage expected on cleaning day (central stock)",
       "service_pending": "Service request waiting for a decision",
-      "guest_arrived_not_ready": "Arrival time passed: property not ready"
+      "guest_arrived_not_ready": "Arrival time passed: property not ready",
+      "step_missing": "{step}: nothing planned before arrival",
+      "step_unassigned": "{step}: nobody assigned",
+      "step_late": "{step}: running late",
+      "step_review": "{step}: finished, to check"
     },
     "action": {
       "assign": "Assign",
@@ -1260,7 +1265,13 @@
       "create_cleaning": "Create the cleaning",
       "open_incident": "Handle the incident",
       "open_service": "Handle the request",
-      "open_linen": "See linen"
+      "open_linen": "See linen",
+      "create_linen": "Plan the delivery"
+    },
+    "step": {
+      "linen": "Linen",
+      "maintenance": "Maintenance",
+      "inspection": "Quality check"
     }
   },
   "connected": {
@@ -1337,7 +1348,8 @@
       "already": "Already done.",
       "empty": "Add a description.",
       "too_late": "Too late: the arrival time has passed.",
-      "resolution_required": "Say what was done."
+      "resolution_required": "Say what was done.",
+      "invalid_window": "The time slot isn't valid (end after start, at least 5 min)."
     },
     "home": {
       "subtitle": "What needs your attention.",
@@ -1354,7 +1366,8 @@
       "queueTitle": "To handle",
       "noArrivals": "No arrival in the next 48 hours.",
       "allReady": "All arrivals are ready: cleaning validated and no open incident.",
-      "you": "you"
+      "you": "you",
+      "pending": "Still to do before arrival: {steps}"
     },
     "onb": {
       "progress": "Step {n} of {total}",
@@ -1816,7 +1829,8 @@
       "validate": "Validate the mission",
       "correctionReason": "Correction reason",
       "correctionHint": "The agent will see it when reopening the mission.",
-      "requestCorrection": "Request a correction"
+      "requestCorrection": "Request a correction",
+      "notes": "To handle"
     },
     "testAccount": {
       "title": "Pre-production: test account without email",
@@ -1878,7 +1892,16 @@
       "description": "What's happening",
       "urgentLabel": "Urgent: prevents finishing or the guest's arrival",
       "cancel": "Cancel",
-      "send": "Send report"
+      "send": "Send report",
+      "plan": "Plan an intervention",
+      "planAssignee": "Who handles it",
+      "planNobody": "Assign later",
+      "planFrom": "From",
+      "planTo": "At the latest",
+      "planDuration": "Duration (min)",
+      "planHint": "The mission is linked to the property's next arrival: until it's done, that arrival isn't “ready”.",
+      "planConfirm": "Create the intervention",
+      "openIntervention": "See the intervention"
     }
   },
   "email": {

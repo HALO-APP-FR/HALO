@@ -27,6 +27,9 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     supabase.from("incidents").select("id", { count: "exact", head: true }).eq("organization_id", org.id).neq("status", "resolved"),
   ]);
   const onboardingDone = Boolean(org.onboarding?.completed_at);
+  // Linge suivi dans « logement prêt » seulement si l'organisation travaille avec une blanchisserie (réponse d'onboarding)
+  const { data: orgRow } = await supabase.from("organizations").select("linen_model").eq("id", org.id).single();
+  const linenRequired = orgRow?.linen_model === "laundry" || orgRow?.linen_model === "both";
   const enabled = ((org.onboarding?.config as { alerts?: string[] } | undefined)?.alerts ?? null) as string[] | null;
   const allRows = [
     { key: "incidents", n: incidents.count ?? 0, href: "/app/incidents", icon: TriangleAlert, danger: true },
@@ -55,7 +58,7 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
       )}
       <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">{t("home.arrivalsTitle")}</h2>
       <div className="mb-6">
-        <ArrivalsNow supabase={supabase} orgId={org.id} now={now} />
+        <ArrivalsNow supabase={supabase} orgId={org.id} now={now} linenRequired={linenRequired} />
       </div>
       <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">{t("home.queueTitle")}</h2>
       <Card className="divide-y divide-line">

@@ -21,7 +21,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
   // La base ne renvoie la mission qu'à un manager ou à son agent assigné
   const { data: task } = await supabase
     .from("tasks")
-    .select("id, type, status, window_start, window_end, assignee_id, correction_reason, property_id, properties(name, address_line, city, instructions)")
+    .select("id, type, status, window_start, window_end, assignee_id, correction_reason, notes, property_id, properties(name, address_line, city, instructions)")
     .eq("organization_id", o)
     .eq("id", id)
     .maybeSingle();
@@ -61,6 +61,12 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
           <MapPin className="size-4" />
           {[p?.address_line, p?.city].filter(Boolean).join(", ")}
         </p>
+      )}
+      {task.notes && (
+        <div className="mb-4 rounded-xl border border-warning bg-warning-soft p-4" data-testid="mission-notes">
+          <h2 className="text-[13px] font-medium text-muted">{t("notes")}</h2>
+          <p className="mt-1 whitespace-pre-wrap text-[15px]">{task.notes}</p>
+        </div>
       )}
       {p?.instructions && (
         <div className="mb-4 rounded-xl border border-line bg-surface p-4">

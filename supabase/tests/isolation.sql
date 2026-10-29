@@ -705,6 +705,15 @@ select t.is('problème voyageur : il voit la réponse, jamais la note interne',
   t.q(null, format('select (public.guest_problems(%L))::text like ''%%eau chaude est revenue%%'' and (public.guest_problems(%L))::text not like ''%%facture%%''', t.tk('GA'), t.tk('GA'))), 'true');
 select t.is('problème voyageur : e-mail mis en file', (select count(*)::text from public.notification_outbox where template = 'problem_resolved'), '1');
 
+-- Intervention de maintenance suite à un incident
+select t.err('intervention : un agent ne la crée pas', t.q('a_agent', format('select public.create_intervention(%L, (select id from public.incidents where organization_id = %L and source = ''agent''), null, now(), now() + interval ''2 hours'', 60)', t.id('A'), t.id('A'))), '42501');
+select t.err('intervention : le manager de B ne la crée pas', t.q('b_manager', format('select public.create_intervention(%L, (select id from public.incidents where organization_id = %L and source = ''agent''), null, now(), now() + interval ''2 hours'', 60)', t.id('A'), t.id('A'))), '42501');
+select t.err('intervention : pas pour un agent d''une autre organisation', t.q('a_manager', format('select public.create_intervention(%L, (select id from public.incidents where organization_id = %L and source = ''agent''), %L, now(), now() + interval ''2 hours'', 60)', t.id('A'), t.id('A'), t.id('b_agent'))), '22023');
+select t.is('intervention : le manager la crée, assignée à son agent', (t.keep('a_manager', format('select public.create_intervention(%L, (select id from public.incidents where organization_id = %L and source = ''agent''), %L, now(), now() + interval ''2 hours'', 60) is not null', t.id('A'), t.id('A'), t.id('a_agent')))), 'true');
+select t.is('intervention : mission de maintenance reliée, incident pris en charge', t.q('a_manager', format('select t.type || ''/'' || i.status from public.incidents i join public.tasks t on t.id = i.follow_up_task_id where i.organization_id = %L and i.source = ''agent''', t.id('A'))), 'maintenance/in_progress');
+select t.is('intervention : l''agent la voit dans ses missions', t.q('a_agent', 'select count(*) from public.tasks where type = ''maintenance'''), '1');
+select t.is('intervention : invisible pour B', t.q('b_manager', 'select count(*) from public.tasks where type = ''maintenance'''), '0');
+
 -- Lien révoqué : plus aucune action voyageur
 select t.keep('a_manager', format('select public.revoke_guest_link(%L, (select id from public.guest_links where reservation_id = %L and revoked_at is null))', t.id('A'), t.id('RA4')));
 select t.is('révocation : plus de demande possible', (t.q(null, format('select public.guest_request_service(%L, ''spa'', now(), 1, null)', t.tk('GA')))::jsonb ->> 'status'), 'unavailable');

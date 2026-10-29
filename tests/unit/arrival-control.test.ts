@@ -60,3 +60,33 @@ describe("poste de pilotage des arrivées", () => {
     expect(run([stay("a", { status: "cancelled" })], [])).toEqual([]);
   });
 });
+
+describe("étapes complémentaires (environnement connecté) : linge, maintenance, contrôle", () => {
+  const step = (stayId: string, type: Task["type"], over: Partial<Task> = {}): Task => clean(stayId, { id: `${type}_${stayId}`, type, windowEnd: "2026-10-28T14:00:00Z", ...over });
+  const runS = (tasks: Task[], linenRequired = true) => arrivalControl({ stays: [stay("a")], tasks, alerts: [], services: [], now, steps: { linenRequired } });
+
+  it("blanchisserie : sans livraison de linge prévue, l'arrivée n'est jamais « prête »", () => {
+    const [r] = runS([clean("a", { status: "validated" })]);
+    expect(r).toMatchObject({ state: "watch", blockers: [{ kind: "step_missing", detail: "linen", action: { kind: "create_linen" } }] });
+    expect(runS([clean("a", { status: "validated" })], false)[0].state).toBe("ready");
+  });
+  it("linge livré + ménage validé = prête ; linge prévu pas encore livré = en préparation, sans alerte", () => {
+    expect(runS([clean("a", { status: "validated" }), step("a", "linen_delivery", { status: "done" })])[0].state).toBe("ready");
+    const [p] = runS([clean("a", { status: "validated" }), step("a", "linen_delivery")]);
+    expect(p).toMatchObject({ state: "preparing", blockers: [], pending: ["linen"] });
+  });
+  it("étape en retard = bloquée, avec son responsable ; sans agent = à surveiller", () => {
+    const late = runS([clean("a", { status: "validated" }), step("a", "maintenance", { windowEnd: "2026-10-28T09:00:00Z" })], false)[0];
+    expect(late).toMatchObject({ state: "blocked", blockers: [{ kind: "step_late", detail: "maintenance", responsible: { kind: "member", id: "a1" } }] });
+    const un = runS([clean("a", { status: "validated" }), step("a", "maintenance", { status: "unassigned", assigneeId: undefined })], false)[0];
+    expect(un).toMatchObject({ state: "watch", blockers: [{ kind: "step_unassigned", action: { kind: "assign" } }] });
+  });
+  it("contrôle qualité terminé = à valider ; validé = prête", () => {
+    expect(runS([clean("a", { status: "validated" }), step("a", "inspection", { status: "done" })], false)[0]).toMatchObject({ state: "watch", blockers: [{ kind: "step_review", detail: "inspection" }] });
+    expect(runS([clean("a", { status: "validated" }), step("a", "inspection", { status: "validated" })], false)[0].state).toBe("ready");
+  });
+  it("sans étapes demandées (démo), le comportement ne change pas", () => {
+    const [r] = run([stay("a")], [clean("a", { status: "validated" }), step("a", "linen_delivery")]);
+    expect(r).toMatchObject({ state: "ready", pending: [] });
+  });
+});

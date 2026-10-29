@@ -16,6 +16,7 @@
 | Espace voyageur | Lien de séjour sans compte : livret, dates, demandes, réponses, messages | `/s/[token]` |
 | Prestations | Reçue, précisions (question + réponse), acceptée, refusée (motif), modifiée, annulée, réalisée | `/app/services` |
 | Logement prêt ? | Accueil manager : arrivées des 48 h avec état (bloquée, à surveiller, en préparation, prête), cause, qui agit et action ; même moteur que la démo, sur les données réelles ; « Créer le ménage » si aucun ménage avant l'arrivée | `/app` |
+| Linge et maintenance | Étapes réellement suivies dans « logement prêt » : livraison de linge exigée si l'organisation a répondu « blanchisserie » à l'onboarding (sinon rien n'est exigé), intervention de maintenance planifiée depuis un incident et reliée à la prochaine arrivée, contrôle qualité s'il existe. Une étape en retard bloque l'arrivée ; non faite, elle l'empêche d'être « prête » | `/app`, `/app/incidents` |
 | Incidents et blocages | Agent depuis sa mission (blocage, manque de matériel, dégât…), voyageur depuis son espace ; prise en charge et résolution par l'équipe ; note interne séparée du message au voyageur (e-mail s'il a une adresse) ; incidents ouverts pris en compte dans « logement prêt » | `/app/incidents`, mission, `/s/<lien>` |
 | Notifications | Dans l'espace voyageur + e-mail si adresse connue **et** fournisseur configuré ; état réel, échec visible, relance | historique d'envoi |
 

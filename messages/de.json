@@ -50,7 +50,8 @@
     "linen_delivery": "Wäschelieferung",
     "linen_pickup": "Wäscheabholung",
     "inspection": "Kontrolle",
-    "other": "Sonstiges"
+    "other": "Sonstiges",
+    "maintenance": "Wartung"
   },
   "taskStatus": {
     "unassigned": "Nicht zugewiesen",
@@ -1251,7 +1252,11 @@
       "open_incident": "Vorfall in der Unterkunft offen",
       "linen_shortage": "Wäscheengpass am Reinigungstag erwartet (Zentrallager)",
       "service_pending": "Leistungsanfrage wartet auf Entscheidung",
-      "guest_arrived_not_ready": "Anreisezeit überschritten: Unterkunft nicht bereit"
+      "guest_arrived_not_ready": "Anreisezeit überschritten: Unterkunft nicht bereit",
+      "step_missing": "{step}: vor der Anreise nichts geplant",
+      "step_unassigned": "{step}: niemand zugewiesen",
+      "step_late": "{step}: verspätet",
+      "step_review": "{step}: erledigt, zu prüfen"
     },
     "action": {
       "assign": "Zuweisen",
@@ -1260,7 +1265,13 @@
       "create_cleaning": "Reinigung anlegen",
       "open_incident": "Vorfall bearbeiten",
       "open_service": "Anfrage bearbeiten",
-      "open_linen": "Wäsche ansehen"
+      "open_linen": "Wäsche ansehen",
+      "create_linen": "Lieferung planen"
+    },
+    "step": {
+      "linen": "Wäsche",
+      "maintenance": "Wartung",
+      "inspection": "Qualitätskontrolle"
     }
   },
   "connected": {
@@ -1337,7 +1348,8 @@
       "already": "Bereits erledigt.",
       "empty": "Beschreibung hinzufügen.",
       "too_late": "Zu spät: Die Anreise ist bereits vorbei.",
-      "resolution_required": "Geben Sie an, was getan wurde."
+      "resolution_required": "Geben Sie an, was getan wurde.",
+      "invalid_window": "Ungültiges Zeitfenster (Ende nach Beginn, mind. 5 Min.)."
     },
     "home": {
       "subtitle": "Was Ihre Aufmerksamkeit braucht.",
@@ -1354,7 +1366,8 @@
       "queueTitle": "Zu erledigen",
       "noArrivals": "Keine Anreise in den nächsten 48 Std.",
       "allReady": "Alle Anreisen sind bereit: Reinigung freigegeben, kein offener Vorfall.",
-      "you": "Sie"
+      "you": "Sie",
+      "pending": "Vor der Anreise noch offen: {steps}"
     },
     "onb": {
       "progress": "Schritt {n} von {total}",
@@ -1816,7 +1829,8 @@
       "validate": "Einsatz freigeben",
       "correctionReason": "Grund der Korrektur",
       "correctionHint": "Der Mitarbeiter sieht ihn beim Wiederaufnehmen.",
-      "requestCorrection": "Korrektur anfordern"
+      "requestCorrection": "Korrektur anfordern",
+      "notes": "Zu erledigen"
     },
     "testAccount": {
       "title": "Vorproduktion: Testkonto ohne E-Mail",
@@ -1878,7 +1892,16 @@
       "description": "Was ist los",
       "urgentLabel": "Dringend: verhindert Abschluss oder Anreise",
       "cancel": "Abbrechen",
-      "send": "Meldung senden"
+      "send": "Meldung senden",
+      "plan": "Einsatz planen",
+      "planAssignee": "Wer übernimmt",
+      "planNobody": "Später zuweisen",
+      "planFrom": "Ab",
+      "planTo": "Spätestens",
+      "planDuration": "Dauer (Min.)",
+      "planHint": "Der Einsatz ist mit der nächsten Anreise verknüpft: Bis er erledigt ist, gilt sie nicht als „bereit“.",
+      "planConfirm": "Einsatz erstellen",
+      "openIntervention": "Einsatz ansehen"
     }
   },
   "email": {

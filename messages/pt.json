@@ -50,7 +50,8 @@
     "linen_delivery": "Entrega de roupa",
     "linen_pickup": "Recolha de roupa",
     "inspection": "Controlo",
-    "other": "Outro"
+    "other": "Outro",
+    "maintenance": "Manutenção"
   },
   "taskStatus": {
     "unassigned": "Não atribuída",
@@ -1251,7 +1252,11 @@
       "open_incident": "Incidente aberto no alojamento",
       "linen_shortage": "Rutura de roupa prevista no dia da limpeza (stock central)",
       "service_pending": "Pedido de serviço a aguardar decisão",
-      "guest_arrived_not_ready": "Hora de chegada passada: alojamento não pronto"
+      "guest_arrived_not_ready": "Hora de chegada passada: alojamento não pronto",
+      "step_missing": "{step}: nada previsto antes da chegada",
+      "step_unassigned": "{step}: ninguém atribuído",
+      "step_late": "{step}: atrasado",
+      "step_review": "{step}: terminado, por validar"
     },
     "action": {
       "assign": "Atribuir",
@@ -1260,7 +1265,13 @@
       "create_cleaning": "Criar a limpeza",
       "open_incident": "Tratar o incidente",
       "open_service": "Tratar o pedido",
-      "open_linen": "Ver a roupa"
+      "open_linen": "Ver a roupa",
+      "create_linen": "Planear a entrega"
+    },
+    "step": {
+      "linen": "Roupa",
+      "maintenance": "Manutenção",
+      "inspection": "Controlo de qualidade"
     }
   },
   "connected": {
@@ -1337,7 +1348,8 @@
       "already": "Já feito.",
       "empty": "Adicione uma descrição.",
       "too_late": "Tarde demais: a chegada já passou.",
-      "resolution_required": "Indique o que foi feito."
+      "resolution_required": "Indique o que foi feito.",
+      "invalid_window": "Intervalo inválido (fim depois do início, pelo menos 5 min)."
     },
     "home": {
       "subtitle": "O que precisa da sua atenção.",
@@ -1354,7 +1366,8 @@
       "queueTitle": "Por tratar",
       "noArrivals": "Nenhuma chegada nas próximas 48 h.",
       "allReady": "Todas as chegadas estão prontas: limpeza validada e sem incidentes.",
-      "you": "você"
+      "you": "você",
+      "pending": "Ainda por fazer antes da chegada: {steps}"
     },
     "onb": {
       "progress": "Passo {n} de {total}",
@@ -1816,7 +1829,8 @@
       "validate": "Validar a missão",
       "correctionReason": "Motivo da correção",
       "correctionHint": "O agente verá ao retomar a missão.",
-      "requestCorrection": "Pedir uma correção"
+      "requestCorrection": "Pedir uma correção",
+      "notes": "Por tratar"
     },
     "testAccount": {
       "title": "Pré-produção: conta de teste sem e-mail",
@@ -1878,7 +1892,16 @@
       "description": "O que se passa",
       "urgentLabel": "Urgente: impede terminar ou a chegada",
       "cancel": "Cancelar",
-      "send": "Enviar"
+      "send": "Enviar",
+      "plan": "Planear uma intervenção",
+      "planAssignee": "Quem intervém",
+      "planNobody": "Atribuir mais tarde",
+      "planFrom": "A partir de",
+      "planTo": "No máximo",
+      "planDuration": "Duração (min)",
+      "planHint": "A missão fica ligada à próxima chegada: enquanto não for feita, a chegada não está «pronta».",
+      "planConfirm": "Criar a intervenção",
+      "openIntervention": "Ver a intervenção"
     }
   },
   "email": {

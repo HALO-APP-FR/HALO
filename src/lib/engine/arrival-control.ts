@@ -28,7 +28,16 @@ export type BlockerKind =
   | "open_incident"
   | "linen_shortage"
   | "service_pending"
-  | "guest_arrived_not_ready";
+  | "guest_arrived_not_ready"
+  // Étapes complémentaires (environnement connecté) : linge, maintenance, contrôle qualité
+  | "step_missing"
+  | "step_unassigned"
+  | "step_late"
+  | "step_review";
+
+/** Étapes suivies en plus du ménage, lorsqu'elles existent pour le séjour. */
+export type StepKind = "linen" | "maintenance" | "inspection";
+const STEP_TASK: Record<StepKind, Task["type"]> = { linen: "linen_delivery", maintenance: "maintenance", inspection: "inspection" };
 
 export type Responsible = { kind: "member"; id: string } | { kind: "manager" } | { kind: "nobody" };
 export type ArrivalAction =
@@ -38,7 +47,8 @@ export type ArrivalAction =
   | { kind: "create_cleaning" }
   | { kind: "open_incident"; alertId: string }
   | { kind: "open_service"; serviceId: string }
-  | { kind: "open_linen" };
+  | { kind: "open_linen" }
+  | { kind: "create_linen" };
 
 export interface Blocker {
   kind: BlockerKind;
@@ -56,6 +66,8 @@ export interface ArrivalRow {
   minutesLeft: number;
   cleaning?: Task;
   blockers: Blocker[];
+  /** Étapes prévues pas encore faites (sans être en retard) : empêchent « prête » sans être une alerte. */
+  pending: StepKind[];
 }
 
 export interface ArrivalInput {
@@ -67,6 +79,11 @@ export interface ArrivalInput {
   linenShortageDays?: Set<string>;
   /** Clé de jour du ménage dans le fuseau du logement. */
   dayKeyOf?: (task: Task) => string;
+  /**
+   * Étapes complémentaires réellement suivies (environnement connecté) :
+   * linge livré (exigé si l'organisation travaille avec une blanchisserie), maintenance, contrôle qualité.
+   */
+  steps?: { linenRequired: boolean };
   now: Date;
 }
 
@@ -127,17 +144,44 @@ export function arrivalControl(input: ArrivalInput): ArrivalRow[] {
         }
       }
 
+      const pending: StepKind[] = [];
+      if (input.steps) {
+        for (const step of ["linen", "maintenance", "inspection"] as StepKind[]) {
+          const list = input.tasks.filter((x) => x.type === STEP_TASK[step] && x.nextReservationId === stay.id && x.status !== "cancelled");
+          if (!list.length) {
+            if (step === "linen" && input.steps.linenRequired) {
+              blockers.push({ kind: "step_missing", severity: "watch", responsible: { kind: "manager" }, action: { kind: "create_linen" }, detail: step });
+            }
+            continue;
+          }
+          for (const x of list) {
+            if (x.status === "validated" || (x.status === "done" && step !== "inspection")) continue;
+            if (x.status === "done") {
+              blockers.push({ kind: "step_review", severity: "watch", responsible: { kind: "manager" }, action: { kind: "review", taskId: x.id }, detail: step });
+            } else if (new Date(x.windowEnd).getTime() < now.getTime()) {
+              const who: Responsible = x.assigneeId ? { kind: "member", id: x.assigneeId } : { kind: "manager" };
+              blockers.push({ kind: "step_late", severity: "blocked", responsible: who, action: { kind: "open_task", taskId: x.id }, detail: step });
+            } else if (x.status === "unassigned") {
+              blockers.push({ kind: "step_unassigned", severity: "watch", responsible: { kind: "manager" }, action: { kind: "assign", taskId: x.id }, detail: step });
+            } else if (!pending.includes(step)) {
+              pending.push(step);
+            }
+          }
+        }
+      }
+
       // Voyageur arrivé (heure d'arrivée dépassée) dans un logement qui n'est pas prêt
-      const notReadyYet = base !== "ready" || blockers.some((b) => b.kind === "urgent_incident");
+      const notReadyYet = base !== "ready" || pending.length > 0 || blockers.some((b) => b.kind === "urgent_incident" || b.kind.startsWith("step_"));
       if (minutesLeft < 0 && notReadyYet && cleaning) {
         blockers.unshift({ kind: "guest_arrived_not_ready", severity: "blocked", responsible: { kind: "manager" }, action: { kind: "open_task", taskId: cleaning.id } });
       }
 
       const worst = blockers.reduce<ArrivalState>((acc, b) => (RANK[b.severity] > RANK[acc] ? b.severity : acc), base);
       // Prêt seulement si aucun point ouvert : un incident non urgent fait passer « à surveiller »
-      const state: ArrivalState = base === "ready" && blockers.length === 0 ? "ready" : worst === "ready" ? "watch" : worst;
+      const state: ArrivalState =
+        base === "ready" && blockers.length === 0 && pending.length === 0 ? "ready" : worst === "ready" ? (blockers.length ? "watch" : "preparing") : worst;
       blockers.sort((x, y) => RANK[y.severity] - RANK[x.severity]);
-      return { stay, state, minutesLeft, cleaning, blockers };
+      return { stay, state, minutesLeft, cleaning, blockers, pending };
     })
     .sort((a, b) => RANK[b.state] - RANK[a.state] || a.minutesLeft - b.minutesLeft);
 }

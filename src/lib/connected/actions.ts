@@ -516,3 +516,49 @@ export async function createCleaningForStay(stayId: string): Promise<Result<{ id
   revalidatePath("/", "layout");
   return { ok: true, data: { id: data.id as string } };
 }
+
+/** Intervention de maintenance suite à un incident, reliée à la prochaine arrivée du logement. */
+export async function createIntervention(incidentId: string, assigneeId: string | null, startAt: string, endAt: string, durationMin: number): Promise<Result<{ id: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.rpc("create_intervention", {
+    org: ctx.org!.id,
+    incident: incidentId,
+    assignee: assigneeId,
+    w_start: startAt,
+    w_end: endAt,
+    duration: durationMin,
+  });
+  if (e) return fail(e.message?.includes("invalid_window") ? "invalid_window" : e.message?.includes("already_resolved") ? "conflict" : errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: { id: data as string } };
+}
+
+/** Livraison de linge avant une arrivée (organisations avec blanchisserie) : planifiée explicitement. */
+export async function planLinenDelivery(stayId: string): Promise<Result<{ id: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const o = ctx.org!.id;
+  const { data: r } = await ctx.supabase.from("reservations").select("id, property_id, check_in_at").eq("organization_id", o).eq("id", stayId).maybeSingle();
+  if (!r) return fail("not_found");
+  const checkIn = new Date(r.check_in_at).getTime();
+  const start = Math.max(Date.now(), checkIn - 24 * 3_600_000);
+  if (start >= checkIn) return fail("too_late");
+  const { data, error: e } = await ctx.supabase
+    .from("tasks")
+    .insert({
+      organization_id: o,
+      property_id: r.property_id,
+      next_reservation_id: r.id,
+      type: "linen_delivery",
+      is_auto_generated: false,
+      window_start: new Date(start).toISOString(),
+      window_end: new Date(checkIn).toISOString(),
+      duration_min: Math.min(20, Math.max(5, Math.floor((checkIn - start) / 60_000))),
+    })
+    .select("id")
+    .single();
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: { id: data.id as string } };
+}

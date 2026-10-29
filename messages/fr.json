@@ -50,7 +50,8 @@
     "linen_delivery": "Livraison linge",
     "linen_pickup": "Collecte linge",
     "inspection": "Contrôle",
-    "other": "Autre"
+    "other": "Autre",
+    "maintenance": "Maintenance"
   },
   "taskStatus": {
     "unassigned": "Non assignée",
@@ -1251,7 +1252,11 @@
       "open_incident": "Incident ouvert dans le logement",
       "linen_shortage": "Rupture de linge prévue le jour du ménage (stock central)",
       "service_pending": "Demande de prestation en attente de décision",
-      "guest_arrived_not_ready": "Heure d'arrivée passée : logement pas prêt"
+      "guest_arrived_not_ready": "Heure d'arrivée passée : logement pas prêt",
+      "step_missing": "{step} : rien de prévu avant l'arrivée",
+      "step_unassigned": "{step} : personne n'est assigné",
+      "step_late": "{step} : en retard sur son créneau",
+      "step_review": "{step} : terminé, à valider"
     },
     "action": {
       "assign": "Attribuer",
@@ -1260,7 +1265,13 @@
       "create_cleaning": "Créer le ménage",
       "open_incident": "Traiter l'incident",
       "open_service": "Traiter la demande",
-      "open_linen": "Voir le linge"
+      "open_linen": "Voir le linge",
+      "create_linen": "Planifier la livraison"
+    },
+    "step": {
+      "linen": "Linge",
+      "maintenance": "Maintenance",
+      "inspection": "Contrôle qualité"
     }
   },
   "connected": {
@@ -1337,7 +1348,8 @@
       "already": "Déjà fait.",
       "empty": "Ajoutez une description.",
       "too_late": "Trop tard : l'arrivée est déjà passée.",
-      "resolution_required": "Indiquez ce qui a été fait."
+      "resolution_required": "Indiquez ce qui a été fait.",
+      "invalid_window": "Le créneau n'est pas valide (fin après début, durée d'au moins 5 min)."
     },
     "home": {
       "subtitle": "Ce qui demande votre attention.",
@@ -1354,7 +1366,8 @@
       "queueTitle": "À traiter",
       "noArrivals": "Aucune arrivée dans les 48 prochaines heures.",
       "allReady": "Toutes les arrivées sont prêtes : ménage validé et aucun incident ouvert.",
-      "you": "vous"
+      "you": "vous",
+      "pending": "Encore à faire avant l'arrivée : {steps}"
     },
     "onb": {
       "progress": "Étape {n} sur {total}",
@@ -1816,7 +1829,8 @@
       "validate": "Valider la mission",
       "correctionReason": "Motif de correction",
       "correctionHint": "L'agent le verra en reprenant la mission.",
-      "requestCorrection": "Demander une correction"
+      "requestCorrection": "Demander une correction",
+      "notes": "À traiter"
     },
     "testAccount": {
       "title": "Préproduction : compte de test sans e-mail",
@@ -1878,7 +1892,16 @@
       "description": "Ce qui se passe",
       "urgentLabel": "Urgent : empêche de terminer ou l'arrivée du voyageur",
       "cancel": "Annuler",
-      "send": "Envoyer le signalement"
+      "send": "Envoyer le signalement",
+      "plan": "Planifier une intervention",
+      "planAssignee": "Qui intervient",
+      "planNobody": "À attribuer plus tard",
+      "planFrom": "À partir de",
+      "planTo": "Au plus tard",
+      "planDuration": "Durée (min)",
+      "planHint": "La mission est reliée à la prochaine arrivée du logement : tant qu'elle n'est pas faite, l'arrivée n'est pas « prête ».",
+      "planConfirm": "Créer l'intervention",
+      "openIntervention": "Voir l'intervention"
     }
   },
   "email": {

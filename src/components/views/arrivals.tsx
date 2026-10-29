@@ -45,6 +45,10 @@ const BLOCKER_ICON: Record<BlockerKind, LucideIcon> = {
   linen_shortage: BedDouble,
   service_pending: ConciergeBell,
   guest_arrived_not_ready: DoorOpen,
+  step_missing: BedDouble,
+  step_unassigned: UserRoundX,
+  step_late: AlertTriangle,
+  step_review: ClipboardCheck,
 };
 
 /** Données du poste de pilotage pour un jour donné (fuseau de chaque logement). */

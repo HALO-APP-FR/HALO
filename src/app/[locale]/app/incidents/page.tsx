@@ -16,9 +16,14 @@ export default async function IncidentsPage({ params }: PageProps<"/[locale]/app
   const { supabase, org } = await getContext();
   if (!org) redirect({ href: "/app", locale });
   if (!isManagerRole(org!.role)) redirect({ href: "/app/missions", locale });
+  const { data: members } = await supabase.from("memberships").select("user_id, profiles(full_name)").eq("organization_id", org!.id).eq("is_active", true);
+  const people = (members ?? []).map((m: { user_id: string; profiles: unknown }) => ({
+    id: m.user_id,
+    name: ((Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as { full_name: string } | null)?.full_name || "—",
+  }));
   const { data, error } = await supabase
     .from("incidents")
-    .select("id, source, category, description, urgent, status, created_at, taken_at, resolved_at, resolution, guest_message, manager_unread, task_id, reservation_id, properties(name), reservations(guest_name, guest_email), tasks(type)")
+    .select("id, source, category, description, urgent, status, created_at, taken_at, resolved_at, resolution, guest_message, manager_unread, task_id, reservation_id, follow_up_task_id, properties(name), reservations(guest_name, guest_email), tasks!incidents_organization_id_task_id_fkey(type)")
     .eq("organization_id", org!.id)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -69,13 +74,18 @@ export default async function IncidentsPage({ params }: PageProps<"/[locale]/app
                     {t("openMission")}
                   </Link>
                 )}
+                {i.follow_up_task_id && (
+                  <Link href={`/app/missions/${i.follow_up_task_id}`} className="mt-2 text-accent-text hover:underline" data-testid="incident-intervention">
+                    {t("openIntervention")}
+                  </Link>
+                )}
                 {i.reservation_id && (
                   <Link href={`/app/stays/${i.reservation_id}`} className="mt-2 text-accent-text hover:underline">
                     {t("openStay")}
                   </Link>
                 )}
               </div>
-              <IncidentActions id={i.id} status={i.status} fromGuest={i.source === "guest"} guestHasEmail={Boolean(r?.guest_email)} />
+              <IncidentActions id={i.id} status={i.status} fromGuest={i.source === "guest"} guestHasEmail={Boolean(r?.guest_email)} hasIntervention={Boolean(i.follow_up_task_id)} members={people} />
             </Card>
           );
         })}

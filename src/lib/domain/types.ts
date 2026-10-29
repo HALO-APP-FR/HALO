@@ -11,6 +11,7 @@ export type TaskType =
   | "linen_delivery"
   | "linen_pickup"
   | "inspection"
+  | "maintenance"
   | "other";
 
 export type TaskStatus =
@@ -207,7 +208,7 @@ export interface ArchivedReport {
   archivedAt: string;
 }
 
-export const TASK_TYPES: TaskType[] = ["turnover", "check_in", "check_out", "inspection", "linen_delivery", "linen_pickup", "other"];
+export const TASK_TYPES: TaskType[] = ["turnover", "check_in", "check_out", "inspection", "linen_delivery", "linen_pickup", "maintenance", "other"];
 /** Types de mission qui suivent la checklist du logement (photos et contrôles obligatoires). */
 export const CHECKLIST_TASK_TYPES: TaskType[] = ["turnover", "inspection"];
 /** Par défaut, seuls les ménages attendent une validation manager. */

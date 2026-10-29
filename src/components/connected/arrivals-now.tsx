@@ -16,7 +16,7 @@ type Client = Awaited<ReturnType<typeof supabaseServer>>;
  * ménage (assigné, commencé, terminé, validé), incidents ouverts, demandes en attente.
  * Même moteur que le poste de pilotage de la démo ; aucune case « prêt » déclarative.
  */
-export async function ArrivalsNow({ supabase, orgId, now }: { supabase: Client; orgId: string; now: Date }) {
+export async function ArrivalsNow({ supabase, orgId, now, linenRequired }: { supabase: Client; orgId: string; now: Date; linenRequired: boolean }) {
   const t = await getTranslations("arrivals");
   const tc = await getTranslations("connected.home");
   const from = new Date(now.getTime() - 12 * 3_600_000).toISOString();
@@ -53,7 +53,7 @@ export async function ArrivalsNow({ supabase, orgId, now }: { supabase: Client; 
     takenBy: i.taken_by ?? undefined,
   }));
   const svc: ServiceRequest[] = (services ?? []).map((s) => ({ id: s.id, propertyId: s.property_id, reservationId: s.reservation_id ?? undefined, kind: s.kind, startAt: s.start_at, status: s.status, source: s.source, createdAt: s.created_at }));
-  const rows = arrivalControl({ stays: stays.map((s) => toReservation(s as Row)), tasks: (tasks ?? []).map((x) => toTask(x as Row)), alerts, services: svc, now });
+  const rows = arrivalControl({ stays: stays.map((s) => toReservation(s as Row)), tasks: (tasks ?? []).map((x) => toTask(x as Row)), alerts, services: svc, now, steps: { linenRequired } });
   const counts = arrivalCounts(rows);
   const nameOf = new Map((members ?? []).map((m: { user_id: string; profiles: unknown }) => [m.user_id, ((Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as { full_name: string } | null)?.full_name || "—"]));
   const propName = new Map(stays.map((s) => [s.id as string, ((Array.isArray(s.properties) ? s.properties[0] : s.properties) as { name: string } | null)?.name ?? ""]));
@@ -92,15 +92,22 @@ export async function ArrivalsNow({ supabase, orgId, now }: { supabase: Client; 
                 <span className="block text-[15px] font-medium">
                   {row.stay.guestName || "—"} · {propName.get(row.stay.id)} · {row.minutesLeft >= 0 ? t("inTime", { time: dur(row.minutesLeft) }) : t("passed", { time: dur(row.minutesLeft) })}
                 </span>
+                {!b && row.pending.length > 0 && (
+                  <span className="block text-[13px] text-muted" data-testid="arrival-pending">
+                    {tc("pending", { steps: row.pending.map((p) => t(`step.${p}`)).join(", ") })}
+                  </span>
+                )}
                 {b && (
                   <span className="block text-[13px] text-muted">
-                    {t(`blocker.${b.kind}`)}
+                    {b.kind.startsWith("step_") ? t(`blocker.${b.kind}`, { step: t(`step.${b.detail}`) }) : t(`blocker.${b.kind}`)}
                     {row.blockers.length > 1 ? ` (+${row.blockers.length - 1})` : ""} · {who}
                   </span>
                 )}
               </span>
               {b?.action.kind === "create_cleaning" ? (
                 <CreateCleaningButton stayId={row.stay.id} label={t("action.create_cleaning")} />
+              ) : b?.action.kind === "create_linen" ? (
+                <CreateCleaningButton stayId={row.stay.id} label={t("action.create_linen")} kind="linen" />
               ) : b ? (
                 <Link href={href(row)} className="inline-flex items-center gap-1 text-[14px] font-medium text-accent-text hover:underline" data-testid="arrival-action">
                   {t(`action.${b.action.kind}`)}
