@@ -16,6 +16,8 @@ export function toChatMessages(th: ThreadSummary, rows: { id: string; body: stri
       at: r.created_at,
       readTotal: others.length,
       readBy: others.filter((m) => m.lastReadAt && new Date(m.lastReadAt).getTime() >= at).length,
+      readers: others.filter((m) => m.lastReadAt && new Date(m.lastReadAt).getTime() >= at).map((m) => m.name),
+      notYet: others.filter((m) => !m.lastReadAt || new Date(m.lastReadAt).getTime() < at).map((m) => m.name),
       isNew: r.author_id !== meId && Boolean(me) && (!me!.lastReadAt || new Date(me!.lastReadAt).getTime() < at),
     };
   });

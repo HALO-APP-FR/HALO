@@ -1164,7 +1164,8 @@
     },
     "ask": "Perguntar sempre",
     "defaultApp": "Aplicação de itinerários",
-    "privacy": "O HALO apenas abre a morada do alojamento na aplicação escolhida. A sua localização nunca é seguida."
+    "privacy": "O HALO apenas abre a morada do alojamento na aplicação escolhida. A sua localização nunca é seguida.",
+    "missingAddress": "Morada do alojamento em falta (sem rua nem coordenadas): um responsável deve completá-la."
   },
   "spaces": {
     "title": "Escolha o seu espaço",
@@ -1295,7 +1296,8 @@
       "notifications": "Envios",
       "settings": "Definições",
       "profile": "O meu perfil",
-      "messages": "Mensagens"
+      "messages": "Mensagens",
+      "preferences": "Preferências"
     },
     "env": {
       "demo": "Demo",
@@ -1717,7 +1719,8 @@
         "pending": "A aguardar envio",
         "sent": "Enviado",
         "failed": "Falha no envio",
-        "not_configured": "Não enviado: nenhum serviço configurado"
+        "not_configured": "Não enviado: nenhum serviço configurado",
+        "skipped": "Não enviado (preferência)"
       },
       "retry": "Tentar de novo",
       "template": {
@@ -1741,9 +1744,14 @@
         "agent_task_assigned": "Agente: missão atribuída",
         "agent_correction_requested": "Agente: correção pedida",
         "chat_message": "Mensagens: mensagem",
-        "chat_urgent": "Mensagens: mensagem urgente"
+        "chat_urgent": "Mensagens: mensagem urgente",
+        "team_assignment_conflict": "Equipa: conflito de atribuição",
+        "team_stay_changed": "Equipa: estadia alterada",
+        "agent_task_changed": "Agente: missão alterada",
+        "agent_absence_decided": "Agente: resposta de ausência"
       },
-      "testAddress": "Endereço fictício (conta de teste): nada é enviado."
+      "testAddress": "Endereço fictício (conta de teste): nada é enviado.",
+      "skippedReason": "O destinatário desativou este e-mail; o evento continua visível no HALO."
     },
     "services": {
       "title": "Serviços",
@@ -1840,10 +1848,16 @@
       "absent": "ausente",
       "windowLabel": "A realizar {window}",
       "durationLabel": "duração {duration}",
-      "hiddenAbsent": "{count, plural, one {# pessoa ausente neste horário, não proposta} other {# pessoas ausentes neste horário, não propostas}}",
+      "hiddenAbsent": "{count, plural, one {# pessoa indisponível neste horário: não selecionável} other {# pessoas indisponíveis neste horário: não selecionáveis}}",
       "toValidateTitle": "Missões a validar",
       "toValidateSubtitle": "Terminadas pelo agente: validar ou pedir correção.",
-      "showAll": "Ver todas as missões"
+      "showAll": "Ver todas as missões",
+      "absentFor": "indisponível: {period}",
+      "conflictTitle": "{name} está ausente no horário desta missão",
+      "conflictActions": "O HALO não reatribui nada sozinho: escolha outra pessoa, altere o horário ou cancele a missão.",
+      "cancelTask": "Cancelar a missão",
+      "cancelConfirm": "Cancelar definitivamente? O agente atribuído será avisado.",
+      "cancelYes": "Sim, cancelar"
     },
     "team": {
       "title": "Equipa",
@@ -1991,7 +2005,8 @@
       "title": "Envios e notificações",
       "subtitle": "Cada e-mail a hóspedes e equipa, com o estado real.",
       "loadError": "Não foi possível carregar os envios.",
-      "summary": "{sent} enviados · {pending} pendentes · {failed} falhados · {notConfigured} sem serviço"
+      "summary": "{sent} enviados · {pending} pendentes · {failed} falhados · {notConfigured} sem serviço",
+      "skippedCount": "{count, plural, =0 {nenhum omitido por preferência} one {# omitido por preferência} other {# omitidos por preferência}}"
     },
     "profile": {
       "incompleteTitle": "Indique o seu nome",
@@ -2007,7 +2022,8 @@
       "saved": "Guardado.",
       "missing": "A completar: {fields}",
       "complete": "Perfil completo.",
-      "me": "Eu"
+      "me": "Eu",
+      "prefsLink": "App de itinerário e notificações: Preferências →"
     },
     "settings": {
       "title": "Definições",
@@ -2165,7 +2181,9 @@
       "back": "Mensagens",
       "missionTitle": "Mensagens da missão",
       "newForMission": "Escrever sobre esta missão",
-      "noneForMission": "Nenhuma conversa sobre esta missão."
+      "noneForMission": "Nenhuma conversa sobre esta missão.",
+      "readBy": "lido por {names}",
+      "notReadBy": "ainda não lido por {names}"
     },
     "prefs": {
       "title": "Notificações",
@@ -2190,12 +2208,32 @@
         "team_absence_requested": "Pedido de ausência",
         "chat_message": "Mensagem da equipa",
         "agent_task_assigned": "Missão atribuída a mim",
-        "agent_correction_requested": "Correção pedida na minha missão"
-      }
+        "agent_correction_requested": "Correção pedida na minha missão",
+        "team_assignment_conflict": "Conflito de atribuição (ausência aceite numa missão atribuída)",
+        "team_stay_changed": "Estadia alterada ou cancelada (chegada, saída)",
+        "agent_task_changed": "Missão alterada ou cancelada",
+        "agent_absence_decided": "Resposta ao meu pedido de ausência"
+      },
+      "pageTitle": "Preferências",
+      "pageSubtitle": "As suas definições pessoais: não mudam nada para os outros membros.",
+      "visibleIn": "Sempre visível no HALO: {where}",
+      "where": {
+        "home": "Início",
+        "team": "Início e Equipa",
+        "messages": "Mensagens (contador por ler)",
+        "stays": "Estadias e Início",
+        "services": "Serviços e Início",
+        "incidents": "Incidentes e Início",
+        "missions": "As minhas missões",
+        "profile": "O meu perfil (ausências)"
+      },
+      "reset": "Repor as definições predefinidas",
+      "resetHint": "Por predefinição, tudo é enviado por e-mail.",
+      "resetDone": "Definições predefinidas repostas."
     },
     "places": {
-      "title": "À volta do alojamento (espaço do hóspede)",
-      "text": "O hóspede vê um mapa e estes locais, com fonte e data. Nada é inventado.",
+      "title": "Recomendações do alojamento (espaço do hóspede)",
+      "text": "O hóspede deste alojamento vê estes locais com a sua origem, a distância e um itinerário. Nada é inventado.",
       "located": "Alojamento localizado: {lat}, {lng} ({source})",
       "sourceManual": "introduzido pela equipa",
       "notLocated": "Alojamento não localizado: localize a morada ou introduza as coordenadas.",
@@ -2207,20 +2245,38 @@
       "importing": "A importar…",
       "importHint": "Locais com nome num raio de 1,2 km. Repita para atualizar; os ocultos continuam ocultos.",
       "imported": "{count, plural, =0 {Nenhum local encontrado.} one {# local importado.} other {# locais importados.}}",
-      "addTitle": "Adicionar um local verificado pela equipa",
+      "addTitle": "Adicionar uma recomendação",
       "name": "Nome",
       "category": "Categoria",
       "address": "Morada",
       "hours": "Horário",
       "hoursHint": "Só se os verificou.",
       "phone": "Telefone",
-      "note": "Dica da equipa",
+      "note": "Dica prática",
       "add": "Adicionar",
-      "none": "Nenhum local por agora.",
+      "none": "Nenhuma recomendação por agora.",
       "byTeam": "equipa",
       "show": "Mostrar",
       "hide": "Ocultar",
-      "delete": "Eliminar"
+      "delete": "Eliminar",
+      "ownTitle": "Recomendações da equipa e do proprietário",
+      "autoTitle": "Recomendações automáticas",
+      "autoSource": "Fonte: OpenStreetMap (gratuito, sem chave; cobertura variável; horários muitas vezes ausentes; dados datados). Nada sobre o hóspede é transmitido.",
+      "autoToggle": "Mostrar as recomendações automáticas aos hóspedes",
+      "autoOff": "Desativadas para este alojamento: os hóspedes só veem as suas recomendações.",
+      "locating": "A localizar…",
+      "needCoords": "Localize primeiro o alojamento (morada ou coordenadas).",
+      "editTitle": "Alterar a recomendação",
+      "origin": "Origem",
+      "originTeam": "Recomendado pela equipa",
+      "originOwner": "Dica do proprietário",
+      "addressHint": "Necessária para o itinerário.",
+      "description": "Descrição curta",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "edit": "Alterar",
+      "noDistance": "sem distância (local não localizado)",
+      "hidden": "oculto"
     }
   },
   "email": {
@@ -2310,6 +2366,26 @@
     "chat_urgent": {
       "subject": "URGENTE — {member} — {property}",
       "body": "Mensagem urgente de {member} no HALO ({property})."
+    },
+    "team_assignment_conflict": {
+      "subject": "Missões a reorganizar — ausência de {member}",
+      "body": "Uma ausência aceite de {member} afeta missões já atribuídas. Nada foi reatribuído."
+    },
+    "team_stay_changed": {
+      "subject": "Estadia alterada — {property}",
+      "body": "A estadia de {guest} em {property} mudou (datas ou cancelamento). Verifique as missões."
+    },
+    "agent_task_changed": {
+      "subject": "Missão alterada — {property}",
+      "body": "A sua missão «{kind}» em {property} foi alterada ou cancelada."
+    },
+    "agent_absence_decided": {
+      "subject": "O seu pedido de ausência: {decision}",
+      "body": "O seu pedido de ausência foi {decision}."
+    },
+    "decisions": {
+      "accepted": "aceite",
+      "refused": "recusada"
     }
   },
   "guestSpace": {
@@ -2403,7 +2479,7 @@
       "fromMe": "Distâncias a partir da minha posição",
       "fromHome": "Voltar ao alojamento",
       "originMe": "Distâncias a partir da sua posição (fica no seu telemóvel).",
-      "originHome": "Distâncias a partir do alojamento: {address}.",
+      "originHome": "À volta do alojamento: {address}.",
       "denied": "Posição não autorizada: as distâncias continuam calculadas a partir do alojamento.",
       "unavailable": "Posição indisponível: as distâncias continuam calculadas a partir do alojamento.",
       "all": "Tudo",
@@ -2418,7 +2494,16 @@
       "verifiedOn": "Verificado pela equipa em {date}",
       "osmData": "Dados OpenStreetMap de {date}",
       "sources": "Fontes: {list}",
-      "notBookable": "Sugestões, não reservas: para reservar um serviço, use «Pedir um serviço»."
+      "notBookable": "Sugestões, não reservas: para reservar um serviço, use «Pedir um serviço».",
+      "byOwner": "Dica do proprietário",
+      "byOsm": "Proposto automaticamente (OpenStreetMap)",
+      "empty": "A equipa ainda não adicionou recomendações para este alojamento.",
+      "noCoordinates": "O alojamento ainda não está localizado: sem mapa nem distância, as moradas continuam utilizáveis.",
+      "mapUnavailable": "Fundo de mapa indisponível (ligação ou serviço): a lista abaixo continua completa.",
+      "tip": "Dica:",
+      "noHours": "Horário não indicado pela fonte",
+      "noRoute": "Morada não indicada: itinerário indisponível.",
+      "distanceNote": "Distâncias aproximadas em linha reta a partir do alojamento"
     }
   },
   "demoEntry": {

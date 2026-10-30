@@ -162,3 +162,37 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 - `guest_places(token)` ne renvoie que les lieux du logement de ce séjour, à 3 km maximum.
 - Recommandations distinctes des prestations réservables.
 - Variables facultatives : `NOMINATIM_URL` et `OVERPASS_URL`, pour un fournisseur dédié en production. Les tuiles cartographiques viennent de `tile.openstreetmap.org` ; un fournisseur de tuiles sera à prévoir pour un fort trafic.
+
+## Brief du 30/10 (migration 11 : `20261106000001_preferences_recommandations_absences.sql`)
+
+**Recommandations voyageur.**
+- Le manager ajoute, modifie, masque et supprime des recommandations pour un logement. Chacune a une origine (« équipe » ou « propriétaire »), une catégorie, une description courte et un conseil pratique.
+- Les recommandations automatiques (OpenStreetMap) sont désactivables par logement (`properties.auto_places`).
+- Le voyageur voit tout autour de l'adresse du logement, sans que sa position soit demandée. La distance est arrondie, à vol d'oiseau. Les horaires n'apparaissent que si la source les fournit, sinon la mention « non communiqués » s'affiche.
+- Sans coordonnées : ni distance ni carte. Si le fond de carte est indisponible, un message l'indique et la liste reste complète.
+- Fournisseur OpenStreetMap : gratuit, sans clé. Nominatim limite à 1 requête par seconde et Overpass demande un usage raisonnable (de l'ordre de 10 000 requêtes par jour, avec des erreurs 429 ou 504 aux heures chargées). Si l'instance principale échoue, HALO essaie deux miroirs publics. La couverture varie selon les zones et les horaires manquent souvent.
+- Seules les coordonnées du logement sont transmises au fournisseur, jamais de données sur le voyageur.
+- En cas de panne du fournisseur, les recommandations manuelles restent pleinement utilisables.
+- Le voyageur ne lit que les recommandations de son logement.
+
+**Notifications.**
+- Page « Préférences » personnelle : chacun règle les siennes, et un bouton rétablit les réglages par défaut (tout par e-mail).
+- Chaque événement indique où il reste visible dans HALO ; le canal interne est toujours actif.
+- Nouveaux événements : conflit d'affectation, séjour modifié ou annulé, mission modifiée ou annulée (agent), réponse à une demande d'absence (agent).
+- Un e-mail écarté par une préférence est journalisé « Non envoyé (préférence) » avec sa raison (`skipped`, `disabled_by_preference`).
+- Urgences toujours envoyées.
+- Les rappels programmés avant une arrivée ou un départ ne sont pas encore émis ; seuls les changements le sont.
+
+**Itinéraire.** Préférence dans « Préférences ». Sans rue ni coordonnées, l'action est désactivée et expliquée.
+
+**Absences.**
+- Affectations et acceptations d'absence sont sérialisées par organisation (verrou transactionnel `lock_assignments`). Deux opérations simultanées ne produisent jamais une affectation interdite (`supabase/tests/concurrency.sh`).
+- Les absences « journées entières » suivent le fuseau horaire de l'organisation.
+- Dès qu'une absence est acceptée sur une mission déjà affectée, les responsables sont prévenus. La mission affiche le conflit et trois actions : changer de personne, modifier le créneau ou annuler.
+- Le sélecteur montre les personnes indisponibles, désactivées, avec le motif.
+
+**Messagerie.**
+- Une conversation de mission suit l'affectation : le nouvel agent la rejoint, l'ancien perd l'accès. Un membre désactivé perd tout accès immédiatement.
+- Pour chaque message, on voit qui l'a lu et qui ne l'a pas encore lu.
+
+**Retour arrière** : supprimer les déclencheurs `absences_change` et `reservations_notify`, puis les fonctions `outbox_skip`, `reset_notification_prefs`, `lock_assignments`, `absence_conflicts`, `on_absence_change` et `notify_stay_change`, et enfin les colonnes `auto_places` et `description`. Restaurer ensuite les versions de la migration 10 des fonctions remplacées.

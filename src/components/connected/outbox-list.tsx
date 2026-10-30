@@ -9,7 +9,7 @@ export interface OutboxItem {
   id: string;
   template: string;
   recipient: string;
-  status: "pending" | "sent" | "failed" | "not_configured";
+  status: "pending" | "sent" | "failed" | "not_configured" | "skipped";
   attempts: number;
   last_error: string | null;
   created_at: string;
@@ -23,7 +23,7 @@ export function OutboxList({ items }: { items: OutboxItem[] }) {
   const { pending, error, run } = useRun();
   const fmt = (d: string) => new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(d));
   if (!items.length) return <p className="text-[14px] text-muted">{t("empty")}</p>;
-  const tone = { sent: "text-success", pending: "text-muted", failed: "text-danger", not_configured: "text-warning" } as const;
+  const tone = { sent: "text-success", pending: "text-muted", failed: "text-danger", not_configured: "text-warning", skipped: "text-muted" } as const;
   return (
     <div>
       <ul className="divide-y divide-line">
@@ -38,6 +38,11 @@ export function OutboxList({ items }: { items: OutboxItem[] }) {
               <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => retryNotification(o.id))} data-testid="outbox-retry">
                 {t("retry")}
               </Button>
+            )}
+            {o.status === "skipped" && (
+              <span className="w-full text-[12px] text-muted" data-testid="outbox-skipped">
+                {t("skippedReason")}
+              </span>
             )}
             {o.status === "failed" && o.last_error && (
               <span className="w-full text-[12px] text-danger" data-testid="outbox-error">

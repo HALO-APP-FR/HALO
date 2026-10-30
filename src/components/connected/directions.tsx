@@ -20,6 +20,19 @@ export function MissionDirections({ destination, preferred }: { destination: Des
   const q = destinationQuery(destination);
   const go = (app: MapsApp) => window.open(directionsLink(app, destination), "_blank", "noopener,noreferrer");
   const others = MAPS_APPS.filter((a) => a !== preferred);
+  // Ni rue ni coordonnées : un itinéraire serait approximatif ou faux, l'action est désactivée et expliquée
+  if (!q.precise)
+    return (
+      <div className="flex flex-wrap items-center gap-2" data-testid="directions">
+        <Button size="lg" variant="outline" disabled data-testid="directions-disabled">
+          <Navigation />
+          {t("task.directions")}
+        </Button>
+        <p className="text-[13px] text-warning" data-testid="directions-missing">
+          {t("directions.missingAddress")}
+        </p>
+      </div>
+    );
   return (
     <div className="flex flex-wrap items-center gap-2" data-testid="directions">
       {preferred && (
@@ -46,7 +59,6 @@ export function MissionDirections({ destination, preferred }: { destination: Des
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
-      {!q.precise && <p className="basis-full text-[13px] text-warning">{t("directions.approximate")}</p>}
     </div>
   );
 }

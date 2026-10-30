@@ -26,7 +26,7 @@ export default async function NotificationsPage({ params }: PageProps<"/[locale]
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
       {error && <p role="alert" className="mb-4 text-danger">{t("loadError")}</p>}
       <p className="mb-3 text-[14px] text-muted" data-testid="notifications-summary">
-        {t("summary", { sent: count("sent"), pending: count("pending"), failed: count("failed"), notConfigured: count("not_configured") })}
+        {t("summary", { sent: count("sent"), pending: count("pending"), failed: count("failed"), notConfigured: count("not_configured") })} · {t("skippedCount", { count: count("skipped") })}
       </p>
       <Card className="p-4" data-testid="notifications-list">
         <OutboxList items={rows} />

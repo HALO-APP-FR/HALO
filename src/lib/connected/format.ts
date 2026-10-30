@@ -35,3 +35,32 @@ export function periodText(f: DateFormatter, start: string, end: string): string
   }
   return windowText(f, start, end);
 }
+
+/**
+ * Minuit (début du jour `date` AAAA-MM-JJ) dans le fuseau `timeZone`, en instant UTC.
+ * Sert aux absences « journées entières » : elles suivent le fuseau de l'organisation, pas celui du navigateur
+ * ni du serveur (changements d'heure compris).
+ */
+export function zonedMidnight(date: string, timeZone: string): Date {
+  const [y, m, d] = date.split("-").map(Number);
+  const guess = Date.UTC(y, m - 1, d, 0, 0, 0);
+  const offsetAt = (ms: number) => {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })
+        .formatToParts(new Date(ms))
+        .map((p) => [p.type, p.value]),
+    );
+    const asUtc = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute), Number(parts.second));
+    return asUtc - ms;
+  };
+  // Deux passes : l'écart du fuseau peut changer autour de minuit lors d'un changement d'heure
+  let t = guess - offsetAt(guess);
+  t = guess - offsetAt(t);
+  return new Date(t);
+}
+
+/** Jour suivant (AAAA-MM-JJ). */
+export function nextDay(date: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+}

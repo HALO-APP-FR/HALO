@@ -1164,7 +1164,8 @@
     },
     "ask": "Jedes Mal fragen",
     "defaultApp": "Navigations-App",
-    "privacy": "HALO öffnet nur die Adresse der Unterkunft in der gewählten App. Ihr Standort wird nie verfolgt."
+    "privacy": "HALO öffnet nur die Adresse der Unterkunft in der gewählten App. Ihr Standort wird nie verfolgt.",
+    "missingAddress": "Adresse der Unterkunft fehlt (weder Straße noch Koordinaten): Eine verantwortliche Person muss sie ergänzen."
   },
   "spaces": {
     "title": "Wählen Sie Ihren Bereich",
@@ -1295,7 +1296,8 @@
       "notifications": "Versand",
       "settings": "Einstellungen",
       "profile": "Mein Profil",
-      "messages": "Nachrichten"
+      "messages": "Nachrichten",
+      "preferences": "Einstellungen"
     },
     "env": {
       "demo": "Demo",
@@ -1717,7 +1719,8 @@
         "pending": "Wartet auf Versand",
         "sent": "Gesendet",
         "failed": "Fehlgeschlagen",
-        "not_configured": "Nicht gesendet: kein E-Mail-Dienst eingerichtet"
+        "not_configured": "Nicht gesendet: kein E-Mail-Dienst eingerichtet",
+        "skipped": "Nicht gesendet (Einstellung)"
       },
       "retry": "Erneut senden",
       "template": {
@@ -1741,9 +1744,14 @@
         "agent_task_assigned": "Agent: Einsatz zugewiesen",
         "agent_correction_requested": "Agent: Korrektur angefordert",
         "chat_message": "Nachrichten: Nachricht",
-        "chat_urgent": "Nachrichten: dringende Nachricht"
+        "chat_urgent": "Nachrichten: dringende Nachricht",
+        "team_assignment_conflict": "Team: Zuweisungskonflikt",
+        "team_stay_changed": "Team: Aufenthalt geändert",
+        "agent_task_changed": "Agent: Einsatz geändert",
+        "agent_absence_decided": "Agent: Antwort zur Abwesenheit"
       },
-      "testAddress": "Fiktive Adresse (Testkonto): Es wird nichts gesendet."
+      "testAddress": "Fiktive Adresse (Testkonto): Es wird nichts gesendet.",
+      "skippedReason": "Der Empfänger hat diese E-Mail deaktiviert; das Ereignis bleibt in HALO sichtbar."
     },
     "services": {
       "title": "Leistungen",
@@ -1840,10 +1848,16 @@
       "absent": "abwesend",
       "windowLabel": "Zu erledigen {window}",
       "durationLabel": "Dauer {duration}",
-      "hiddenAbsent": "{count, plural, one {# Person in diesem Zeitfenster abwesend, nicht angeboten} other {# Personen in diesem Zeitfenster abwesend, nicht angeboten}}",
+      "hiddenAbsent": "{count, plural, one {# Person in diesem Zeitfenster nicht verfügbar: nicht auswählbar} other {# Personen in diesem Zeitfenster nicht verfügbar: nicht auswählbar}}",
       "toValidateTitle": "Zu prüfende Einsätze",
       "toValidateSubtitle": "Vom Agenten beendet: freigeben oder Korrektur anfordern.",
-      "showAll": "Alle Einsätze anzeigen"
+      "showAll": "Alle Einsätze anzeigen",
+      "absentFor": "nicht verfügbar: {period}",
+      "conflictTitle": "{name} ist im Zeitfenster dieses Einsatzes abwesend",
+      "conflictActions": "HALO weist nichts selbst neu zu: Wählen Sie eine andere Person, ändern Sie das Zeitfenster oder stornieren Sie den Einsatz.",
+      "cancelTask": "Einsatz stornieren",
+      "cancelConfirm": "Endgültig stornieren? Der zugewiesene Agent wird benachrichtigt.",
+      "cancelYes": "Ja, stornieren"
     },
     "team": {
       "title": "Team",
@@ -1991,7 +2005,8 @@
       "title": "Versand und Benachrichtigungen",
       "subtitle": "Jede E-Mail an Gäste und Team mit tatsächlichem Status.",
       "loadError": "Versand konnte nicht geladen werden.",
-      "summary": "{sent} gesendet · {pending} wartend · {failed} fehlgeschlagen · {notConfigured} ohne Dienst"
+      "summary": "{sent} gesendet · {pending} wartend · {failed} fehlgeschlagen · {notConfigured} ohne Dienst",
+      "skippedCount": "{count, plural, =0 {keiner wegen Einstellung ausgelassen} one {# wegen Einstellung ausgelassen} other {# wegen Einstellung ausgelassen}}"
     },
     "profile": {
       "incompleteTitle": "Geben Sie Ihren Namen an",
@@ -2007,7 +2022,8 @@
       "saved": "Gespeichert.",
       "missing": "Noch zu ergänzen: {fields}",
       "complete": "Profil vollständig.",
-      "me": "Ich"
+      "me": "Ich",
+      "prefsLink": "Routen-App und Benachrichtigungen: Einstellungen →"
     },
     "settings": {
       "title": "Einstellungen",
@@ -2165,7 +2181,9 @@
       "back": "Nachrichten",
       "missionTitle": "Nachrichten zum Einsatz",
       "newForMission": "Zu diesem Einsatz schreiben",
-      "noneForMission": "Keine Unterhaltung zu diesem Einsatz."
+      "noneForMission": "Keine Unterhaltung zu diesem Einsatz.",
+      "readBy": "gelesen von {names}",
+      "notReadBy": "noch nicht gelesen von {names}"
     },
     "prefs": {
       "title": "Benachrichtigungen",
@@ -2190,12 +2208,32 @@
         "team_absence_requested": "Abwesenheitsantrag",
         "chat_message": "Teamnachricht",
         "agent_task_assigned": "Mir zugewiesener Einsatz",
-        "agent_correction_requested": "Korrektur zu meinem Einsatz angefordert"
-      }
+        "agent_correction_requested": "Korrektur zu meinem Einsatz angefordert",
+        "team_assignment_conflict": "Zuweisungskonflikt (angenommene Abwesenheit bei zugewiesenem Einsatz)",
+        "team_stay_changed": "Aufenthalt geändert oder storniert (Anreise, Abreise)",
+        "agent_task_changed": "Einsatz geändert oder storniert",
+        "agent_absence_decided": "Antwort auf meinen Abwesenheitsantrag"
+      },
+      "pageTitle": "Einstellungen",
+      "pageSubtitle": "Ihre persönlichen Einstellungen: Sie ändern nichts für andere Mitglieder.",
+      "visibleIn": "Immer in HALO sichtbar: {where}",
+      "where": {
+        "home": "Startseite",
+        "team": "Startseite und Team",
+        "messages": "Nachrichten (Ungelesen-Zähler)",
+        "stays": "Aufenthalte und Startseite",
+        "services": "Leistungen und Startseite",
+        "incidents": "Vorfälle und Startseite",
+        "missions": "Meine Einsätze",
+        "profile": "Mein Profil (Abwesenheiten)"
+      },
+      "reset": "Standardeinstellungen wiederherstellen",
+      "resetHint": "Standardmäßig wird alles per E-Mail gesendet.",
+      "resetDone": "Standardeinstellungen wiederhergestellt."
     },
     "places": {
-      "title": "Rund um die Unterkunft (Gästebereich)",
-      "text": "Der Gast sieht eine Karte und diese Orte mit Quelle und Datum. Nichts ist erfunden.",
+      "title": "Empfehlungen der Unterkunft (Gästebereich)",
+      "text": "Gäste dieser Unterkunft sehen diese Orte mit Herkunft, Entfernung und Route. Nichts ist erfunden.",
       "located": "Unterkunft verortet: {lat}, {lng} ({source})",
       "sourceManual": "vom Team eingegeben",
       "notLocated": "Unterkunft nicht verortet: Adresse suchen oder Koordinaten eingeben.",
@@ -2207,20 +2245,38 @@
       "importing": "Import läuft …",
       "importHint": "Benannte Orte im Umkreis von 1,2 km. Erneut starten zum Aktualisieren; ausgeblendete bleiben ausgeblendet.",
       "imported": "{count, plural, =0 {Kein Ort gefunden.} one {# Ort importiert.} other {# Orte importiert.}}",
-      "addTitle": "Vom Team geprüften Ort hinzufügen",
+      "addTitle": "Empfehlung hinzufügen",
       "name": "Name",
       "category": "Kategorie",
       "address": "Adresse",
       "hours": "Öffnungszeiten",
       "hoursHint": "Nur wenn Sie sie geprüft haben.",
       "phone": "Telefon",
-      "note": "Tipp des Teams",
+      "note": "Praktischer Tipp",
       "add": "Hinzufügen",
-      "none": "Noch kein Ort.",
+      "none": "Noch keine Empfehlung.",
       "byTeam": "Team",
       "show": "Anzeigen",
       "hide": "Ausblenden",
-      "delete": "Löschen"
+      "delete": "Löschen",
+      "ownTitle": "Empfehlungen von Team und Eigentümer",
+      "autoTitle": "Automatische Empfehlungen",
+      "autoSource": "Quelle: OpenStreetMap (kostenlos, ohne Schlüssel; Abdeckung je nach Gegend; Öffnungszeiten oft fehlend; datierte Daten). Es werden keine Gastdaten übermittelt.",
+      "autoToggle": "Automatische Empfehlungen für Gäste anzeigen",
+      "autoOff": "Für diese Unterkunft deaktiviert: Gäste sehen nur Ihre Empfehlungen.",
+      "locating": "Wird gesucht …",
+      "needCoords": "Verorten Sie zuerst die Unterkunft (Adresse oder Koordinaten).",
+      "editTitle": "Empfehlung bearbeiten",
+      "origin": "Herkunft",
+      "originTeam": "Vom Team empfohlen",
+      "originOwner": "Tipp des Eigentümers",
+      "addressHint": "Für die Route nötig.",
+      "description": "Kurzbeschreibung",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "edit": "Bearbeiten",
+      "noDistance": "ohne Entfernung (Ort nicht verortet)",
+      "hidden": "ausgeblendet"
     }
   },
   "email": {
@@ -2310,6 +2366,26 @@
     "chat_urgent": {
       "subject": "DRINGEND — {member} — {property}",
       "body": "Dringende Nachricht von {member} in HALO ({property})."
+    },
+    "team_assignment_conflict": {
+      "subject": "Einsätze neu planen — Abwesenheit von {member}",
+      "body": "Eine angenommene Abwesenheit von {member} betrifft bereits zugewiesene Einsätze. Nichts wurde neu zugewiesen."
+    },
+    "team_stay_changed": {
+      "subject": "Aufenthalt geändert — {property}",
+      "body": "Der Aufenthalt von {guest} in {property} hat sich geändert (Daten oder Storno). Prüfen Sie die Einsätze."
+    },
+    "agent_task_changed": {
+      "subject": "Einsatz geändert — {property}",
+      "body": "Ihr Einsatz „{kind}“ in {property} wurde geändert oder storniert."
+    },
+    "agent_absence_decided": {
+      "subject": "Ihr Abwesenheitsantrag: {decision}",
+      "body": "Ihr Abwesenheitsantrag wurde {decision}."
+    },
+    "decisions": {
+      "accepted": "angenommen",
+      "refused": "abgelehnt"
     }
   },
   "guestSpace": {
@@ -2403,7 +2479,7 @@
       "fromMe": "Entfernungen von meinem Standort",
       "fromHome": "Zurück zur Unterkunft",
       "originMe": "Entfernungen von Ihrem Standort (er bleibt auf Ihrem Telefon).",
-      "originHome": "Entfernungen ab der Unterkunft: {address}.",
+      "originHome": "Rund um die Unterkunft: {address}.",
       "denied": "Standort nicht erlaubt: Entfernungen werden weiter ab der Unterkunft berechnet.",
       "unavailable": "Standort nicht verfügbar: Entfernungen werden weiter ab der Unterkunft berechnet.",
       "all": "Alle",
@@ -2418,7 +2494,16 @@
       "verifiedOn": "Vom Team geprüft am {date}",
       "osmData": "OpenStreetMap-Daten vom {date}",
       "sources": "Quellen: {list}",
-      "notBookable": "Vorschläge, keine Buchungen: Um eine Leistung zu buchen, nutzen Sie „Leistung anfragen“."
+      "notBookable": "Vorschläge, keine Buchungen: Um eine Leistung zu buchen, nutzen Sie „Leistung anfragen“.",
+      "byOwner": "Tipp des Eigentümers",
+      "byOsm": "Automatisch vorgeschlagen (OpenStreetMap)",
+      "empty": "Das Team hat für diese Unterkunft noch keine Empfehlungen hinzugefügt.",
+      "noCoordinates": "Die Unterkunft ist noch nicht verortet: keine Karte und keine Entfernung, die Adressen bleiben nutzbar.",
+      "mapUnavailable": "Kartenhintergrund nicht verfügbar (Verbindung oder Dienst): Die Liste unten bleibt vollständig.",
+      "tip": "Tipp:",
+      "noHours": "Öffnungszeiten von der Quelle nicht angegeben",
+      "noRoute": "Keine Adresse angegeben: Route nicht verfügbar.",
+      "distanceNote": "Ungefähre Luftlinienentfernungen ab der Unterkunft"
     }
   },
   "demoEntry": {

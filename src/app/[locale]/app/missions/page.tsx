@@ -8,8 +8,8 @@ import { isoFromNow, nowDate } from "@/lib/connected/time";
 import { infeasibility } from "@/lib/engine/conflicts";
 import { toTask, type Row } from "@/lib/connected/mappers";
 import { loadPlanning } from "@/lib/connected/planning";
-import { isAvailable } from "@/lib/engine/availability";
-import { durationText, windowText } from "@/lib/connected/format";
+import { blockingAbsences } from "@/lib/engine/availability";
+import { durationText, periodText, windowText } from "@/lib/connected/format";
 import { TriangleAlert } from "lucide-react";
 
 export default async function MissionsPage({ params, searchParams }: PageProps<"/[locale]/app/missions">) {
@@ -44,8 +44,16 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
   ]);
   const tc = await getTranslations("connected.schedule");
   // Personnes absentes sur le créneau de chaque mission (même règle que la base)
-  const away = (k: { window_start: string; window_end: string; duration_min: number; scheduled_start: string | null }) =>
-    (planning?.members ?? []).filter((m) => !isAvailable(m, { windowStart: k.window_start, windowEnd: k.window_end, durationMin: k.duration_min, scheduledStart: k.scheduled_start }, planning!.absences)).map((m) => m.id);
+  const ta = await getTranslations("connected.absences");
+  // Personnes absentes sur le créneau réel de chaque mission (même règle que la base), avec le motif
+  const away = (k: { window_start: string; window_end: string; duration_min: number; scheduled_start: string | null }) => {
+    const out: Record<string, string> = {};
+    for (const m of planning?.members ?? []) {
+      const b = blockingAbsences(m, { windowStart: k.window_start, windowEnd: k.window_end, durationMin: k.duration_min, scheduledStart: k.scheduled_start }, planning!.absences);
+      if (b.length) out[m.id] = `${ta(`kinds.${b[0].kind}`)} ${periodText(f, b[0].startsAt, b[0].endsAt)}`;
+    }
+    return out;
+  };
   const nextArrival = (k: { next?: unknown }) => ((Array.isArray(k.next) ? k.next[0] : k.next) as { check_in_at: string } | null)?.check_in_at ?? null;
   const people = (members ?? []).map((m: { user_id: string; profiles: unknown }) => {
     const p = (Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as { full_name: string } | null;
@@ -106,7 +114,8 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
                   outOfWindow={Boolean(infeasibility(toTask(k as Row), now))}
                   durationMin={k.duration_min}
                   arrival={nextArrival(k) ? f.dateTime(new Date(nextArrival(k)!), { dateStyle: "medium", timeStyle: "short" }) : null}
-                  unavailable={away(k)}
+                  unavailable={Object.keys(away(k))}
+                  reasons={away(k)}
                 />
               ) : (
                 <AgentActions taskId={k.id} status={k.status} />

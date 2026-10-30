@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { Building2, CalendarDays, ConciergeBell, House, ListChecks, Mail, Settings2, TriangleAlert, Users, CircleUser, MessagesSquare, SlidersHorizontal } from "lucide-react";
+import { Building2, CalendarDays, ConciergeBell, House, ListChecks, Mail, Settings2, TriangleAlert, Users, BellRing, CircleUser, MessagesSquare, SlidersHorizontal } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Logo } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
@@ -20,11 +20,13 @@ const MANAGER_NAV = [
   { key: "settings", href: "/app/settings", icon: SlidersHorizontal },
   { key: "setup", href: "/app/onboarding", icon: Settings2 },
   { key: "profile", href: "/app/profile", icon: CircleUser },
+  { key: "preferences", href: "/app/preferences", icon: BellRing },
 ] as const;
 const AGENT_NAV = [
   { key: "missions", href: "/app/missions", icon: ListChecks },
   { key: "messages", href: "/app/messages", icon: MessagesSquare },
   { key: "profile", href: "/app/profile", icon: CircleUser },
+  { key: "preferences", href: "/app/preferences", icon: BellRing },
 ] as const;
 
 /** Coquille de l'environnement connecté : environnement affiché en permanence, navigation selon le rôle. */

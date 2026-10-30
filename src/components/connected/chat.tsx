@@ -21,6 +21,9 @@ export interface ChatMessage {
   /** Pour ses propres messages : lu par tous / quelques-uns / personne. */
   readBy: number;
   readTotal: number;
+  /** Noms des destinataires qui l'ont lu / pas encore lu (dernière ouverture de la conversation). */
+  readers: string[];
+  notYet: string[];
   /** Reçu et non lu au moment de l'ouverture. */
   isNew: boolean;
 }
@@ -103,6 +106,13 @@ export function ChatThread({ threadId, messages, meId, canWrite }: { threadId: s
                   </span>
                 )}
               </p>
+              {mine && m.readTotal > 1 && (
+                <p className="text-[11px] text-faint" data-testid="chat-read-detail">
+                  {m.readers.length > 0 && t("readBy", { names: m.readers.join(", ") })}
+                  {m.readers.length > 0 && m.notYet.length > 0 && " · "}
+                  {m.notYet.length > 0 && t("notReadBy", { names: m.notYet.join(", ") })}
+                </p>
+              )}
             </li>
           );
         })}

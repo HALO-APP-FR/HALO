@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { agentTaskAction, assignTask } from "@/lib/connected/actions";
+import { agentTaskAction, assignTask, cancelTask } from "@/lib/connected/actions";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ export function AssignSelect({
   durationMin = 60,
   arrival,
   unavailable = [],
+  reasons = {},
 }: {
   taskId: string;
   current: string | null;
@@ -33,6 +34,8 @@ export function AssignSelect({
   arrival?: string | null;
   /** Personnes absentes sur ce créneau (absence acceptée ou fermeture) : non proposées. La base refuse aussi. */
   unavailable?: string[];
+  /** Motif lisible par personne (période d'absence ou fermeture). */
+  reasons?: Record<string, string>;
 }) {
   const t = useTranslations("connected.missions");
   const { pending, error, run } = useRun();
@@ -52,18 +55,19 @@ export function AssignSelect({
         data-testid="assign-select"
       >
         <option value="">{t("unassigned")}</option>
-        {/* Personnes absentes sur le créneau réel : non proposées (la base refuserait aussi) */}
-        {members
-          .filter((m) => !unavailable.includes(m.id) || m.id === current)
-          .map((m) => (
-            <option key={m.id} value={m.id}>
-              {unavailable.includes(m.id) ? `${m.name} — ${t("absent")}` : m.name}
+        {/* Personnes absentes sur le créneau réel : visibles mais non sélectionnables, avec le motif (la base refuse aussi) */}
+        {members.map((m) => {
+          const away = unavailable.includes(m.id) && m.id !== current;
+          return (
+            <option key={m.id} value={m.id} disabled={away} data-away={away ? "1" : "0"}>
+              {unavailable.includes(m.id) ? `${m.name} — ${t("absentFor", { period: reasons[m.id] ?? "" })}` : m.name}
             </option>
-          ))}
+          );
+        })}
       </Select>
-      {members.some((m) => unavailable.includes(m.id) && m.id !== current) && (
-        <p className="mt-1 text-[12px] text-muted" data-testid="assign-hidden">
-          {t("hiddenAbsent", { count: members.filter((m) => unavailable.includes(m.id) && m.id !== current).length })}
+      {members.some((m) => unavailable.includes(m.id)) && (
+        <p className="mt-1 max-w-72 text-[12px] text-muted" data-testid="assign-hidden">
+          {t("hiddenAbsent", { count: members.filter((m) => unavailable.includes(m.id)).length })}
         </p>
       )}
       {pendingMember && (
@@ -105,6 +109,33 @@ export function AgentActions({ taskId, status }: { taskId: string; status: strin
         </Button>
       )}
       {error && <p role="alert" className="max-w-56 text-end text-[13px] text-danger">{error}</p>}
+    </div>
+  );
+}
+
+/** Annulation d'une mission par un responsable : confirmation explicite, l'agent affecté est prévenu. */
+export function CancelTaskButton({ taskId }: { taskId: string }) {
+  const t = useTranslations("connected.missions");
+  const { pending, error, run } = useRun();
+  const [confirm, setConfirm] = useState(false);
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {!confirm ? (
+        <Button size="sm" variant="ghost" onClick={() => setConfirm(true)} data-testid="task-cancel">
+          {t("cancelTask")}
+        </Button>
+      ) : (
+        <>
+          <span className="text-[13px]">{t("cancelConfirm")}</span>
+          <Button size="sm" variant="danger" onClick={() => run(() => cancelTask(taskId))} disabled={pending} data-testid="task-cancel-confirm">
+            {t("cancelYes")}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setConfirm(false)}>
+            {t("cancel")}
+          </Button>
+        </>
+      )}
+      {error && <p role="alert" className="basis-full text-[13px] text-danger">{error}</p>}
     </div>
   );
 }

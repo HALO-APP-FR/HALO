@@ -15,7 +15,7 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
   if (!org) redirect({ href: "/app", locale });
   if (!isManagerRole(org!.role)) redirect({ href: "/app/missions", locale });
   const [{ data: p }, { data: g }, { data: rooms }, { data: placeRows }] = await Promise.all([
-    supabase.from("properties").select("id, name, city, address_line, default_check_in, default_check_out, latitude, longitude, geo_source").eq("organization_id", org!.id).eq("id", id).maybeSingle(),
+    supabase.from("properties").select("id, name, city, address_line, default_check_in, default_check_out, latitude, longitude, geo_source, auto_places").eq("organization_id", org!.id).eq("id", id).maybeSingle(),
     supabase.from("guest_guides").select("*").eq("organization_id", org!.id).eq("property_id", id).maybeSingle(),
     supabase.from("checklist_rooms").select("id, name, checklist_items(label, photo_required)").eq("organization_id", org!.id).eq("property_id", id).order("sort"),
     supabase.from("property_places").select("*").eq("organization_id", org!.id).eq("property_id", id).order("source").order("name"),
@@ -27,6 +27,7 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
     source: x.source,
     category: x.category,
     name: x.name,
+    description: x.description,
     address: x.address,
     lat: x.latitude,
     lng: x.longitude,
@@ -44,7 +45,7 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <div className="space-y-4">
           <GuideEditor propertyId={p.id} guide={g ?? {}} />
-          <PlacesManager propertyId={p.id} coords={coords} geoSource={p.geo_source} places={places} />
+          <PlacesManager propertyId={p.id} coords={coords} geoSource={p.geo_source} autoPlaces={p.auto_places} places={places} />
         </div>
         <div className="self-start rounded-xl border border-line bg-surface p-5">
           <h2 className="text-[17px] font-semibold">{t("checklist")}</h2>

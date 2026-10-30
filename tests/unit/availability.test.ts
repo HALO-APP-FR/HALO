@@ -76,3 +76,25 @@ describe("disponibilités (même règle que la base)", () => {
     expect(availabilityConflicts([task("y", "2027-04-10T08:00:00Z", "2027-04-10T12:00:00Z")], [ana], [abs({})], new Date("2027-05-01T00:00:00Z"))).toEqual([]);
   });
 });
+
+import { nextDay, zonedMidnight } from "@/lib/connected/format";
+describe("journées entières dans le fuseau de l'organisation", () => {
+  it("minuit à Paris, hiver et été", () => {
+    expect(zonedMidnight("2027-01-15", "Europe/Paris").toISOString()).toBe("2027-01-14T23:00:00.000Z");
+    expect(zonedMidnight("2027-07-15", "Europe/Paris").toISOString()).toBe("2027-07-14T22:00:00.000Z");
+  });
+  it("jour du changement d'heure et autres fuseaux", () => {
+    expect(zonedMidnight("2027-03-28", "Europe/Paris").toISOString()).toBe("2027-03-27T23:00:00.000Z");
+    expect(zonedMidnight("2027-03-29", "Europe/Paris").toISOString()).toBe("2027-03-28T22:00:00.000Z");
+    expect(zonedMidnight("2027-01-15", "America/New_York").toISOString()).toBe("2027-01-15T05:00:00.000Z");
+    expect(zonedMidnight("2027-01-15", "Asia/Tokyo").toISOString()).toBe("2027-01-14T15:00:00.000Z");
+  });
+  it("une mission qui traverse minuit chevauche bien le jour d'absence suivant", () => {
+    const leave = { id: "a", scope: "member" as const, memberId: "ana", teamPosition: null, kind: "leave" as const, status: "accepted" as const,
+      startsAt: zonedMidnight("2027-02-02", "Europe/Paris").toISOString(), endsAt: zonedMidnight(nextDay("2027-02-02"), "Europe/Paris").toISOString() };
+    const night = { windowStart: "2027-02-01T21:00:00Z", windowEnd: "2027-02-02T01:00:00Z", durationMin: 60 }; // 22 h → 2 h (Paris)
+    expect(isAvailable({ id: "ana", position: null }, night, [leave])).toBe(false);
+    expect(isAvailable({ id: "ana", position: null }, { ...night, scheduledStart: "2027-02-01T21:00:00Z" }, [leave])).toBe(true); // 22 h → 23 h : avant minuit
+    expect(nextDay("2027-12-31")).toBe("2028-01-01");
+  });
+});

@@ -14,6 +14,7 @@ import { infeasibility } from "@/lib/engine/conflicts";
 import { getContext, isManagerRole, ORG_COOKIE } from "./context";
 import { toProperty, toReservation, toTask } from "./mappers";
 import { processOutbox } from "./outbox";
+import { nextDay, zonedMidnight } from "./format";
 
 export type Result<T = undefined> = { ok: true; data: T } | { ok: false; error: string };
 const fail = (error: string): { ok: false; error: string } => ({ ok: false, error });
@@ -635,12 +636,21 @@ export interface AbsenceInput {
   unplanned?: boolean;
   reason?: string;
   teamPosition?: string | null;
+  /** Journées entières (AAAA-MM-JJ, fin incluse) : bornes calculées dans le fuseau de l'organisation. */
+  allDay?: { from: string; to: string };
 }
 export async function saveAbsence(input: AbsenceInput): Promise<Result<{ id: string; status: string; replayed: boolean }>> {
   const ctx = await getContext();
   if (!ctx.user || !ctx.org) return fail("not_signed_in");
-  const start = new Date(input.startsAt);
-  const end = new Date(input.endsAt);
+  let start = new Date(input.startsAt);
+  let end = new Date(input.endsAt);
+  if (input.allDay) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input.allDay.from) || !/^\d{4}-\d{2}-\d{2}$/.test(input.allDay.to)) return fail("invalid_period");
+    const { data: o } = await ctx.supabase.from("organizations").select("timezone").eq("id", ctx.org.id).single();
+    const tz = (o?.timezone as string) || "Europe/Paris";
+    start = zonedMidnight(input.allDay.from, tz);
+    end = zonedMidnight(nextDay(input.allDay.to), tz);
+  }
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return fail("invalid_period");
   const { data, error: e } = await ctx.supabase.rpc("save_absence", {
     org: ctx.org.id,
@@ -833,8 +843,11 @@ export async function importNearbyPlaces(propertyId: string): Promise<Result<{ c
 }
 
 export interface PlaceInput {
+  /** Recommandé par l'équipe, ou conseil transmis par le propriétaire du logement. */
+  source?: "manager" | "owner";
   category: string;
   name: string;
+  description?: string;
   address?: string;
   openingHours?: string;
   phone?: string;
@@ -851,9 +864,10 @@ export async function addPlace(propertyId: string, input: PlaceInput): Promise<R
   const { error: e } = await ctx.supabase.from("property_places").insert({
     organization_id: ctx.org!.id,
     property_id: propertyId,
-    source: "manager",
+    source: input.source === "owner" ? "owner" : "manager",
     category: input.category,
     name: input.name.trim().slice(0, 160),
+    description: input.description?.trim().slice(0, 300) || null,
     address: input.address?.trim() || null,
     opening_hours: input.openingHours?.trim() || null,
     phone: input.phone?.trim() || null,
@@ -879,9 +893,76 @@ export async function setPlaceHidden(placeId: string, hidden: boolean): Promise<
 export async function deletePlace(placeId: string): Promise<Result> {
   const { ctx, error } = await manager();
   if (error) return fail(error);
-  const { data, error: e } = await ctx.supabase.from("property_places").delete().eq("organization_id", ctx.org!.id).eq("id", placeId).eq("source", "manager").select("id");
+  const { data, error: e } = await ctx.supabase.from("property_places").delete().eq("organization_id", ctx.org!.id).eq("id", placeId).in("source", ["manager", "owner"]).select("id");
   if (e) return fail(errCode(e));
   if (!data?.length) return fail("not_found");
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+/** Modifier une recommandation saisie par l'équipe (les lieux importés se masquent, ils ne se réécrivent pas). */
+export async function updatePlace(placeId: string, input: PlaceInput): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  if (!input.name.trim()) return fail("invalid");
+  const { data, error: e } = await ctx.supabase
+    .from("property_places")
+    .update({
+      source: input.source === "owner" ? "owner" : "manager",
+      category: input.category,
+      name: input.name.trim().slice(0, 160),
+      description: input.description?.trim().slice(0, 300) || null,
+      address: input.address?.trim() || null,
+      opening_hours: input.openingHours?.trim() || null,
+      phone: input.phone?.trim() || null,
+      website: input.website?.trim() || null,
+      note: input.note?.trim() || null,
+      source_updated_at: new Date().toISOString(),
+    })
+    .eq("organization_id", ctx.org!.id)
+    .eq("id", placeId)
+    .in("source", ["manager", "owner"])
+    .select("id");
+  if (e) return fail(errCode(e));
+  if (!data?.length) return fail("not_found");
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+/** Recommandations automatiques (OpenStreetMap) affichées ou non pour ce logement. */
+export async function setAutoPlaces(propertyId: string, enabled: boolean): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.from("properties").update({ auto_places: enabled }).eq("organization_id", ctx.org!.id).eq("id", propertyId).select("id");
+  if (e) return fail(errCode(e));
+  if (!data?.length) return fail("not_found");
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+/** Retour aux notifications par défaut (pour soi uniquement). */
+export async function resetNotificationPrefs(): Promise<Result> {
+  const ctx = await getContext();
+  if (!ctx.user || !ctx.org) return fail("not_signed_in");
+  const { error: e } = await ctx.supabase.rpc("reset_notification_prefs", { org: ctx.org.id });
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+/** Annuler une mission (responsable) : l'agent affecté est prévenu par la base. */
+export async function cancelTask(taskId: string): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase
+    .from("tasks")
+    .update({ status: "cancelled", is_auto_generated: false })
+    .eq("organization_id", ctx.org!.id)
+    .eq("id", taskId)
+    .in("status", ["unassigned", "assigned", "to_redo"])
+    .select("id");
+  if (e) return fail(errCode(e));
+  if (!data?.length) return fail("conflict");
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }

@@ -244,7 +244,7 @@ export async function GET(request: NextRequest) {
     const g = await geocode({ addressLine: "10 Rue de Rivoli", postalCode: "75004", city: "Paris", countryCode: "FR" });
     check("openstreetmap_geocoding_works", g.ok && Math.abs(g.lat - 48.855) < 0.02, g.ok ? `${g.lat},${g.lng}` : g.error);
     const near = await nearbyPlaces(48.8606, 2.3376);
-    check("openstreetmap_places_work", near.ok && near.places.length > 0 && Boolean(near.dataDate), near.ok ? `${near.places.length} lieux, données du ${near.dataDate}` : near.error);
+    check("openstreetmap_places_work", near.ok && near.places.length > 0 && Boolean(near.dataDate), near.ok ? `${near.places.length} lieux via ${near.source}, données du ${near.dataDate}` : `${near.error} (${near.detail})`);
 
     // 7. Révocation
     const { data: links } = await a1.from("guest_links").select("id").eq("reservation_id", rA!.id).is("revoked_at", null);

@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Lock } from "lucide-react";
-import { setNotificationPref } from "@/lib/connected/actions";
+import { resetNotificationPrefs, setNotificationPref } from "@/lib/connected/actions";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useRun } from "./use-run";
 
 export interface PrefRow {
   event: string;
+  /** Où l'événement reste visible dans HALO, quel que soit le réglage e-mail. */
+  where: string;
   email: boolean;
   /** Urgences : l'e-mail part toujours pour elles, même préférence coupée. */
   critical: "always" | "urgent_only" | null;
@@ -35,10 +38,26 @@ export function NotificationPrefs({ rows, emailReady }: { rows: PrefRow[]; email
       </div>
       <ul className="mt-4 divide-y divide-line">
         {rows.map((r) => (
-          <PrefItem key={r.event} row={r} disabled={!emailReady} />
+          <PrefItem key={`${r.event}-${r.email}`} row={r} disabled={!emailReady} />
         ))}
       </ul>
+      <ResetPrefs />
     </Card>
+  );
+}
+
+function ResetPrefs() {
+  const t = useTranslations("connected.prefs");
+  const { pending, error, run } = useRun();
+  const [done, setDone] = useState(false);
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+      <Button size="sm" variant="outline" onClick={() => run(() => resetNotificationPrefs(), () => setDone(true))} disabled={pending} data-testid="prefs-reset">
+        {t("reset")}
+      </Button>
+      <span className="text-[13px] text-muted">{done ? t("resetDone") : t("resetHint")}</span>
+      {error && <span role="alert" className="text-[13px] text-danger">{error}</span>}
+    </div>
   );
 }
 
@@ -51,6 +70,7 @@ function PrefItem({ row, disabled }: { row: PrefRow; disabled: boolean }) {
     <li className="flex flex-wrap items-center gap-3 py-3" data-testid="pref-row" data-event={row.event}>
       <span className="min-w-0 flex-1">
         <span className="block text-[15px]">{t(`event.${row.event}`)}</span>
+        <span className="block text-[12px] text-muted" data-testid="pref-where">{t("visibleIn", { where: row.where })}</span>
         {row.critical && (
           <span className="flex items-center gap-1 text-[12px] text-muted">
             <Lock className="size-3" />

@@ -205,6 +205,7 @@ export function AbsenceForm({ manager, members, selfId }: { manager: boolean; me
                 unplanned: f.unplanned,
                 reason: f.reason,
                 teamPosition: team ? f.position || null : null,
+                allDay: f.allDay ? { from: f.from, to: f.to } : undefined,
               }),
             (d) => {
               setDone(d.status);

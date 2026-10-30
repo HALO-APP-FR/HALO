@@ -67,7 +67,8 @@ export async function processOutbox(orgId?: string) {
       const message = typeof row.payload.message === "string" ? row.payload.message : "";
       const org = orgNames.get(row.organization_id)!;
       const str = (k: string) => (typeof row.payload[k] === "string" ? (row.payload[k] as string) : "");
-      const params = { org, kind, property: str("property") || "—", guest: str("guest") || "—", member: str("member") || "—" };
+      const decision = str("decision") === "accepted" || str("decision") === "refused" ? t(`decisions.${str("decision")}`) : "";
+      const params = { org, kind, decision, property: str("property") || "—", guest: str("guest") || "—", member: str("member") || "—" };
       // E-mails internes (équipe, agent, messagerie) : lien vers HALO et pied de page interne
       const team = /^(team_|agent_|chat_)/.test(row.template);
       const base = appUrl();

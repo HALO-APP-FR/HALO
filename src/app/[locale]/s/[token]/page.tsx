@@ -126,7 +126,7 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
           <p className="mt-3 text-[13px] text-muted">{t("times", { in: g.property.check_in_time.slice(0, 5), out: g.property.check_out_time.slice(0, 5) })}</p>
         </Card>
 
-        {around && around.places.length > 0 && (
+        {around && (
           <GuestAround
             property={{
               name: around.property.name,

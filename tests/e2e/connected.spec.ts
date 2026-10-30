@@ -814,8 +814,10 @@ test("17 · validation par type, créneau lisible et corrigé, absences et ferme
   await admin.from("tasks").insert({ organization_id: org, property_id: prop!.id, type: "inspection", window_start: at(60), window_end: at(240), duration_min: 45 });
   await m.goto("/fr/app/missions");
   const insp = m.getByTestId("mission-row").filter({ hasText: "Contrôle · Appartement test" });
-  await expect(insp.getByTestId("assign-select").locator("option", { hasText: "Agent test" })).toHaveCount(0);
-  await expect(insp.getByTestId("assign-hidden")).toContainText("1 personne absente");
+  const opt = insp.getByTestId("assign-select").locator("option", { hasText: "Agent test" });
+  await expect(opt).toBeDisabled();
+  await expect(opt).toContainText("indisponible : Congé");
+  await expect(insp.getByTestId("assign-hidden")).toContainText("1 personne indisponible");
   const blocked = await admin.from("tasks").update({ assignee_id: agentUser.id, status: "assigned" }).eq("organization_id", org).eq("type", "inspection").select("id");
   expect(blocked.error?.message).toContain("assignee_unavailable");
 
@@ -913,26 +915,22 @@ test("18 · missions à valider, messages lus, messagerie interne, itinéraires,
   await expect(around.getByTestId("around-place").first()).toContainText("Boulangerie Fraîche"); // conseil de l'équipe d'abord
   await expect(around.getByTestId("around-place").filter({ hasText: "Gare Fictive" })).toHaveCount(0); // masqué
   await expect(around.getByTestId("around-place").filter({ hasText: "Hors périmètre" })).toHaveCount(0);
-  await expect(around.getByTestId("around-sources")).toContainText("OpenStreetMap");
   await expect(around.getByTestId("around-sources")).toContainText("Données OpenStreetMap du 28 oct. 2026");
+  await expect(around.getByTestId("around-place").filter({ hasText: "Pharmacie Centrale" }).getByTestId("around-source")).toHaveText("Proposé automatiquement (OpenStreetMap)");
+  await expect(around.getByTestId("around-place").filter({ hasText: "Pharmacie Centrale" }).getByTestId("around-hours")).toContainText("Horaires non communiqués");
   await expect(around.getByTestId("places-map")).toBeVisible();
   await around.getByTestId("around-filter-food").click();
   await expect(around.getByTestId("around-place")).toHaveCount(1);
   const cafe = around.getByTestId("around-place").first();
   await expect(cafe).toContainText("Café de l'Opéra");
-  await expect(cafe.getByTestId("around-distance")).toContainText("m");
+  await expect(cafe.getByTestId("around-distance")).toContainText("< 100 m"); // distance arrondie, jamais une fausse précision
   await expect(cafe.getByTestId("around-hours")).toContainText("Mo-Su 07:00-22:00");
   expect(await cafe.getByTestId("around-go-google").getAttribute("href")).toContain("48.861100%2C2.338100");
-  await around.getByTestId("around-geolocate").click();
-  await expect(around.getByTestId("around-denied")).toBeVisible(); // permission non accordée
-  await expect(around.getByTestId("around-place")).toHaveCount(1);
+  await expect(around.getByTestId("around-geolocate")).toHaveCount(0); // aucune position demandée au voyageur
   await guestCtx.close();
-  const located = await browser.newContext({ locale: "fr-FR", timezoneId: "Europe/Paris", permissions: ["geolocation"], geolocation: { latitude: 48.8611, longitude: 2.3381 } });
+  const located = await browser.newContext({ locale: "fr-FR", timezoneId: "Europe/Paris" });
   const g2 = await located.newPage();
   await g2.goto(guestHref);
-  await g2.getByTestId("around-geolocate").click();
-  await expect(g2.getByTestId("around-origin")).toContainText("depuis votre position");
-  await expect(g2.getByTestId("around-place").filter({ hasText: "Café de l'Opéra" }).getByTestId("around-distance")).toContainText("0 m");
 
   // C. Messages voyageur : lus à l'ouverture, compteurs cohérents
   await g2.getByTestId("guest-message").fill("Où sont les serviettes ?");
@@ -1016,7 +1014,7 @@ test("18 · missions à valider, messages lus, messagerie interne, itinéraires,
   expect(opened[0]).toMatch(/^https:\/\/maps\.apple\.com\/\?daddr=48\.860600%2C2\.337600/);
   expect(opened[1]).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&destination=48\.860600%2C2\.337600/);
   expect(opened[2]).toBe("https://waze.com/ul?ll=48.860600%2C2.337600&navigate=yes");
-  await agent.goto("/fr/app/profile");
+  await agent.goto("/fr/app/preferences");
   await agent.getByTestId("maps-app").selectOption("waze");
   await expect.poll(async () => (await admin.from("profiles").select("maps_app").eq("id", agentUser.id).single()).data?.maps_app).toBe("waze");
   await agent.context().clearCookies();
@@ -1028,7 +1026,7 @@ test("18 · missions à valider, messages lus, messagerie interne, itinéraires,
   await expect(agent.getByTestId("directions-waze")).toHaveAttribute("data-default", "1");
 
   // F. Préférences de notification : enregistrées, appliquées par le serveur, canaux non configurés signalés
-  await agent.goto("/fr/app/profile");
+  await agent.goto("/fr/app/preferences");
   await expect(agent.getByTestId("channel-sms")).toContainText("indisponible");
   await expect(agent.getByTestId("channel-push")).toContainText("indisponibles");
   const pref = agent.locator('[data-testid="pref-row"][data-event="agent_task_assigned"]');
@@ -1036,12 +1034,16 @@ test("18 · missions à valider, messages lus, messagerie interne, itinéraires,
   await expect.poll(async () => (await admin.from("notification_prefs").select("email").eq("user_id", agentUser.id).eq("event", "agent_task_assigned").maybeSingle()).data?.email).toBe(false);
   await agent.reload();
   await expect(agent.locator('[data-testid="pref-row"][data-event="agent_task_assigned"]').getByTestId("pref-email")).not.toBeChecked();
-  const before = (await admin.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("template", "agent_task_assigned")).count ?? 0;
+  const before = (await admin.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("template", "agent_task_assigned").neq("status", "skipped")).count ?? 0;
   const at = (min: number) => new Date(Date.now() + min * 60_000).toISOString();
   const { data: mt } = await admin.from("tasks").insert({ organization_id: org, property_id: prop!.id, type: "maintenance", window_start: at(-30), window_end: at(240), duration_min: 30 }).select("id").single();
   await admin.from("tasks").update({ assignee_id: agentUser.id, status: "assigned" }).eq("id", mt!.id);
-  const after = (await admin.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("template", "agent_task_assigned")).count ?? 0;
+  const after = (await admin.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("template", "agent_task_assigned").neq("status", "skipped")).count ?? 0;
   expect(after).toBe(before); // préférence appliquée par la base
+  const { data: skipped } = await admin.from("notification_outbox").select("status, last_error").eq("organization_id", org).eq("template", "agent_task_assigned").eq("status", "skipped");
+  expect(skipped?.[0]?.last_error).toBe("disabled_by_preference"); // le journal dit pourquoi
+  await m.goto("/fr/app/notifications");
+  await expect(m.getByTestId("outbox-row").filter({ hasText: "Agent : mission attribuée" }).filter({ has: m.getByTestId("outbox-skipped") }).first()).toContainText("Non envoyé (préférence)");
 
   // G. Missions à valider : alerte à l'accueil dès la fin, ouverture directe, disparition après validation
   await admin.from("organizations").update({ validation_task_types: ["turnover", "maintenance"] }).eq("id", org);
@@ -1062,5 +1064,152 @@ test("18 · missions à valider, messages lus, messagerie interne, itinéraires,
   await expect(m.getByTestId("home-toValidate")).toContainText("Aucune mission à valider");
   const { data: mails } = await admin.from("notification_outbox").select("recipient").eq("organization_id", org).eq("template", "team_task_to_validate");
   expect((mails ?? []).length).toBeGreaterThan(0); // notification générée à la fin de la mission
+  for (const c of [m, agent]) await c.context().close();
+});
+
+test("19 · recommandations (modifier, propriétaire, sans coordonnées, automatiques désactivées), itinéraire sans adresse, conflit sur la mission, préférences rétablies, lecture par destinataire", async ({ browser }) => {
+  const m = await newPage(browser);
+  await m.context().clearCookies();
+  await m.goto("/fr/auth/sign-in");
+  await m.getByLabel("Nom du compte de test").fill(`reco ${run}`);
+  await m.getByTestId("test-scenario-submit").click();
+  await expect(m.getByTestId("test-scenario-ready")).toBeVisible();
+  const guestHref = (await m.getByTestId("test-scenario-guest").getAttribute("href"))!;
+  await m.getByTestId("test-scenario-continue").click();
+  await expect(m).toHaveURL(/\/fr\/app$/);
+  const agentUser = (await admin.auth.admin.listUsers({ perPage: 1000 })).data.users.find((u) => u.email === `test-reco-${run}-agent@halo.invalid`)!;
+  const { data: mem } = await admin.from("memberships").select("organization_id").eq("user_id", agentUser.id).single();
+  const org = mem!.organization_id as string;
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+  const { data: ménage } = await admin.from("tasks").select("id").eq("organization_id", org).eq("type", "turnover").limit(1).single();
+
+  // A. Logement non localisé : la recommandation manuelle reste pleinement utilisable, sans distance ni carte inventées
+  await m.goto(`/fr/app/properties/${prop!.id}`);
+  await expect(m.getByTestId("places-coords")).toContainText("non localisé");
+  await m.getByTestId("place-name").fill("Marché couvert");
+  await m.getByTestId("place-category").selectOption("shops");
+  await m.getByTestId("place-source").selectOption("owner");
+  await m.getByTestId("place-address").fill("Place de l'Hôtel-de-Ville, Paris");
+  await m.getByTestId("place-description").fill("Produits frais du mardi au dimanche");
+  await m.getByTestId("place-add").click();
+  const row = m.getByTestId("place-row").filter({ hasText: "Marché couvert" });
+  await expect(row).toContainText("Conseil du propriétaire");
+  await expect(row).toContainText("sans distance");
+  // Modifier
+  await row.getByTestId("place-edit").click();
+  await m.getByTestId("place-note").fill("Arriver avant 11 h");
+  await m.getByTestId("place-add").click();
+  await expect(m.getByTestId("place-row").filter({ hasText: "Marché couvert" })).toBeVisible();
+  await expect.poll(async () => (await admin.from("property_places").select("note").eq("property_id", prop!.id).eq("name", "Marché couvert").single()).data?.note).toBe("Arriver avant 11 h");
+
+  const guest = await newPage(browser);
+  await guest.goto(guestHref);
+  const around = guest.getByTestId("guest-around");
+  await expect(around.getByTestId("around-origin")).toContainText("pas encore localisé");
+  await expect(around.getByTestId("places-map")).toHaveCount(0); // pas de fausse carte
+  const marche = around.getByTestId("around-place").filter({ hasText: "Marché couvert" });
+  await expect(marche.getByTestId("around-source")).toHaveText("Conseil du propriétaire");
+  await expect(marche).toContainText("Produits frais du mardi au dimanche");
+  await expect(marche).toContainText("Arriver avant 11 h");
+  await expect(marche.getByTestId("around-distance")).toHaveCount(0); // aucune distance inventée
+  expect(decodeURIComponent((await marche.getByTestId("around-go-waze").getAttribute("href"))!)).toContain("Place de l'Hôtel-de-Ville, Paris");
+
+  // B. Panne du fournisseur : message clair, les recommandations manuelles restent visibles
+  await m.getByTestId("places-lat").fill("48.8606");
+  await m.getByTestId("places-lng").fill("2.3376");
+  await m.getByTestId("places-save-coords").click();
+  await expect(m.getByTestId("places-coords")).toContainText("saisi par l'équipe");
+  osm?.close(); // fournisseur injoignable
+  osm = null;
+  await m.getByTestId("places-import").click();
+  await expect(m.getByTestId("places-import-error")).toContainText("OpenStreetMap ne répond pas");
+  await guest.reload();
+  await expect(guest.getByTestId("around-place").filter({ hasText: "Marché couvert" })).toBeVisible();
+
+  // C. Recommandations automatiques désactivées pour ce logement
+  await admin.from("property_places").insert({ organization_id: org, property_id: prop!.id, source: "openstreetmap", external_id: "node/999", category: "food", name: "Bistrot importé", latitude: 48.8608, longitude: 2.3378 });
+  await guest.reload();
+  await expect(guest.getByTestId("around-place").filter({ hasText: "Bistrot importé" })).toHaveCount(1);
+  await m.reload();
+  await m.getByTestId("places-auto").uncheck();
+  await expect(m.getByTestId("places-auto-off")).toBeVisible();
+  await guest.reload();
+  await expect(guest.getByTestId("around-place").filter({ hasText: "Bistrot importé" })).toHaveCount(0);
+  await expect(guest.getByTestId("around-place").filter({ hasText: "Marché couvert" })).toHaveCount(1);
+  await guest.context().close();
+
+  // D. Itinéraire impossible sans adresse : action désactivée et expliquée
+  await admin.from("properties").update({ address_line: null, latitude: null, longitude: null }).eq("id", prop!.id);
+  await m.goto(`/fr/app/missions/${ménage!.id}`);
+  await expect(m.getByTestId("directions-disabled")).toBeDisabled();
+  await expect(m.getByTestId("directions-missing")).toContainText("Adresse du logement manquante");
+  await admin.from("properties").update({ address_line: "1 rue de la Paix" }).eq("id", prop!.id);
+
+  // E. Absence acceptée après l'affectation : conflit visible sur la mission, actions proposées, refus serveur
+  const { data: mm } = await admin.from("tasks").select("window_start, window_end").eq("id", ménage!.id).single();
+  const day = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(new Date(iso));
+  await m.goto("/fr/app/team");
+  await m.getByTestId("absence-who").selectOption({ label: "Agent test" });
+  await m.getByTestId("absence-from").fill(day(mm!.window_start));
+  await m.getByTestId("absence-to").fill(day(mm!.window_end));
+  await m.getByTestId("absence-save").click();
+  await expect(m.getByTestId("absence-saved")).toBeVisible();
+  await m.goto(`/fr/app/missions/${ménage!.id}`);
+  await expect(m.getByTestId("mission-absence-conflict")).toContainText("Agent test est absent(e)");
+  await expect(m.getByTestId("mission-assign").getByTestId("task-cancel")).toBeVisible();
+  const { data: conflictMails } = await admin.from("notification_outbox").select("template").eq("organization_id", org).eq("template", "team_assignment_conflict");
+  expect((conflictMails ?? []).length).toBeGreaterThan(0);
+  // Désaffecter puis tenter de réaffecter : refusé par le serveur
+  await m.getByTestId("mission-assign").getByTestId("assign-select").selectOption("");
+  await expect(m.getByTestId("mission-assign").getByTestId("assign-select")).toHaveValue("");
+  const direct = await admin.from("tasks").update({ assignee_id: agentUser.id, status: "assigned" }).eq("id", ménage!.id).select("id");
+  expect(direct.error?.message).toContain("assignee_unavailable");
+  await m.reload();
+  await expect(m.getByTestId("mission-assign").getByTestId("assign-select").locator("option", { hasText: "Agent test" })).toBeDisabled();
+  // Le responsable, lui, est disponible : l'affectation fonctionne
+  await m.getByTestId("mission-assign").getByTestId("assign-select").selectOption({ label: "Manager test" });
+  await expect.poll(async () => (await admin.from("tasks").select("assignee_id").eq("id", ménage!.id).single()).data?.assignee_id).not.toBe(null);
+  // Absence annulée : l'agent redevient sélectionnable
+  await m.goto("/fr/app/team");
+  await m.getByTestId("absence-row").filter({ hasText: "Agent test" }).first().getByTestId("absence-cancel").click();
+  await expect(m.getByTestId("absence-row").filter({ hasText: "Agent test" })).toHaveCount(0);
+  await m.goto(`/fr/app/missions/${ménage!.id}`);
+  await expect(m.getByTestId("mission-assign").getByTestId("assign-select").locator("option", { hasText: "Agent test" })).toBeEnabled();
+  await m.getByTestId("mission-assign").getByTestId("assign-select").selectOption({ label: "Agent test" });
+  await expect.poll(async () => (await admin.from("tasks").select("assignee_id").eq("id", ménage!.id).single()).data?.assignee_id).toBe(agentUser.id);
+
+  // F. Préférences : coupées puis rétablies, sans toucher celles des autres
+  await m.goto("/fr/app/preferences");
+  const row2 = m.locator('[data-testid="pref-row"][data-event="team_task_to_validate"]');
+  await expect(row2.getByTestId("pref-where")).toContainText("Toujours visible dans HALO : Accueil");
+  await row2.getByTestId("pref-email").uncheck();
+  await expect.poll(async () => (await admin.from("notification_prefs").select("email").eq("event", "team_task_to_validate").eq("organization_id", org).maybeSingle()).data?.email).toBe(false);
+  await m.getByTestId("prefs-reset").click();
+  await expect.poll(async () => (await admin.from("notification_prefs").select("event", { count: "exact", head: true }).eq("organization_id", org)).count).toBe(0);
+  await m.reload();
+  await expect(m.locator('[data-testid="pref-row"][data-event="team_task_to_validate"]').getByTestId("pref-email")).toBeChecked();
+  await expect(m.locator('[data-testid="pref-row"][data-event="team_agent_blocker"]').getByTestId("pref-email")).toBeDisabled(); // urgence : jamais coupée
+
+  // G. Conversation à plusieurs : lecture par destinataire, marquée seulement pour celui qui ouvre
+  await m.goto(`/fr/app/messages?task=${ménage!.id}`);
+  await m.getByTestId("chat-to").first().check();
+  await m.getByTestId("chat-first").fill("Point sur la mission de demain");
+  await m.getByTestId("chat-start").click();
+  await expect(m.getByTestId("chat-read-state")).toHaveText(" · non lu");
+  const agent = await newPage(browser);
+  await agent.context().clearCookies();
+  await agent.goto("/fr/auth/sign-in");
+  await agent.getByLabel("Nom du compte de test").fill(`reco-${run}-agent`);
+  await agent.getByTestId("test-account-submit").click();
+  await agent.waitForURL(/\/fr\/app/);
+  await agent.goto("/fr/app/messages");
+  await expect(agent.getByTestId("chat-row").first()).toHaveAttribute("data-unread", "1");
+  await agent.getByTestId("chat-row").first().click();
+  await expect(agent.getByTestId("chat-message")).toContainText("Point sur la mission");
+  await agent.getByTestId("chat-context-link").click();
+  await expect(agent).toHaveURL(new RegExp(`/fr/app/missions/${ménage!.id}$`)); // la mission rattachée s'ouvre
+  await expect(agent.getByTestId("mission-chat").getByTestId("chat-message")).toContainText("Point sur la mission"); // sans perdre le fil
+  await m.reload();
+  await expect(m.getByTestId("chat-read-state")).toHaveText(" · lu");
   for (const c of [m, agent]) await c.context().close();
 });

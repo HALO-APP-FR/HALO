@@ -10,7 +10,14 @@ import "server-only";
 import { geocodeQuery, overpassQuery, parseOverpass } from "@/lib/engine/places";
 
 const NOMINATIM = () => process.env.NOMINATIM_URL ?? "https://nominatim.openstreetmap.org/search";
-const OVERPASS = () => process.env.OVERPASS_URL ?? "https://overpass-api.de/api/interpreter";
+/**
+ * Overpass : service public, gratuit, sans clé ; usage raisonnable demandé (~10 000 requêtes/jour,
+ * peut répondre 429/504 aux heures chargées). On essaie l'instance principale puis des miroirs publics.
+ */
+const OVERPASS = () =>
+  process.env.OVERPASS_URL
+    ? [process.env.OVERPASS_URL]
+    : ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
 const appUrl = () => process.env.APP_URL ?? (process.env.VERCEL_BRANCH_URL ? `https://${process.env.VERCEL_BRANCH_URL}` : "https://halo.app");
 const headers = () => ({ "User-Agent": `HALO/1.0 (${appUrl()})`, Referer: appUrl(), "Accept-Language": "fr,en" });
 
@@ -32,17 +39,24 @@ export async function geocode(p: { addressLine?: string | null; postalCode?: str
 }
 
 export async function nearbyPlaces(lat: number, lng: number) {
-  try {
-    const res = await fetch(OVERPASS(), {
-      method: "POST",
-      headers: { ...headers(), "Content-Type": "application/x-www-form-urlencoded" },
-      body: `data=${encodeURIComponent(overpassQuery(lat, lng))}`,
-      signal: AbortSignal.timeout(30_000),
-      cache: "no-store",
-    });
-    if (!res.ok) return { ok: false as const, error: "provider_unavailable" as OsmError };
-    return { ok: true as const, ...parseOverpass(await res.json(), lat, lng) };
-  } catch {
-    return { ok: false as const, error: "provider_unavailable" as OsmError };
+  const tried: string[] = [];
+  for (const url of OVERPASS()) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { ...headers(), Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" },
+        body: `data=${encodeURIComponent(overpassQuery(lat, lng))}`,
+        signal: AbortSignal.timeout(12_000),
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        tried.push(`${new URL(url).host}:${res.status}`);
+        continue;
+      }
+      return { ok: true as const, source: new URL(url).host, ...parseOverpass(await res.json(), lat, lng) };
+    } catch (e) {
+      tried.push(`${new URL(url).host}:${e instanceof Error ? e.name : "error"}`);
+    }
   }
+  return { ok: false as const, error: "provider_unavailable" as OsmError, detail: tried.join(", ") };
 }

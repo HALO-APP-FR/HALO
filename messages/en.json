@@ -1164,7 +1164,8 @@
     },
     "ask": "Ask every time",
     "defaultApp": "Directions app",
-    "privacy": "HALO only opens the property address in the chosen app. Your location is never tracked."
+    "privacy": "HALO only opens the property address in the chosen app. Your location is never tracked.",
+    "missingAddress": "Property address missing (no street or coordinates): a manager must complete it to open directions."
   },
   "spaces": {
     "title": "Choose your space",
@@ -1295,7 +1296,8 @@
       "notifications": "Notifications",
       "settings": "Settings",
       "profile": "My profile",
-      "messages": "Messages"
+      "messages": "Messages",
+      "preferences": "Preferences"
     },
     "env": {
       "demo": "Demo",
@@ -1717,7 +1719,8 @@
         "pending": "Waiting to send",
         "sent": "Sent",
         "failed": "Failed",
-        "not_configured": "Not sent: no email provider configured"
+        "not_configured": "Not sent: no email provider configured",
+        "skipped": "Not sent (preference)"
       },
       "retry": "Retry",
       "template": {
@@ -1741,9 +1744,14 @@
         "agent_task_assigned": "Agent: mission assigned",
         "agent_correction_requested": "Agent: correction requested",
         "chat_message": "Messaging: message",
-        "chat_urgent": "Messaging: urgent message"
+        "chat_urgent": "Messaging: urgent message",
+        "team_assignment_conflict": "Team: assignment conflict",
+        "team_stay_changed": "Team: stay changed",
+        "agent_task_changed": "Agent: mission changed",
+        "agent_absence_decided": "Agent: absence reply"
       },
-      "testAddress": "Fictitious address (test account): nothing is sent."
+      "testAddress": "Fictitious address (test account): nothing is sent.",
+      "skippedReason": "The recipient disabled this email; the event remains visible in HALO."
     },
     "services": {
       "title": "Services",
@@ -1840,10 +1848,16 @@
       "absent": "away",
       "windowLabel": "To be done {window}",
       "durationLabel": "duration {duration}",
-      "hiddenAbsent": "{count, plural, one {# person away during this slot, not offered} other {# people away during this slot, not offered}}",
+      "hiddenAbsent": "{count, plural, one {# person unavailable during this slot: cannot be selected} other {# people unavailable during this slot: cannot be selected}}",
       "toValidateTitle": "Missions to validate",
       "toValidateSubtitle": "Finished by the agent: validate or request a correction.",
-      "showAll": "See all missions"
+      "showAll": "See all missions",
+      "absentFor": "unavailable: {period}",
+      "conflictTitle": "{name} is away during this mission's slot",
+      "conflictActions": "HALO reassigns nothing on its own: choose someone else, change the time slot or cancel the mission.",
+      "cancelTask": "Cancel the mission",
+      "cancelConfirm": "Cancel for good? The assigned agent will be notified.",
+      "cancelYes": "Yes, cancel"
     },
     "team": {
       "title": "Team",
@@ -1991,7 +2005,8 @@
       "title": "Notifications sent",
       "subtitle": "Every email to guests and the team, with its real status. Nothing shows “sent” unless the provider accepted it.",
       "loadError": "Couldn't load notifications.",
-      "summary": "{sent} sent · {pending} pending · {failed} failed · {notConfigured} not sent (no provider)"
+      "summary": "{sent} sent · {pending} pending · {failed} failed · {notConfigured} not sent (no provider)",
+      "skippedCount": "{count, plural, =0 {none skipped by preference} one {# skipped by preference} other {# skipped by preference}}"
     },
     "profile": {
       "incompleteTitle": "Add your name",
@@ -2007,7 +2022,8 @@
       "saved": "Saved.",
       "missing": "To complete: {fields}",
       "complete": "Profile complete.",
-      "me": "Me"
+      "me": "Me",
+      "prefsLink": "Directions app and notifications: Preferences →"
     },
     "settings": {
       "title": "Settings",
@@ -2165,7 +2181,9 @@
       "back": "Messages",
       "missionTitle": "Mission messages",
       "newForMission": "Write about this mission",
-      "noneForMission": "No conversation about this mission."
+      "noneForMission": "No conversation about this mission.",
+      "readBy": "read by {names}",
+      "notReadBy": "not yet read by {names}"
     },
     "prefs": {
       "title": "Notifications",
@@ -2190,12 +2208,32 @@
         "team_absence_requested": "Absence request",
         "chat_message": "Team message",
         "agent_task_assigned": "Mission assigned to me",
-        "agent_correction_requested": "Correction requested on my mission"
-      }
+        "agent_correction_requested": "Correction requested on my mission",
+        "team_assignment_conflict": "Assignment conflict (accepted absence on an assigned mission)",
+        "team_stay_changed": "Stay changed or cancelled (check-in, check-out)",
+        "agent_task_changed": "Mission changed or cancelled",
+        "agent_absence_decided": "Reply to my absence request"
+      },
+      "pageTitle": "Preferences",
+      "pageSubtitle": "Your personal settings: they change nothing for other members.",
+      "visibleIn": "Always visible in HALO: {where}",
+      "where": {
+        "home": "Home",
+        "team": "Home and Team",
+        "messages": "Messages (unread counter)",
+        "stays": "Stays and Home",
+        "services": "Services and Home",
+        "incidents": "Incidents and Home",
+        "missions": "My missions",
+        "profile": "My profile (my absences)"
+      },
+      "reset": "Restore default settings",
+      "resetHint": "By default, everything is sent by email.",
+      "resetDone": "Default settings restored."
     },
     "places": {
-      "title": "Around the property (guest space)",
-      "text": "The guest sees a map and these places, with their source and date. Nothing is invented.",
+      "title": "Property recommendations (guest space)",
+      "text": "Guests of this property see these places with their origin, the distance from the property and directions. Nothing is invented.",
       "located": "Property located: {lat}, {lng} ({source})",
       "sourceManual": "entered by the team",
       "notLocated": "Property not located: locate the address or enter coordinates.",
@@ -2207,20 +2245,38 @@
       "importing": "Importing…",
       "importHint": "Named places within 1.2 km. Run again to update; hidden places stay hidden.",
       "imported": "{count, plural, =0 {No place found nearby.} one {# place imported.} other {# places imported.}}",
-      "addTitle": "Add a place checked by the team",
+      "addTitle": "Add a recommendation",
       "name": "Name",
       "category": "Category",
       "address": "Address",
       "hours": "Opening hours",
       "hoursHint": "Only if you have checked them.",
       "phone": "Phone",
-      "note": "Team tip",
+      "note": "Practical tip",
       "add": "Add",
-      "none": "No place yet.",
+      "none": "No recommendation yet.",
       "byTeam": "team",
       "show": "Show",
       "hide": "Hide",
-      "delete": "Delete"
+      "delete": "Delete",
+      "ownTitle": "Team and owner recommendations",
+      "autoTitle": "Automatic recommendations",
+      "autoSource": "Source: OpenStreetMap (free, no key; coverage varies by area; hours often missing; dated data). Nothing about the guest is sent.",
+      "autoToggle": "Show automatic recommendations to guests",
+      "autoOff": "Disabled for this property: guests only see your recommendations.",
+      "locating": "Locating…",
+      "needCoords": "Locate the property first (address or coordinates).",
+      "editTitle": "Edit the recommendation",
+      "origin": "Origin",
+      "originTeam": "Recommended by the team",
+      "originOwner": "Owner's tip",
+      "addressHint": "Needed for directions.",
+      "description": "Short description",
+      "save": "Save",
+      "cancel": "Cancel",
+      "edit": "Edit",
+      "noDistance": "no distance (place not located)",
+      "hidden": "hidden"
     }
   },
   "email": {
@@ -2310,6 +2366,26 @@
     "chat_urgent": {
       "subject": "URGENT — {member} — {property}",
       "body": "Urgent message from {member} in HALO ({property})."
+    },
+    "team_assignment_conflict": {
+      "subject": "Missions to reorganize — {member} away",
+      "body": "An accepted absence of {member} affects missions already assigned. Nothing was reassigned: choose someone else or another slot."
+    },
+    "team_stay_changed": {
+      "subject": "Stay changed — {property}",
+      "body": "The stay of {guest} at {property} changed (dates or cancellation). Check the related missions."
+    },
+    "agent_task_changed": {
+      "subject": "Mission changed — {property}",
+      "body": "Your “{kind}” mission at {property} was changed or cancelled. Check it in HALO."
+    },
+    "agent_absence_decided": {
+      "subject": "Your absence request: {decision}",
+      "body": "Your absence request was {decision}."
+    },
+    "decisions": {
+      "accepted": "accepted",
+      "refused": "refused"
     }
   },
   "guestSpace": {
@@ -2403,7 +2479,7 @@
       "fromMe": "Distances from my position",
       "fromHome": "Back to the property",
       "originMe": "Distances from your position (it stays on your phone).",
-      "originHome": "Distances from the property: {address}.",
+      "originHome": "Around the property: {address}.",
       "denied": "Position not allowed: distances are still calculated from the property.",
       "unavailable": "Position unavailable: distances are still calculated from the property.",
       "all": "All",
@@ -2418,7 +2494,16 @@
       "verifiedOn": "Checked by the team on {date}",
       "osmData": "OpenStreetMap data from {date}",
       "sources": "Sources: {list}",
-      "notBookable": "Suggestions, not bookings: to book a service, use “Request a service”."
+      "notBookable": "Suggestions, not bookings: to book a service, use “Request a service”.",
+      "byOwner": "Owner's tip",
+      "byOsm": "Suggested automatically (OpenStreetMap)",
+      "empty": "The team has not added recommendations for this property yet.",
+      "noCoordinates": "The property is not located yet: no map or distance, addresses remain usable.",
+      "mapUnavailable": "Map tiles unavailable (connection or service): the list below remains complete.",
+      "tip": "Tip:",
+      "noHours": "Opening hours not provided by the source",
+      "noRoute": "No address provided: directions unavailable.",
+      "distanceNote": "Approximate straight-line distances from the property"
     }
   },
   "demoEntry": {

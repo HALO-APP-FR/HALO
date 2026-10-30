@@ -6,6 +6,12 @@ import { PageHeader } from "@/components/halo/page-header";
 import { MissionReport, type ReportRoom } from "@/components/connected/mission-report";
 import { ReportIncident } from "@/components/connected/report-incident";
 import { WindowEditor } from "@/components/connected/planning-forms";
+import { AssignSelect, CancelTaskButton } from "@/components/connected/mission-controls";
+import { loadPlanning } from "@/lib/connected/planning";
+import { blockingAbsences } from "@/lib/engine/availability";
+import { infeasibility } from "@/lib/engine/conflicts";
+import { toTask } from "@/lib/connected/mappers";
+import { nowDate } from "@/lib/connected/time";
 import { Card } from "@/components/ui/card";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { MissionDirections } from "@/components/connected/directions";
@@ -13,7 +19,7 @@ import { ChatThread } from "@/components/connected/chat";
 import { loadThreadMessages, loadThreads } from "@/lib/connected/chat";
 import { toChatMessages } from "@/lib/connected/chat-view";
 import type { MapsApp } from "@/lib/engine/directions";
-import { durationText, windowText } from "@/lib/connected/format";
+import { durationText, periodText, windowText } from "@/lib/connected/format";
 
 export default async function MissionPage({ params }: PageProps<"/[locale]/app/missions/[id]">) {
   const { locale, id } = await params;
@@ -67,6 +73,45 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
   const threads = await loadThreads(supabase, o, user!.id, { taskId: id });
   const threadMessages = await Promise.all(threads.map(async (th) => toChatMessages(th, await loadThreadMessages(supabase, o, th.id), user!.id)));
   const tc = await getTranslations("connected.chat");
+  const ta = await getTranslations("connected.absences");
+  const tm = await getTranslations("connected.missions");
+  // Responsable : affectation, conflit d'absence et actions possibles, au même endroit
+  let assign: React.ReactNode = null;
+  if (manager && ["unassigned", "assigned", "to_redo"].includes(task.status)) {
+    const now = nowDate();
+    const [{ data: full }, planning] = await Promise.all([supabase.from("tasks").select("*").eq("organization_id", o).eq("id", id).single(), loadPlanning(supabase, o, now)]);
+    const slot = { windowStart: full!.window_start, windowEnd: full!.window_end, durationMin: full!.duration_min, scheduledStart: full!.scheduled_start };
+    const reasons: Record<string, string> = {};
+    for (const m of planning.members) {
+      const b = blockingAbsences(m, slot, planning.absences);
+      if (b.length) reasons[m.id] = `${ta(`kinds.${b[0].kind}`)} ${periodText(f, b[0].startsAt, b[0].endsAt)}`;
+    }
+    const conflict = full!.assignee_id && reasons[full!.assignee_id];
+    assign = (
+      <Card className={conflict ? "mb-4 space-y-3 border-danger p-4" : "mb-4 space-y-3 p-4"} data-testid="mission-assign">
+        {conflict && (
+          <div role="alert" data-testid="mission-absence-conflict">
+            <p className="text-[15px] font-semibold text-danger">{tm("conflictTitle", { name: planning.members.find((m) => m.id === full!.assignee_id)?.name || "—" })}</p>
+            <p className="text-[14px]">{conflict}</p>
+            <p className="mt-1 text-[13px] text-muted">{tm("conflictActions")}</p>
+          </div>
+        )}
+        <div className="flex flex-wrap items-start gap-3">
+          <AssignSelect
+            taskId={task.id}
+            current={full!.assignee_id}
+            members={planning.members.map((m) => ({ id: m.id, name: m.name || tm("noName") }))}
+            disabled={!["unassigned", "assigned"].includes(task.status)}
+            outOfWindow={Boolean(infeasibility(toTask(full!), now))}
+            durationMin={full!.duration_min}
+            unavailable={Object.keys(reasons)}
+            reasons={reasons}
+          />
+          <CancelTaskButton taskId={task.id} />
+        </div>
+      </Card>
+    );
+  }
   const checklist: ReportRoom[] = (rooms ?? []).map((r: { id: string; name: string; checklist_items: { id: string; label: string; photo_required: boolean; sort: number }[] }) => ({
     id: r.id,
     name: r.name,
@@ -103,6 +148,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
           </div>
         )}
       </div>
+      {assign}
       {source && (
         <Link href="/app/incidents" className="mb-4 block rounded-xl border border-line bg-surface p-4 hover:bg-surface-hover" data-testid="mission-source-incident">
           <span className="block text-[13px] font-medium text-muted">{t("sourceIncident")}</span>
