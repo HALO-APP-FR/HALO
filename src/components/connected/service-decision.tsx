@@ -10,26 +10,26 @@ import { Field, Textarea } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useRun } from "./use-run";
+import { zonedTime } from "@/lib/connected/format";
 
-type Status = "requested" | "info_requested" | "confirmed" | "declined" | "done" | "cancelled";
-type Decision = "confirmed" | "declined" | "info_requested" | "done" | "cancelled";
+type Status = "requested" | "in_review" | "info_requested" | "confirmed" | "declined" | "done" | "cancelled";
+type Decision = "in_review" | "confirmed" | "declined" | "info_requested" | "done" | "cancelled";
 
 const NEXT: Record<Status, Decision[]> = {
-  requested: ["confirmed", "info_requested", "declined", "cancelled"],
-  info_requested: ["confirmed", "info_requested", "declined", "cancelled"],
+  requested: ["in_review", "confirmed", "info_requested", "declined", "cancelled"],
+  in_review: ["confirmed", "info_requested", "declined", "cancelled"],
+  info_requested: ["in_review", "confirmed", "info_requested", "declined", "cancelled"],
   confirmed: ["done", "cancelled"],
   declined: [],
   done: [],
   cancelled: [],
 };
 
-const toLocalInput = (iso: string) => {
-  const d = new Date(iso);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-};
+// Heure affichée et saisie dans le fuseau du logement (pas celui de l'ordinateur du responsable)
+const toLocalInput = (iso: string, timeZone: string) =>
+  new Intl.DateTimeFormat("sv-SE", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)).replace(" ", "T");
 
-export function ServiceDecision({ serviceId, status, guestEmail, unread, startAt, people }: { serviceId: string; status: Status; guestEmail: string | null; unread: boolean; startAt: string; people: number | null }) {
+export function ServiceDecision({ serviceId, status, guestEmail, unread, startAt, people, timeZone }: { serviceId: string; status: Status; guestEmail: string | null; unread: boolean; startAt: string; people: number | null; timeZone: string }) {
   const t = useTranslations("connected.decide");
   const ts = useTranslations("serviceStatus");
   const { pending, error, run } = useRun();
@@ -38,7 +38,7 @@ export function ServiceDecision({ serviceId, status, guestEmail, unread, startAt
   const [note, setNote] = useState("");
   const [done, setDone] = useState<string | null>(null);
   const [edit, setEdit] = useState(false);
-  const [when, setWhen] = useState(toLocalInput(startAt));
+  const [when, setWhen] = useState(toLocalInput(startAt, timeZone));
   const [n, setN] = useState(people ?? 1);
   const [editMsg, setEditMsg] = useState("");
 
@@ -106,7 +106,7 @@ export function ServiceDecision({ serviceId, status, guestEmail, unread, startAt
       )}
       {done && <p role="status" className="mt-3 text-[14px] text-muted" data-testid="decide-saved">{done}</p>}
 
-      {(status === "requested" || status === "info_requested" || status === "confirmed") && (
+      {(status === "requested" || status === "in_review" || status === "info_requested" || status === "confirmed") && (
         <div className="mt-5 border-t border-line pt-4">
           {!edit ? (
             <Button variant="ghost" size="sm" onClick={() => setEdit(true)} data-testid="service-edit">
@@ -128,7 +128,7 @@ export function ServiceDecision({ serviceId, status, guestEmail, unread, startAt
                   {t("cancelEdit")}
                 </Button>
                 <Button
-                  onClick={() => run(() => updateService(serviceId, new Date(when).toISOString(), n, editMsg.trim()), (d) => (setEdit(false), setEditMsg(""), setDone(d.emailQueued ? t("doneEmail") : t("doneSpace"))))}
+                  onClick={() => run(() => updateService(serviceId, zonedTime(when, timeZone).toISOString(), n, editMsg.trim()), (d) => (setEdit(false), setEditMsg(""), setDone(d.emailQueued ? t("doneEmail") : t("doneSpace"))))}
                   disabled={pending}
                   data-testid="service-edit-save"
                 >

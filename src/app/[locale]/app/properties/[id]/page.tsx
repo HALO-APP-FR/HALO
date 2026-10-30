@@ -37,6 +37,8 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
     note: x.note,
     updated_at: x.source_updated_at,
     hidden: x.hidden,
+    created_at: x.created_at,
+    verified_at: x.verified_at,
     distance_m: coords && x.latitude != null ? distanceM(coords.lat, coords.lng, x.latitude, x.longitude) : null,
   }));
   return (
@@ -45,7 +47,7 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <div className="space-y-4">
           <GuideEditor propertyId={p.id} guide={g ?? {}} />
-          <PlacesManager propertyId={p.id} coords={coords} geoSource={p.geo_source} autoPlaces={p.auto_places} places={places} />
+          <PlacesManager propertyId={p.id} coords={coords} geoSource={p.geo_source} autoPlaces={p.auto_places} places={places} overpassUrls={process.env.OVERPASS_URL ? [process.env.OVERPASS_URL] : ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"]} />
         </div>
         <div className="self-start rounded-xl border border-line bg-surface p-5">
           <h2 className="text-[17px] font-semibold">{t("checklist")}</h2>

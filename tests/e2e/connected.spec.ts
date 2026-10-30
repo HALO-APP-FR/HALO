@@ -201,7 +201,7 @@ test("5-7 · prestation, précisions, acceptation, refus, modification, messages
   await guest.getByTestId("guest-request-send").click();
   await expect(guest.getByTestId("guest-request-ok")).toBeVisible();
   await expect(guest.getByTestId("guest-service").first()).toHaveAttribute("data-status", "requested");
-  await expect(guest.getByTestId("guest-service").first()).toContainText("Reçue, en attente");
+  await expect(guest.getByTestId("guest-service").first()).toContainText("Demande reçue");
   await expect.poll(async () => (await mailsFor(guestEmail)).map((m) => m.subject).join("|")).toContain("demande reçue");
 
   // Manager : demande signalée, précisions demandées avec note interne
@@ -851,10 +851,12 @@ test("17 · validation par type, créneau lisible et corrigé, absences et ferme
  */
 let osm: Server | null = null;
 const OSM_PORT = 54390;
-test.beforeAll(async () => {
-  if (!process.env.HALO_E2E_CONNECTED || osm) return;
+function startOsm() {
+  if (osm) return;
   osm = createServer((req, res) => {
     res.setHeader("Content-Type", "application/json");
+    // Import depuis le navigateur du responsable (fournisseur appelé côté client) : autorisation CORS comme Overpass
+    res.setHeader("Access-Control-Allow-Origin", "*");
     if (req.url?.startsWith("/search")) return res.end(JSON.stringify([{ lat: "48.8606", lon: "2.3376", display_name: "1 Rue de la Paix, Paris" }]));
     res.end(
       JSON.stringify({
@@ -868,6 +870,9 @@ test.beforeAll(async () => {
       }),
     );
   }).listen(OSM_PORT);
+}
+test.beforeAll(async () => {
+  if (process.env.HALO_E2E_CONNECTED) startOsm();
 });
 test.afterAll(() => {
   osm?.close();
@@ -1133,6 +1138,7 @@ test("19 · recommandations (modifier, propriétaire, sans coordonnées, automat
   await m.reload();
   await m.getByTestId("places-auto").uncheck();
   await expect(m.getByTestId("places-auto-off")).toBeVisible();
+  await expect.poll(async () => (await admin.from("properties").select("auto_places").eq("id", prop!.id).single()).data?.auto_places).toBe(false);
   await guest.reload();
   await expect(guest.getByTestId("around-place").filter({ hasText: "Bistrot importé" })).toHaveCount(0);
   await expect(guest.getByTestId("around-place").filter({ hasText: "Marché couvert" })).toHaveCount(1);
@@ -1212,4 +1218,271 @@ test("19 · recommandations (modifier, propriétaire, sans coordonnées, automat
   await m.reload();
   await expect(m.getByTestId("chat-read-state")).toHaveText(" · lu");
   for (const c of [m, agent]) await c.context().close();
+});
+
+/** Ouvre un compte de test complet (responsable + agent + séjour) et renvoie son organisation. */
+async function testScenario(m: Page, name: string) {
+  await m.context().clearCookies();
+  await m.goto("/fr/auth/sign-in");
+  await m.getByLabel("Nom du compte de test").fill(name);
+  await m.getByTestId("test-scenario-submit").click();
+  await expect(m.getByTestId("test-scenario-ready")).toBeVisible();
+  await m.getByTestId("test-scenario-continue").click();
+  await expect(m).toHaveURL(/\/fr\/app$/);
+  const slug = name.replace(/\s+/g, "-").toLowerCase();
+  const agentUser = (await admin.auth.admin.listUsers({ perPage: 1000 })).data.users.find((u) => u.email === `test-${slug}-agent@halo.invalid`)!;
+  const { data: mem } = await admin.from("memberships").select("organization_id").eq("user_id", agentUser.id).single();
+  return { org: mem!.organization_id as string, agentId: agentUser.id };
+}
+
+test("20 · préparation avant l'arrivée et demande VIP : lien, questionnaire, précision, recommandation, statuts exacts, révocation", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `prep ${run}`);
+  // Critère VIP de l'organisation (toujours validé par une personne)
+  await m.goto("/fr/app/settings");
+  await m.getByTestId("vip-criterion-new").click();
+  await m.getByTestId("vip-criterion-label").fill("Client fidèle");
+  await m.getByTestId("vip-criterion-save").click();
+  await expect(m.getByTestId("vip-criterion-row").filter({ hasText: "Client fidèle" })).toBeVisible();
+  await expect(m.getByTestId("ai-status")).toContainText("fonctions manuelles uniquement");
+
+  // 1-2. Séjour dans 12 jours (hors fenêtre habituelle) et accès avant arrivée envoyé par e-mail
+  const arrive = new Date();
+  arrive.setDate(arrive.getDate() + 12);
+  arrive.setHours(16, 0, 0, 0);
+  const leave = new Date(arrive.getTime() + 4 * 86_400_000);
+  leave.setHours(11, 0, 0, 0);
+  await m.goto("/fr/app/stays");
+  await m.getByLabel("Nom du voyageur").fill("Camille Prépa");
+  await m.getByLabel("E-mail du voyageur").fill(`prep-${run}@halo.invalid`);
+  await m.getByLabel("Arrivée").fill(local(arrive));
+  await m.getByLabel("Départ").fill(local(leave));
+  await m.getByTestId("stay-create").click();
+  await m.waitForURL(/\/fr\/app\/stays\/[0-9a-f-]{36}$/);
+  const stayId = m.url().split("/").pop()!;
+  await expect(m.getByTestId("link-invite")).toHaveAttribute("data-status", "none");
+  await m.getByTestId("link-send").click();
+  const url = await m.getByTestId("guest-link-url").inputValue();
+  // Adresse fictive : jamais remise, jamais affichée « envoyé »
+  await expect(m.getByTestId("link-invite")).toHaveAttribute("data-status", "failed");
+  await expect(m.getByTestId("link-invite")).not.toContainText("envoyé ");
+  await expect(m.getByTestId("link-status")).toContainText("Actif pour la préparation");
+  // Le lien brut ne reste pas dans le journal d'envoi
+  const { data: inv } = await admin.from("notification_outbox").select("payload, status").eq("reservation_id", stayId).eq("template", "prep_invite").single();
+  expect(inv!.status).toBe("failed");
+  expect(JSON.stringify(inv!.payload)).not.toContain(url.split("/").pop()!);
+
+  // 3. Le voyageur ouvre son lien : préparation seulement, ni adresse ni guide
+  const g = await newPage(browser);
+  await g.goto(url.replace(/^https?:\/\/[^/]+/, ""));
+  await expect(g.getByTestId("guest-prep-banner")).toContainText("informations pratiques");
+  await expect(g.getByTestId("guest-problems")).toHaveCount(0);
+  await expect(g.getByText("Mot de passe Wi-Fi")).toHaveCount(0);
+  await expect(m.getByTestId("link-questionnaire")).toBeVisible();
+  await g.getByTestId("prep-interests-food").check({ force: true });
+  await g.getByTestId("prep-interests-culture").check({ force: true });
+  await g.getByTestId("prep-services-restaurant").check({ force: true });
+  await g.getByTestId("prep-other").fill("Anniversaire de mariage");
+  await g.getByTestId("prep-save").click();
+  await expect(g.getByTestId("prep-done")).toContainText("Rien n'a encore été envoyé");
+  await g.getByTestId("prep-send").click();
+  await expect(g.getByTestId("prep-done")).toContainText("transmises à l'équipe");
+  await g.reload();
+  await expect(g.getByTestId("prep-updated")).toContainText("Envoyé à l'équipe");
+  await expect(g.getByTestId("prep-interests-food")).toBeChecked();
+  // Demande de prestation (jamais présentée comme réservée)
+  await g.getByLabel("Date et heure souhaitées").fill(local(new Date(arrive.getTime() + 86_400_000 + 4 * 3_600_000)));
+  await g.getByTestId("guest-request-send").click();
+  await expect(g.getByTestId("guest-request-ok")).toBeVisible();
+  await expect(g.getByTestId("guest-service").first()).toContainText("Demande reçue");
+
+  // 4. Responsable : alerte utile et réponses lisibles
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-prepReview")).toContainText("1 questionnaire voyageur à examiner");
+  await m.getByTestId("home-prepReview").click();
+  await expect(m.getByTestId("stays-filter")).toBeVisible();
+  await expect(m.getByTestId("stay-row")).toHaveCount(1);
+  await m.goto(`/fr/app/stays/${stayId}`);
+  await expect(m.getByTestId("prep-needs-review")).toBeVisible();
+  await expect(m.getByTestId("prep-answers")).toContainText("Bonnes tables");
+  await expect(m.getByTestId("prep-answers")).toContainText("Anniversaire de mariage");
+  await expect(m.getByTestId("prep-questionnaire")).toHaveAttribute("data-status", "submitted");
+
+  // 5-6. Précision demandée sur la prestation, réponse du voyageur → « En cours d'étude »
+  const { data: svc } = await admin.from("service_requests").select("id").eq("reservation_id", stayId).single();
+  await m.goto(`/fr/app/services/${svc!.id}`);
+  await m.getByTestId("decide-info_requested").click();
+  await m.getByTestId("decide-message").fill("Pour combien de personnes ?");
+  await m.getByTestId("decide-confirm").click();
+  await expect(m.getByTestId("decide-saved")).toBeVisible();
+  await g.reload();
+  await expect(g.getByTestId("guest-service").first()).toHaveAttribute("data-status", "info_requested");
+  await expect(g.getByTestId("guest-service").first()).toContainText("À préciser");
+  await g.getByTestId("guest-reply").fill("Deux personnes");
+  await g.getByTestId("guest-reply-send").click();
+  await expect(g.getByTestId("guest-service").first()).toHaveAttribute("data-status", "in_review");
+  await expect(g.getByTestId("guest-service").first()).toContainText("En cours d'étude");
+
+  // 7. Recommandation publiée et action indispensable pour l'équipe
+  await m.goto(`/fr/app/stays/${stayId}`);
+  await m.getByTestId("prep-item-title").fill("Le Petit Zinc");
+  await m.getByTestId("prep-item-body").fill("Table conseillée pour votre anniversaire, à réserver ensemble.");
+  await m.getByTestId("prep-item-add").click();
+  await expect(m.getByTestId("prep-item").filter({ hasText: "Le Petit Zinc" })).toHaveAttribute("data-published", "1");
+  await m.getByTestId("prep-action-title").fill("Réserver la table du samedi");
+  await m.getByTestId("prep-action-blocking").check();
+  await m.getByTestId("prep-action-add").click();
+  await expect(m.getByTestId("prep-action")).toHaveCount(1);
+  await m.getByTestId("prep-status-ready").click();
+  await expect(m.getByText("une action indispensable est encore ouverte")).toBeVisible();
+  await expect(m.getByTestId("prep-status")).toHaveAttribute("data-status", "to_prepare");
+  await m.getByTestId("prep-action-done").click();
+  await expect(m.getByTestId("prep-action")).toHaveAttribute("data-status", "done");
+  await m.getByTestId("prep-status-ready").click();
+  await expect(m.getByTestId("prep-status")).toHaveAttribute("data-status", "ready");
+  await expect(m.getByTestId("prep-history")).toContainText("Action faite", { useInnerText: false });
+
+  // 8-9. Le voyageur voit la recommandation et le statut exact ; rien n'est « réservé »
+  await g.reload();
+  await expect(g.getByTestId("guest-prepared-item")).toContainText("Le Petit Zinc");
+  await expect(g.getByTestId("guest-service").first()).toContainText("En cours d'étude");
+  await expect(g.getByTestId("guest-space")).not.toContainText(/Confirmée|Réservé/);
+
+  // VIP : demande, examen, acceptation, confidentialité
+  await g.getByTestId("vip-note").fill("Troisième séjour avec vous");
+  await g.getByTestId("vip-request").click();
+  await expect(g.getByTestId("vip-pending")).toContainText("Demande envoyée à votre équipe");
+  await expect(g.getByTestId("vip-confirmed")).toHaveCount(0);
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-vipRequests")).toContainText("1 demande VIP en attente");
+  await m.goto(`/fr/app/stays/${stayId}`);
+  await expect(m.getByTestId("vip-request")).toContainText("Troisième séjour avec vous");
+  await expect(m.getByTestId("vip-loyalty")).toContainText("indice, pas une preuve");
+  await m.getByTestId("vip-internal").fill("Vérifié dans l'outil de réservation");
+  await m.getByTestId("vip-accept").click();
+  await expect(m.getByTestId("vip-panel")).toHaveAttribute("data-vip", "active");
+  await expect(m.getByTestId("vip-state")).toContainText("Client fidèle");
+  await g.reload();
+  await expect(g.getByTestId("vip-confirmed")).toBeVisible();
+  await expect(g.getByTestId("guest-space")).not.toContainText("outil de réservation"); // note interne jamais visible
+  // Agent : aucune vue du séjour, de la préparation ni du statut
+  const agent = await newPage(browser);
+  await agent.context().clearCookies();
+  await agent.goto("/fr/auth/sign-in");
+  await agent.getByLabel("Nom du compte de test").fill(`prep-${run}-agent`);
+  await agent.getByTestId("test-account-submit").click();
+  await agent.waitForURL(/\/fr\/app/);
+  await agent.goto(`/fr/app/stays/${stayId}`);
+  await expect(agent).toHaveURL(/\/fr\/app\/missions$/);
+  // Une autre organisation : rien, et la même page qu'une adresse inexistante
+  const other = await newPage(browser);
+  await testScenario(other, `prep autre ${run}`);
+  await other.goto(`/fr/app/stays/${stayId}`);
+  await expect(other.getByTestId("not-found")).toContainText("n'appartient pas à l'organisation active");
+  await other.goto(`/fr/app/stays/00000000-0000-0000-0000-000000000000`);
+  await expect(other.getByTestId("not-found")).toContainText("n'appartient pas à l'organisation active");
+  const { count: seen } = await admin.from("vip_requests").select("id", { count: "exact", head: true }).eq("organization_id", org);
+  expect(seen).toBe(1);
+
+  // Messages : même heure dans l'espace voyageur, le séjour et le journal (fuseau du logement)
+  await g.getByTestId("guest-message").fill("Arrivée vers 18 h");
+  await g.getByTestId("guest-message-send").click();
+  await expect(g.getByTestId("guest-messages")).toContainText("Arrivée vers 18 h");
+  const guestTime = (await g.getByTestId("guest-messages").locator("li").last().innerText()).match(/\d{2}:\d{2}/)![0];
+  await m.goto(`/fr/app/stays/${stayId}`);
+  const teamTime = (await m.getByTestId("stay-message").last().innerText()).match(/\d{2}:\d{2}/)![0];
+  expect(teamTime).toBe(guestTime);
+
+  // 10. Révocation : le lien ne donne plus rien
+  await m.getByTestId("link-revoke").click();
+  await expect(m.getByTestId("link-status")).toContainText("Aucun lien actif");
+  await g.reload();
+  await expect(g.getByTestId("guest-unavailable")).toBeVisible();
+  await Promise.all([g, agent, other].map((p) => p.context().close()));
+});
+
+test("21 · recommandations : vérification explicite, import sans doublon, lieux masqués respectés, panne sans perte", async ({ browser }) => {
+  startOsm(); // fournisseur simulé (arrêté par le test 19 pour simuler une panne)
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `lieux ${run}`);
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+  await m.goto(`/fr/app/properties/${prop!.id}`);
+  await m.getByTestId("places-locate").click();
+  await expect(m.getByTestId("places-coords")).toContainText("48.86060");
+  // Lieu manuel : visible, jamais « vérifié » sans confirmation
+  await m.getByTestId("place-name").fill("Fromagerie du Coin");
+  await m.getByTestId("place-category").selectOption("shops");
+  await m.getByTestId("place-address").fill("8 rue du Marché, Paris");
+  await m.getByTestId("place-hours").fill("Ma-Sa 9:00-19:00");
+  await m.getByTestId("place-add").click();
+  const row = m.getByTestId("place-row").filter({ hasText: "Fromagerie du Coin" });
+  await expect(row).toContainText("non vérifié");
+  await m.getByTestId("places-import").click();
+  await expect(m.getByTestId("places-imported")).toContainText("3 lieux importés");
+  await m.getByTestId("place-row").filter({ hasText: "Gare Fictive" }).getByTestId("place-toggle").click();
+  await expect(m.getByTestId("place-row").filter({ hasText: "Gare Fictive" }).getByTestId("place-toggle")).toHaveText("Afficher");
+  // Deuxième import : aucun doublon, le lieu masqué reste masqué
+  await m.getByTestId("places-import").click();
+  await expect(m.getByTestId("places-imported")).toContainText("3 lieux importés");
+  const { data: rows } = await admin.from("property_places").select("name, hidden").eq("property_id", prop!.id).eq("source", "openstreetmap");
+  expect(rows!.length).toBe(3);
+  expect(rows!.find((r) => r.name === "Gare Fictive")!.hidden).toBe(true);
+  // Le voyageur : lieu manuel « ajouté par l'équipe », horaires « à confirmer »
+  const href = (await (async () => {
+    await m.goto("/fr/app/stays");
+    await m.getByTestId("stay-row").first().click();
+    await m.getByTestId("link-create").click();
+    return m.getByTestId("guest-link-url").inputValue();
+  })()).replace(/^https?:\/\/[^/]+/, "");
+  const g = await newPage(browser);
+  await g.goto(href);
+  const fromagerie = g.getByTestId("around-place").filter({ hasText: "Fromagerie du Coin" });
+  await expect(fromagerie).toContainText("Ajouté par l'équipe le");
+  await expect(fromagerie.getByTestId("around-hours")).toContainText("horaires à confirmer");
+  await expect(g.getByTestId("around-place").filter({ hasText: "Gare Fictive" })).toHaveCount(0);
+  // Vérification explicite : date et personne, puis visible comme telle
+  await m.goto(`/fr/app/properties/${prop!.id}`);
+  await m.getByTestId("place-row").filter({ hasText: "Fromagerie du Coin" }).getByTestId("place-verify").click();
+  await expect(m.getByTestId("place-row").filter({ hasText: "Fromagerie du Coin" })).not.toContainText("non vérifié");
+  await expect.poll(async () => {
+    const { data: v } = await admin.from("property_places").select("verified_at, verified_by").eq("property_id", prop!.id).eq("name", "Fromagerie du Coin").single();
+    return Boolean(v?.verified_at && v?.verified_by);
+  }).toBe(true);
+  await g.reload();
+  await expect(fromagerie).toContainText("Vérifié par l'équipe le");
+  await expect(fromagerie.getByTestId("around-hours")).toContainText("horaires vérifiés");
+  // Panne du fournisseur : aucun lieu supprimé
+  osm?.close();
+  osm = null;
+  await m.getByTestId("places-import").click();
+  await expect(m.getByTestId("places-import-error")).toBeVisible();
+  const { count } = await admin.from("property_places").select("id", { count: "exact", head: true }).eq("property_id", prop!.id);
+  expect(count).toBe(4);
+  await g.context().close();
+});
+
+test("22 · navigation responsable lisible à 1 280 px et page introuvable localisée", async ({ browser }) => {
+  const ctx = await browser.newContext({ locale: "fr-FR", timezoneId: "Europe/Paris", viewport: { width: 1280, height: 800 } });
+  const m = await ctx.newPage();
+  await testScenario(m, `nav ${run}`);
+  const bar = m.getByRole("navigation", { name: "Navigation" }).locator("ul").first();
+  // Barre principale entière, sans défilement caché
+  expect(await bar.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+  await m.getByTestId("nav-more").click();
+  await expect(m.getByTestId("nav-more-menu")).toBeVisible();
+  await expect(m.getByTestId("nav-setup")).toHaveText("Configuration");
+  await m.keyboard.press("Escape");
+  await expect(m.getByTestId("nav-more-menu")).toHaveCount(0);
+  await expect(m.getByTestId("nav-more")).toBeFocused();
+  await m.getByTestId("nav-more").click();
+  await m.getByTestId("nav-settings").click();
+  await expect(m).toHaveURL(/\/fr\/app\/settings$/);
+  // Adresse inconnue : page HALO en français, sans le message générique anglais
+  const r = await m.goto("/fr/page-qui-n-existe-pas");
+  expect(r?.status()).toBe(404);
+  await expect(m.getByTestId("not-found")).toContainText("Page introuvable");
+  await expect(m.locator("body")).not.toContainText("This page could not be found");
+  await m.goto("/en/app/missions/00000000-0000-0000-0000-000000000000");
+  await expect(m.getByTestId("not-found")).toContainText(/not found|does not exist/i);
+  await ctx.close();
 });

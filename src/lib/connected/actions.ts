@@ -7,7 +7,7 @@
  * Chaque action renvoie un résultat réel : en cas d'échec, l'interface l'affiche, rien n'est simulé.
  */
 import { randomUUID } from "node:crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { planTasks } from "@/lib/engine/tasks";
 import { infeasibility } from "@/lib/engine/conflicts";
@@ -332,7 +332,7 @@ export async function extendGuestLink(linkId: string, until: string): Promise<Re
 // ---------- Prestations et messages ----------
 export async function decideService(
   serviceId: string,
-  status: "confirmed" | "declined" | "info_requested" | "done" | "cancelled",
+  status: "in_review" | "confirmed" | "declined" | "info_requested" | "done" | "cancelled",
   guestMessage: string,
   internalNote: string,
 ): Promise<Result<{ emailQueued: boolean }>> {
@@ -963,6 +963,312 @@ export async function cancelTask(taskId: string): Promise<Result> {
     .select("id");
   if (e) return fail(errCode(e));
   if (!data?.length) return fail("conflict");
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+/**
+ * Lieux importés depuis le NAVIGATEUR du responsable (Overpass refuse les serveurs d'hébergement : 406).
+ * Le serveur ne fait pas confiance au contenu reçu : distance recalculée depuis les coordonnées enregistrées
+ * du logement, rayon, catégories et longueurs contrôlés. Même règle de mise à jour que l'import serveur.
+ */
+export async function storeImportedPlaces(propertyId: string, places: ImportedPlaceInput[], dataDate: string | null): Promise<Result<{ count: number }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const o = ctx.org!.id;
+  const { data: p } = await ctx.supabase.from("properties").select("latitude, longitude").eq("organization_id", o).eq("id", propertyId).maybeSingle();
+  if (!p) return fail("not_found");
+  if (p.latitude == null || p.longitude == null) return fail("no_coordinates");
+  const { distanceM, SEARCH_RADIUS_M, PLACE_CATEGORIES } = await import("@/lib/engine/places");
+  const date = dataDate && !Number.isNaN(new Date(dataDate).getTime()) && new Date(dataDate).getTime() <= Date.now() + 86_400_000 ? new Date(dataDate).toISOString() : new Date().toISOString();
+  const seen = new Set<string>();
+  const rows = places
+    .filter((x) => typeof x.lat === "number" && typeof x.lng === "number" && /^(node|way|relation)\/\d+$/.test(x.externalId) && PLACE_CATEGORIES.includes(x.category as never) && x.name?.trim())
+    .filter((x) => distanceM(p.latitude, p.longitude, x.lat, x.lng) <= SEARCH_RADIUS_M + 50)
+    .filter((x) => (seen.has(x.externalId) ? false : (seen.add(x.externalId), true)))
+    .slice(0, 200)
+    .map((x) => ({
+      organization_id: o,
+      property_id: propertyId,
+      source: "openstreetmap",
+      external_id: x.externalId,
+      category: x.category,
+      name: x.name.trim().slice(0, 160),
+      address: x.address?.slice(0, 300) || null,
+      latitude: x.lat,
+      longitude: x.lng,
+      opening_hours: x.openingHours?.slice(0, 300) || null,
+      phone: x.phone?.slice(0, 40) || null,
+      website: x.website && /^https?:\/\//.test(x.website) ? x.website.slice(0, 300) : null,
+      source_updated_at: date,
+    }));
+  if (rows.length) {
+    // Upsert sans toucher « hidden » : un lieu masqué reste masqué ; aucune ligne en double (clé logement + source + identifiant)
+    const { error: ue } = await ctx.supabase.from("property_places").upsert(rows, { onConflict: "property_id,source,external_id" });
+    if (ue) return fail(errCode(ue));
+  }
+  const keep = rows.map((x) => x.external_id);
+  let del = ctx.supabase.from("property_places").delete().eq("organization_id", o).eq("property_id", propertyId).eq("source", "openstreetmap").eq("hidden", false);
+  if (keep.length) del = del.not("external_id", "in", `(${keep.map((k) => `"${k}"`).join(",")})`);
+  const { error: de } = await del;
+  if (de) return fail(errCode(de));
+  revalidatePath("/", "layout");
+  return { ok: true, data: { count: rows.length } };
+}
+export interface ImportedPlaceInput {
+  externalId: string;
+  category: string;
+  name: string;
+  address: string | null;
+  lat: number;
+  lng: number;
+  openingHours: string | null;
+  phone: string | null;
+  website: string | null;
+}
+
+/** Vérification explicite d'un lieu (date + personne) ; remise à zéro automatique si une information importante change. */
+export async function verifyPlace(placeId: string): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { error: e } = await ctx.supabase.rpc("verify_place", { org: ctx.org!.id, place: placeId });
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+// ---------- Préparation du séjour (avant l'arrivée) ----------
+const LOCALES = ["fr", "en", "es", "pt", "it", "de"];
+
+/**
+ * Invitation par e-mail : crée un nouveau lien (le lien brut n'existe qu'à cet instant) et le met dans l'e-mail.
+ * « Envoyé » n'est affiché que d'après l'état réel de l'envoi (journal), jamais d'après le clic.
+ */
+export async function sendPrepInvite(reservationId: string, locale: string): Promise<Result<{ token: string; delivery: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const o = ctx.org!.id;
+  const { data: r } = await ctx.supabase.from("reservations").select("id, guest_email, guest_locale").eq("organization_id", o).eq("id", reservationId).maybeSingle();
+  if (!r) return fail("not_found");
+  if (!r.guest_email) return fail("no_email");
+  const { data: token, error: e1 } = await ctx.supabase.rpc("create_guest_link", { org: o, reservation: reservationId });
+  if (e1) return fail(e1.message?.includes("stay_ended") ? "stay_ended" : e1.message?.includes("stay_not_confirmed") ? "stay_not_confirmed" : errCode(e1));
+  const h = await headers();
+  const origin = process.env.APP_URL ?? h.get("origin") ?? `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
+  const lang = LOCALES.includes(r.guest_locale ?? "") ? r.guest_locale : LOCALES.includes(locale) ? locale : "fr";
+  const { error: e2 } = await ctx.supabase.rpc("record_prep_invite", { org: o, reservation: reservationId, url: `${origin}/${lang}/s/${token as string}` });
+  if (e2) return fail(errCode(e2));
+  await processOutbox(o);
+  const { data: last } = await ctx.supabase
+    .from("notification_outbox")
+    .select("status")
+    .eq("organization_id", o)
+    .eq("reservation_id", reservationId)
+    .eq("template", "prep_invite")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  revalidatePath("/", "layout");
+  return { ok: true, data: { token: token as string, delivery: (last?.status as string) ?? "not_configured" } };
+}
+
+export async function setPrepStatus(reservationId: string, status: "to_prepare" | "in_progress" | "waiting_guest" | "ready"): Promise<Result<{ result: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.rpc("set_prep_status", { org: ctx.org!.id, reservation: reservationId, new_status: status });
+  if (e) return fail(errCode(e));
+  const result = data as string;
+  if (result !== "applied" && result !== "already") return fail(result);
+  revalidatePath("/", "layout");
+  return { ok: true, data: { result } };
+}
+
+export interface PrepActionInput {
+  title: string;
+  kind: "task" | "service" | "info" | "message" | "vip" | "other";
+  assigneeId: string | null;
+  dueAt: string | null;
+  blocking: boolean;
+}
+
+export async function addPrepAction(reservationId: string, input: PrepActionInput): Promise<Result<{ id: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const title = input.title.trim().slice(0, 200);
+  if (!title) return fail("invalid");
+  const { data, error: e } = await ctx.supabase
+    .from("stay_prep_actions")
+    .insert({ organization_id: ctx.org!.id, reservation_id: reservationId, title, kind: input.kind, assignee_id: input.assigneeId, due_at: input.dueAt, blocking: input.blocking, created_by: ctx.user!.id })
+    .select("id")
+    .single();
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: { id: data.id as string } };
+}
+
+export async function setPrepActionStatus(actionId: string, status: "open" | "done" | "cancelled"): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase
+    .from("stay_prep_actions")
+    .update({ status, done_at: status === "done" ? new Date().toISOString() : null, done_by: status === "done" ? ctx.user!.id : null })
+    .eq("organization_id", ctx.org!.id)
+    .eq("id", actionId)
+    .select("id");
+  if (e) return fail(errCode(e));
+  if (!data?.length) return fail("not_found");
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+/** Demande de prestation créée par l'équipe pour ce séjour (statut « demandée », jamais confirmée d'office). */
+export async function createPrepService(reservationId: string, actionId: string | null, input: { kind: string; startAt: string; people: number | null; details: string }): Promise<Result<{ id: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const o = ctx.org!.id;
+  const { data: r } = await ctx.supabase.from("reservations").select("id, property_id").eq("organization_id", o).eq("id", reservationId).maybeSingle();
+  if (!r) return fail("not_found");
+  if (Number.isNaN(Date.parse(input.startAt))) return fail("invalid");
+  const { data, error: e } = await ctx.supabase
+    .from("service_requests")
+    .insert({ organization_id: o, reservation_id: r.id, property_id: r.property_id, kind: input.kind, start_at: input.startAt, people: input.people, details: input.details.trim().slice(0, 2000) || null, source: "manager", status: "requested" })
+    .select("id")
+    .single();
+  if (e) return fail(errCode(e));
+  if (actionId) await ctx.supabase.from("stay_prep_actions").update({ service_id: data.id }).eq("organization_id", o).eq("id", actionId);
+  await processOutbox(o);
+  revalidatePath("/", "layout");
+  return { ok: true, data: { id: data.id as string } };
+}
+
+/** Mission de préparation avant l'arrivée (type « autre »), reliée au séjour ; affectation ensuite comme toute mission. */
+export async function createPrepMission(reservationId: string, actionId: string | null, input: { title: string; start: string; end: string; durationMin: number }): Promise<Result<{ id: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const o = ctx.org!.id;
+  const { data: r } = await ctx.supabase.from("reservations").select("id, property_id, vip").eq("organization_id", o).eq("id", reservationId).maybeSingle();
+  if (!r) return fail("not_found");
+  const start = Date.parse(input.start);
+  const end = Date.parse(input.end);
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start || !input.title.trim()) return fail("invalid_window");
+  const duration = Math.max(5, Math.min(1440, Math.round(input.durationMin) || 30, Math.floor((end - start) / 60_000)));
+  const { data, error: e } = await ctx.supabase
+    .from("tasks")
+    .insert({ organization_id: o, property_id: r.property_id, next_reservation_id: r.id, type: "other", title: input.title.trim().slice(0, 200), is_auto_generated: false, vip: Boolean(r.vip), window_start: new Date(start).toISOString(), window_end: new Date(end).toISOString(), duration_min: duration })
+    .select("id")
+    .single();
+  if (e) return fail(errCode(e));
+  if (actionId) await ctx.supabase.from("stay_prep_actions").update({ task_id: data.id }).eq("organization_id", o).eq("id", actionId);
+  revalidatePath("/", "layout");
+  return { ok: true, data: { id: data.id as string } };
+}
+
+/** Recommandation ou information pour le voyageur : visible seulement une fois publiée. */
+export async function addGuestItem(reservationId: string, input: { kind: "recommendation" | "info"; title: string; body: string; url: string; placeId: string | null; publish: boolean }): Promise<Result<{ id: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const title = input.title.trim().slice(0, 160);
+  const url = input.url.trim();
+  if (!title || (url && !/^https?:\/\/\S+$/.test(url))) return fail("invalid");
+  const { data, error: e } = await ctx.supabase
+    .from("stay_guest_items")
+    .insert({ organization_id: ctx.org!.id, reservation_id: reservationId, kind: input.kind, title, body: input.body.trim().slice(0, 1000) || null, url: url || null, place_id: input.placeId, published_at: input.publish ? new Date().toISOString() : null, created_by: ctx.user!.id })
+    .select("id")
+    .single();
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: { id: data.id as string } };
+}
+
+export async function setGuestItemPublished(itemId: string, publish: boolean): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.from("stay_guest_items").update({ published_at: publish ? new Date().toISOString() : null }).eq("organization_id", ctx.org!.id).eq("id", itemId).select("id");
+  if (e) return fail(errCode(e));
+  if (!data?.length) return fail("not_found");
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+export async function deleteGuestItem(itemId: string): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { error: e } = await ctx.supabase.from("stay_guest_items").delete().eq("organization_id", ctx.org!.id).eq("id", itemId);
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+export async function setPrepQuestions(questions: string[]): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const allowed = ["guests", "interests", "style", "services", "budget", "constraints", "other", "language"];
+  const clean = allowed.filter((q) => questions.includes(q));
+  const { error: e } = await ctx.supabase.from("organizations").update({ prep_questions: clean }).eq("id", ctx.org!.id);
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+// ---------- Statut VIP (vérifié par l'équipe, jamais attribué seul) ----------
+export async function decideVip(requestId: string, decision: "accept" | "refuse" | "info", input: { criterionId: string | null; expiresAt: string | null; guestMessage: string; internalNote: string }): Promise<Result<{ result: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.rpc("decide_vip", {
+    org: ctx.org!.id,
+    request: requestId,
+    decision,
+    criterion: input.criterionId,
+    expires: input.expiresAt,
+    guest_msg: input.guestMessage.trim() || null,
+    internal: input.internalNote.trim() || null,
+  });
+  if (e) return fail(dbCode(e, ["question_required", "reason_required"]));
+  await processOutbox(ctx.org!.id);
+  revalidatePath("/", "layout");
+  return { ok: true, data: { result: String(data) } };
+}
+
+export async function grantVip(reservationId: string, criterionId: string | null, expiresAt: string | null, why: string): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { error: e } = await ctx.supabase.rpc("grant_vip", { org: ctx.org!.id, reservation: reservationId, criterion: criterionId, expires: expiresAt, why: why.trim() });
+  if (e) return fail(dbCode(e, ["reason_required"]));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+export async function revokeVip(reservationId: string, why: string): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { error: e } = await ctx.supabase.rpc("revoke_vip", { org: ctx.org!.id, reservation: reservationId, why: why.trim() });
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+export async function saveVipCriterion(input: { id: string | null; label: string; kind: "loyalty" | "premium" | "partner" | "manual"; minStays: number | null; validityDays: number | null; guestVisible: boolean; editableBy: "owner" | "manager"; active: boolean }): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const label = input.label.trim().slice(0, 120);
+  if (!label) return fail("invalid");
+  const row = {
+    organization_id: ctx.org!.id,
+    label,
+    kind: input.kind,
+    min_stays: input.kind === "loyalty" ? input.minStays : null,
+    validity_days: input.validityDays,
+    guest_visible: input.guestVisible,
+    // Seul un propriétaire peut réserver un critère aux propriétaires
+    editable_by: ctx.org!.role === "owner" ? input.editableBy : "manager",
+    active: input.active,
+    updated_by: ctx.user!.id,
+    updated_at: new Date().toISOString(),
+  };
+  const q = input.id ? ctx.supabase.from("vip_criteria").update(row).eq("organization_id", ctx.org!.id).eq("id", input.id).select("id") : ctx.supabase.from("vip_criteria").insert(row).select("id");
+  const { data, error: e } = await q;
+  if (e) return fail(errCode(e));
+  if (!data?.length) return fail("forbidden");
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }

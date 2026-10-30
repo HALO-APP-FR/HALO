@@ -38,3 +38,28 @@ export async function guestSendMessage(token: string, message: string) {
 export async function guestReportProblem(token: string, input: { category: string; description: string; urgent: boolean }) {
   return call("guest_report_problem", { token, i_category: input.category, i_description: input.description, i_urgent: input.urgent }, token);
 }
+
+/** Questionnaire « Préparons votre séjour » : brouillon ou envoi ; « locked » après l'arrivée. */
+export async function guestSavePreparation(token: string, answers: Record<string, unknown>, submit: boolean): Promise<GuestResult | { ok: false; error: "locked" }> {
+  const { data, error } = await supabaseAnon().rpc("guest_save_preparation", { token, answers, submit });
+  if (error) return { ok: false, error: "server" };
+  const res = data as Rpc;
+  if (res.status === "locked") return { ok: false, error: "locked" };
+  if (res.status !== "ok") return { ok: false, error: "unavailable" };
+  await processOutbox();
+  revalidatePath(`/[locale]/s/${token}`, "page");
+  return { ok: true };
+}
+
+export async function guestDeletePreparation(token: string) {
+  return call("guest_delete_preparation", { token }, token);
+}
+
+/** Demande d'étude d'un accueil VIP : jamais une confirmation, seulement « demande envoyée ». */
+export async function guestRequestVip(token: string, criterionId: string | null, note: string) {
+  return call("guest_request_vip", { token, criterion: criterionId, note }, token);
+}
+
+export async function guestReplyVip(token: string, message: string) {
+  return call("guest_reply_vip", { token, message }, token);
+}

@@ -3,14 +3,36 @@
  * (une fenêtre « 8 nov. 11:00 → 11:00 » cachait une fin le 11 nov. — retour du 29/10).
  */
 type Style = "full" | "long" | "medium" | "short";
-type DateFormatter = { dateTime: (d: Date, o: { dateStyle?: Style; timeStyle?: Style }) => string };
+type DateFormatter = { dateTime: (d: Date, o: { dateStyle?: Style; timeStyle?: Style; timeZone?: string }) => string };
 
-export function windowText(f: DateFormatter, start: string, end: string, long = false): string {
+/**
+ * Règle des fuseaux (retour du 30/10) :
+ * - séjours, missions et arrivées : heure LOCALE DU LOGEMENT (properties.timezone), précisée quand elle diffère
+ *   du fuseau de l'organisation ;
+ * - messages, journaux, historiques : fuseau de l'organisation (Europe/Paris par défaut), partout le même —
+ *   jamais celui du navigateur ni du serveur.
+ */
+export const ORG_TIMEZONE = "Europe/Paris";
+
+export function windowText(f: DateFormatter, start: string, end: string, long = false, timeZone?: string): string {
   const s = new Date(start);
   const e = new Date(end);
-  const sameDay = f.dateTime(s, { dateStyle: "short" }) === f.dateTime(e, { dateStyle: "short" });
-  const startText = f.dateTime(s, { dateStyle: long ? "full" : "medium", timeStyle: "short" });
-  return `${startText} → ${sameDay ? f.dateTime(e, { timeStyle: "short" }) : f.dateTime(e, { dateStyle: "medium", timeStyle: "short" })}`;
+  const tz = timeZone ? { timeZone } : {};
+  const sameDay = f.dateTime(s, { dateStyle: "short", ...tz }) === f.dateTime(e, { dateStyle: "short", ...tz });
+  const startText = f.dateTime(s, { dateStyle: long ? "full" : "medium", timeStyle: "short", ...tz });
+  return `${startText} → ${sameDay ? f.dateTime(e, { timeStyle: "short", ...tz }) : f.dateTime(e, { dateStyle: "medium", timeStyle: "short", ...tz })}`;
+}
+
+/** Fuseau du logement lisible (« Tokyo, UTC+9 ») quand il diffère de celui de l'organisation, sinon null. */
+export function zoneLabel(timeZone: string | null | undefined, at: Date, orgTimeZone = ORG_TIMEZONE): string | null {
+  if (!timeZone || timeZone === orgTimeZone) return null;
+  try {
+    const offset = new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "shortOffset" }).formatToParts(at).find((p) => p.type === "timeZoneName")?.value ?? "";
+    const city = timeZone.split("/").pop()!.replace(/_/g, " ");
+    return `${city}, ${offset.replace("GMT", "UTC")}`;
+  } catch {
+    return timeZone;
+  }
 }
 
 /** Durée estimée « 1 h 30 » / « 45 min ». */
@@ -42,8 +64,15 @@ export function periodText(f: DateFormatter, start: string, end: string): string
  * ni du serveur (changements d'heure compris).
  */
 export function zonedMidnight(date: string, timeZone: string): Date {
+  return zonedTime(`${date}T00:00`, timeZone);
+}
+
+/** Heure locale « AAAA-MM-JJTHH:mm » saisie pour un lieu donné → instant réel (indépendant du fuseau de l'appareil). */
+export function zonedTime(local: string, timeZone: string): Date {
+  const [date, time = "00:00"] = local.split("T");
   const [y, m, d] = date.split("-").map(Number);
-  const guess = Date.UTC(y, m - 1, d, 0, 0, 0);
+  const [hh, mm] = time.split(":").map(Number);
+  const guess = Date.UTC(y, m - 1, d, hh || 0, mm || 0, 0);
   const offsetAt = (ms: number) => {
     const parts = Object.fromEntries(
       new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })

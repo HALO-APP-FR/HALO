@@ -186,9 +186,9 @@ where n.nspname = 'public' and c.relkind = 'r' group by c.relname;
 select t.check('aucune fonction exécutable par anon (hors exception invité) : ' || p.proname, p.proname, false)
 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')
-  and p.proname not in ('get_guest_stay', 'guest_request_service', 'guest_reply_service', 'guest_send_message', 'guest_report_problem', 'guest_problems', 'guest_places');
+  and p.proname not in ('get_guest_stay', 'guest_request_service', 'guest_reply_service', 'guest_send_message', 'guest_report_problem', 'guest_problems', 'guest_places', 'guest_save_preparation', 'guest_delete_preparation', 'guest_request_vip', 'guest_reply_vip');
 select t.is('exceptions anonymes : uniquement la porte d''entrée voyageur (lien de séjour)', (select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'get_guest_stay,guest_places,guest_problems,guest_reply_service,guest_report_problem,guest_request_service,guest_send_message');
+  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'get_guest_stay,guest_delete_preparation,guest_places,guest_problems,guest_reply_service,guest_reply_vip,guest_report_problem,guest_request_service,guest_request_vip,guest_save_preparation,guest_send_message');
 
 select t.check('fonction security definer avec search_path fixé : ' || p.proname,
   coalesce(array_to_string(p.proconfig, ','), 'aucun'), coalesce(array_to_string(p.proconfig, ','), '') like '%search_path=%')
@@ -700,7 +700,10 @@ select t.is('invité : réutilisable (deuxième ouverture)', t.guest(t.tk('A')),
 select t.check('invité : jamais de code d''accès dans la réponse', t.q(null, format('select public.get_guest_stay(%L)::text', t.tk('A'))),
   t.q(null, format('select public.get_guest_stay(%L)::text', t.tk('A'))) not like '%A-1234%' and t.q(null, format('select public.get_guest_stay(%L)::text', t.tk('A'))) not like '%code%');
 select t.is('invité : le lien de B ne donne que B', t.guest(t.tk('B'), '{property,name}'), 'B — Vieux-Port');
-select t.is('invité : séjour à venir (plus de 72 h) = réponse neutre', t.guest(t.tk('A3')), 'unavailable');
+select t.is('invité : séjour à venir (plus de 72 h) = espace de préparation seulement', t.guest(t.tk('A3')), 'prep');
+select t.is('invité : avant la fenêtre, ni livret ni Wi-Fi ni adresse', t.q(null, format('select coalesce(public.get_guest_stay(%L) ->> ''guide'', ''aucun'') || ''/'' || coalesce(public.get_guest_stay(%L) #>> ''{property,address}'', ''aucune'')', t.tk('A3'), t.tk('A3'))), 'aucun/aucune');
+select t.check('invité : avant la fenêtre, aucun mot de passe Wi-Fi nulle part', '', position('wifi-A2' in t.q(null, format('select public.get_guest_stay(%L)::text', t.tk('A3')))) = 0);
+select t.is('invité : avant la fenêtre, pas de signalement de problème', t.q(null, format('select public.guest_report_problem(%L, ''other'', ''Test avant'', false) ->> ''status''', t.tk('A3'))), 'unavailable');
 select t.is('invité : jeton faux = réponse neutre', t.guest(repeat('0', 64)), 'unavailable');
 select t.is('invité : jeton vide = réponse neutre', t.guest(''), 'unavailable');
 select t.is('invité : jeton mal formé = réponse neutre', t.guest('x'' or 1=1 --'), 'unavailable');
@@ -791,7 +794,7 @@ select t.is('précisions : le voyageur voit la question', t.guest(t.tk('GA'), '{
 select t.check('précisions : la note interne n''apparaît jamais côté voyageur', t.q(null, format('select public.get_guest_stay(%L)::text', t.tk('GA'))),
   t.q(null, format('select public.get_guest_stay(%L)::text', t.tk('GA'))) not like '%Client exigeant%' and t.q(null, format('select public.get_guest_stay(%L)::text', t.tk('GA'))) not like '%note interne%');
 select t.is('précisions : la réponse du voyageur revient au dossier', (t.keep(null, format('select public.guest_reply_service(%L, %L, ''Pas d''''arachides'')', t.tk('GA'), t.sv('SA')))::jsonb ->> 'status'), 'ok');
-select t.is('précisions : la demande repasse « à traiter », signalée à l''équipe', t.q('a_manager', format('select status || ''/'' || manager_unread from public.service_requests where id = %L', t.sv('SA'))), 'requested/true');
+select t.is('précisions : la demande repasse « en cours d''étude », signalée à l''équipe', t.q('a_manager', format('select status || ''/'' || manager_unread from public.service_requests where id = %L', t.sv('SA'))), 'in_review/true');
 select t.is('équipe : la réponse du voyageur est dans l''historique', t.q('a_manager', format('select body from public.service_events where service_id = %L and kind = ''guest_message''', t.sv('SA'))), 'Pas d''arachides');
 select t.is('acceptation : confirmée', (t.keep('a_manager', format('select public.decide_service(%L, %L, ''confirmed'', ''Réservé pour 20 h'')', t.id('A'), t.sv('SA')))::jsonb ->> 'status'), 'ok');
 select t.is('acceptation : le voyageur voit la confirmation', t.guest(t.tk('GA'), '{services,0,status}'), 'confirmed');
@@ -799,7 +802,7 @@ select t.is('acceptation : un e-mail par étape, état « en attente » tant qu'
   (select string_agg(template || ':' || status, ',' order by created_at) from public.notification_outbox where service_id = t.sv('SA') and template not like 'team_%'),
   'service_received:pending,service_info_requested:pending,service_confirmed:pending');
 select t.is('historique : chaque étape horodatée', t.q('a_manager', format('select string_agg(kind || coalesce('':'' || status, ''''), '','' order by id) from public.service_events where service_id = %L', t.sv('SA'))),
-  'created:requested,status:info_requested,internal_note,guest_message,status:requested,status:confirmed');
+  'created:requested,status:info_requested,internal_note,guest_message,status:in_review,status:confirmed');
 select t.err('modification : le manager de B ne modifie pas une demande de A', t.q('b_manager', format('select public.update_service(%L, %L, now() + interval ''3 days'', 4)', t.id('A'), t.sv('SA'))), '42501');
 select t.err('modification : un agent ne modifie pas', t.q('a_agent', format('select public.update_service(%L, %L, now() + interval ''3 days'', 4)', t.id('A'), t.sv('SA'))), '42501');
 select t.is('modification : le manager déplace la prestation', (t.keep('a_manager', format('select public.update_service(%L, %L, (select start_at + interval ''1 hour'' from public.service_requests where id = %L), 4, ''Décalé à 21 h'')', t.id('A'), t.sv('SA'), t.sv('SA')))::jsonb ->> 'status'), 'ok');
@@ -1040,6 +1043,133 @@ update public.properties set auto_places = false where id = t.id('PA1');
 select t.is('recommandations : seules celles de l''équipe et du propriétaire restent', t.q(null, format('select (select string_agg(x ->> ''source'' || '':'' || (x ->> ''name''), '','' order by x ->> ''name'') from jsonb_array_elements(public.guest_places(%L) -> ''places'') x)', repeat('1', 64))), 'manager:Café du Canal,owner:Marché du dimanche');
 select t.is('recommandations : la description est transmise', t.q(null, format('select (select x ->> ''description'' from jsonb_array_elements(public.guest_places(%L) -> ''places'') x where x ->> ''name'' = ''Marché du dimanche'')', repeat('1', 64))), 'Produits locaux');
 select t.deny('recommandations : un agent ne change pas le réglage du logement', t.dml('a_agent', format('update public.properties set auto_places = true where id = %L', t.id('PA1'))));
+
+-- =====================================================================
+-- Migration 12 : vérification explicite des lieux, préparation avant arrivée, VIP
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['RP', 'RPB', 'VC1', 'VC2', 'TZ1', 'ABSW']) k;
+insert into public.reservations (id, organization_id, property_id, guest_name, guest_email, check_in_at, check_out_at) values
+  (t.id('RP'), t.id('A'), t.id('PA2'), 'Voyageur préparation', 'prep@test.invalid', now() + interval '20 days', now() + interval '25 days'),
+  (t.id('RPB'), t.id('B'), t.id('PB1'), 'Voyageur B', null, now() + interval '20 days', now() + interval '22 days');
+insert into public.guest_links (organization_id, reservation_id, token_hash, valid_from, valid_until) values
+  (t.id('A'), t.id('RP'), encode(extensions.digest(repeat('3', 64), 'sha256'), 'hex'), now() + interval '17 days', now() + interval '25 days'),
+  (t.id('B'), t.id('RPB'), encode(extensions.digest(repeat('4', 64), 'sha256'), 'hex'), now() + interval '17 days', now() + interval '22 days');
+-- Lieux : « vérifié » seulement après confirmation explicite
+select t.is('lieu : simplement saisi, non vérifié', (select coalesce(verified_at::text, 'non') from public.property_places where id = t.id('PLACE1')), 'non');
+select t.err('lieu : un agent ne vérifie pas', t.q('a_agent', format('select public.verify_place(%L, %L)', t.id('A'), t.id('PLACE1'))), '42501');
+select t.err('lieu : une autre organisation ne vérifie pas', t.q('b_manager', format('select public.verify_place(%L, %L)', t.id('A'), t.id('PLACE1'))), '42501');
+select t.check('lieu : vérification par un responsable', '', t.keep('a_manager', format('select public.verify_place(%L, %L)', t.id('A'), t.id('PLACE1'))) not like 'ERR%');
+select t.check('lieu : vérifié avec date et personne', '', exists (select 1 from public.property_places where id = t.id('PLACE1') and verified_by = t.id('a_manager') and verified_at is not null));
+update public.property_places set note = 'Conseil modifié' where id = t.id('PLACE1');
+select t.check('lieu : un conseil modifié garde la vérification', '', (select verified_at is not null from public.property_places where id = t.id('PLACE1')));
+update public.property_places set opening_hours = 'Lu-Ve 8:00-18:00' where id = t.id('PLACE1');
+select t.check('lieu : horaires modifiés → vérification à renouveler', '', (select verified_at is null from public.property_places where id = t.id('PLACE1')));
+-- Créneau d'une mission affectée déplacé sur une absence : conflit signalé
+insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, window_start, window_end, duration_min) values
+  (t.id('TZ1'), t.id('A'), t.id('PX'), 'other', 'assigned', t.id('a_agent'), '2027-11-10 08:00+00', '2027-11-10 12:00+00', 60);
+select t.is('créneau : absence acceptée plus tard ce mois-là', t.keep('a_manager', format('select public.save_absence(%L, %L, ''member'', %L, ''leave'', ''2027-11-11 00:00+00'', ''2027-11-12 00:00+00'') ->> ''status''', t.id('A'), t.id('ABSW'), t.id('a_agent'))), 'accepted');
+update public.tasks set window_start = '2027-11-11 08:00+00', window_end = '2027-11-11 12:00+00' where id = t.id('TZ1');
+select t.check('créneau : déplacement sur l''absence signalé aux responsables (jamais silencieux)', '', exists (select 1 from public.notification_outbox where template = 'team_assignment_conflict' and payload ->> 'path' = '/app/missions/' || t.id('TZ1')));
+-- Préparation avant arrivée : accès limité au séjour, aucune information pratique détaillée
+select t.is('avant arrivée : espace de préparation', t.keep(null, format('select public.get_guest_stay(%L) ->> ''status''', repeat('3', 64))), 'prep');
+select t.is('avant arrivée : questionnaire ouvert', (select questionnaire_status from public.stay_preparations where reservation_id = t.id('RP')), 'opened');
+select t.is('avant arrivée : enregistrement d''un brouillon', t.q(null, format('select public.guest_save_preparation(%L, %L::jsonb, false) ->> ''questionnaire_status''', repeat('3', 64),
+  '{"interests": ["food", "culture", "pirate"], "style": "romantic", "services": ["restaurant", "spa"], "other": "Anniversaire", "adults": 2, "passport": "X123"}')), 'in_progress');
+update public.stay_preparations set answers = answers where false;
+select t.is('avant arrivée : brouillon conservé', t.keep(null, format('select public.guest_save_preparation(%L, %L::jsonb, false) ->> ''status''', repeat('3', 64),
+  '{"interests": ["food", "culture", "pirate"], "style": "romantic", "services": ["restaurant", "spa"], "other": "Anniversaire", "adults": 2, "passport": "X123"}')), 'ok');
+select t.is('avant arrivée : réponses nettoyées (valeurs inconnues et données non prévues écartées)', (select answers::text from public.stay_preparations where reservation_id = t.id('RP')),
+  '{"other": "Anniversaire", "style": "romantic", "adults": 2, "services": ["restaurant", "spa"], "interests": ["culture", "food"]}');
+select t.is('avant arrivée : envoi', t.keep(null, format('select public.guest_save_preparation(%L, %L::jsonb, true) ->> ''questionnaire_status''', repeat('3', 64),
+  '{"interests": ["food", "culture"], "style": "romantic", "services": ["restaurant", "spa"], "other": "Anniversaire", "adults": 2}')), 'submitted');
+select t.is('avant arrivée : rejouer l''envoi ne renvoie pas d''alerte', t.keep(null, format('select public.guest_save_preparation(%L, %L::jsonb, true) ->> ''unchanged''', repeat('3', 64),
+  '{"interests": ["food", "culture"], "style": "romantic", "services": ["restaurant", "spa"], "other": "Anniversaire", "adults": 2}')), 'true');
+select t.is('avant arrivée : responsables prévenus une fois', (select count(*)::text from public.notification_outbox where template = 'team_prep_submitted' and reservation_id = t.id('RP') and status <> 'skipped'), '2');
+select t.is('avant arrivée : à examiner par l''équipe', (select needs_review::text from public.stay_preparations where reservation_id = t.id('RP')), 'true');
+select t.is('avant arrivée : le voyageur retrouve ses réponses', t.q(null, format('select public.get_guest_stay(%L) #>> ''{preparation,answers,style}''', repeat('3', 64))), 'romantic');
+select t.is('avant arrivée : un responsable lit les réponses', t.q('a_manager', format('select answers ->> ''other'' from public.stay_preparations where reservation_id = %L', t.id('RP'))), 'Anniversaire');
+select t.is('avant arrivée : un agent ne les lit pas', t.q('a_agent', format('select count(*) from public.stay_preparations where reservation_id = %L', t.id('RP'))), '0');
+select t.is('avant arrivée : une autre organisation ne les lit pas', t.q('b_manager', format('select count(*) from public.stay_preparations where reservation_id = %L', t.id('RP'))), '0');
+select t.is('avant arrivée : le lien d''un autre séjour ne voit pas ces réponses', t.q(null, format('select coalesce(public.get_guest_stay(%L) #>> ''{preparation,answers,other}'', ''rien'')', repeat('4', 64))), 'rien');
+select t.deny('avant arrivée : aucune écriture directe', t.dml('a_manager', format('update public.stay_preparations set prep_status = ''ready'' where reservation_id = %L', t.id('RP'))));
+-- Statut et actions de préparation
+select t.check('préparation : action indispensable créée', '', t.dml('a_manager', format('insert into public.stay_prep_actions (organization_id, reservation_id, title, blocking, assignee_id) values (%L, %L, ''Réserver le restaurant'', true, %L)', t.id('A'), t.id('RP'), t.id('a_agent'))) = '1');
+insert into public.stay_prep_actions (organization_id, reservation_id, title, blocking) values (t.id('A'), t.id('RP'), 'Réserver le restaurant', true);
+select t.is('préparation : « prêt » refusé tant qu''une action indispensable est ouverte', t.q('a_manager', format('select public.set_prep_status(%L, %L, ''ready'')', t.id('A'), t.id('RP'))), 'blocking_actions');
+update public.stay_prep_actions set status = 'done', done_at = now() where reservation_id = t.id('RP');
+select t.is('préparation : prêt une fois l''action faite', t.keep('a_manager', format('select public.set_prep_status(%L, %L, ''ready'')', t.id('A'), t.id('RP'))), 'applied');
+select t.is('préparation : rejouer = sans effet', t.keep('a_manager', format('select public.set_prep_status(%L, %L, ''ready'')', t.id('A'), t.id('RP'))), 'already');
+select t.err('préparation : un agent ne change pas le statut', t.q('a_agent', format('select public.set_prep_status(%L, %L, ''ready'')', t.id('A'), t.id('RP'))), '42501');
+select t.is('préparation : un agent ne voit pas les actions', t.q('a_agent', 'select count(*) from public.stay_prep_actions'), '0');
+select t.is('préparation : historique', (select string_agg(kind, ',' order by id) from public.stay_prep_events where reservation_id = t.id('RP')),
+  'guest_saved,guest_submitted,action_created,action_done,status_changed');
+-- Éléments publiés : seuls ceux publiés sont visibles du voyageur
+insert into public.stay_guest_items (organization_id, reservation_id, kind, title, body, published_at) values
+  (t.id('A'), t.id('RP'), 'info', 'Restaurant suggéré', 'Le Petit Zinc, à réserver', now()),
+  (t.id('A'), t.id('RP'), 'info', 'Brouillon interne', 'Pas encore validé', null);
+select t.is('séjour préparé : le voyageur ne voit que le publié', t.q(null, format('select (select string_agg(x ->> ''title'', '','') from jsonb_array_elements(public.get_guest_stay(%L) -> ''prepared'') x)', repeat('3', 64))), 'Restaurant suggéré');
+select t.err('séjour préparé : impossible de citer le lieu d''une autre organisation', t.dml('b_manager', format('insert into public.stay_guest_items (organization_id, reservation_id, kind, title, place_id, published_at) values (%L, %L, ''recommendation'', ''x'', %L, now())', t.id('B'), t.id('RPB'), t.id('PLACE1'))), '23503');
+select t.deny('séjour préparé : un agent ne publie rien', t.dml('a_agent', format('insert into public.stay_guest_items (organization_id, reservation_id, kind, title) values (%L, %L, ''info'', ''x'')', t.id('A'), t.id('RP'))));
+-- Séjour annulé : lien révoqué, préparation annulée
+update public.reservations set status = 'cancelled' where id = t.id('RPB');
+select t.is('annulation : le lien ne donne plus accès', t.q(null, format('select public.get_guest_stay(%L) ->> ''status''', repeat('4', 64))), 'unavailable');
+-- Séjour modifié : le lien suit les nouvelles dates
+update public.reservations set check_out_at = now() + interval '26 days' where id = t.id('RP');
+select t.check('modification : le lien suit la nouvelle date de départ', '', (select valid_until > now() + interval '25 days 12 hours' from public.guest_links where reservation_id = t.id('RP') and revoked_at is null));
+-- Après l'arrivée : réponses verrouillées
+update public.reservations set check_in_at = now() - interval '1 hour' where id = t.id('RP');
+select t.is('après l''arrivée : réponses verrouillées', t.q(null, format('select public.guest_save_preparation(%L, ''{}''::jsonb, true) ->> ''status''', repeat('3', 64))), 'locked');
+update public.reservations set check_in_at = now() + interval '20 days' where id = t.id('RP');
+-- VIP
+insert into public.vip_criteria (id, organization_id, label, kind, min_stays, editable_by) values
+  (t.id('VC1'), t.id('A'), 'Client fidèle (3 séjours)', 'loyalty', 3, 'manager'),
+  (t.id('VC2'), t.id('A'), 'Partenaire entreprise', 'partner', null, 'owner');
+select t.err('VIP : un critère toujours soumis à validation humaine', t.dml('a_manager', format('insert into public.vip_criteria (organization_id, label, kind, requires_validation) values (%L, ''Auto'', ''loyalty'', false)', t.id('A'))), '23514');
+select t.deny('VIP : un manager ne modifie pas un critère réservé au propriétaire', t.dml('a_manager', format('update public.vip_criteria set label = ''x'' where id = %L', t.id('VC2'))));
+select t.is('VIP : le propriétaire le modifie', t.dml('a_owner', format('update public.vip_criteria set label = ''Partenaire'' where id = %L', t.id('VC2'))), '1');
+select t.deny('VIP : un agent ne crée pas de critère', t.dml('a_agent', format('insert into public.vip_criteria (organization_id, label, kind) values (%L, ''x'', ''manual'')', t.id('A'))));
+select t.is('VIP : motifs proposés au voyageur', t.q(null, format('select jsonb_array_length(public.get_guest_stay(%L) #> ''{vip,motifs}'')', repeat('3', 64))), '2');
+select t.is('VIP : demande du voyageur', t.keep(null, format('select public.guest_request_vip(%L, %L, ''Troisième séjour chez vous'') ->> ''status''', repeat('3', 64), t.id('VC1'))), 'ok');
+select t.is('VIP : rejouer ne crée pas de doublon', t.keep(null, format('select public.guest_request_vip(%L, %L, ''x'') ->> ''replayed''', repeat('3', 64), t.id('VC1'))), 'true');
+select t.is('VIP : le voyageur voit « en attente », pas « confirmé »', t.q(null, format('select (public.get_guest_stay(%L) #>> ''{vip,request,status}'') || ''/'' || (public.get_guest_stay(%L) #>> ''{vip,confirmed}'')', repeat('3', 64), repeat('3', 64))), 'pending/false');
+select t.check('VIP : responsables prévenus', '', exists (select 1 from public.notification_outbox where template = 'team_vip_requested' and reservation_id = t.id('RP')));
+select t.err('VIP : un agent ne décide pas', t.q('a_agent', format('select public.decide_vip(%L, (select id from public.vip_requests where reservation_id = %L), ''accept'', %L)', t.id('A'), t.id('RP'), t.id('VC1'))), '42501');
+select t.err('VIP : une autre organisation ne décide pas', t.q('b_manager', format('select public.decide_vip(%L, (select id from public.vip_requests where reservation_id = %L), ''accept'', %L)', t.id('A'), t.id('RP'), t.id('VC1'))), '42501');
+select t.is('VIP : une autre organisation ne voit pas la demande', t.q('b_manager', format('select count(*) from public.vip_requests where reservation_id = %L', t.id('RP'))), '0');
+select t.is('VIP : indice de fidélité calculé (jamais appliqué seul)', t.q('a_manager', format('select public.loyalty_count(%L, %L)', t.id('A'), t.id('RP'))), '0');
+select t.err('VIP : précision sans question refusée', t.q('a_manager', format('select public.decide_vip(%L, (select id from public.vip_requests where reservation_id = %L), ''info'')', t.id('A'), t.id('RP'))), '22023');
+select t.is('VIP : précision demandée', t.keep('a_manager', format('select public.decide_vip(%L, (select id from public.vip_requests where reservation_id = %L), ''info'', null, null, ''Pouvez-vous préciser vos dates de séjours précédents ?'')', t.id('A'), t.id('RP'))), 'applied');
+select t.is('VIP : le voyageur voit la question', t.q(null, format('select public.get_guest_stay(%L) #>> ''{vip,request,message}''', repeat('3', 64))), 'Pouvez-vous préciser vos dates de séjours précédents ?');
+select t.is('VIP : le voyageur répond', t.keep(null, format('select public.guest_reply_vip(%L, ''Été 2025 et printemps 2026'') ->> ''status''', repeat('3', 64))), 'ok');
+select t.is('VIP : acceptée', t.keep('a_manager', format('select public.decide_vip(%L, (select id from public.vip_requests where reservation_id = %L), ''accept'', %L, now() + interval ''1 year'', ''Bienvenue !'', ''Vérifié avec l''''historique hors HALO'')', t.id('A'), t.id('RP'), t.id('VC1'))), 'applied');
+select t.is('VIP : décider deux fois = sans effet', t.keep('a_manager', format('select public.decide_vip(%L, (select id from public.vip_requests where reservation_id = %L), ''accept'', %L)', t.id('A'), t.id('RP'), t.id('VC1'))), 'already');
+select t.is('VIP : voyageur prévenu de la question et de la décision (adresse de test : jamais livrée)', (select count(*)::text from public.notification_outbox where template = 'vip_update' and reservation_id = t.id('RP')), '2');
+select t.check('VIP : e-mail sans note interne', '', not exists (select 1 from public.notification_outbox where template = 'vip_update' and payload::text like '%hors HALO%'));
+select t.is('VIP : confirmé côté voyageur', t.q(null, format('select public.get_guest_stay(%L) #>> ''{vip,confirmed}''', repeat('3', 64))), 'true');
+select t.check('VIP : la note interne n''apparaît jamais côté voyageur', '', position('hors HALO' in t.q(null, format('select public.get_guest_stay(%L)::text', repeat('3', 64)))) = 0);
+select t.is('VIP : statut, critère, auteur et échéance enregistrés', (select status || '/' || (criterion_id = t.id('VC1'))::text || '/' || (granted_by = t.id('a_manager'))::text || '/' || (expires_at is not null)::text from public.stay_vip where reservation_id = t.id('RP')), 'active/true/true/true');
+select t.is('VIP : préparation renforcée des missions activée', (select vip::text from public.reservations where id = t.id('RP')), 'true');
+select t.deny('VIP : aucune écriture directe du statut', t.dml('a_manager', format('update public.stay_vip set status = ''active'' where reservation_id = %L', t.id('RP'))));
+select t.is('VIP : un agent ne voit pas le statut', t.q('a_agent', 'select count(*) from public.stay_vip'), '0');
+select t.is('VIP : retiré', t.keep('a_manager', format('select public.revoke_vip(%L, %L, ''Erreur de saisie'')', t.id('A'), t.id('RP'))), 'applied');
+select t.is('VIP : plus confirmé après retrait', t.q(null, format('select public.get_guest_stay(%L) #>> ''{vip,confirmed}''', repeat('3', 64))), 'false');
+select t.err('VIP : attribution sans motif refusée', t.q('a_manager', format('select public.grant_vip(%L, %L, null, null, '''')', t.id('A'), t.id('RP'))), '22023');
+select t.is('VIP : attribution documentée', t.keep('a_manager', format('select public.grant_vip(%L, %L, null, now() - interval ''1 day'', ''Partenariat signé'')', t.id('A'), t.id('RP'))), 'applied');
+select t.is('VIP : statut expiré = non confirmé', t.q(null, format('select public.get_guest_stay(%L) #>> ''{vip,confirmed}''', repeat('3', 64))), 'false');
+select t.err('VIP : une autre organisation n''attribue pas', t.q('b_manager', format('select public.grant_vip(%L, %L, null, null, ''x'')', t.id('A'), t.id('RP'))), '42501');
+select t.is('VIP : historique complet', (select string_agg(kind, ',' order by id) from public.stay_prep_events where reservation_id = t.id('RP') and kind like 'vip%'),
+  'vip_requested,vip_info_requested,vip_guest_reply,vip_accepted,vip_revoked,vip_granted');
+-- Invitation par e-mail : lien contrôlé, jamais conservé pour une adresse non distribuable
+select t.err('invitation : un agent n''envoie pas', t.q('a_agent', format('select public.record_prep_invite(%L, %L, %L)', t.id('A'), t.id('RP'), 'https://x.test/fr/s/' || repeat('3', 64))), '42501');
+select t.err('invitation : une autre organisation n''envoie pas', t.q('b_manager', format('select public.record_prep_invite(%L, %L, %L)', t.id('A'), t.id('RP'), 'https://x.test/fr/s/' || repeat('3', 64))), '42501');
+select t.err('invitation : adresse quelconque refusée', t.q('a_manager', format('select public.record_prep_invite(%L, %L, %L)', t.id('A'), t.id('RP'), 'https://evil.test/phish')), '22023');
+select t.is('invitation : mise en envoi', t.keep('a_manager', format('select public.record_prep_invite(%L, %L, %L) ->> ''email_queued''', t.id('A'), t.id('RP'), 'https://x.test/fr/s/' || repeat('3', 64))), 'true');
+select t.is('invitation : adresse de test → échec tracé, lien non conservé', (select status || '/' || (payload ? 'url')::text from public.notification_outbox where template = 'prep_invite' and reservation_id = t.id('RP')), 'failed/false');
+-- Formule premium : une prestation avec son propre statut, jamais confirmée automatiquement
+select t.is('premium : demandée par le voyageur', t.keep(null, format('select public.guest_request_service(%L, ''premium_package'', now() + interval ''21 days'', 2, ''Formule premium'') ->> ''status''', repeat('3', 64))), 'ok');
+select t.is('premium : statut « demandée », pas confirmé', (select status from public.service_requests where reservation_id = t.id('RP') and kind = 'premium_package'), 'requested');
+select t.is('premium : n''attribue pas le statut VIP', (select vip::text from public.reservations where id = t.id('RP')), 'false');
+select t.is('prestation : passée « en cours d''étude » sans e-mail au voyageur', t.keep('a_manager', format('select public.decide_service(%L, (select id from public.service_requests where reservation_id = %L and kind = ''premium_package''), ''in_review'') ->> ''email_queued''', t.id('A'), t.id('RP'))), 'false');
 
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);

@@ -59,6 +59,7 @@ export function ServiceIcon({ kind, className }: { kind: ServiceKind; className?
 
 export const SERVICE_STATUS_TONE = {
   requested: "warning",
+  in_review: "accent",
   info_requested: "warning",
   confirmed: "accent",
   declined: "neutral",

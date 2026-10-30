@@ -28,6 +28,8 @@ export type BlockerKind =
   | "open_incident"
   | "linen_shortage"
   | "service_pending"
+  // Action de préparation indispensable encore ouverte (préparation du séjour)
+  | "prep_blocking"
   | "guest_arrived_not_ready"
   // Étapes complémentaires (environnement connecté) : linge, maintenance, contrôle qualité
   | "step_missing"
@@ -48,7 +50,8 @@ export type ArrivalAction =
   | { kind: "open_incident"; alertId: string }
   | { kind: "open_service"; serviceId: string }
   | { kind: "open_linen" }
-  | { kind: "create_linen" };
+  | { kind: "create_linen" }
+  | { kind: "open_stay" };
 
 export interface Blocker {
   kind: BlockerKind;
@@ -84,6 +87,8 @@ export interface ArrivalInput {
    * linge livré (exigé si l'organisation travaille avec une blanchisserie), maintenance, contrôle qualité.
    */
   steps?: { linenRequired: boolean };
+  /** Actions de préparation indispensables encore ouvertes : l'arrivée ne peut pas être « prête ». */
+  prepBlocking?: { reservationId: string; title: string; assigneeId: string | null; dueAt: string | null }[];
   now: Date;
 }
 
@@ -139,9 +144,21 @@ export function arrivalControl(input: ArrivalInput): ArrivalRow[] {
         else blockers.push({ kind: "open_incident", severity: "watch", responsible, action: { kind: "open_incident", alertId: a.id } });
       }
       for (const s of input.services) {
-        if (s.reservationId === stay.id && (s.status === "requested" || s.status === "info_requested")) {
+        if (s.reservationId === stay.id && (s.status === "requested" || s.status === "info_requested" || s.status === "in_review")) {
           blockers.push({ kind: "service_pending", severity: "watch", responsible: { kind: "manager" }, action: { kind: "open_service", serviceId: s.id } });
         }
+      }
+
+      for (const a of input.prepBlocking ?? []) {
+        if (a.reservationId !== stay.id) continue;
+        const late = a.dueAt ? new Date(a.dueAt).getTime() < now.getTime() : false;
+        blockers.push({
+          kind: "prep_blocking",
+          severity: late ? "blocked" : "watch",
+          responsible: a.assigneeId ? { kind: "member", id: a.assigneeId } : { kind: "manager" },
+          action: { kind: "open_stay" },
+          detail: a.title,
+        });
       }
 
       const pending: StepKind[] = [];
@@ -171,7 +188,7 @@ export function arrivalControl(input: ArrivalInput): ArrivalRow[] {
       }
 
       // Voyageur arrivé (heure d'arrivée dépassée) dans un logement qui n'est pas prêt
-      const notReadyYet = base !== "ready" || pending.length > 0 || blockers.some((b) => b.kind === "urgent_incident" || b.kind.startsWith("step_"));
+      const notReadyYet = base !== "ready" || pending.length > 0 || blockers.some((b) => b.kind === "urgent_incident" || b.kind === "prep_blocking" || b.kind.startsWith("step_"));
       if (minutesLeft < 0 && notReadyYet && cleaning) {
         blockers.unshift({ kind: "guest_arrived_not_ready", severity: "blocked", responsible: { kind: "manager" }, action: { kind: "open_task", taskId: cleaning.id } });
       }

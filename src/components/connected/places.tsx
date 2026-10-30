@@ -4,9 +4,9 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Clock, Globe, MapPin, Navigation, Phone } from "lucide-react";
-import { addPlace, deletePlace, importNearbyPlaces, locateProperty, setAutoPlaces, setPlaceHidden, updatePlace, type PlaceInput } from "@/lib/connected/actions";
+import { addPlace, deletePlace, importNearbyPlaces, locateProperty, setAutoPlaces, setPlaceHidden, storeImportedPlaces, updatePlace, verifyPlace, type PlaceInput } from "@/lib/connected/actions";
 import { directionsLink, MAPS_APPS, type MapsApp } from "@/lib/engine/directions";
-import { PLACE_CATEGORIES, type PlaceCategory } from "@/lib/engine/places";
+import { overpassQuery, parseOverpass, PLACE_CATEGORIES, type PlaceCategory } from "@/lib/engine/places";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Select } from "@/components/ui/field";
@@ -30,6 +30,8 @@ export interface Place {
   updated_at: string;
   distance_m: number | null;
   hidden?: boolean;
+  created_at?: string | null;
+  verified_at?: string | null;
 }
 
 /**
@@ -182,7 +184,7 @@ export function GuestAround({ property, places }: { property: { name: string; la
                         <Clock className="mt-0.5 size-4 shrink-0" />
                         {p.opening_hours ? (
                           <span>
-                            {p.opening_hours} <span className="text-[12px]">({t("hoursAsPublished")})</span>
+                            {p.opening_hours} <span className="text-[12px]">({p.source === "openstreetmap" ? t("hoursAsPublished") : p.verified_at ? t("hoursVerified") : t("hoursToConfirm")})</span>
                           </span>
                         ) : (
                           <span className="text-[13px]">{t("noHours")}</span>
@@ -221,7 +223,11 @@ export function GuestAround({ property, places }: { property: { name: string; la
                       <p className="mt-2 text-[12px] text-muted">{t("noRoute")}</p>
                     )}
                     <p className="mt-2 text-[11px] text-faint">
-                      {p.source === "openstreetmap" ? t("osmData", { date: f.dateTime(new Date(p.updated_at), { dateStyle: "medium" }) }) : t("verifiedOn", { date: f.dateTime(new Date(p.updated_at), { dateStyle: "medium" }) })}
+                      {p.source === "openstreetmap"
+                        ? t("osmData", { date: f.dateTime(new Date(p.updated_at), { dateStyle: "medium" }) })
+                        : p.verified_at
+                          ? t("verifiedOn", { date: f.dateTime(new Date(p.verified_at), { dateStyle: "medium" }) })
+                          : t(p.source === "owner" ? "ownerAddedOn" : "addedOn", { date: f.dateTime(new Date(p.created_at ?? p.updated_at), { dateStyle: "medium" }) })}
                     </p>
                   </Card>
                 </li>
@@ -247,7 +253,9 @@ export function PlacesManager({
   geoSource,
   autoPlaces,
   places,
+  overpassUrls,
 }: {
+  overpassUrls: string[];
   propertyId: string;
   coords: { lat: number; lng: number } | null;
   geoSource: string | null;
@@ -265,6 +273,33 @@ export function PlacesManager({
   const [editing, setEditing] = useState<Place | null>(null);
   const [autoOn, setAutoOn] = useState(autoPlaces);
   const own = places.filter((p) => p.source !== "openstreetmap");
+  /**
+   * Import : depuis CE navigateur (le service public Overpass refuse les serveurs d'hébergement, réponse 406),
+   * puis enregistrement contrôlé par le serveur. Si le navigateur n'obtient rien, le serveur essaie son propre
+   * fournisseur (Geoapify s'il est configuré). Seules les coordonnées du logement sont transmises.
+   */
+  const importFromBrowser = async () => {
+    if (coords) {
+      for (const url of overpassUrls) {
+        try {
+          const ctrl = new AbortController();
+          const timer = window.setTimeout(() => ctrl.abort(), 25_000);
+          const res = await fetch(`${url}?data=${encodeURIComponent(overpassQuery(coords.lat, coords.lng))}`, { signal: ctrl.signal });
+          window.clearTimeout(timer);
+          if (!res.ok) continue;
+          const parsed = parseOverpass(await res.json(), coords.lat, coords.lng);
+          return storeImportedPlaces(
+            propertyId,
+            parsed.places.map((x) => ({ externalId: x.externalId, category: x.category, name: x.name, address: x.address, lat: x.lat, lng: x.lng, openingHours: x.openingHours, phone: x.phone, website: x.website })),
+            parsed.dataDate,
+          );
+        } catch {
+          // instance suivante
+        }
+      }
+    }
+    return importNearbyPlaces(propertyId);
+  };
   const imported = places.filter((p) => p.source === "openstreetmap");
   return (
     <Card className="space-y-5 p-5" data-testid="places-manager">
@@ -323,7 +358,7 @@ export function PlacesManager({
         {locate.error && <p role="alert" className="text-[13px] text-danger" data-testid="places-locate-error">{locate.error}</p>}
         {autoOn && (
           <div className="space-y-1">
-            <Button size="sm" onClick={() => imp.run(() => importNearbyPlaces(propertyId), (d) => setMsg(t("imported", { count: d.count })))} disabled={imp.pending || !coords} data-testid="places-import">
+            <Button size="sm" onClick={() => imp.run(() => importFromBrowser(), (d) => setMsg(t("imported", { count: d.count })))} disabled={imp.pending || !coords} data-testid="places-import">
               {imp.pending ? t("importing") : t("import")}
             </Button>
             {!coords && <p className="text-[12px] text-warning">{t("needCoords")}</p>}
@@ -395,7 +430,7 @@ function PlaceForm({ propertyId, place, onDone }: { propertyId: string; place: P
         <Input id="pl-note" value={form.note} onChange={(e) => set("note", e.target.value)} maxLength={500} data-testid="place-note" />
       </Field>
       <Field label={t("hours")} htmlFor="pl-hours" hint={t("hoursHint")}>
-        <Input id="pl-hours" value={form.openingHours} onChange={(e) => set("openingHours", e.target.value)} maxLength={300} />
+        <Input id="pl-hours" value={form.openingHours} onChange={(e) => set("openingHours", e.target.value)} maxLength={300} data-testid="place-hours" />
       </Field>
       <Field label={t("phone")} htmlFor="pl-phone">
         <Input id="pl-phone" value={form.phone} onChange={(e) => set("phone", e.target.value)} maxLength={40} />
@@ -424,10 +459,16 @@ function PlaceRow({ p, label, date, onEdit }: { p: Place; label: string; date: s
         <span className="block text-[15px] font-medium">{p.name}</span>
         <span className="block text-[12px] text-muted">
           {label} · {p.source === "manager" ? t("originTeam") : p.source === "owner" ? t("originOwner") : "OpenStreetMap"} · {date}
+          {p.verified_at ? ` · ${t("verified")}` : p.source !== "openstreetmap" ? ` · ${t("notVerified")}` : ""}
           {p.distance_m != null ? ` · ${fmtDistance(p.distance_m)}` : ` · ${t("noDistance")}`}
           {p.hidden && ` · ${t("hidden")}`}
         </span>
       </span>
+      {!p.verified_at && p.source !== "openstreetmap" && (
+        <Button size="sm" variant="ghost" onClick={() => run(() => verifyPlace(p.id))} disabled={pending} data-testid="place-verify" title={t("verifyHint")}>
+          {t("verify")}
+        </Button>
+      )}
       {onEdit && (
         <Button size="sm" variant="ghost" onClick={onEdit} disabled={pending} data-testid="place-edit">
           {t("edit")}

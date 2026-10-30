@@ -305,7 +305,7 @@ export type ServiceKind =
   | "flowers"
   | "other";
 /** requested / info_requested : en attente de traitement ; declined : refusée ; cancelled : annulée après acceptation. */
-export type ServiceStatus = "requested" | "info_requested" | "confirmed" | "declined" | "done" | "cancelled";
+export type ServiceStatus = "requested" | "in_review" | "info_requested" | "confirmed" | "declined" | "done" | "cancelled";
 export interface ServiceEvent {
   at: string;
   status: ServiceStatus;

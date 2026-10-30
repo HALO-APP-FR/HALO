@@ -1,5 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowRight, ClipboardCheck, MessagesSquare, CalendarClock, CalendarDays, CalendarX2, ConciergeBell, MailWarning, MessageSquare, Settings2, TriangleAlert, UserRoundX } from "lucide-react";
+import { ArrowRight, ClipboardList, Crown, ClipboardCheck, MessagesSquare, CalendarClock, CalendarDays, CalendarX2, ConciergeBell, MailWarning, MessageSquare, Settings2, TriangleAlert, UserRoundX } from "lucide-react";
 import { Link, redirect } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/halo/page-header";
@@ -23,7 +23,8 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
   const [services, messages, outbox, stays, unassigned, incidents, planning, toValidate, chats] = await Promise.all([
     supabase.from("service_requests").select("id", { count: "exact", head: true }).eq("organization_id", org.id).or("manager_unread.eq.true,status.eq.requested"),
     supabase.from("stay_messages").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("author_kind", "guest").is("read_by_team_at", null),
-    supabase.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org.id).in("status", ["failed", "not_configured"]),
+    // E-mails voyageurs non remis (échec ou aucun fournisseur) ; les e-mails d'équipe sont comptés à part, les « non envoyés par préférence » jamais
+    supabase.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org.id).in("status", ["failed", "not_configured"]).not("template", "like", "team_%").not("template", "like", "agent_%").not("template", "like", "chat_%"),
     supabase.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "confirmed").gte("check_in_at", now.toISOString()).lte("check_in_at", in7),
     supabase.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "unassigned").gte("window_end", now.toISOString()),
     supabase.from("incidents").select("id", { count: "exact", head: true }).eq("organization_id", org.id).neq("status", "resolved"),
@@ -31,6 +32,15 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     // Missions terminées qui attendent un responsable (statut « À valider ») : disparaissent dès validation ou correction
     supabase.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "done"),
     unreadThreads(supabase, org.id),
+  ]);
+  const in24 = new Date(now.getTime() + 24 * 3_600_000).toISOString();
+  const [teamOutbox, prepReview, prepDue, vipPending] = await Promise.all([
+    supabase.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org.id).in("status", ["failed", "not_configured"]).or("template.like.team_%,template.like.agent_%,template.like.chat_%"),
+    // Questionnaires envoyés ou modifiés par un voyageur, pas encore examinés
+    supabase.from("stay_preparations").select("reservation_id", { count: "exact", head: true }).eq("organization_id", org.id).eq("needs_review", true),
+    // Actions de préparation ouvertes à échéance dans les 24 h (ou dépassée)
+    supabase.from("stay_prep_actions").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "open").lte("due_at", in24),
+    supabase.from("vip_requests").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "pending"),
   ]);
   const onboardingDone = Boolean(org.onboarding?.completed_at);
   // Linge suivi dans « logement prêt » seulement si l'organisation travaille avec une blanchisserie (réponse d'onboarding)
@@ -46,14 +56,18 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     { key: "availability", n: planning.availability.length + planning.closureStays.length, href: "/app/team", icon: CalendarClock, danger: true },
     { key: "absenceRequests", n: planning.pendingAbsences, href: "/app/team", icon: CalendarClock, danger: true },
     { key: "services", n: services.count ?? 0, href: "/app/services", icon: ConciergeBell, danger: true },
+    { key: "prepReview", n: prepReview.count ?? 0, href: "/app/stays?prep=review", icon: ClipboardList, danger: true },
+    { key: "prepDue", n: prepDue.count ?? 0, href: "/app/stays?prep=due", icon: ClipboardList, danger: true },
+    { key: "vipRequests", n: vipPending.count ?? 0, href: "/app/stays?prep=vip", icon: Crown, danger: true },
     { key: "messages", n: messages.count ?? 0, href: "/app/stays", icon: MessageSquare, danger: true },
     { key: "unassigned", n: unassigned.count ?? 0, href: "/app/missions", icon: UserRoundX, danger: true },
-    { key: "emails", n: outbox.count ?? 0, href: "/app/notifications", icon: MailWarning, danger: false },
+    { key: "emails", n: outbox.count ?? 0, href: "/app/notifications?audience=guest", icon: MailWarning, danger: false },
+    { key: "teamEmails", n: teamOutbox.count ?? 0, href: "/app/notifications?audience=team", icon: MailWarning, danger: false },
     { key: "stays7", n: stays.count ?? 0, href: "/app/stays", icon: CalendarDays, danger: false },
   ] as const;
-  const alertOf = { toValidate: "unassigned_missions", chats: "unread_messages", schedule: "unassigned_missions", availability: "unassigned_missions", absenceRequests: "unassigned_missions", incidents: "pending_services", services: "pending_services", messages: "unread_messages", unassigned: "unassigned_missions", emails: "failed_emails", stays7: "upcoming_stays" } as const;
+  const alertOf = { toValidate: "unassigned_missions", chats: "unread_messages", schedule: "unassigned_missions", availability: "unassigned_missions", absenceRequests: "unassigned_missions", incidents: "pending_services", services: "pending_services", messages: "unread_messages", unassigned: "unassigned_missions", emails: "failed_emails", teamEmails: "failed_emails", prepReview: "pending_services", prepDue: "pending_services", vipRequests: "pending_services", stays7: "upcoming_stays" } as const;
   // Alertes choisies à l'onboarding ; les demandes et messages voyageurs restent toujours visibles
-  const always = ["toValidate", "chats", "services", "messages", "incidents", "schedule", "availability", "absenceRequests"];
+  const always = ["toValidate", "chats", "services", "prepReview", "prepDue", "vipRequests", "messages", "incidents", "schedule", "availability", "absenceRequests"];
   const rows = allRows.filter((r) => !enabled || always.includes(r.key) || enabled.includes(alertOf[r.key]));
 
   return (

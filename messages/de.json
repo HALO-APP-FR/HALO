@@ -1025,7 +1025,10 @@
     "babysitter": "Babysitter",
     "experience": "Erlebnisse & Touren",
     "flowers": "Blumen & Aufmerksamkeiten",
-    "other": "Sonstiges"
+    "other": "Sonstiges",
+    "extra_cleaning": "Zusätzliche Reinigung",
+    "extra_linen": "Zusätzliche Wäsche",
+    "premium_package": "Premium-Paket"
   },
   "serviceStatus": {
     "requested": "Angefragt",
@@ -1033,7 +1036,8 @@
     "done": "Erledigt",
     "cancelled": "Storniert",
     "info_requested": "Rückfrage gestellt",
-    "declined": "Abgelehnt"
+    "declined": "Abgelehnt",
+    "in_review": "In Prüfung"
   },
   "services": {
     "subtitle": "Gehobener Concierge-Service: jede Anfrage bis zum Ende begleitet.",
@@ -1262,7 +1266,8 @@
       "step_missing": "{step}: vor der Anreise nichts geplant",
       "step_unassigned": "{step}: niemand zugewiesen",
       "step_late": "{step}: verspätet",
-      "step_review": "{step}: erledigt, zu prüfen"
+      "step_review": "{step}: erledigt, zu prüfen",
+      "prep_blocking": "Vorbereitung: „{title}“ noch nicht erledigt"
     },
     "action": {
       "assign": "Zuweisen",
@@ -1272,7 +1277,8 @@
       "open_incident": "Vorfall bearbeiten",
       "open_service": "Anfrage bearbeiten",
       "open_linen": "Wäsche ansehen",
-      "create_linen": "Lieferung planen"
+      "create_linen": "Lieferung planen",
+      "open_stay": "Aufenthalt öffnen"
     },
     "step": {
       "linen": "Wäsche",
@@ -1297,7 +1303,8 @@
       "settings": "Einstellungen",
       "profile": "Mein Profil",
       "messages": "Nachrichten",
-      "preferences": "Einstellungen"
+      "preferences": "Einstellungen",
+      "more": "Mehr"
     },
     "env": {
       "demo": "Demo",
@@ -1354,7 +1361,7 @@
       "invalid_invitation": "Einladung ungültig, abgelaufen oder bereits genutzt.",
       "unchanged": "Keine Änderung zu speichern.",
       "bad_mime": "Fotoformat nicht unterstützt (JPEG, PNG, WebP oder HEIC).",
-      "reason_required": "Geben Sie den Grund an.",
+      "reason_required": "Kriterium oder Grund angeben: Ein VIP-Status wird immer begründet.",
       "stale": "Es gibt bereits eine neuere Version: Die Seite wird aktualisiert.",
       "already": "Bereits erledigt.",
       "empty": "Beschreibung hinzufügen.",
@@ -1373,7 +1380,9 @@
       "no_coordinates": "Verorten Sie zuerst die Unterkunft.",
       "invalid_coordinates": "Ungültige Koordinaten.",
       "no_recipient": "Wählen Sie mindestens einen Empfänger.",
-      "invalid_context": "Eine Unterhaltung muss einen Einsatz, eine Unterkunft oder einen Aufenthalt betreffen."
+      "invalid_context": "Eine Unterhaltung muss einen Einsatz, eine Unterkunft oder einen Aufenthalt betreffen.",
+      "blocking_actions": "„Bereit“ nicht möglich: Eine notwendige Aktion ist noch offen.",
+      "no_email": "Keine E-Mail-Adresse für diesen Gast: Link kopieren und selbst senden."
     },
     "home": {
       "subtitle": "Was Ihre Aufmerksamkeit braucht.",
@@ -1383,7 +1392,7 @@
       "services": "{count, plural, =0 {Keine offene Leistungsanfrage} one {# offene Leistungsanfrage} other {# offene Leistungsanfragen}}",
       "messages": "{count, plural, =0 {Keine ungelesene Gästenachricht} one {# ungelesene Gästenachricht} other {# ungelesene Gästenachrichten}}",
       "unassigned": "{count, plural, =0 {Kein Einsatz ohne Mitarbeiter} one {# Einsatz ohne Mitarbeiter} other {# Einsätze ohne Mitarbeiter}}",
-      "emails": "{count, plural, =0 {Keine fehlgeschlagene Gäste-E-Mail} one {# Gäste-E-Mail nicht gesendet} other {# Gäste-E-Mails nicht gesendet}}",
+      "emails": "{count, plural, =0 {Keine unzugestellte Gast-E-Mail} one {# unzugestellte Gast-E-Mail} other {# unzugestellte Gast-E-Mails}}",
       "stays7": "{count, plural, =0 {Keine Anreise in den nächsten 7 Tagen} one {# Anreise in den nächsten 7 Tagen} other {# Anreisen in den nächsten 7 Tagen}}",
       "incidents": "{count, plural, =0 {Kein offener Vorfall} one {# offener Vorfall oder Blocker} other {# offene Vorfälle oder Blocker}}",
       "arrivalsTitle": "Anreisen in den nächsten 48 Std.: Ist die Unterkunft bereit?",
@@ -1396,7 +1405,11 @@
       "availability": "{count, plural, =0 {Kein Einsatz von einer Abwesenheit betroffen} one {# Einsatz neu zu planen (Abwesenheit oder Schließung)} other {# Einsätze neu zu planen (Abwesenheit oder Schließung)}}",
       "absenceRequests": "{count, plural, =0 {Kein offener Abwesenheitsantrag} one {# Abwesenheitsantrag zu entscheiden} other {# Abwesenheitsanträge zu entscheiden}}",
       "toValidate": "{count, plural, =0 {Kein Einsatz zu prüfen} one {# Einsatz zu prüfen} other {# Einsätze zu prüfen}}",
-      "chats": "{count, plural, =0 {Keine ungelesene Teamnachricht} one {# ungelesene Teamunterhaltung} other {# ungelesene Teamunterhaltungen}}"
+      "chats": "{count, plural, =0 {Keine ungelesene Teamnachricht} one {# ungelesene Teamunterhaltung} other {# ungelesene Teamunterhaltungen}}",
+      "prepReview": "{count, plural, =0 {Kein Gastfragebogen zu prüfen} one {# Gastfragebogen zu prüfen} other {# Gastfragebögen zu prüfen}}",
+      "prepDue": "{count, plural, =0 {Keine Vorbereitungsaktion in 24 h fällig} one {# Vorbereitungsaktion in 24 h fällig} other {# Vorbereitungsaktionen in 24 h fällig}}",
+      "vipRequests": "{count, plural, =0 {Keine offene VIP-Anfrage} one {# offene VIP-Anfrage} other {# offene VIP-Anfragen}}",
+      "teamEmails": "{count, plural, =0 {Keine unzugestellte Team-E-Mail} one {# unzugestellte Team-E-Mail} other {# unzugestellte Team-E-Mails}}"
     },
     "onb": {
       "progress": "Schritt {n} von {total}",
@@ -1670,16 +1683,23 @@
       "noServices": "Keine Anfrage.",
       "missions": "Erzeugte Einsätze",
       "noMissions": "Noch keine Einsätze.",
-      "newMessages": "{count, plural, one {# neue Nachricht} other {# neue Nachrichten}}"
+      "newMessages": "{count, plural, one {# neue Nachricht} other {# neue Nachrichten}}",
+      "prepFilter": {
+        "review": "Fragebogen zu prüfen",
+        "due": "Aktion fällig",
+        "vip": "VIP-Anfrage",
+        "clear": "Alle Aufenthalte anzeigen"
+      }
     },
     "link": {
       "title": "Gästezugang",
-      "text": "Ein persönlicher Link nur für diesen Aufenthalt. Gültig ab 72 Std. vor Anreise bis zur Abreise. Ohne Zugangscodes.",
+      "text": "Ein persönlicher Link, nur für diesen Aufenthalt. Ab Erstellung dient er der Vorbereitung (Fragebogen, Anfragen, Nachrichten); Adresse, Zugang und Leitfaden erscheinen erst 72 h vor Ankunft. Er läuft bei Abreise ab und wird bei Stornierung widerrufen. Er enthält keinen Zugangscode.",
       "status": {
         "active": "Aktiv bis {until}",
         "scheduled": "Geplant: ab {from}",
         "expired": "Abgelaufen am {until}",
-        "revoked": "Widerrufen"
+        "revoked": "Widerrufen",
+        "prep": "Aktiv zur Vorbereitung · praktische Infos ab {from} · bis {until}"
       },
       "opened": "geöffnet am {at}",
       "notOpened": "noch nicht geöffnet",
@@ -1691,7 +1711,31 @@
       "create": "Gästelink erstellen",
       "extend": "Bis 7 Tage nach Abreise verlängern",
       "revoke": "Widerrufen",
-      "renewHint": "Ein neuer Link deaktiviert sofort den alten."
+      "renewHint": "Ein neuer Link deaktiviert sofort den alten.",
+      "sendEmail": "Per E-Mail senden",
+      "sendHint": "„Per E-Mail senden“ erstellt einen neuen Link (der alte funktioniert nicht mehr) und schickt ihn dem Gast; der echte Versandstatus steht oben.",
+      "noEmail": "Keine Gast-E-Mail: Link erstellen und kopieren.",
+      "journey": {
+        "created": "Link erstellt",
+        "sent": "E-Mail-Versand",
+        "opened": "Vom Gast geöffnet",
+        "questionnaire": "Fragebogen",
+        "no": "noch nicht",
+        "notSent": "nicht gesendet (Link zum Kopieren)",
+        "delivery": {
+          "sent": "gesendet",
+          "pending": "ausstehend",
+          "failed": "fehlgeschlagen — neue Einladung senden",
+          "not_configured": "nicht gesendet: kein E-Mail-Dienst eingerichtet",
+          "skipped": "nicht gesendet (Einstellung)"
+        },
+        "q": {
+          "not_started": "noch nicht geöffnet",
+          "opened": "geöffnet, nicht ausgefüllt",
+          "in_progress": "Entwurf in Arbeit",
+          "submitted": "vom Gast gesendet"
+        }
+      }
     },
     "messages": {
       "title": "Nachrichten mit dem Gast",
@@ -1748,10 +1792,17 @@
         "team_assignment_conflict": "Team: Zuweisungskonflikt",
         "team_stay_changed": "Team: Aufenthalt geändert",
         "agent_task_changed": "Agent: Einsatz geändert",
-        "agent_absence_decided": "Agent: Antwort zur Abwesenheit"
+        "agent_absence_decided": "Agent: Antwort zur Abwesenheit",
+        "prep_invite": "Einladung zur Vorbereitung",
+        "vip_update": "Antwort auf VIP-Anfrage",
+        "team_prep_submitted": "Team: Fragebogen erhalten",
+        "team_prep_updated": "Team: Fragebogen geändert",
+        "team_vip_requested": "Team: VIP-Anfrage"
       },
       "testAddress": "Fiktive Adresse (Testkonto): Es wird nichts gesendet.",
-      "skippedReason": "Der Empfänger hat diese E-Mail deaktiviert; das Ereignis bleibt in HALO sichtbar."
+      "skippedReason": "Der Empfänger hat diese E-Mail deaktiviert; das Ereignis bleibt in HALO sichtbar.",
+      "inviteNotKept": "Der Link wird nach einem Versand nicht gespeichert: Senden Sie eine neue Einladung aus dem Aufenthalt.",
+      "inviteResend": "Zum erneuten Versuch „Per E-Mail senden“ im Aufenthalt nutzen (neuer Link)."
     },
     "services": {
       "title": "Leistungen",
@@ -1779,7 +1830,8 @@
         "info_requested": "Nachfragen",
         "declined": "Ablehnen",
         "cancelled": "Stornieren",
-        "done": "Als erledigt markieren"
+        "done": "Als erledigt markieren",
+        "in_review": "In Prüfung nehmen"
       },
       "question": "Frage an den Gast",
       "questionHint": "Pflichtfeld. Der Gast kann in seinem Bereich antworten.",
@@ -1788,7 +1840,8 @@
         "confirmed": "Optional: nützliche Details (Uhrzeit, Ort, Kontakt).",
         "declined": "Optional: ein Grund, den Sie mitteilen möchten.",
         "cancelled": "Optional: Erklärung für den Gast.",
-        "done": "Optional: eine Rückmeldung."
+        "done": "Optional: eine Rückmeldung.",
+        "in_review": "Optional: für den Gast in seinem Bereich sichtbar (keine E-Mail für diesen Status)."
       },
       "internalNote": "Interne Notiz",
       "internalHint": "Nie an den Gast übermittelt. Nur für Manager.",
@@ -1857,7 +1910,8 @@
       "conflictActions": "HALO weist nichts selbst neu zu: Wählen Sie eine andere Person, ändern Sie das Zeitfenster oder stornieren Sie den Einsatz.",
       "cancelTask": "Einsatz stornieren",
       "cancelConfirm": "Endgültig stornieren? Der zugewiesene Agent wird benachrichtigt.",
-      "cancelYes": "Ja, stornieren"
+      "cancelYes": "Ja, stornieren",
+      "localTime": "Ortszeit: {zone}"
     },
     "team": {
       "title": "Team",
@@ -2006,7 +2060,18 @@
       "subtitle": "Jede E-Mail an Gäste und Team mit tatsächlichem Status.",
       "loadError": "Versand konnte nicht geladen werden.",
       "summary": "{sent} gesendet · {pending} wartend · {failed} fehlgeschlagen · {notConfigured} ohne Dienst",
-      "skippedCount": "{count, plural, =0 {keiner wegen Einstellung ausgelassen} one {# wegen Einstellung ausgelassen} other {# wegen Einstellung ausgelassen}}"
+      "skippedCount": "{count, plural, =0 {keiner wegen Einstellung ausgelassen} one {# wegen Einstellung ausgelassen} other {# wegen Einstellung ausgelassen}}",
+      "filters": "Filter",
+      "audience": {
+        "all": "Alle",
+        "guest": "Gäste",
+        "team": "Team"
+      },
+      "state": {
+        "all": "Alle Status",
+        "problem": "Nicht zugestellt (Fehler oder kein Dienst)",
+        "skipped": "Wegen Einstellung nicht gesendet"
+      }
     },
     "profile": {
       "incompleteTitle": "Geben Sie Ihren Namen an",
@@ -2033,7 +2098,69 @@
       "needsValidation": "Freigabe",
       "autoClose": "Direkter Abschluss",
       "save": "Speichern",
-      "saved": "Einstellung gespeichert und für die nächsten abgeschlossenen Einsätze angewendet."
+      "saved": "Einstellung gespeichert und für die nächsten abgeschlossenen Einsätze angewendet.",
+      "prep": {
+        "title": "Fragebogen „Bereiten wir Ihren Aufenthalt vor“",
+        "text": "Fragen an Gäste vor der Ankunft. Alle bleiben freiwillig; keine Gesundheits- oder Zahlungsdaten.",
+        "q": {
+          "guests": "Zusammensetzung der Gruppe",
+          "interests": "Interessen",
+          "style": "Aufenthaltsstil",
+          "services": "Gewünschte Leistungen",
+          "budget": "Richtbudget",
+          "constraints": "Praktische Einschränkungen",
+          "other": "Freitext",
+          "language": "Bevorzugte Sprache"
+        },
+        "noneHint": "Keine Fragen: Gäste sehen den Fragebogen nicht.",
+        "save": "Speichern",
+        "saved": "Gespeichert."
+      },
+      "vip": {
+        "title": "VIP-Kriterien",
+        "text": "Was in Ihrer Organisation VIP-Behandlung rechtfertigt. Jeder Status wird von einer Person bestätigt; HALO vergibt nichts selbst.",
+        "empty": "Keine Kriterien: Sie können trotzdem mit Begründung einen Status vergeben.",
+        "kind": {
+          "loyalty": "Treue",
+          "premium": "Premium-Kunde",
+          "partner": "Partner",
+          "manual": "Teamentscheidung"
+        },
+        "kindHint": {
+          "premium": "Im Buchungs- oder Abrechnungstool prüfen.",
+          "partner": "Z. B. Partnerunternehmen oder -agentur, vom Team zu bestätigen.",
+          "manual": "Nach Ermessen des Teams, Grund erforderlich."
+        },
+        "minStaysValue": "mind. {n} Aufenthalte",
+        "validityValue": "{n} Tage gültig",
+        "noValidity": "ohne Ablauf",
+        "visible": "Gästen angeboten",
+        "hidden": "intern",
+        "editableBy": {
+          "owner": "vom Eigentümer änderbar",
+          "manager": "von Verantwortlichen änderbar"
+        },
+        "ownerOnly": "Dem Eigentümer der Organisation vorbehalten",
+        "ownerOnlyHint": "Nur der Eigentümer kann ein Kriterium beschränken.",
+        "edit": "Bearbeiten",
+        "add": "Kriterium hinzufügen",
+        "label": "Bezeichnung",
+        "kindLabel": "Art",
+        "minStays": "Mindestanzahl früherer Aufenthalte",
+        "minStaysHint": "Richtwert nach E-Mail-Adresse; das Team bestätigt.",
+        "validity": "Gültigkeit (Tage)",
+        "validityHint": "Leer = ohne Ablauf",
+        "editableByLabel": "Wer darf ändern",
+        "guestVisible": "Gästen als Grund angeboten",
+        "active": "Aktiv",
+        "validationAlways": "Menschliche Bestätigung immer erforderlich (feste Regel).",
+        "cancel": "Abbrechen",
+        "save": "Speichern"
+      },
+      "ai": {
+        "title": "KI-Unterstützung",
+        "text": "Nicht eingerichtet: nur manuelle Funktionen. Keine Gastantwort wird an einen KI-Dienst gesendet."
+      }
     },
     "window": {
       "edit": "Zeitfenster ändern",
@@ -2276,7 +2403,152 @@
       "cancel": "Abbrechen",
       "edit": "Bearbeiten",
       "noDistance": "ohne Entfernung (Ort nicht verortet)",
-      "hidden": "ausgeblendet"
+      "hidden": "ausgeblendet",
+      "verify": "Prüfen",
+      "verified": "geprüft",
+      "notVerified": "nicht geprüft",
+      "verifyHint": "Bestätigt, dass Name, Adresse, Öffnungszeiten und Kontakt heute stimmen (Datum und Name gespeichert). Jede Änderung hebt die Prüfung auf."
+    },
+    "prep": {
+      "title": "Aufenthaltsvorbereitung",
+      "text": "Antworten des Gastes, Aktionen des Teams und was er sehen wird. Nur für Verantwortliche sichtbar.",
+      "statusLabel": "Vorbereitungsstatus",
+      "status": {
+        "to_prepare": "Vorzubereiten",
+        "in_progress": "In Vorbereitung",
+        "waiting_guest": "Wartet auf Gast",
+        "ready": "Bereit",
+        "cancelled": "Storniert (Aufenthalt storniert)"
+      },
+      "blockingHint": "{count, plural, one {# notwendige Aktion offen: „Bereit“ noch nicht möglich.} other {# notwendige Aktionen offen: „Bereit“ noch nicht möglich.}}",
+      "statusBy": "Status geändert von {who} am {date}",
+      "answers": "Antworten des Gastes",
+      "toReview": "Zu prüfen",
+      "lastUpdate": "zuletzt aktualisiert am {date}",
+      "guestsValue": "{adults} Erwachsene, {children} Kinder, {babies} Babys",
+      "actions": "Team-Aktionen",
+      "noActions": "Noch keine Aktionen.",
+      "blocking": "Notwendig",
+      "actionStatus": {
+        "open": "Offen",
+        "done": "Erledigt",
+        "cancelled": "Abgebrochen"
+      },
+      "kind": {
+        "task": "Einsatz",
+        "service": "Leistung",
+        "info": "Information",
+        "message": "Nachricht",
+        "vip": "VIP-Aufmerksamkeit",
+        "other": "Sonstiges"
+      },
+      "kindLabel": "Art",
+      "unassigned": "Ohne Verantwortlichen",
+      "dueOn": "fällig {date}",
+      "linkedService": "Leistung erstellt",
+      "linkedTask": "Einsatz erstellt",
+      "markDone": "Erledigt",
+      "createService": "Leistungsanfrage erstellen",
+      "createTask": "Einsatz erstellen",
+      "cancelAction": "Abbrechen",
+      "reopen": "Wieder öffnen",
+      "newAction": "Neue Aktion",
+      "newActionPlaceholder": "Z. B. Tisch für Samstagabend reservieren",
+      "owner": "Verantwortlich",
+      "due": "Fälligkeit",
+      "localTimeHint": "Ortszeit der Unterkunft",
+      "blockingLabel": "Vor Ankunft notwendig",
+      "addAction": "Aktion hinzufügen",
+      "serviceKind": "Leistung",
+      "serviceWhen": "Datum und Uhrzeit",
+      "servicePeople": "Personen",
+      "serviceDetails": "Details",
+      "serviceHint": "Als „angefragt“ erstellt: Sie bestätigen sie danach; der Gast sieht sie mit Status.",
+      "taskTitle": "Titel des Einsatzes",
+      "taskFrom": "Frühestens",
+      "taskTo": "Spätestens",
+      "taskDuration": "Dauer (Min.)",
+      "taskHint": "Danach unter Einsätze zuweisen (Abwesenheiten geprüft).",
+      "close": "Schließen",
+      "forGuest": "Für den Gast",
+      "forGuestText": "Empfehlungen und Infos unter „Ihr vorbereiteter Aufenthalt“, erst nach Veröffentlichung.",
+      "noItems": "Noch nichts veröffentlicht.",
+      "publishedOn": "Veröffentlicht am {date}",
+      "draft": "Entwurf (nicht sichtbar)",
+      "itemKind": {
+        "recommendation": "Empfehlung",
+        "info": "Information"
+      },
+      "itemKindLabel": "Art",
+      "itemPlace": "Ort der Unterkunft (optional)",
+      "noPlace": "Keiner",
+      "itemTitle": "Titel",
+      "itemBody": "Text für den Gast",
+      "itemUrl": "Link (optional)",
+      "publishNow": "Sofort veröffentlichen",
+      "publish": "Veröffentlichen",
+      "unpublish": "Zurückziehen",
+      "delete": "Löschen",
+      "addItem": "Hinzufügen",
+      "history": "Verlauf",
+      "noHistory": "Keine Ereignisse.",
+      "event": {
+        "invite_created": "Link erstellt",
+        "invite_sent": "Einladung im Versand",
+        "opened": "Bereich vom Gast geöffnet",
+        "guest_saved": "Entwurf des Gastes",
+        "guest_submitted": "Fragebogen gesendet",
+        "guest_updated": "Antworten geändert",
+        "guest_deleted": "Antworten vom Gast gelöscht",
+        "status_changed": "Status geändert",
+        "action_created": "Aktion erstellt",
+        "action_done": "Aktion erledigt",
+        "action_cancelled": "Aktion abgebrochen",
+        "item_published": "Für den Gast veröffentlicht",
+        "item_unpublished": "Aus dem Gastbereich entfernt",
+        "vip_requested": "VIP-Anfrage des Gastes",
+        "vip_guest_reply": "Antwort des Gastes (VIP)",
+        "vip_info_requested": "VIP-Rückfrage gestellt",
+        "vip_accepted": "VIP-Anfrage angenommen",
+        "vip_refused": "VIP-Anfrage abgelehnt",
+        "vip_granted": "VIP-Status vergeben",
+        "vip_revoked": "VIP-Status entzogen"
+      }
+    },
+    "vip": {
+      "title": "VIP-Status",
+      "text": "Vom Team anhand der Kriterien der Organisation geprüft. Unabhängig von einem Premium-Paket (Leistung).",
+      "active": "Geprüfter VIP",
+      "grantedBy": "von {who} am {date}",
+      "expiresOn": "bis {date}",
+      "noExpiry": "ohne Ablauf",
+      "expired": "VIP-Status abgelaufen",
+      "revoked": "VIP-Status entzogen",
+      "none": "Kein VIP-Status",
+      "reason": "Interner Grund: {reason}",
+      "loyalty": "{count, plural, =0 {Kein früherer Aufenthalt mit derselben E-Mail (Hinweis, kein Beweis).} one {# früherer Aufenthalt mit derselben E-Mail (Hinweis, kein Beweis).} other {# frühere Aufenthalte mit derselben E-Mail (Hinweis, kein Beweis).}}",
+      "privacy": "Nur für Verantwortliche sichtbar. Der Gast sieht nur „bestätigt“ oder den Status seiner Anfrage, nie die interne Notiz.",
+      "requestPending": "Anfrage des Gastes erhalten am {date}",
+      "requestInfo": "Rückfrage an den Gast, Antwort ausstehend",
+      "yourQuestion": "Ihre Frage: „{q}“",
+      "guestMessage": "Nachricht an den Gast",
+      "guestMessageHint": "Pflicht für eine Rückfrage; sonst optional.",
+      "internal": "Interne Notiz",
+      "internalHint": "Nie für den Gast sichtbar. Pflicht, um ohne Kriterium anzunehmen.",
+      "accept": "Annehmen",
+      "askInfo": "Rückfrage stellen",
+      "refuse": "Ablehnen",
+      "grantText": "Ohne Gastanfrage vergeben: Kriterium oder Grund erforderlich, die Entscheidung wird protokolliert.",
+      "why": "Grund",
+      "whyHint": "Z. B. Partnervertrag unterzeichnet, im Buchungstool geprüft.",
+      "grant": "VIP-Status vergeben",
+      "revokeWhy": "Grund für den Entzug",
+      "revoke": "Status entziehen",
+      "criterion": "Kriterium",
+      "noCriterion": "Ohne Kriterium (Grund erforderlich)",
+      "expires": "Ablauf",
+      "expiresHint": "Leer = ohne Ablauf",
+      "validityDefault": "Leer = {days} Tage (Gültigkeit des Kriteriums)"
     }
   },
   "email": {
@@ -2386,6 +2658,26 @@
     "decisions": {
       "accepted": "angenommen",
       "refused": "abgelehnt"
+    },
+    "prep_invite": {
+      "subject": "{org} — bereiten wir Ihren Aufenthalt vor",
+      "body": "Ihr Aufenthalt in {property} rückt näher. In Ihrem persönlichen Bereich können Sie uns schon jetzt Ihre Wünsche mitteilen und dem Team schreiben. Praktische Infos (Adresse, Zugang) erscheinen dort einige Tage vor Ankunft. Dieser Link ist persönlich: bitte nicht weiterleiten."
+    },
+    "vip_update": {
+      "subject": "{org} — Antwort auf Ihre Anfrage für einen persönlichen Empfang",
+      "body": "{choice, select, accept {Gute Nachricht: Das Team bestätigt einen persönlichen Empfang für Ihren Aufenthalt.} refuse {Das Team konnte Ihrer Anfrage nicht entsprechen.} info {Das Team braucht eine Angabe zu Ihrer Anfrage.} other {Ihre Anfrage wurde aktualisiert.}} Details in Ihrem Gastbereich."
+    },
+    "team_prep_submitted": {
+      "subject": "Fragebogen erhalten — {guest} ({property})",
+      "body": "{guest} hat den Fragebogen beantwortet ({property}). In der Aufenthaltsvorbereitung prüfen."
+    },
+    "team_prep_updated": {
+      "subject": "Fragebogen geändert — {guest} ({property})",
+      "body": "{guest} hat die Antworten geändert ({property}). Prüfen, ob die Vorbereitung angepasst werden muss."
+    },
+    "team_vip_requested": {
+      "subject": "VIP-Anfrage — {guest} ({property})",
+      "body": "{guest} bittet um einen persönlichen Empfang ({property}). Annehmen, ablehnen oder nachfragen; ohne Ihre Entscheidung wird nichts bestätigt."
     }
   },
   "guestSpace": {
@@ -2393,7 +2685,8 @@
       "unavailable": "Dieser Link ist nicht mehr aktiv. Kontaktieren Sie Ihren Gastgeber.",
       "empty": "Schreiben Sie eine Nachricht.",
       "invalid": "Bitte Angaben prüfen.",
-      "server": "Senden nicht möglich. Nichts wurde übermittelt; bitte erneut versuchen."
+      "server": "Senden nicht möglich. Nichts wurde übermittelt; bitte erneut versuchen.",
+      "locked": "Ihr Aufenthalt hat begonnen: Antworten sind nicht mehr änderbar. Schreiben Sie bei Bedarf dem Team."
     },
     "request": {
       "title": "Leistung anfragen",
@@ -2404,7 +2697,8 @@
       "details": "Angaben",
       "detailsPlaceholder": "Allergien, Wünsche, Abholadresse…",
       "sent": "Anfrage gesendet. Sie erscheint oben mit Status.",
-      "send": "Anfrage senden"
+      "send": "Anfrage senden",
+      "localTime": "Ortszeit der Unterkunft."
     },
     "reply": {
       "answer": "Ihre Antwort",
@@ -2447,12 +2741,13 @@
     "myRequests": "Meine Anfragen",
     "noRequests": "Noch keine Anfrage.",
     "status": {
-      "requested": "Erhalten, in Bearbeitung",
-      "info_requested": "Rückfrage an Sie",
-      "confirmed": "Angenommen",
+      "requested": "Anfrage erhalten",
+      "info_requested": "Rückfrage",
+      "confirmed": "Bestätigt",
       "declined": "Abgelehnt",
       "done": "Erledigt",
-      "cancelled": "Storniert"
+      "cancelled": "Storniert",
+      "in_review": "Wird geprüft"
     },
     "event": {
       "you": "Ihre Nachricht",
@@ -2503,7 +2798,97 @@
       "tip": "Tipp:",
       "noHours": "Öffnungszeiten von der Quelle nicht angegeben",
       "noRoute": "Keine Adresse angegeben: Route nicht verfügbar.",
-      "distanceNote": "Ungefähre Luftlinienentfernungen ab der Unterkunft"
+      "distanceNote": "Ungefähre Luftlinienentfernungen ab der Unterkunft",
+      "addedOn": "Vom Team hinzugefügt am {date}",
+      "ownerAddedOn": "Vom Eigentümer hinzugefügt am {date}",
+      "hoursVerified": "Öffnungszeiten vom Team geprüft",
+      "hoursToConfirm": "Öffnungszeiten zu bestätigen"
+    },
+    "prepBanner": "Ihr Aufenthalt rückt näher. Praktische Infos (Adresse, Zugang, Leitfaden) erscheinen hier ab {date}. Bis dahin können Sie Ihren Aufenthalt vorbereiten und dem Team schreiben.",
+    "prepared": {
+      "title": "Ihr vorbereiteter Aufenthalt",
+      "text": "Was das Team für Sie vorbereitet hat. Anfragen und ihr Status stehen weiter unten.",
+      "kind": {
+        "recommendation": "Empfehlung",
+        "info": "Information"
+      },
+      "link": "Link öffnen",
+      "on": "Veröffentlicht am {date}"
+    },
+    "prep": {
+      "title": "Bereiten wir Ihren Aufenthalt vor",
+      "intro": "Einige freiwillige Fragen, damit das Team einen passenden Aufenthalt vorbereitet. Zwei Minuten genügen; Sie können speichern und später weitermachen.",
+      "notConfirmed": "Ihre Antworten buchen nichts: Das Team bestätigt jeden Vorschlag mit Ihnen.",
+      "why": "Ihre Antworten sieht nur das Team, das diesen Aufenthalt vorbereitet. Bitte keine Gesundheits- oder Zahlungsdaten angeben.",
+      "savedOn": "Entwurf gespeichert am {date}",
+      "sentOn": "An das Team gesendet · zuletzt aktualisiert am {date}",
+      "locked": "Ihr Aufenthalt hat begonnen: Ihre Antworten bleiben gespeichert, sind hier aber nicht mehr änderbar.",
+      "guests": "Wer kommt?",
+      "guestsKinds": {
+        "adults": "Erwachsene",
+        "children": "Kinder",
+        "babies": "Babys"
+      },
+      "optional": "optional",
+      "interests": "Was Ihnen Freude macht",
+      "interest": {
+        "food": "Gutes Essen",
+        "activities": "Aktivitäten",
+        "relax": "Entspannung",
+        "culture": "Kultur",
+        "family": "Familie",
+        "nature": "Natur",
+        "sport": "Sport",
+        "shopping": "Einkaufen",
+        "local": "Lokales Leben"
+      },
+      "style": "Stil Ihres Aufenthalts",
+      "skip": "Keine Angabe",
+      "styles": {
+        "calm": "Ruhe und Erholung",
+        "discovery": "Entdeckung",
+        "family": "Familiär",
+        "romantic": "Romantisch",
+        "business": "Geschäftlich"
+      },
+      "services": "Leistungen, die Sie interessieren könnten",
+      "servicesHint": "Nur ein Hinweis: Das Team schickt Ihnen einen Vorschlag zur Bestätigung.",
+      "budget": "Richtbudget",
+      "budgetHint": "Zur Orientierung der Vorschläge, nie zur Abrechnung.",
+      "noAnswer": "Keine Antwort",
+      "budgets": {
+        "moderate": "Moderat",
+        "comfort": "Komfort",
+        "premium": "Premium"
+      },
+      "constraints": "Praktische Einschränkungen",
+      "constraintsHint": "Z. B. späte Ankunft, Kinderwagen, keine Treppen. Es werden keine medizinischen Angaben verlangt.",
+      "other": "Sonst noch etwas",
+      "language": "Bevorzugte Sprache",
+      "send": "An das Team senden",
+      "update": "Antworten aktualisieren",
+      "saveDraft": "Für später speichern",
+      "delete": "Antworten löschen",
+      "done": {
+        "saved": "Entwurf gespeichert. Noch nichts an das Team gesendet.",
+        "sent": "Danke! Ihre Antworten wurden an das Team übermittelt.",
+        "deleted": "Ihre Antworten wurden gelöscht."
+      }
+    },
+    "vip": {
+      "title": "Persönlicher Empfang",
+      "text": "Glauben Sie, Anspruch auf besondere Aufmerksamkeit zu haben (Stammgast, Partner…)? Fragen Sie an: Das Team prüft und antwortet.",
+      "motif": "Grund",
+      "otherMotif": "Anderer Grund",
+      "note": "Details (optional)",
+      "request": "Persönlichen Empfang anfragen",
+      "sent": "Anfrage an Ihr Team gesendet",
+      "pending": "Das Team prüft sie. Nichts ist bestätigt, bis es antwortet.",
+      "question": "Das Team braucht eine Angabe:",
+      "answer": "Ihre Antwort",
+      "send": "Antworten",
+      "confirmed": "Persönlicher Empfang vom Team bestätigt.",
+      "refused": "Das Team konnte Ihrer Anfrage nicht entsprechen."
     }
   },
   "demoEntry": {
@@ -2543,5 +2928,12 @@
       "activities": "Aktivitäten",
       "services": "Nützliche Dienste"
     }
+  },
+  "notFound": {
+    "title": "Seite nicht gefunden",
+    "text": "Diese Adresse existiert nicht oder ist mit Ihrem Konto nicht zugänglich.",
+    "textApp": "Dieses Element existiert nicht oder gehört nicht zur aktiven Organisation. Prüfen Sie die ausgewählte Organisation.",
+    "home": "Zurück zu HALO",
+    "site": "Startseite"
   }
 }

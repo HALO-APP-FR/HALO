@@ -1,6 +1,6 @@
 "use client";
 
-import { useLocale, useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { retryNotification } from "@/lib/connected/actions";
 import { Button } from "@/components/ui/button";
 import { useRun } from "./use-run";
@@ -19,9 +19,10 @@ export interface OutboxItem {
 /** État RÉEL des e-mails au voyageur : « envoyé » uniquement si le fournisseur a accepté le message. */
 export function OutboxList({ items }: { items: OutboxItem[] }) {
   const t = useTranslations("connected.outbox");
-  const locale = useLocale();
+  const f = useFormatter();
   const { pending, error, run } = useRun();
-  const fmt = (d: string) => new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(new Date(d));
+  // Même fuseau que le chat et les historiques (celui de l'organisation), jamais celui du navigateur
+  const fmt = (d: string) => f.dateTime(new Date(d), { dateStyle: "short", timeStyle: "short" });
   if (!items.length) return <p className="text-[14px] text-muted">{t("empty")}</p>;
   const tone = { sent: "text-success", pending: "text-muted", failed: "text-danger", not_configured: "text-warning", skipped: "text-muted" } as const;
   return (
@@ -34,10 +35,13 @@ export function OutboxList({ items }: { items: OutboxItem[] }) {
               <span className="block text-[12px] text-faint">{fmt(o.created_at)}{o.attempts > 1 ? ` · ${t("attempts", { n: o.attempts })}` : ""}</span>
             </span>
             <span className={`font-medium ${tone[o.status]}`}>{t(`status.${o.status}`)}</span>
-            {(o.status === "failed" || o.status === "not_configured") && o.last_error !== "undeliverable_test_address" && (
+            {(o.status === "failed" || o.status === "not_configured") && o.last_error !== "undeliverable_test_address" && o.template !== "prep_invite" && (
               <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => retryNotification(o.id))} data-testid="outbox-retry">
                 {t("retry")}
               </Button>
+            )}
+            {o.template === "prep_invite" && (o.status === "failed" || o.status === "not_configured") && (
+              <span className="w-full text-[12px] text-muted">{t("inviteResend")}</span>
             )}
             {o.status === "skipped" && (
               <span className="w-full text-[12px] text-muted" data-testid="outbox-skipped">
@@ -46,7 +50,7 @@ export function OutboxList({ items }: { items: OutboxItem[] }) {
             )}
             {o.status === "failed" && o.last_error && (
               <span className="w-full text-[12px] text-danger" data-testid="outbox-error">
-                {o.last_error === "undeliverable_test_address" ? t("testAddress") : o.last_error}
+                {o.last_error === "undeliverable_test_address" ? t("testAddress") : o.last_error === "link_not_kept_send_new_invite" ? t("inviteNotKept") : o.last_error}
               </span>
             )}
           </li>

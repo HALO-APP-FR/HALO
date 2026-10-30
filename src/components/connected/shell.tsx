@@ -4,7 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { Logo } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
 import { EnvBadge } from "./env-badge";
-import { OrgSwitcher, SignOutButton } from "./shell-client";
+import { NavMore, OrgSwitcher, SignOutButton } from "./shell-client";
 import type { OrgSummary } from "@/lib/connected/context";
 
 const MANAGER_NAV = [
@@ -14,9 +14,12 @@ const MANAGER_NAV = [
   { key: "incidents", href: "/app/incidents", icon: TriangleAlert },
   { key: "missions", href: "/app/missions", icon: ListChecks },
   { key: "messages", href: "/app/messages", icon: MessagesSquare },
-  { key: "notifications", href: "/app/notifications", icon: Mail },
-  { key: "properties", href: "/app/properties", icon: Building2 },
   { key: "team", href: "/app/team", icon: Users },
+] as const;
+// Rubriques secondaires (moins fréquentes) : regroupées sous « Plus »
+const MANAGER_MORE = [
+  { key: "properties", href: "/app/properties", icon: Building2 },
+  { key: "notifications", href: "/app/notifications", icon: Mail },
   { key: "settings", href: "/app/settings", icon: SlidersHorizontal },
   { key: "setup", href: "/app/onboarding", icon: Settings2 },
   { key: "profile", href: "/app/profile", icon: CircleUser },
@@ -49,8 +52,8 @@ export async function ConnectedShell({ org, orgs, email, missingName = false, un
           </div>
         </div>
         {nav.length > 0 && (
-          <nav aria-label={t("nav.label")} className="mx-auto max-w-[1200px] overflow-x-auto px-2 [scrollbar-width:none] md:px-6">
-            <ul className="flex gap-1 pb-2">
+          <nav aria-label={t("nav.label")} className="mx-auto flex max-w-[1200px] items-start gap-1 px-2 md:px-6">
+            <ul className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-2 [scrollbar-width:none]">
               {nav.map(({ key, href, icon: Icon }) => (
                 <li key={key}>
                   <Link href={href} className="flex h-9 items-center gap-2 whitespace-nowrap rounded-md px-3 text-[14px] font-medium text-muted hover:bg-subtle hover:text-fg dark:hover:bg-surface-hover">
@@ -65,6 +68,11 @@ export async function ConnectedShell({ org, orgs, email, missingName = false, un
                 </li>
               ))}
             </ul>
+            {manager && (
+              <div className="shrink-0 pb-2">
+                <NavMore label={t("nav.more")} items={MANAGER_MORE.map(({ key, href, icon: Icon }) => ({ href, label: t(`nav.${key}`), icon: <Icon className="size-4" />, testId: `nav-${key}` }))} />
+              </div>
+            )}
           </nav>
         )}
       </header>

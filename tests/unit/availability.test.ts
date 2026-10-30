@@ -98,3 +98,24 @@ describe("journées entières dans le fuseau de l'organisation", () => {
     expect(nextDay("2027-12-31")).toBe("2028-01-01");
   });
 });
+
+import { createFormatter } from "next-intl";
+import { windowText, zoneLabel } from "@/lib/connected/format";
+describe("affichage des heures : fuseau du logement, changement d'heure, minuit", () => {
+  const f = createFormatter({ locale: "fr", timeZone: "Europe/Paris" });
+  it("même instant, fuseau du logement (Tokyo) et fuseau de l'organisation (Paris)", () => {
+    const s = "2027-01-10T02:00:00Z";
+    const e = "2027-01-10T05:00:00Z";
+    expect(windowText(f, s, e)).toBe("10 janv. 2027, 03:00 → 06:00");
+    expect(windowText(f, s, e, false, "Asia/Tokyo")).toBe("10 janv. 2027, 11:00 → 14:00");
+    expect(zoneLabel("Asia/Tokyo", new Date(s))).toBe("Tokyo, UTC+9");
+    expect(zoneLabel("Europe/Paris", new Date(s))).toBeNull();
+  });
+  it("changement d'heure (passage à l'heure d'été à Paris le 28 mars 2027)", () => {
+    // 00:30 UTC = 01:30 (heure d'hiver) ; 03:30 UTC = 05:30 (heure d'été) : 3 h réelles, affichées sans erreur
+    expect(windowText(f, "2027-03-28T00:30:00Z", "2027-03-28T03:30:00Z")).toBe("28 mars 2027, 01:30 → 05:30");
+  });
+  it("mission qui traverse minuit : la date de fin est affichée", () => {
+    expect(windowText(f, "2027-02-01T21:00:00Z", "2027-02-02T01:00:00Z")).toBe("1 févr. 2027, 22:00 → 2 févr. 2027, 02:00");
+  });
+});

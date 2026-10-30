@@ -19,7 +19,7 @@ import { ChatThread } from "@/components/connected/chat";
 import { loadThreadMessages, loadThreads } from "@/lib/connected/chat";
 import { toChatMessages } from "@/lib/connected/chat-view";
 import type { MapsApp } from "@/lib/engine/directions";
-import { durationText, periodText, windowText } from "@/lib/connected/format";
+import { durationText, periodText, windowText, zoneLabel } from "@/lib/connected/format";
 
 export default async function MissionPage({ params }: PageProps<"/[locale]/app/missions/[id]">) {
   const { locale, id } = await params;
@@ -35,7 +35,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
   // La base ne renvoie la mission qu'à un manager ou à son agent assigné
   const { data: task } = await supabase
     .from("tasks")
-    .select("id, type, status, window_start, window_end, duration_min, is_auto_generated, assignee_id, correction_reason, notes, property_id, properties(name, address_line, postal_code, city, country_code, latitude, longitude, instructions)")
+    .select("id, type, status, window_start, window_end, duration_min, is_auto_generated, assignee_id, correction_reason, notes, property_id, properties(name, address_line, postal_code, city, country_code, latitude, longitude, timezone, instructions)")
     .eq("organization_id", o)
     .eq("id", id)
     .maybeSingle();
@@ -67,7 +67,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
   const oldPhotos = readable.filter((x) => x.superseded_at).map((x) => ({ id: x.id, itemId: x.checklist_item_id, url: urlOf.get(x.path)! }));
   const p = (Array.isArray(task.properties) ? task.properties[0] : task.properties) as {
     name: string; address_line: string | null; postal_code: string | null; city: string | null; country_code: string | null;
-    latitude: number | null; longitude: number | null; instructions: string | null;
+    latitude: number | null; longitude: number | null; timezone: string | null; instructions: string | null;
   } | null;
   // Conversations internes rattachées à cette mission (jamais visibles du voyageur)
   const threads = await loadThreads(supabase, o, user!.id, { taskId: id });
@@ -131,7 +131,10 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
       <div className="-mt-2 mb-4 flex flex-wrap items-start gap-x-6 gap-y-2 text-[15px]" data-testid="mission-timing">
         <p>
           <span className="block text-[13px] font-medium text-muted">{t("window")}</span>
-          <span data-testid="mission-window">{windowText(f, task.window_start, task.window_end, true)}</span>
+          <span data-testid="mission-window">{windowText(f, task.window_start, task.window_end, true, p?.timezone ?? undefined)}</span>
+          {zoneLabel(p?.timezone, new Date(task.window_start)) && (
+            <span className="block text-[12px] text-muted" data-testid="mission-zone">{tm("localTime", { zone: zoneLabel(p?.timezone, new Date(task.window_start))! })}</span>
+          )}
         </p>
         <p>
           <span className="block text-[13px] font-medium text-muted">{t("duration")}</span>

@@ -13,6 +13,20 @@ const run = (stays: Reservation[], tasks: Task[], alerts: Alert[] = [], services
   arrivalControl({ stays, tasks, alerts, services, now });
 
 describe("poste de pilotage des arrivées", () => {
+  it("une action de préparation indispensable ouverte empêche « prêt »", () => {
+    const base = { stays: [stay("a")], tasks: [clean("a", { status: "validated" })], alerts: [], services: [], now };
+    const [r] = arrivalControl({ ...base, prepBlocking: [{ reservationId: "a", title: "Réserver le restaurant", assigneeId: "m1", dueAt: "2026-10-28T12:00:00Z" }] });
+    expect(r.state).toBe("watch");
+    expect(r.blockers[0]).toMatchObject({ kind: "prep_blocking", responsible: { kind: "member", id: "m1" }, action: { kind: "open_stay" }, detail: "Réserver le restaurant" });
+    const [late] = arrivalControl({ ...base, prepBlocking: [{ reservationId: "a", title: "x", assigneeId: null, dueAt: "2026-10-28T09:00:00Z" }] });
+    expect(late.state).toBe("blocked");
+    const [other] = arrivalControl({ ...base, prepBlocking: [{ reservationId: "zz", title: "x", assigneeId: null, dueAt: null }] });
+    expect(other.state).toBe("ready");
+  });
+  it("une prestation « en cours d'étude » reste à suivre", () => {
+    const [r] = run([stay("a")], [clean("a", { status: "validated" })], [], [{ id: "s1", propertyId: "p_a", reservationId: "a", kind: "restaurant", startAt: "2026-10-28T20:00:00Z", status: "in_review", source: "guest", createdAt: "" } as ServiceRequest]);
+    expect(r.blockers[0].kind).toBe("service_pending");
+  });
   it("prêt seulement avec un ménage validé et rien d'ouvert", () => {
     const [r] = run([stay("a")], [clean("a", { status: "validated" })]);
     expect(r).toMatchObject({ state: "ready", blockers: [] });

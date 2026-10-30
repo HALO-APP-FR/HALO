@@ -22,7 +22,7 @@ export default async function ServicePage({ params }: PageProps<"/[locale]/app/s
   const o = org!.id;
   const { data: s } = await supabase
     .from("service_requests")
-    .select("id, kind, start_at, people, details, status, source, manager_unread, reservation_id, reservations(guest_name, guest_email), properties(name)")
+    .select("id, kind, start_at, people, details, status, source, manager_unread, reservation_id, reservations(guest_name, guest_email), properties(name, timezone)")
     .eq("organization_id", o)
     .eq("id", id)
     .maybeSingle();
@@ -33,7 +33,9 @@ export default async function ServicePage({ params }: PageProps<"/[locale]/app/s
   ]);
   const r = (Array.isArray(s.reservations) ? s.reservations[0] : s.reservations) as { guest_name: string | null; guest_email: string | null } | null;
   const p = (Array.isArray(s.properties) ? s.properties[0] : s.properties) as { name: string } | null;
-  const d = (x: string) => f.dateTime(new Date(x), { dateStyle: "medium", timeStyle: "short" });
+  const pz = (Array.isArray(s.properties) ? s.properties[0] : s.properties) as { timezone?: string | null } | null;
+  const tz = pz?.timezone ?? "Europe/Paris";
+  const d = (x: string) => f.dateTime(new Date(x), { dateStyle: "medium", timeStyle: "short", timeZone: tz });
   return (
     <>
       <PageHeader title={`${tk(s.kind)} · ${ts(s.status)}`} subtitle={`${r?.guest_name ?? t("services.noGuest")} · ${p?.name} · ${d(s.start_at)}${s.people ? ` · ${t("services.people", { n: s.people })}` : ""}`} />
@@ -45,7 +47,7 @@ export default async function ServicePage({ params }: PageProps<"/[locale]/app/s
               <p className="mt-1 whitespace-pre-wrap text-[15px]">{s.details}</p>
             </Card>
           )}
-          <ServiceDecision serviceId={s.id} status={s.status} guestEmail={r?.guest_email ?? null} unread={s.manager_unread} startAt={s.start_at} people={s.people} />
+          <ServiceDecision serviceId={s.id} status={s.status} guestEmail={r?.guest_email ?? null} unread={s.manager_unread} startAt={s.start_at} people={s.people} timeZone={tz} />
           {s.reservation_id && (
             <Link href={`/app/stays/${s.reservation_id}`} className="block text-[14px] text-accent-text hover:underline">
               {t("services.openStay")}

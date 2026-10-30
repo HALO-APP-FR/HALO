@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
-import { Copy, Link2, ShieldOff } from "lucide-react";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
+import { Copy, Link2, Mail, ShieldOff } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
-import { createGuestLink, createStay, extendGuestLink, replyStayMessage, revokeGuestLink } from "@/lib/connected/actions";
+import { createGuestLink, createStay, extendGuestLink, replyStayMessage, revokeGuestLink, sendPrepInvite } from "@/lib/connected/actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Select, Textarea } from "@/components/ui/field";
@@ -97,16 +97,37 @@ export interface LinkRow {
   created_at: string;
 }
 
-export function GuestLinkPanel({ reservationId, links, checkOut }: { reservationId: string; links: LinkRow[]; checkOut: string }) {
+export function GuestLinkPanel({
+  reservationId,
+  links,
+  checkOut,
+  hasEmail,
+  invite,
+  questionnaire,
+  timeZone,
+}: {
+  reservationId: string;
+  links: LinkRow[];
+  checkOut: string;
+  hasEmail: boolean;
+  /** Dernière invitation par e-mail, d'après le journal d'envoi réel */
+  invite: { status: string; created_at: string } | null;
+  questionnaire: string | null;
+  timeZone?: string;
+}) {
   const t = useTranslations("connected.link");
   const locale = useLocale();
+  const fd = useFormatter();
   const { pending, error, run } = useRun();
   const [fresh, setFresh] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [now] = useState(() => Date.now());
-  const status = (l: LinkRow) => (l.revoked_at ? "revoked" : now < Date.parse(l.valid_from) ? "scheduled" : now > Date.parse(l.valid_until) ? "expired" : "active");
+  // Avant la fenêtre habituelle : lien actif pour la préparation du séjour seulement
+  const status = (l: LinkRow) => (l.revoked_at ? "revoked" : now < Date.parse(l.valid_from) ? "prep" : now > Date.parse(l.valid_until) ? "expired" : "active");
+  const [delivery, setDelivery] = useState<string | null>(null);
   const current = links.find((l) => !l.revoked_at);
-  const fmt = (d: string) => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(d));
+  const fmt = (d: string) => fd.dateTime(new Date(d), { dateStyle: "medium", timeStyle: "short", timeZone });
+  const inviteStatus = delivery ?? invite?.status ?? null;
   const url = fresh ? `${typeof window !== "undefined" ? window.location.origin : ""}/${locale}/s/${fresh}` : null;
   const maxExtend = new Date(Date.parse(checkOut) + 7 * 86_400_000);
 
@@ -125,6 +146,25 @@ export function GuestLinkPanel({ reservationId, links, checkOut }: { reservation
       ) : (
         <p className="mt-3 text-[14px] text-muted" data-testid="link-status">{t("none")}</p>
       )}
+      <ul className="mt-3 grid gap-1 text-[13px]" data-testid="link-journey">
+        <li>
+          <span className="text-muted">{t("journey.created")} · </span>
+          {current ? fmt(current.created_at) : t("journey.no")}
+        </li>
+        <li data-testid="link-invite" data-status={inviteStatus ?? "none"}>
+          <span className="text-muted">{t("journey.sent")} · </span>
+          {inviteStatus ? t(`journey.delivery.${["sent", "pending", "failed", "not_configured", "skipped"].includes(inviteStatus) ? inviteStatus : "failed"}`) : t("journey.notSent")}
+          {invite && !delivery && inviteStatus ? ` (${fmt(invite.created_at)})` : ""}
+        </li>
+        <li>
+          <span className="text-muted">{t("journey.opened")} · </span>
+          {current?.last_opened_at ? fmt(current.last_opened_at) : t("journey.no")}
+        </li>
+        <li data-testid="link-questionnaire">
+          <span className="text-muted">{t("journey.questionnaire")} · </span>
+          {t(`journey.q.${questionnaire ?? "not_started"}`)}
+        </li>
+      </ul>
       {url && (
         <div className="mt-3 rounded-md border border-accent bg-accent-soft p-3">
           <p className="text-[13px] font-medium">{t("copyOnce")}</p>
@@ -144,8 +184,18 @@ export function GuestLinkPanel({ reservationId, links, checkOut }: { reservation
       )}
       {error && <p role="alert" className="mt-3 text-[14px] text-danger">{error}</p>}
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button onClick={() => run(() => createGuestLink(reservationId), (d) => (setFresh(d.token), setCopied(false)))} disabled={pending} data-testid="link-create">
+        <Button onClick={() => run(() => createGuestLink(reservationId), (d) => (setFresh(d.token), setCopied(false), setDelivery(null)))} disabled={pending} data-testid="link-create">
           {current ? t("renew") : t("create")}
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => run(() => sendPrepInvite(reservationId, locale), (d) => (setFresh(d.token), setCopied(false), setDelivery(d.delivery)))}
+          disabled={pending || !hasEmail}
+          title={hasEmail ? undefined : t("noEmail")}
+          data-testid="link-send"
+        >
+          <Mail />
+          {t("sendEmail")}
         </Button>
         {current && (
           <>
@@ -160,6 +210,7 @@ export function GuestLinkPanel({ reservationId, links, checkOut }: { reservation
         )}
       </div>
       {current && <p className="mt-2 text-[13px] text-muted">{t("renewHint")}</p>}
+      <p className="mt-1 text-[13px] text-muted">{hasEmail ? t("sendHint") : t("noEmail")}</p>
     </Card>
   );
 }

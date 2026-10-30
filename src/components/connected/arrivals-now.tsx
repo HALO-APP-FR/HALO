@@ -32,11 +32,12 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired }: { sup
   if (!stays?.length) return <p className="text-[15px] text-muted" data-testid="arrivals-none">{tc("noArrivals")}</p>;
   const ids = stays.map((s) => s.id as string);
   const props = Array.from(new Set(stays.map((s) => s.property_id as string)));
-  const [{ data: tasks }, { data: incidents }, { data: services }, { data: members }] = await Promise.all([
+  const [{ data: tasks }, { data: incidents }, { data: services }, { data: members }, { data: prep }] = await Promise.all([
     supabase.from("tasks").select("*").eq("organization_id", orgId).in("next_reservation_id", ids),
     supabase.from("incidents").select("id, property_id, reservation_id, task_id, source, category, description, urgent, status, taken_by, created_at").eq("organization_id", orgId).in("property_id", props).neq("status", "resolved"),
-    supabase.from("service_requests").select("id, property_id, reservation_id, kind, start_at, status, source, created_at").eq("organization_id", orgId).in("reservation_id", ids).in("status", ["requested", "info_requested"]),
+    supabase.from("service_requests").select("id, property_id, reservation_id, kind, start_at, status, source, created_at").eq("organization_id", orgId).in("reservation_id", ids).in("status", ["requested", "info_requested", "in_review"]),
     supabase.from("memberships").select("user_id, profiles(full_name)").eq("organization_id", orgId),
+    supabase.from("stay_prep_actions").select("reservation_id, title, assignee_id, due_at").eq("organization_id", orgId).in("reservation_id", ids).eq("status", "open").eq("blocking", true),
   ]);
   const alerts: Alert[] = (incidents ?? []).map((i) => ({
     id: i.id,
@@ -53,7 +54,7 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired }: { sup
     takenBy: i.taken_by ?? undefined,
   }));
   const svc: ServiceRequest[] = (services ?? []).map((s) => ({ id: s.id, propertyId: s.property_id, reservationId: s.reservation_id ?? undefined, kind: s.kind, startAt: s.start_at, status: s.status, source: s.source, createdAt: s.created_at }));
-  const rows = arrivalControl({ stays: stays.map((s) => toReservation(s as Row)), tasks: (tasks ?? []).map((x) => toTask(x as Row)), alerts, services: svc, now, steps: { linenRequired } });
+  const rows = arrivalControl({ stays: stays.map((s) => toReservation(s as Row)), tasks: (tasks ?? []).map((x) => toTask(x as Row)), alerts, services: svc, now, steps: { linenRequired }, prepBlocking: (prep ?? []).map((a) => ({ reservationId: a.reservation_id as string, title: a.title as string, assigneeId: (a.assignee_id as string | null) ?? null, dueAt: (a.due_at as string | null) ?? null })) });
   const counts = arrivalCounts(rows);
   const nameOf = new Map((members ?? []).map((m: { user_id: string; profiles: unknown }) => [m.user_id, ((Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as { full_name: string } | null)?.full_name || "—"]));
   const propName = new Map(stays.map((s) => [s.id as string, ((Array.isArray(s.properties) ? s.properties[0] : s.properties) as { name: string } | null)?.name ?? ""]));
@@ -99,7 +100,7 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired }: { sup
                 )}
                 {b && (
                   <span className="block text-[13px] text-muted">
-                    {b.kind.startsWith("step_") ? t(`blocker.${b.kind}`, { step: t(`step.${b.detail}`) }) : t(`blocker.${b.kind}`)}
+                    {b.kind.startsWith("step_") ? t(`blocker.${b.kind}`, { step: t(`step.${b.detail}`) }) : b.kind === "prep_blocking" ? t("blocker.prep_blocking", { title: String(b.detail ?? "") }) : t(`blocker.${b.kind}`)}
                     {row.blockers.length > 1 ? ` (+${row.blockers.length - 1})` : ""} · {who}
                   </span>
                 )}

@@ -9,7 +9,7 @@ import { infeasibility } from "@/lib/engine/conflicts";
 import { toTask, type Row } from "@/lib/connected/mappers";
 import { loadPlanning } from "@/lib/connected/planning";
 import { blockingAbsences } from "@/lib/engine/availability";
-import { durationText, periodText, windowText } from "@/lib/connected/format";
+import { durationText, periodText, windowText, zoneLabel } from "@/lib/connected/format";
 import { TriangleAlert } from "lucide-react";
 
 export default async function MissionsPage({ params, searchParams }: PageProps<"/[locale]/app/missions">) {
@@ -27,7 +27,7 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
   const since = isoFromNow(-86_400_000);
   let q = supabase
     .from("tasks")
-    .select("*, properties(name, address_line, city), next:reservations!tasks_organization_id_next_reservation_id_fkey(check_in_at)")
+    .select("*, properties(name, address_line, city, timezone), next:reservations!tasks_organization_id_next_reservation_id_fkey(check_in_at)")
     .eq("organization_id", org!.id)
     .neq("status", "cancelled")
     .order("window_start")
@@ -93,7 +93,8 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
       <Card className="divide-y divide-line">
         {(tasks ?? []).length === 0 && <p className="p-5 text-[15px] text-muted">{manager ? t("empty") : t("mineEmpty")}</p>}
         {(tasks ?? []).map((k) => {
-          const p = (Array.isArray(k.properties) ? k.properties[0] : k.properties) as { name: string; address_line: string | null; city: string | null } | null;
+          const p = (Array.isArray(k.properties) ? k.properties[0] : k.properties) as { name: string; address_line: string | null; city: string | null; timezone: string | null } | null;
+          const zone = zoneLabel(p?.timezone, new Date(k.window_start));
           return (
             <div key={k.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5" data-testid="mission-row">
               <Link href={`/app/missions/${k.id}`} className="min-w-[14rem] flex-1 hover:underline" data-testid="mission-link">
@@ -101,7 +102,8 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
                   {tt(k.type)} · {p?.name}
                 </span>
                 <span className="block text-[13px] text-muted">
-                  {t("windowLabel", { window: windowText(f, k.window_start, k.window_end) })} · {t("durationLabel", { duration: durationText(k.duration_min) })} · {tts(k.status)}
+                  {t("windowLabel", { window: windowText(f, k.window_start, k.window_end, false, p?.timezone ?? undefined) })}
+                  {zone && <span data-testid="mission-zone"> ({t("localTime", { zone })})</span>} · {t("durationLabel", { duration: durationText(k.duration_min) })} · {tts(k.status)}
                   {!manager && p?.address_line ? ` · ${[p.address_line, p.city].filter(Boolean).join(", ")}` : ""}
                 </span>
               </Link>

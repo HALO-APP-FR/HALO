@@ -44,14 +44,28 @@ export async function processOutbox(orgId?: string) {
   if (!rows?.length) return { processed: 0 };
   const transport = smtpTransport();
   const orgNames = new Map<string, string>();
+  // Invitation : le lien personnel est retiré du journal dès que l'envoi est terminé (réussi ou non)
+  const finish = (row: OutboxRow, patch: Record<string, unknown>) => {
+    if (row.template === "prep_invite") {
+      const { url: _url, ...rest } = row.payload as Record<string, unknown>;
+      void _url;
+      patch = { ...patch, payload: rest };
+    }
+    return admin.from("notification_outbox").update(patch).eq("id", row.id);
+  };
   for (const row of rows as OutboxRow[]) {
+    if (row.template === "prep_invite" && typeof row.payload.url !== "string") {
+      // Relance d'une invitation déjà traitée : le lien n'est plus connu, il faut en envoyer une nouvelle
+      await finish(row, { status: "failed", last_error: "link_not_kept_send_new_invite" });
+      continue;
+    }
     // Adresse fictive (comptes de test) : jamais envoyée, jamais comptée « envoyée »
     if (/\.invalid$/i.test(row.recipient)) {
-      await admin.from("notification_outbox").update({ status: "failed", last_error: "undeliverable_test_address" }).eq("id", row.id);
+      await finish(row, { status: "failed", last_error: "undeliverable_test_address" });
       continue;
     }
     if (!transport) {
-      await admin.from("notification_outbox").update({ status: "not_configured", last_error: "no_email_provider" }).eq("id", row.id);
+      await finish(row, { status: "not_configured", last_error: "no_email_provider" });
       continue;
     }
     try {
@@ -68,7 +82,9 @@ export async function processOutbox(orgId?: string) {
       const org = orgNames.get(row.organization_id)!;
       const str = (k: string) => (typeof row.payload[k] === "string" ? (row.payload[k] as string) : "");
       const decision = str("decision") === "accepted" || str("decision") === "refused" ? t(`decisions.${str("decision")}`) : "";
-      const params = { org, kind, decision, property: str("property") || "—", guest: str("guest") || "—", member: str("member") || "—" };
+      const params = { org, kind, decision, choice: str("decision") || "other", property: str("property") || "—", guest: str("guest") || "—", member: str("member") || "—" };
+      // Invitation à préparer le séjour : le lien personnel n'existe que dans cet e-mail (jamais stocké en clair)
+      const guestUrl = row.template === "prep_invite" && /^https?:\/\/\S+\/s\/[0-9a-f]{64}$/.test(str("url")) ? str("url") : "";
       // E-mails internes (équipe, agent, messagerie) : lien vers HALO et pied de page interne
       const team = /^(team_|agent_|chat_)/.test(row.template);
       const base = appUrl();
@@ -78,16 +94,14 @@ export async function processOutbox(orgId?: string) {
         t(`${row.template}.body`, params),
         message ? `\n« ${message} »` : "",
         link ? `\n${t("open")} : ${link}` : "",
+        guestUrl ? `\n${guestUrl}` : "",
         `\n${team ? t("teamFooter") : t("footer")}`,
       ].join("\n");
       await transport.sendMail({ from: process.env.EMAIL_FROM ?? "HALO <no-reply@halo.app>", to: row.recipient, subject, text });
-      await admin.from("notification_outbox").update({ status: "sent", sent_at: new Date().toISOString(), last_error: null }).eq("id", row.id);
+      await finish(row, { status: "sent", sent_at: new Date().toISOString(), last_error: null });
     } catch (e) {
       const { data } = await admin.from("notification_outbox").select("attempts").eq("id", row.id).maybeSingle();
-      await admin
-        .from("notification_outbox")
-        .update({ status: "failed", attempts: ((data?.attempts as number) ?? 0) + 1, last_error: String(e instanceof Error ? e.message : e).slice(0, 300) })
-        .eq("id", row.id);
+      await finish(row, { status: "failed", attempts: ((data?.attempts as number) ?? 0) + 1, last_error: String(e instanceof Error ? e.message : e).slice(0, 300) });
     }
   }
   return { processed: rows.length };

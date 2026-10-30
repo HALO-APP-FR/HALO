@@ -244,7 +244,10 @@ export async function GET(request: NextRequest) {
     const g = await geocode({ addressLine: "10 Rue de Rivoli", postalCode: "75004", city: "Paris", countryCode: "FR" });
     check("openstreetmap_geocoding_works", g.ok && Math.abs(g.lat - 48.855) < 0.02, g.ok ? `${g.lat},${g.lng}` : g.error);
     const near = await nearbyPlaces(48.8606, 2.3376);
-    check("openstreetmap_places_work", near.ok && near.places.length > 0 && Boolean(near.dataDate), near.ok ? `${near.places.length} lieux via ${near.source}, données du ${near.dataDate}` : `${near.error} (${near.detail})`);
+    // Overpass public refuse les serveurs d'hébergement (406) : l'import passe alors par le navigateur du responsable.
+    // Ce contrôle vérifie que le serveur obtient des lieux (Geoapify configuré) OU que le refus est bien celui attendu.
+    const blocked = !near.ok && !process.env.GEOAPIFY_API_KEY && /overpass-api\.de:406/.test(near.detail ?? "");
+    check("places_provider_server_side", near.ok || blocked, near.ok ? `${near.places.length} lieux via ${near.source}` : blocked ? `serveur refusé par Overpass (406) : import par le navigateur du responsable${process.env.GEOAPIFY_API_KEY ? "" : " ; GEOAPIFY_API_KEY non configurée"}` : `${near.error} (${near.detail})`);
 
     // 7. Révocation
     const { data: links } = await a1.from("guest_links").select("id").eq("reservation_id", rA!.id).is("revoked_at", null);

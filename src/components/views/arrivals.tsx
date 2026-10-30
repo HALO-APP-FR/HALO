@@ -44,6 +44,7 @@ const BLOCKER_ICON: Record<BlockerKind, LucideIcon> = {
   open_incident: Siren,
   linen_shortage: BedDouble,
   service_pending: ConciergeBell,
+  prep_blocking: ClipboardCheck,
   guest_arrived_not_ready: DoorOpen,
   step_missing: BedDouble,
   step_unassigned: UserRoundX,
