@@ -112,3 +112,43 @@ export function parseOverpass(json: { elements?: OverpassElement[]; osm3s?: { ti
 export function geocodeQuery(p: { addressLine?: string | null; postalCode?: string | null; city?: string | null }) {
   return [p.addressLine, [p.postalCode, p.city].filter(Boolean).join(" ")].filter((x) => x && x.trim()).join(", ");
 }
+
+/**
+ * Geoapify Places (données OpenStreetMap servies par une API stable, clé gratuite jusqu'à 3 000 requêtes/jour).
+ * Utilisé seulement si GEOAPIFY_API_KEY est configurée ; sinon Overpass public.
+ */
+export const GEOAPIFY_CATEGORIES: Record<PlaceCategory, string[]> = {
+  food: ["catering.restaurant", "catering.cafe", "catering.bar", "catering.pub", "catering.fast_food", "catering.ice_cream"],
+  shops: ["commercial.supermarket", "commercial.convenience", "commercial.food_and_drink", "commercial.marketplace", "commercial.shopping_mall"],
+  transport: ["public_transport", "rental.bicycle", "rental.car"],
+  activities: ["tourism.attraction", "tourism.sights", "entertainment", "leisure.park", "beach"],
+  services: ["healthcare.pharmacy", "healthcare.hospital", "healthcare.clinic_or_praxis", "service.financial.atm", "service.post", "service.police"],
+};
+
+export function geoapifyUrl(lat: number, lng: number, key: string, radius = SEARCH_RADIUS_M) {
+  const cats = Object.values(GEOAPIFY_CATEGORIES).flat().join(",");
+  return `https://api.geoapify.com/v2/places?categories=${cats}&filter=circle:${lng.toFixed(6)},${lat.toFixed(6)},${radius}&bias=proximity:${lng.toFixed(6)},${lat.toFixed(6)}&limit=200&apiKey=${encodeURIComponent(key)}`;
+}
+
+interface GeoapifyFeature {
+  properties: { place_id?: string; name?: string; categories?: string[]; lat: number; lon: number; address_line2?: string; opening_hours?: string; contact?: { phone?: string }; website?: string; datasource?: { raw?: { osm_id?: number; osm_type?: string } } };
+}
+export function parseGeoapify(json: { features?: GeoapifyFeature[] }, lat: number, lng: number, radius = SEARCH_RADIUS_M) {
+  const all: ImportedPlace[] = [];
+  const seen = new Set<string>();
+  for (const f of json.features ?? []) {
+    const p = f.properties;
+    const name = p.name?.trim();
+    const category = (Object.keys(GEOAPIFY_CATEGORIES) as PlaceCategory[]).find((c) => (p.categories ?? []).some((pc) => GEOAPIFY_CATEGORIES[c].some((g) => pc === g || pc.startsWith(`${g}.`))));
+    if (!name || !category || typeof p.lat !== "number" || typeof p.lon !== "number") continue;
+    const raw = p.datasource?.raw;
+    const externalId = raw?.osm_id ? `${raw.osm_type === "w" ? "way" : raw.osm_type === "r" ? "relation" : "node"}/${raw.osm_id}` : `geoapify/${p.place_id ?? `${p.lat},${p.lon}`}`;
+    if (seen.has(externalId)) continue;
+    seen.add(externalId);
+    const d = distanceM(lat, lng, p.lat, p.lon);
+    if (d > radius) continue;
+    all.push({ externalId, category, name: name.slice(0, 160), address: p.address_line2?.slice(0, 300) ?? null, lat: p.lat, lng: p.lon, openingHours: p.opening_hours?.slice(0, 300) ?? null, phone: p.contact?.phone?.slice(0, 40) ?? null, website: p.website?.slice(0, 300) ?? null, distanceM: d });
+  }
+  all.sort((a, b) => a.distanceM - b.distanceM);
+  return { places: PLACE_CATEGORIES.flatMap((c) => all.filter((x) => x.category === c).slice(0, MAX_PER_CATEGORY)), dataDate: null as string | null };
+}

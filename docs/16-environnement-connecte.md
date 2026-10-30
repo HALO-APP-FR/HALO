@@ -196,3 +196,5 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 - Pour chaque message, on voit qui l'a lu et qui ne l'a pas encore lu.
 
 **Retour arrière** : supprimer les déclencheurs `absences_change` et `reservations_notify`, puis les fonctions `outbox_skip`, `reset_notification_prefs`, `lock_assignments`, `absence_conflicts`, `on_absence_change` et `notify_stay_change`, et enfin les colonnes `auto_places` et `description`. Restaurer ensuite les versions de la migration 10 des fonctions remplacées.
+
+**Fournisseur de lieux, constat en ligne (30/10).** Depuis Vercel, le géocodage Nominatim fonctionne. En revanche, l'instance Overpass principale répond 406 et les deux miroirs dépassent le délai d'attente : le service public refuse ou ne sert pas ces requêtes. L'import automatique échoue donc proprement, avec un message, et les recommandations manuelles restent pleinement utilisables. Pour un import fiable, renseigner `GEOAPIFY_API_KEY` dans Vercel (Preview). Geoapify sert des données OpenStreetMap ; la clé est gratuite jusqu'à 3 000 requêtes par jour, sans carte bancaire. HALO l'utilise alors en premier, puis Overpass en secours.

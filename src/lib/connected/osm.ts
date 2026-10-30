@@ -7,7 +7,7 @@ import "server-only";
  * avec un identifiant d'application comme l'exigent leurs règles d'usage. Adresses remplaçables
  * par un service équivalent (NOMINATIM_URL, OVERPASS_URL) pour un usage intensif en production.
  */
-import { geocodeQuery, overpassQuery, parseOverpass } from "@/lib/engine/places";
+import { geoapifyUrl, geocodeQuery, overpassQuery, parseGeoapify, parseOverpass } from "@/lib/engine/places";
 
 const NOMINATIM = () => process.env.NOMINATIM_URL ?? "https://nominatim.openstreetmap.org/search";
 /**
@@ -40,6 +40,17 @@ export async function geocode(p: { addressLine?: string | null; postalCode?: str
 
 export async function nearbyPlaces(lat: number, lng: number) {
   const tried: string[] = [];
+  // Fournisseur stable recommandé en production (clé gratuite, jamais exigée) : Geoapify, données OpenStreetMap
+  const key = process.env.GEOAPIFY_API_KEY;
+  if (key) {
+    try {
+      const res = await fetch(geoapifyUrl(lat, lng, key), { headers: { "User-Agent": headers()["User-Agent"] }, signal: AbortSignal.timeout(15_000), cache: "no-store" });
+      if (res.ok) return { ok: true as const, source: "geoapify", ...parseGeoapify(await res.json(), lat, lng), dataDate: new Date().toISOString() };
+      tried.push(`geoapify:${res.status}`);
+    } catch (e) {
+      tried.push(`geoapify:${e instanceof Error ? e.name : "error"}`);
+    }
+  }
   for (const url of OVERPASS()) {
     try {
       // Requête GET minimale (identifiant d'application seulement) : certaines instances refusent (406)

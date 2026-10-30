@@ -63,3 +63,22 @@ describe("itinéraires vers le logement (international, accents)", () => {
     expect(directionsLink("google", { name: "Riad", city: "Marrakech", addressLine: "Derb Sidi Ahmed", lat: 31.6295, lng: -7.9811 })).toContain("31.629500%2C-7.981100");
   });
 });
+
+describe("Geoapify (option, clé gratuite)", () => {
+  it("lieux classés, hors périmètre écartés, identifiant OpenStreetMap conservé", async () => {
+    const { parseGeoapify, geoapifyUrl } = await import("@/lib/engine/places");
+    const r = parseGeoapify(
+      {
+        features: [
+          { properties: { name: "Café Été", categories: ["catering.cafe"], lat: 48.861, lon: 2.338, address_line2: "3 Rue de l'Écluse, Paris", datasource: { raw: { osm_id: 12, osm_type: "n" } } } },
+          { properties: { name: "Pharmacie", categories: ["healthcare.pharmacy"], lat: 48.8607, lon: 2.3377, opening_hours: "Mo-Sa 09:00-20:00" } },
+          { properties: { name: "Loin", categories: ["catering.restaurant"], lat: 48.95, lon: 2.3376 } },
+        ],
+      },
+      48.8606,
+      2.3376,
+    );
+    expect(r.places.map((p) => [p.name, p.category, p.externalId])).toEqual([["Café Été", "food", "node/12"], ["Pharmacie", "services", "geoapify/48.8607,2.3377"]]);
+    expect(geoapifyUrl(48.8606, 2.3376, "k")).toContain("filter=circle:2.337600,48.860600,1200");
+  });
+});
