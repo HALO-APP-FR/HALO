@@ -42,11 +42,11 @@ export async function nearbyPlaces(lat: number, lng: number) {
   const tried: string[] = [];
   for (const url of OVERPASS()) {
     try {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { ...headers(), Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" },
-        body: `data=${encodeURIComponent(overpassQuery(lat, lng))}`,
-        signal: AbortSignal.timeout(12_000),
+      // Requête GET minimale (identifiant d'application seulement) : certaines instances refusent (406)
+      // les en-têtes de négociation ajoutés par défaut
+      const res = await fetch(`${url}?data=${encodeURIComponent(overpassQuery(lat, lng))}`, {
+        headers: { "User-Agent": headers()["User-Agent"], Accept: "*/*" },
+        signal: AbortSignal.timeout(15_000),
         cache: "no-store",
       });
       if (!res.ok) {
