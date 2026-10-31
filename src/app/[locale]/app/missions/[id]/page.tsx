@@ -35,7 +35,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
   // La base ne renvoie la mission qu'à un manager ou à son agent assigné
   const { data: task } = await supabase
     .from("tasks")
-    .select("id, type, status, window_start, window_end, duration_min, is_auto_generated, assignee_id, correction_reason, notes, property_id, properties(name, address_line, postal_code, city, country_code, latitude, longitude, timezone, instructions)")
+    .select("id, type, title, status, window_start, window_end, duration_min, is_auto_generated, assignee_id, correction_reason, notes, property_id, properties(name, address_line, postal_code, city, country_code, latitude, longitude, timezone, instructions)")
     .eq("organization_id", o)
     .eq("id", id)
     .maybeSingle();
@@ -124,8 +124,8 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
         ← {t("back")}
       </Link>
       <PageHeader
-        title={`${tt(task.type)} · ${p?.name ?? ""}`}
-        subtitle={tts(task.status)}
+        title={task.title ? `${task.title} · ${p?.name ?? ""}` : `${tt(task.type)} · ${p?.name ?? ""}`}
+        subtitle={task.title ? `${tt(task.type)} · ${tts(task.status)}` : tts(task.status)}
       />
       {/* Deux informations distinctes : la fenêtre pendant laquelle la mission doit être faite, et la durée de travail estimée */}
       <div className="-mt-2 mb-4 flex flex-wrap items-start gap-x-6 gap-y-2 text-[15px]" data-testid="mission-timing">

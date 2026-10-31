@@ -7,7 +7,7 @@ import "server-only";
  * avec un identifiant d'application comme l'exigent leurs règles d'usage. Adresses remplaçables
  * par un service équivalent (NOMINATIM_URL, OVERPASS_URL) pour un usage intensif en production.
  */
-import { geoapifyUrl, geocodeQuery, overpassQuery, parseGeoapify, parseOverpass } from "@/lib/engine/places";
+import { geoapifyUrl, geocodeQuery, overpassQuery, parseGeoapify, parseOverpass, parsePhoton, photonUrls, PHOTON_URL } from "@/lib/engine/places";
 
 const NOMINATIM = () => process.env.NOMINATIM_URL ?? "https://nominatim.openstreetmap.org/search";
 /**
@@ -50,6 +50,19 @@ export async function nearbyPlaces(lat: number, lng: number) {
     } catch (e) {
       tried.push(`geoapify:${e instanceof Error ? e.name : "error"}`);
     }
+  }
+  // Photon (OpenStreetMap, sans clé) : une requête par catégorie
+  try {
+    const responses = await Promise.all(
+      photonUrls(lat, lng, process.env.PHOTON_URL ?? PHOTON_URL).map(async ({ category, url }) => {
+        const res = await fetch(url, { headers: { "User-Agent": headers()["User-Agent"] }, signal: AbortSignal.timeout(12_000), cache: "no-store" });
+        if (!res.ok) throw new Error(`photon:${res.status}`);
+        return { category, json: await res.json() };
+      }),
+    );
+    return { ok: true as const, source: "photon.komoot.io", ...parsePhoton(responses, lat, lng) };
+  } catch (e) {
+    tried.push(e instanceof Error && e.message.startsWith("photon:") ? e.message : `photon:${e instanceof Error ? e.name : "error"}`);
   }
   for (const url of OVERPASS()) {
     try {

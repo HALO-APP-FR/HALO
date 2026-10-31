@@ -152,3 +152,46 @@ export function parseGeoapify(json: { features?: GeoapifyFeature[] }, lat: numbe
   all.sort((a, b) => a.distanceM - b.distanceM);
   return { places: PLACE_CATEGORIES.flatMap((c) => all.filter((x) => x.category === c).slice(0, MAX_PER_CATEGORY)), dataDate: null as string | null };
 }
+
+/**
+ * Photon (komoot) : recherche OpenStreetMap publique, gratuite, sans clé, rapide et accessible depuis un
+ * navigateur. Fournit nom, catégorie, adresse et position (pas d'horaires ni de téléphone : laissés vides).
+ * Une requête par catégorie pour que chaque catégorie ait ses lieux les plus proches.
+ */
+export const PHOTON_URL = "https://photon.komoot.io/reverse";
+export function photonUrls(lat: number, lng: number, base = PHOTON_URL, radius = SEARCH_RADIUS_M) {
+  return PLACE_CATEGORIES.map((category) => {
+    const tags = RULES.filter((r) => r.category === category).flatMap((r) => r.values.map((v) => `osm_tag=${encodeURIComponent(`${r.key}:${v}`)}`));
+    return { category, url: `${base}?lat=${lat.toFixed(6)}&lon=${lng.toFixed(6)}&radius=${(radius / 1000).toFixed(1)}&limit=${MAX_PER_CATEGORY * 2}&lang=fr&${tags.join("&")}` };
+  });
+}
+
+interface PhotonFeature {
+  geometry?: { coordinates?: [number, number] };
+  properties?: { name?: string; osm_type?: string; osm_id?: number; osm_key?: string; osm_value?: string; street?: string; housenumber?: string; postcode?: string; city?: string };
+}
+/** Réponses Photon (une par catégorie) → lieux dans le rayon, sans doublon, plafonnés par catégorie. */
+export function parsePhoton(responses: { category: PlaceCategory; json: { features?: PhotonFeature[] } }[], lat: number, lng: number, radius = SEARCH_RADIUS_M) {
+  const seen = new Set<string>();
+  const all: ImportedPlace[] = [];
+  for (const { json } of responses) {
+    for (const f of json.features ?? []) {
+      const p = f.properties ?? {};
+      const [pLng, pLat] = f.geometry?.coordinates ?? [];
+      const name = p.name?.trim();
+      const type = p.osm_type === "N" ? "node" : p.osm_type === "W" ? "way" : p.osm_type === "R" ? "relation" : null;
+      const category = p.osm_key && p.osm_value ? categoryOf({ [p.osm_key]: p.osm_value }) : null;
+      if (!name || !type || !p.osm_id || !category || typeof pLat !== "number" || typeof pLng !== "number") continue;
+      const externalId = `${type}/${p.osm_id}`;
+      if (seen.has(externalId)) continue;
+      seen.add(externalId);
+      const d = distanceM(lat, lng, pLat, pLng);
+      if (d > radius) continue;
+      const street = [p.housenumber, p.street].filter(Boolean).join(" ");
+      const city = [p.postcode, p.city].filter(Boolean).join(" ");
+      all.push({ externalId, category, name: name.slice(0, 160), address: [street, city].filter(Boolean).join(", ").slice(0, 300) || null, lat: pLat, lng: pLng, openingHours: null, phone: null, website: null, distanceM: d });
+    }
+  }
+  all.sort((a, b) => a.distanceM - b.distanceM);
+  return { places: PLACE_CATEGORIES.flatMap((c) => all.filter((x) => x.category === c).slice(0, MAX_PER_CATEGORY)), dataDate: null as string | null };
+}

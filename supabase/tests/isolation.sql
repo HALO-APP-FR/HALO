@@ -1171,6 +1171,115 @@ select t.is('premium : statut « demandée », pas confirmé', (select status fr
 select t.is('premium : n''attribue pas le statut VIP', (select vip::text from public.reservations where id = t.id('RP')), 'false');
 select t.is('prestation : passée « en cours d''étude » sans e-mail au voyageur', t.keep('a_manager', format('select public.decide_service(%L, (select id from public.service_requests where reservation_id = %L and kind = ''premium_package''), ''in_review'') ->> ''email_queued''', t.id('A'), t.id('RP'))), 'false');
 
+
+-- =====================================================================
+-- Migration 13 : préparation cohérente, import de données, calendriers iCal
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['TP1', 'TP2', 'JOB', 'JOBB', 'SRC']) k;
+-- 1.1 Une action indispensable (ré)ouverte retire « Prêt »
+select t.is('préparation : séjour prêt au départ', (select prep_status from public.stay_preparations where reservation_id = t.id('RP')), 'ready');
+select t.check('préparation : action indispensable ajoutée', '', t.keep('a_manager', format('insert into public.stay_prep_actions (organization_id, reservation_id, title, blocking) values (%L, %L, ''Vérifier la poussette'', true) returning 1', t.id('A'), t.id('RP'))) = '1');
+select t.is('préparation : « Prêt » retiré automatiquement', (select prep_status from public.stay_preparations where reservation_id = t.id('RP')), 'in_progress');
+select t.check('préparation : retrait historisé', '', exists (select 1 from public.stay_prep_events where reservation_id = t.id('RP') and kind = 'status_reverted' and note = 'Vérifier la poussette'));
+update public.stay_prep_actions set status = 'done', done_at = now() where reservation_id = t.id('RP') and title = 'Vérifier la poussette';
+select t.is('préparation : de nouveau prêt', t.keep('a_manager', format('select public.set_prep_status(%L, %L, ''ready'')', t.id('A'), t.id('RP'))), 'applied');
+select t.is('préparation : action rouverte', t.dml('a_manager', format('update public.stay_prep_actions set status = ''open'' where reservation_id = %L and title = ''Vérifier la poussette''', t.id('RP'))), '1');
+update public.stay_prep_actions set status = 'open' where reservation_id = t.id('RP') and title = 'Vérifier la poussette';
+select t.is('préparation : réouverture → plus « Prêt »', (select prep_status from public.stay_preparations where reservation_id = t.id('RP')), 'in_progress');
+select t.check('préparation : réouverture historisée', '', exists (select 1 from public.stay_prep_events where reservation_id = t.id('RP') and kind = 'action_reopened'));
+update public.stay_prep_actions set status = 'cancelled' where reservation_id = t.id('RP') and title = 'Vérifier la poussette';
+-- Action liée à une mission : faite seulement si la mission l'est, sauf dérogation motivée
+insert into public.tasks (id, organization_id, property_id, next_reservation_id, type, status, title, window_start, window_end, duration_min) values
+  (t.id('TP1'), t.id('A'), t.id('PA2'), t.id('RP'), 'other', 'unassigned', 'Table calme', now() + interval '19 days', now() + interval '20 days', 30),
+  (t.id('TP2'), t.id('A'), t.id('PA2'), t.id('RP'), 'other', 'assigned', 'Fleurs', now() + interval '19 days', now() + interval '20 days', 30);
+insert into public.stay_prep_actions (organization_id, reservation_id, title, blocking, task_id) values
+  (t.id('A'), t.id('RP'), 'Préparer table calme', true, t.id('TP1')), (t.id('A'), t.id('RP'), 'Fleurs', false, t.id('TP2'));
+select t.err('mission liée non faite : action non close', t.dml('a_manager', format('update public.stay_prep_actions set status = ''done'' where task_id = %L', t.id('TP1'))), 'P0001');
+select t.is('mission liée : dérogation motivée acceptée', t.dml('a_manager', format('update public.stay_prep_actions set status = ''done'', override_reason = ''Table réservée par téléphone'' where task_id = %L', t.id('TP1'))), '1');
+update public.stay_prep_actions set status = 'done', override_reason = 'Table réservée par téléphone' where task_id = t.id('TP1');
+select t.check('mission liée : dérogation historisée', '', exists (select 1 from public.stay_prep_events where reservation_id = t.id('RP') and kind = 'action_forced' and note like '%téléphone%'));
+update public.tasks set status = 'validated' where id = t.id('TP2');
+select t.is('mission validée → action close automatiquement', (select status from public.stay_prep_actions where task_id = t.id('TP2')), 'done');
+update public.tasks set assignee_id = t.id('a_agent'), notes = 'Bouquet blanc, entrée' where id = t.id('TP2');
+select t.is('agent : titre et consigne de sa mission lisibles', t.q('a_agent', format('select title || '' / '' || notes from public.tasks where id = %L', t.id('TP2'))), 'Fleurs / Bouquet blanc, entrée');
+-- 1.5 Contact de l'équipe disponible dès la préparation (champ urgence du livret)
+update public.guest_guides set emergency_phone = '+33 6 00 00 00 00' where property_id = t.id('PA2');
+select t.is('avant arrivée : numéro de contact communiqué', t.q(null, format('select public.get_guest_stay(%L) ->> ''contact_phone''', repeat('3', 64))), '+33 6 00 00 00 00');
+select t.is('avant arrivée : toujours pas de guide', t.q(null, format('select coalesce(public.get_guest_stay(%L) ->> ''guide'', ''aucun'')', repeat('3', 64))), 'aucun');
+
+alter table public.reservations enable trigger reservations_overlap_check;
+-- 2. Import : droits, cloisonnement, exécution, reprise, effets secondaires, annulation
+select t.deny('import : un agent ne crée pas d''import', t.dml('a_agent', format('insert into public.import_jobs (organization_id, kinds) values (%L, ''{properties}'')', t.id('A'))));
+select t.deny('import : une autre organisation ne crée pas d''import chez A', t.dml('b_manager', format('insert into public.import_jobs (organization_id, kinds) values (%L, ''{properties}'')', t.id('A'))));
+select t.is('import : préparation enregistrée par le responsable', t.keep('a_manager', format('insert into public.import_jobs (id, organization_id, kinds, source_software, options) values (%L, %L, ''{properties,stays,team}'', ''Tableur'', ''{"import_guest_emails": false}'') returning 1', t.id('JOB'), t.id('A'))), '1');
+select t.is('import : lignes déposées', t.keep('a_manager', format($q$insert into public.import_rows (organization_id, job_id, kind, row_index, raw, data, decision) values
+  (%1$L, %2$L, 'properties', 1, '{"Nom": "Studio Import"}', '{"name": "Studio Import", "city": "Lyon", "country": "fr", "timezone": "Europe/Paris", "capacity": 3, "external_ref": "L-1"}', 'create'),
+  (%1$L, %2$L, 'properties', 2, '{"Nom": "A — Canal"}', '{"name": "A — Canal"}', 'link'),
+  (%1$L, %2$L, 'stays', 1, '{"x": 1}', '{"property_row": 1, "guest_name": "Voyageur importé", "guest_email": "imp@test.invalid", "check_in_at": "2027-06-01T14:00:00Z", "check_out_at": "2027-06-04T09:00:00Z", "adults": 2, "source": "airbnb", "external_ref": "HMX1"}', 'create'),
+  (%1$L, %2$L, 'stays', 2, '{"x": 2}', '{"property_row": 1, "check_in_at": "2027-06-02T14:00:00Z", "check_out_at": "2027-06-03T09:00:00Z"}', 'create'),
+  (%1$L, %2$L, 'stays', 3, '{"x": 3}', '{"property_id": "%3$s", "check_in_at": "2027-06-02T14:00:00Z", "check_out_at": "2027-06-03T09:00:00Z"}', 'create'),
+  (%1$L, %2$L, 'stays', 4, '{"x": 4}', null, 'reject'),
+  (%1$L, %2$L, 'team', 1, '{"x": 1}', '{"first_name": "Lina", "last_name": "Import", "email": "lina@test.invalid", "role": "agent", "worker_type": "contractor"}', 'create')
+  returning 1$q$, t.id('A'), t.id('JOB'), t.id('PB1'))), '1');
+update public.import_rows set match_id = t.id('PA1') where job_id = t.id('JOB') and kind = 'properties' and row_index = 2;
+select t.is('import : un agent ne voit pas l''import', t.q('a_agent', 'select count(*) from public.import_jobs'), '0');
+select t.is('import : une autre organisation ne voit ni l''import ni ses lignes', t.q('b_manager', format('select (select count(*) from public.import_jobs where id = %L) + (select count(*) from public.import_rows where job_id = %L)', t.id('JOB'), t.id('JOB'))), '0');
+select t.deny('import : une autre organisation ne dépose pas de lignes dans l''import de A', t.dml('b_manager', format('insert into public.import_rows (organization_id, job_id, kind, row_index, raw) values (%L, %L, ''stays'', 9, ''{}'')', t.id('A'), t.id('JOB'))));
+select t.err('import : pas d''exécution sans analyse', t.q('a_manager', format('select public.run_import(%L, %L)', t.id('A'), t.id('JOB'))), '22023');
+select t.is('import : aucune donnée métier créée avant validation', (select count(*)::text from public.properties where name = 'Studio Import'), '0');
+select t.is('import : analysé', t.dml('a_manager', format('update public.import_jobs set status = ''analyzed'' where id = %L', t.id('JOB'))), '1');
+update public.import_jobs set status = 'analyzed' where id = t.id('JOB');
+select t.err('import : une autre organisation n''exécute pas', t.q('b_manager', format('select public.run_import(%L, %L)', t.id('A'), t.id('JOB'))), '42501');
+select t.err('import : un agent n''exécute pas', t.q('a_agent', format('select public.run_import(%L, %L)', t.id('A'), t.id('JOB'))), '42501');
+create temp table t_out_before as select count(*) as n from public.notification_outbox;
+select t.is('import : exécution', t.keep('a_manager', format('select public.run_import(%L, %L) ->> ''created''', t.id('A'), t.id('JOB'))), '3');
+select t.is('import : aucun e-mail ni invitation déclenché', (select (count(*) - (select n from t_out_before))::text from public.notification_outbox), '0');
+select t.is('import : aucune invitation créée', (select count(*)::text from public.invitations where organization_id = t.id('A') and email = 'lina@test.invalid'), '0');
+select t.check('import : logement créé avec provenance, livret et référence', '', exists (select 1 from public.properties p join public.guest_guides g on g.property_id = p.id where p.name = 'Studio Import' and p.import_job_id = t.id('JOB') and p.external_ref = 'L-1' and p.country_code = 'FR'));
+select t.check('import : séjour relié au logement du même fichier', '', exists (select 1 from public.reservations r join public.properties p on p.id = r.property_id where p.name = 'Studio Import' and r.guest_name = 'Voyageur importé' and r.external_uid = 'HMX1' and r.source = 'airbnb'));
+select t.is('import : e-mail voyageur non importé sans choix explicite', (select coalesce(guest_email, 'aucun') from public.reservations where external_uid = 'HMX1'), 'aucun');
+select t.is('import : séjour en chevauchement rejeté avec sa raison', (select status || '/' || message from public.import_rows where job_id = t.id('JOB') and kind = 'stays' and row_index = 2), 'failed/stay_overlap');
+select t.is('import : logement d''une autre organisation refusé', (select status || '/' || message from public.import_rows where job_id = t.id('JOB') and kind = 'stays' and row_index = 3), 'failed/property_not_found');
+select t.is('import : ligne rejetée distinguée', (select status from public.import_rows where job_id = t.id('JOB') and kind = 'stays' and row_index = 4), 'rejected');
+select t.is('import : doublon associé à la fiche existante', (select status || '/' || (target_id = t.id('PA1'))::text from public.import_rows where job_id = t.id('JOB') and kind = 'properties' and row_index = 2), 'linked/true');
+select t.is('import : équipe = contact, sans compte', (select count(*)::text from public.team_contacts where import_job_id = t.id('JOB') and invited_at is null), '1');
+select t.is('import : rejouer ne crée aucun doublon', t.keep('a_manager', format('select public.run_import(%L, %L) ->> ''status''', t.id('A'), t.id('JOB'))), 'already');
+select t.is('import : toujours un seul logement importé', (select count(*)::text from public.properties where name = 'Studio Import'), '1');
+select t.deny('import : lignes figées après exécution', t.dml('a_manager', format('update public.import_rows set decision = ''create'' where job_id = %L and kind = ''stays'' and row_index = 4', t.id('JOB'))));
+select t.deny('import : rapport non modifiable par le client', t.dml('a_manager', format('update public.import_jobs set report = ''{}'' where id = %L', t.id('JOB'))));
+-- Annulation sûre
+update public.reservations set notes = 'Modifiée après import' where external_uid = 'HMX1';
+select t.is('annulation : aperçu sans effet', t.q('a_manager', format('select jsonb_array_length(public.revert_import(%L, %L, false) -> ''kept'')', t.id('A'), t.id('JOB'))), '2');
+select t.check('annulation : séjour modifié depuis conservé avec la raison', '', t.q('a_manager', format('select public.revert_import(%L, %L, false)::text', t.id('A'), t.id('JOB'))) like '%modified_since%');
+select t.err('annulation : une autre organisation n''annule pas', t.q('b_manager', format('select public.revert_import(%L, %L, true)', t.id('A'), t.id('JOB'))), '42501');
+select t.is('annulation : appliquée sur ce qui est intact', t.keep('a_manager', format('select jsonb_array_length(public.revert_import(%L, %L, true) -> ''removable'')', t.id('A'), t.id('JOB'))), '1');
+select t.is('annulation : contact retiré, séjour modifié et son logement conservés', (select count(*)::text from public.team_contacts where import_job_id = t.id('JOB')) || '/' || (select count(*)::text from public.reservations where external_uid = 'HMX1') || '/' || (select count(*)::text from public.properties where name = 'Studio Import'), '0/1/1');
+select t.is('import : e-mails des membres invisibles pour une autre organisation', t.q('b_manager', format('select cardinality(public.organization_member_emails(%L))', t.id('A'))), '0');
+select t.check('import : e-mails des membres connus du responsable', '', t.q('a_manager', format('select cardinality(public.organization_member_emails(%L))', t.id('A')))::int > 0);
+select t.err('purge : réservée au serveur', t.q('a_manager', 'select public.purge_import_rows()'), '42501');
+alter table public.reservations disable trigger reservations_overlap_check;
+
+-- 3. Calendriers iCal : adresse protégée, priorité à HALO, conflits arbitrés
+select t.err('iCal : un agent n''ajoute pas de calendrier', t.q('a_agent', format('select public.add_ical_source(%L, %L, ''https://www.airbnb.fr/calendar/ical/1.ics?s=secret'', ''Airbnb'', ''airbnb'')', t.id('A'), t.id('PA1'))), '42501');
+select t.err('iCal : une autre organisation n''ajoute pas de calendrier chez A', t.q('b_manager', format('select public.add_ical_source(%L, %L, ''https://www.airbnb.fr/calendar/ical/1.ics?s=secret'', ''Airbnb'', ''airbnb'')', t.id('A'), t.id('PA1'))), '42501');
+select t.err('iCal : adresse invalide refusée', t.q('a_manager', format('select public.add_ical_source(%L, %L, ''javascript:alert(1)'', ''x'', ''other'')', t.id('A'), t.id('PA1'))), '22023');
+update t.ids set id = (t.keep('a_manager', format('select public.add_ical_source(%L, %L, ''https://www.airbnb.fr/calendar/ical/1.ics?s=secret1234'', ''Airbnb'', ''airbnb'')', t.id('A'), t.id('PA1'))))::uuid where name = 'SRC';
+select t.is('iCal : adresse jamais relisible directement', t.q('a_manager', 'select count(*) from public.data_source_secrets'), 'ERR:42501:permission denied for table data_source_secrets');
+select t.is('iCal : seul un indice est affiché', t.q('a_manager', format('select url_hint from public.data_sources where id = %L', t.id('SRC'))), 'www.airbnb.fr …1234');
+select t.is('iCal : une autre organisation ne lit pas l''adresse', t.q('b_manager', format('select coalesce(public.ical_source_url(%L, %L), ''rien'')', t.id('A'), t.id('SRC'))), 'rien');
+select t.is('iCal : un agent ne voit pas la source', t.q('a_agent', 'select count(*) from public.data_sources'), '0');
+select t.is('iCal : première synchronisation', t.keep('a_manager', format($q$select public.apply_ical_sync(%L, %L, '[{"uid": "ev1@airbnb", "check_in_at": "2027-09-01T14:00:00Z", "check_out_at": "2027-09-05T09:00:00Z", "status": "confirmed"}, {"uid": "ev2@airbnb", "check_in_at": "2027-09-10T14:00:00Z", "check_out_at": "2027-09-12T09:00:00Z", "status": "blocked"}]') ->> 'created'$q$, t.id('A'), t.id('SRC'))), '2');
+select t.is('iCal : relancer ne crée rien', t.keep('a_manager', format($q$select public.apply_ical_sync(%L, %L, '[{"uid": "ev1@airbnb", "check_in_at": "2027-09-01T14:00:00Z", "check_out_at": "2027-09-05T09:00:00Z", "status": "confirmed"}, {"uid": "ev2@airbnb", "check_in_at": "2027-09-10T14:00:00Z", "check_out_at": "2027-09-12T09:00:00Z", "status": "blocked"}]') ->> 'unchanged'$q$, t.id('A'), t.id('SRC'))), '2');
+update public.reservations set check_out_at = '2027-09-06T09:00:00Z' where external_uid = 'ev1@airbnb';
+select t.is('iCal : modification HALO non écrasée → conflit', t.keep('a_manager', format($q$select public.apply_ical_sync(%L, %L, '[{"uid": "ev1@airbnb", "check_in_at": "2027-09-02T14:00:00Z", "check_out_at": "2027-09-05T09:00:00Z", "status": "confirmed"}]') ->> 'conflicts'$q$, t.id('A'), t.id('SRC'))), '1');
+select t.is('iCal : séjour HALO intact', (select check_out_at::text from public.reservations where external_uid = 'ev1@airbnb'), '2027-09-06 09:00:00+00');
+select t.is('iCal : absent du calendrier = signalé, jamais annulé', (select (select state || '/' || conflict from public.source_events where uid = 'ev2@airbnb') || '/' || status from public.reservations where external_uid = 'ev2@airbnb'), 'conflict/missing_from_feed/blocked');
+select t.err('iCal : une autre organisation n''arbitre pas', t.q('b_manager', format('select public.resolve_source_conflict(%L, %L, ''ev1@airbnb'', ''apply_feed'')', t.id('A'), t.id('SRC'))), '42501');
+select t.is('iCal : le responsable applique la date du calendrier', t.keep('a_manager', format('select public.resolve_source_conflict(%L, %L, ''ev1@airbnb'', ''apply_feed'')', t.id('A'), t.id('SRC'))), 'applied');
+select t.is('iCal : dates du calendrier appliquées', (select check_in_at::text from public.reservations where external_uid = 'ev1@airbnb'), '2027-09-02 14:00:00+00');
+select t.is('iCal : erreur de lecture enregistrée', t.keep('a_manager', format('select public.apply_ical_sync(%L, %L, ''[]'', ''unreachable'') ->> ''status''', t.id('A'), t.id('SRC'))), 'error');
+select t.is('iCal : dernière réussite conservée malgré l''erreur', (select (last_error = 'unreachable')::text || '/' || (last_success_at is not null)::text from public.data_sources where id = t.id('SRC')), 'true/true');
+
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);
 do $$ declare n int; begin

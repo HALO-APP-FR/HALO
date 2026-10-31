@@ -1,6 +1,7 @@
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
 import { OnboardingWizard, type WizardInitial } from "@/components/connected/onboarding-wizard";
+import { ImportEntry } from "@/components/connected/import-entry";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 
 export default async function OnboardingPage({ params }: PageProps<"/[locale]/app/onboarding">) {
@@ -34,5 +35,11 @@ export default async function OnboardingPage({ params }: PageProps<"/[locale]/ap
     },
     onboarding: (o?.onboarding ?? {}) as WizardInitial["onboarding"],
   };
-  return <OnboardingWizard initial={initial} />;
+  const ti = await getTranslations("connected.import");
+  return (
+    <>
+      <ImportEntry title={ti("entryTitle")} text={ti("entryText")} />
+      <OnboardingWizard initial={initial} />
+    </>
+  );
 }

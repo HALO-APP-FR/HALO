@@ -1106,16 +1106,17 @@ export async function addPrepAction(reservationId: string, input: PrepActionInpu
   return { ok: true, data: { id: data.id as string } };
 }
 
-export async function setPrepActionStatus(actionId: string, status: "open" | "done" | "cancelled"): Promise<Result> {
+/** Clore une action liée à une mission non terminée exige une dérogation écrite (`overrideReason`), historisée. */
+export async function setPrepActionStatus(actionId: string, status: "open" | "done" | "cancelled", overrideReason?: string): Promise<Result> {
   const { ctx, error } = await manager();
   if (error) return fail(error);
   const { data, error: e } = await ctx.supabase
     .from("stay_prep_actions")
-    .update({ status, done_at: status === "done" ? new Date().toISOString() : null, done_by: status === "done" ? ctx.user!.id : null })
+    .update({ status, done_at: status === "done" ? new Date().toISOString() : null, done_by: status === "done" ? ctx.user!.id : null, override_reason: status === "done" ? overrideReason?.trim().slice(0, 500) || null : null })
     .eq("organization_id", ctx.org!.id)
     .eq("id", actionId)
     .select("id");
-  if (e) return fail(errCode(e));
+  if (e) return fail(dbCode(e, ["mission_not_done"]));
   if (!data?.length) return fail("not_found");
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };
@@ -1142,7 +1143,7 @@ export async function createPrepService(reservationId: string, actionId: string 
 }
 
 /** Mission de préparation avant l'arrivée (type « autre »), reliée au séjour ; affectation ensuite comme toute mission. */
-export async function createPrepMission(reservationId: string, actionId: string | null, input: { title: string; start: string; end: string; durationMin: number }): Promise<Result<{ id: string }>> {
+export async function createPrepMission(reservationId: string, actionId: string | null, input: { title: string; notes?: string; start: string; end: string; durationMin: number }): Promise<Result<{ id: string }>> {
   const { ctx, error } = await manager();
   if (error) return fail(error);
   const o = ctx.org!.id;
@@ -1154,7 +1155,7 @@ export async function createPrepMission(reservationId: string, actionId: string 
   const duration = Math.max(5, Math.min(1440, Math.round(input.durationMin) || 30, Math.floor((end - start) / 60_000)));
   const { data, error: e } = await ctx.supabase
     .from("tasks")
-    .insert({ organization_id: o, property_id: r.property_id, next_reservation_id: r.id, type: "other", title: input.title.trim().slice(0, 200), is_auto_generated: false, vip: Boolean(r.vip), window_start: new Date(start).toISOString(), window_end: new Date(end).toISOString(), duration_min: duration })
+    .insert({ organization_id: o, property_id: r.property_id, next_reservation_id: r.id, type: "other", title: input.title.trim().slice(0, 200), notes: input.notes?.trim().slice(0, 4000) || null, is_auto_generated: false, vip: Boolean(r.vip), window_start: new Date(start).toISOString(), window_end: new Date(end).toISOString(), duration_min: duration })
     .select("id")
     .single();
   if (e) return fail(errCode(e));

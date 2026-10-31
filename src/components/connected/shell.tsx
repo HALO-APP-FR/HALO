@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { Building2, CalendarDays, ConciergeBell, House, ListChecks, Mail, Settings2, TriangleAlert, Users, BellRing, CircleUser, MessagesSquare, SlidersHorizontal } from "lucide-react";
+import { FileSpreadsheet, Building2, CalendarDays, ConciergeBell, House, ListChecks, Mail, Settings2, TriangleAlert, Users, BellRing, CircleUser, MessagesSquare, SlidersHorizontal } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Logo } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
@@ -22,6 +22,7 @@ const MANAGER_MORE = [
   { key: "notifications", href: "/app/notifications", icon: Mail },
   { key: "settings", href: "/app/settings", icon: SlidersHorizontal },
   { key: "setup", href: "/app/onboarding", icon: Settings2 },
+  { key: "import", href: "/app/import", icon: FileSpreadsheet },
   { key: "profile", href: "/app/profile", icon: CircleUser },
   { key: "preferences", href: "/app/preferences", icon: BellRing },
 ] as const;

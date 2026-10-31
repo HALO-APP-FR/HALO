@@ -6,7 +6,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { Clock, Globe, MapPin, Navigation, Phone } from "lucide-react";
 import { addPlace, deletePlace, importNearbyPlaces, locateProperty, setAutoPlaces, setPlaceHidden, storeImportedPlaces, updatePlace, verifyPlace, type PlaceInput } from "@/lib/connected/actions";
 import { directionsLink, MAPS_APPS, type MapsApp } from "@/lib/engine/directions";
-import { overpassQuery, parseOverpass, PLACE_CATEGORIES, type PlaceCategory } from "@/lib/engine/places";
+import { overpassQuery, parseOverpass, parsePhoton, photonUrls, PLACE_CATEGORIES, type PlaceCategory } from "@/lib/engine/places";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Select } from "@/components/ui/field";
@@ -98,7 +98,7 @@ export const fmtDistance = (m: number) => (m < 100 ? "< 100 m" : m < 1000 ? `≈
  * Pour chaque lieu : origine (équipe, propriétaire ou proposé automatiquement), distance arrondie,
  * adresse, horaires seulement si la source les fournit, itinéraire Plans / Google Maps / Waze.
  */
-export function GuestAround({ property, places }: { property: { name: string; lat: number | null; lng: number | null; address: string }; places: Place[] }) {
+export function GuestAround({ property, places, hiddenUntil }: { property: { name: string; lat: number | null; lng: number | null; address: string }; places: Place[]; /** Avant la fenêtre habituelle : carte et adresse volontairement masquées jusqu'à cette date */ hiddenUntil?: string }) {
   const t = useTranslations("guestSpace.around");
   const tc = useTranslations("places.category");
   const f = useFormatter();
@@ -119,7 +119,7 @@ export function GuestAround({ property, places }: { property: { name: string; la
       ) : (
         <>
           <p className="text-[14px] text-muted" data-testid="around-origin">
-            {center ? t("originHome", { address: property.address || property.name }) : t("noCoordinates")}
+            {center ? t("originHome", { address: property.address || property.name }) : hiddenUntil ? t("mapLater", { date: hiddenUntil }) : t("noCoordinates")}
           </p>
           {center && <PlacesMap center={center} places={shown} onTilesFailed={() => setTilesFailed(true)} />}
           {tilesFailed && (
@@ -254,8 +254,11 @@ export function PlacesManager({
   autoPlaces,
   places,
   overpassUrls,
+  photonUrl,
 }: {
   overpassUrls: string[];
+  /** Photon (OpenStreetMap, sans clé) : solution de repli quand Overpass refuse ou ne répond pas */
+  photonUrl: string;
   propertyId: string;
   coords: { lat: number; lng: number } | null;
   geoSource: string | null;
@@ -278,24 +281,42 @@ export function PlacesManager({
    * puis enregistrement contrôlé par le serveur. Si le navigateur n'obtient rien, le serveur essaie son propre
    * fournisseur (Geoapify s'il est configuré). Seules les coordonnées du logement sont transmises.
    */
+  /**
+   * Import lancé depuis le navigateur du responsable (les serveurs d'hébergement sont refusés par Overpass).
+   * 1) Overpass (le plus riche : horaires, téléphone), délai court ; 2) Photon (OpenStreetMap, rapide, sans
+   * horaires) ; 3) serveur HALO. Les données sont revalidées par le serveur avant enregistrement.
+   */
   const importFromBrowser = async () => {
     if (coords) {
+      const send = (parsed: ReturnType<typeof parseOverpass>) =>
+        storeImportedPlaces(
+          propertyId,
+          parsed.places.map((x) => ({ externalId: x.externalId, category: x.category, name: x.name, address: x.address, lat: x.lat, lng: x.lng, openingHours: x.openingHours, phone: x.phone, website: x.website })),
+          parsed.dataDate,
+        );
       for (const url of overpassUrls) {
         try {
-          const ctrl = new AbortController();
-          const timer = window.setTimeout(() => ctrl.abort(), 25_000);
-          const res = await fetch(`${url}?data=${encodeURIComponent(overpassQuery(coords.lat, coords.lng))}`, { signal: ctrl.signal });
-          window.clearTimeout(timer);
+          const res = await fetch(`${url}?data=${encodeURIComponent(overpassQuery(coords.lat, coords.lng))}`, { signal: AbortSignal.timeout(12_000) });
           if (!res.ok) continue;
-          const parsed = parseOverpass(await res.json(), coords.lat, coords.lng);
-          return storeImportedPlaces(
-            propertyId,
-            parsed.places.map((x) => ({ externalId: x.externalId, category: x.category, name: x.name, address: x.address, lat: x.lat, lng: x.lng, openingHours: x.openingHours, phone: x.phone, website: x.website })),
-            parsed.dataDate,
-          );
+          const json = await res.json();
+          // Réponse tronquée (« runtime error » : délai dépassé côté Overpass) : on passe à la source suivante
+          if (typeof json?.remark === "string" && /error/i.test(json.remark)) continue;
+          return send(parseOverpass(json, coords.lat, coords.lng));
         } catch {
-          // instance suivante
+          // source suivante
         }
+      }
+      try {
+        const responses = await Promise.all(
+          photonUrls(coords.lat, coords.lng, photonUrl).map(async ({ category, url }) => {
+            const res = await fetch(url, { signal: AbortSignal.timeout(12_000) });
+            if (!res.ok) throw new Error(String(res.status));
+            return { category, json: await res.json() };
+          }),
+        );
+        return send(parsePhoton(responses, coords.lat, coords.lng));
+      } catch {
+        // dernier recours : serveur HALO
       }
     }
     return importNearbyPlaces(propertyId);

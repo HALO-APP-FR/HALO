@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/halo/page-header";
 import { ValidationSettings } from "@/components/connected/planning-forms";
 import { PrepQuestionsSettings, VipCriteriaSettings, type CriterionRow } from "@/components/connected/prep-forms";
 import { Card } from "@/components/ui/card";
+import { ImportEntry } from "@/components/connected/import-entry";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 
 /** Réglages de l'organisation : ce qui est enregistré ici pilote le serveur (finish_task lit validation_task_types). */
@@ -11,6 +12,7 @@ export default async function SettingsPage({ params }: PageProps<"/[locale]/app/
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("connected.settings");
+  const ti = await getTranslations("connected.import");
   const { supabase, org } = await getContext();
   if (!org) redirect({ href: "/app", locale });
   if (!isManagerRole(org!.role)) redirect({ href: "/app/missions", locale });
@@ -22,6 +24,7 @@ export default async function SettingsPage({ params }: PageProps<"/[locale]/app/
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
       <div className="max-w-2xl space-y-4">
+        <ImportEntry title={ti("entryTitle")} text={ti("entryText")} />
         <ValidationSettings initial={(data?.validation_task_types as string[]) ?? []} />
         <Card className="p-5">
           <h2 className="text-[17px] font-semibold">{t("prep.title")}</h2>

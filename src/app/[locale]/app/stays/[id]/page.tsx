@@ -45,7 +45,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
   ]);
   const [{ data: prep }, { data: actions }, { data: items }, { data: events }, { data: members }, { data: places }, { data: criteria }, { data: vipReq }, { data: vipRow }, { data: loyalty }, { data: orgRow }] = await Promise.all([
     supabase.from("stay_preparations").select("*").eq("organization_id", o).eq("reservation_id", id).maybeSingle(),
-    supabase.from("stay_prep_actions").select("id, title, kind, assignee_id, due_at, blocking, status, task_id, service_id, done_at").eq("organization_id", o).eq("reservation_id", id).order("created_at"),
+    supabase.from("stay_prep_actions").select("id, title, kind, assignee_id, due_at, blocking, status, task_id, service_id, done_at, override_reason, task:tasks!stay_prep_actions_organization_id_task_id_fkey(status)").eq("organization_id", o).eq("reservation_id", id).order("created_at"),
     supabase.from("stay_guest_items").select("id, kind, title, body, url, place_id, published_at").eq("organization_id", o).eq("reservation_id", id).order("created_at"),
     supabase.from("stay_prep_events").select("id, kind, actor_id, note, at").eq("organization_id", o).eq("reservation_id", id).order("at", { ascending: false }).limit(40),
     supabase.from("memberships").select("user_id, role, profiles(full_name)").eq("organization_id", o).eq("is_active", true),
@@ -162,7 +162,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
             <div className="mt-2">
               <PrepActions
                 reservationId={s.id}
-                actions={(actions ?? []) as PrepActionRow[]}
+                actions={(actions ?? []).map((a) => ({ ...a, task_status: ((Array.isArray(a.task) ? a.task[0] : a.task) as { status: string } | null)?.status ?? null })) as PrepActionRow[]}
                 members={memberList.filter((m) => managerIds.includes(m.id))}
                 timeZone={tz}
                 serviceKinds={(orgRow?.services_offered as string[] | null)?.length ? (orgRow!.services_offered as string[]) : ["other"]}
@@ -247,6 +247,10 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
               request={(vipReq as { id: string; status: string; note: string | null; criterion_id: string | null; guest_message: string | null; created_at: string } | null) ?? null}
               criteria={(criteria ?? []) as { id: string; label: string; kind: string; min_stays: number | null; validity_days: number | null }[]}
               loyalty={typeof loyalty === "number" ? loyalty : null}
+              delivery={(() => {
+                const v = (outbox ?? []).find((x) => x.template === "vip_update");
+                return v ? { status: v.status as string, at: v.created_at as string } : null;
+              })()}
               timeZone={tz}
             />
           </Card>

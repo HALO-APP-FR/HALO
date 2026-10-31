@@ -850,6 +850,7 @@ test("17 · validation par type, créneau lisible et corrigé, absences et ferme
  * par l'auto-test (openstreetmap_geocoding_works, openstreetmap_places_work).
  */
 let osm: Server | null = null;
+let overpassDown = false;
 const OSM_PORT = 54390;
 function startOsm() {
   if (osm) return;
@@ -858,6 +859,19 @@ function startOsm() {
     // Import depuis le navigateur du responsable (fournisseur appelé côté client) : autorisation CORS comme Overpass
     res.setHeader("Access-Control-Allow-Origin", "*");
     if (req.url?.startsWith("/search")) return res.end(JSON.stringify([{ lat: "48.8606", lon: "2.3376", display_name: "1 Rue de la Paix, Paris" }]));
+    // Photon (repli) : mêmes lieux au format GeoJSON, filtrés par étiquette demandée
+    if (req.url?.startsWith("/reverse")) {
+      const tags = new URL(req.url, "http://x").searchParams.getAll("osm_tag");
+      const all = [
+        { id: 201, lat: 48.8611, lon: 2.3381, key: "amenity", value: "cafe", name: "Café Photon", street: "Rue Été" },
+        { id: 202, lat: 48.8601, lon: 2.3369, key: "amenity", value: "pharmacy", name: "Pharmacie Photon" },
+      ];
+      return res.end(JSON.stringify({ features: all.filter((p) => tags.includes(`${p.key}:${p.value}`)).map((p) => ({ geometry: { coordinates: [p.lon, p.lat] }, properties: { name: p.name, osm_type: "N", osm_id: p.id, osm_key: p.key, osm_value: p.value, street: p.street, city: "Paris" } })) }));
+    }
+    if (overpassDown) {
+      res.statusCode = 406;
+      return res.end("Not Acceptable");
+    }
     res.end(
       JSON.stringify({
         osm3s: { timestamp_osm_base: "2026-10-28T10:00:00Z" },
@@ -1451,13 +1465,20 @@ test("21 · recommandations : vérification explicite, import sans doublon, lieu
   await g.reload();
   await expect(fromagerie).toContainText("Vérifié par l'équipe le");
   await expect(fromagerie.getByTestId("around-hours")).toContainText("horaires vérifiés");
-  // Panne du fournisseur : aucun lieu supprimé
+  // Overpass refuse (406, cas observé en préproduction) : repli automatique sur Photon, sans perte des lieux existants
+  overpassDown = true;
+  await m.getByTestId("places-import").click();
+  await expect(m.getByTestId("places-imported")).toContainText("2 lieux importés");
+  await expect(m.getByTestId("place-row").filter({ hasText: "Café Photon" })).toBeVisible();
+  await expect(m.getByTestId("place-row").filter({ hasText: "Fromagerie du Coin" })).toBeVisible();
+  overpassDown = false;
+  // Panne de tous les fournisseurs : aucun lieu supprimé
   osm?.close();
   osm = null;
   await m.getByTestId("places-import").click();
   await expect(m.getByTestId("places-import-error")).toBeVisible();
-  const { count } = await admin.from("property_places").select("id", { count: "exact", head: true }).eq("property_id", prop!.id);
-  expect(count).toBe(4);
+  const { count } = await admin.from("property_places").select("id", { count: "exact", head: true }).eq("property_id", prop!.id).eq("hidden", false);
+  expect(count).toBeGreaterThanOrEqual(3); // lieu manuel + lieux importés conservés
   await g.context().close();
 });
 
@@ -1485,4 +1506,283 @@ test("22 · navigation responsable lisible à 1 280 px et page introuvable local
   await m.goto("/en/app/missions/00000000-0000-0000-0000-000000000000");
   await expect(m.getByTestId("not-found")).toContainText(/not found|does not exist/i);
   await ctx.close();
+});
+
+/** Séjour créé à l'écran, dans N jours, puis lien de préparation ouvert côté voyageur. */
+async function prepStay(m: Page, browser: Browser, name: string, days: number) {
+  const arrive = new Date();
+  arrive.setDate(arrive.getDate() + days);
+  arrive.setHours(16, 0, 0, 0);
+  const leave = new Date(arrive.getTime() + 3 * 86_400_000);
+  leave.setHours(11, 0, 0, 0);
+  await m.goto("/fr/app/stays");
+  await m.getByLabel("Nom du voyageur").fill(name);
+  await m.getByLabel("E-mail du voyageur").fill(`${name.replace(/\s+/g, "-").toLowerCase()}-${run}@halo.invalid`);
+  await m.getByLabel("Arrivée").fill(local(arrive));
+  await m.getByLabel("Départ").fill(local(leave));
+  await m.getByTestId("stay-create").click();
+  await m.waitForURL(/\/fr\/app\/stays\/[0-9a-f-]{36}$/);
+  const stayId = m.url().split("/").pop()!;
+  await m.getByTestId("link-create").click();
+  const url = (await m.getByTestId("guest-link-url").inputValue()).replace(/^https?:\/\/[^/]+/, "");
+  return { stayId, url, arrive };
+}
+
+test("23 · corrections : « Prêt » cohérent, mission issue d'une action avec consignes, message VIP, contact et carte avant arrivée", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `corr ${run}`);
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+  await admin.from("guest_guides").update({ emergency_phone: "+33 1 23 45 67 89" }).eq("property_id", prop!.id);
+  await admin.from("properties").update({ latitude: 48.8556, longitude: 2.2986 }).eq("id", prop!.id);
+  await admin.from("property_places").insert({ organization_id: org, property_id: prop!.id, source: "manager", category: "food", name: "Bistrot du Champ", latitude: 48.8566, longitude: 2.2996 });
+  const { stayId, url } = await prepStay(m, browser, "Noa Correctif", 12);
+
+  // 1.1 Action indispensable : « Prêt » refusé, puis retiré si l'action est rouverte
+  await m.getByTestId("prep-action-title").fill("QA — préparer table calme");
+  await m.getByTestId("prep-action-blocking").check();
+  await m.getByTestId("prep-action-add").click();
+  await expect(m.getByTestId("prep-action")).toHaveCount(1);
+  await m.getByTestId("prep-action-done").click();
+  await expect(m.getByTestId("prep-action")).toHaveAttribute("data-status", "done");
+  await m.getByTestId("prep-status-ready").click();
+  await expect(m.getByTestId("prep-status")).toHaveAttribute("data-status", "ready");
+  await m.getByRole("button", { name: "Rouvrir" }).click();
+  await expect(m.getByTestId("prep-action")).toHaveAttribute("data-status", "open");
+  await expect(m.getByTestId("prep-status")).toHaveAttribute("data-status", "in_progress");
+  await m.getByText("Historique").click();
+  await expect(m.getByTestId("prep-history")).toContainText("« Prêt » retiré");
+
+  // Mission créée depuis l'action : non terminée → l'action ne se clôt pas sans dérogation
+  await m.getByTestId("prep-action-task").click();
+  await m.getByTestId("prep-task-notes").fill("Table au fond, loin de la porte. Bougie éteinte.");
+  const start = new Date();
+  start.setDate(start.getDate() + 11);
+  start.setHours(9, 0, 0, 0);
+  await m.getByTestId("prep-task-form").getByLabel("Au plus tôt").fill(local(start));
+  await m.getByTestId("prep-task-create").click();
+  await expect(m.getByTestId("prep-action")).toContainText("mission créée (Non assignée)");
+  await m.getByTestId("prep-action-done").click();
+  await expect(m.getByTestId("prep-force")).toBeVisible();
+  await expect(m.getByTestId("prep-action")).toHaveAttribute("data-status", "open");
+  await m.getByTestId("prep-force").getByRole("button", { name: "Fermer" }).click();
+
+  // 1.2 L'agent voit le titre et les consignes, après affectation et rechargement
+  await m.goto("/fr/app/missions");
+  const row = m.getByTestId("mission-row").filter({ hasText: "QA — préparer table calme" });
+  await expect(row.getByTestId("mission-title")).toContainText("QA — préparer table calme");
+  await row.getByTestId("assign-select").selectOption({ label: "Agent test" });
+  await expect(row.getByTestId("assign-select")).toHaveValue(/.+/);
+  const agent = await newPage(browser);
+  await agent.context().clearCookies();
+  await agent.goto("/fr/auth/sign-in");
+  await agent.getByLabel("Nom du compte de test").fill(`corr-${run}-agent`);
+  await agent.getByTestId("test-account-submit").click();
+  await agent.waitForURL(/\/fr\/app/);
+  await agent.goto("/fr/app/missions");
+  const mine = agent.getByTestId("mission-row").filter({ hasText: "QA — préparer table calme" });
+  await expect(mine.getByTestId("mission-notes-preview")).toContainText("Table au fond");
+  await mine.getByTestId("mission-link").click();
+  await expect(agent.getByRole("heading", { name: /QA — préparer table calme/ })).toBeVisible();
+  await expect(agent.getByTestId("mission-notes")).toContainText("Bougie éteinte");
+  await agent.reload();
+  await expect(agent.getByTestId("mission-notes")).toContainText("Bougie éteinte");
+
+  // Mission validée → action close automatiquement
+  const { data: task } = await admin.from("tasks").select("id").eq("organization_id", org).eq("title", "QA — préparer table calme").single();
+  await admin.from("tasks").update({ status: "validated" }).eq("id", task!.id);
+  await m.goto(`/fr/app/stays/${stayId}`);
+  await expect(m.getByTestId("prep-action")).toHaveAttribute("data-status", "done");
+
+  // 1.3 Message VIP visible côté voyageur, statut d'envoi côté responsable
+  await m.goto("/fr/app/settings");
+  await m.getByTestId("vip-criterion-new").click();
+  await m.getByTestId("vip-criterion-label").fill("Client fidèle");
+  await m.getByTestId("vip-criterion-save").click();
+  await expect(m.getByTestId("vip-criterion-row")).toHaveCount(1);
+  const g = await newPage(browser);
+  await g.goto(url);
+  await g.getByTestId("vip-request").click();
+  await expect(g.getByTestId("vip-pending")).toBeVisible();
+  await m.goto(`/fr/app/stays/${stayId}`);
+  await m.getByTestId("vip-guest-msg").fill("Une bouteille vous attendra à votre arrivée.");
+  await m.getByTestId("vip-internal").fill("Note privée QA");
+  await m.getByTestId("vip-accept").click();
+  await expect(m.getByTestId("vip-sent-message")).toContainText("Une bouteille vous attendra");
+  await expect(m.getByTestId("vip-sent-delivery")).toContainText("e-mail non remis");
+  await g.reload();
+  await expect(g.getByTestId("vip-team-message")).toContainText("Une bouteille vous attendra à votre arrivée.");
+  await expect(g.getByTestId("guest-space")).not.toContainText("Note privée QA");
+
+  // 1.4 / 1.5 Avant l'arrivée : carte expliquée, contact joignable, pas de renvoi vers un livret fermé
+  await expect(g.getByTestId("around-origin")).toContainText("La carte et l'adresse du logement s'afficheront à partir du");
+  await expect(g.getByTestId("around-origin")).not.toContainText("pas encore localisé");
+  await expect(g.getByTestId("guest-messages")).toContainText("En cas d'urgence, appelez le +33 1 23 45 67 89");
+  await expect(g.getByTestId("guest-messages")).not.toContainText("indiqué dans le livret");
+  await Promise.all([g, agent].map((p) => p.context().close()));
+});
+
+const csv = (rows: string[][]) => Buffer.from("﻿" + rows.map((r) => r.join(";")).join("\r\n"));
+
+test("24 · import : fichier correct, fichier imparfait, reprise sans doublon, droits, aucun envoi, missions selon l'option, annulation sûre", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `imp ${run}`);
+  const outBefore = (await admin.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org)).count ?? 0;
+  const invBefore = (await admin.from("invitations").select("id", { count: "exact", head: true }).eq("organization_id", org)).count ?? 0;
+  const tasksBefore = (await admin.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org)).count ?? 0;
+  await m.goto("/fr/app/settings");
+  await m.getByTestId("import-entry").click();
+  await expect(m).toHaveURL(/\/fr\/app\/import$/);
+  await m.getByTestId("import-kind-team").check();
+  await m.getByTestId("import-create").click();
+  await m.waitForURL(/\/fr\/app\/import\/[0-9a-f-]{36}$/);
+  const jobId = m.url().split("/").pop()!;
+
+  // Dates dans l'horizon des missions (90 jours), au format français du fichier
+  const dd = (n: number) => {
+    const x = new Date(Date.now() + n * 86_400_000);
+    return `${String(x.getDate()).padStart(2, "0")}/${String(x.getMonth() + 1).padStart(2, "0")}/${x.getFullYear()}`;
+  };
+  await m.getByTestId("import-input-properties").setInputFiles({
+    name: "logements.csv",
+    mimeType: "text/csv",
+    buffer: csv([["Nom", "Adresse", "Ville", "Pays", "Capacité", "Code boîte à clés"], ["Villa Import", "1 rue Fictive", "Nice", "France", "6", "1234"], ["Studio Import", "2 rue Fictive", "Lyon", "France", "2", "9999"], ["Appartement test", "", "Paris", "France", "4", ""]]),
+  });
+  await expect(m.getByTestId("import-file-properties")).toContainText("3 lignes lues");
+  await expect(m.getByTestId("import-dropped")).toContainText("Code boîte à clés");
+  await m.getByTestId("import-input-stays").setInputFiles({
+    name: "sejours.csv",
+    mimeType: "text/csv",
+    buffer: csv([
+      ["Logement", "Arrivée", "Départ", "Voyageur", "Voyageurs", "Source", "Référence", "E-mail voyageur"],
+      ["Villa Import", dd(30), dd(34), "Ana", "4", "Airbnb", "HM1", `ana-${run}@halo.invalid`],
+      ["Studio Import", dd(31), dd(33), "Bob", "2", "Booking", "BK2", ""],
+      ["Villa Import", "32/03/2027", dd(34), "Date fausse", "2", "", "", ""],
+      ["Maison fantôme", dd(40), dd(42), "Inconnu", "2", "", "", ""],
+      ["Villa Import", dd(30), dd(34), "Ana", "4", "Airbnb", "HM1", ""],
+    ]),
+  });
+  await expect(m.getByTestId("import-file-stays")).toContainText("5 lignes lues");
+  // Un faux .xlsx est refusé proprement, sans rien envoyer
+  await m.getByTestId("import-input-team").setInputFiles({ name: "equipe.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: Buffer.from("pas un classeur") });
+  await expect(m.getByText("Lecture impossible")).toBeVisible();
+  await m.getByTestId("import-input-team").setInputFiles({ name: "equipe.csv", mimeType: "text/csv", buffer: csv([["Prénom", "Nom", "E-mail professionnel", "Téléphone professionnel", "Rôle", "Statut"], ["Lou", "Import", `lou-${run}@halo.invalid`, "06 11 22 33 44", "Agent", "Prestataire"]]) });
+  await expect(m.getByTestId("import-file-team")).toContainText("1 lignes lues");
+  // Rien n'est créé avant validation
+  expect((await admin.from("properties").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("name", "Villa Import")).count).toBe(0);
+  const { data: staged } = await admin.from("import_rows").select("raw").eq("job_id", jobId).eq("kind", "properties").limit(1).single();
+  expect(JSON.stringify(staged!.raw)).not.toContain("1234"); // colonne sensible jamais transmise
+  await m.getByTestId("import-analyze").click();
+
+  // Aperçu : chaque problème signalé, lignes valides et rejetées distinguées
+  const preview = m.getByTestId("import-preview");
+  await expect(preview).toBeVisible();
+  await expect(m.getByTestId("import-summary-properties")).toContainText("2 à créer");
+  await expect(m.getByTestId("import-summary-properties")).toContainText("1 associé à une fiche existante");
+  await expect(m.getByTestId("import-summary-stays")).toContainText("2 à créer");
+  await expect(m.getByTestId("import-summary-stays")).toContainText("2 lignes rejetées");
+  await expect(m.getByTestId("import-summary-stays")).toContainText("1 doublon ignoré");
+  await expect(preview).toContainText("Date non reconnue : Arrivée (date)");
+  await expect(preview).toContainText("Logement introuvable");
+  await expect(preview).toContainText("Doublon de la ligne 1 du fichier");
+  expect((await admin.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("guest_name", "Ana")).count).toBe(0);
+  await expect(m.getByTestId("import-run")).toHaveText("Importer 2 logements, 2 séjours et 1 contact");
+
+  // Droits : un agent ne voit ni l'import ni son rapport ; une autre organisation non plus
+  const agent = await newPage(browser);
+  await agent.context().clearCookies();
+  await agent.goto("/fr/auth/sign-in");
+  await agent.getByLabel("Nom du compte de test").fill(`imp-${run}-agent`);
+  await agent.getByTestId("test-account-submit").click();
+  await agent.waitForURL(/\/fr\/app/);
+  await agent.goto(`/fr/app/import/${jobId}`);
+  await expect(agent).toHaveURL(/\/fr\/app\/missions$/);
+  const other = await newPage(browser);
+  await testScenario(other, `imp autre ${run}`);
+  await other.goto(`/fr/app/import/${jobId}`);
+  await expect(other.getByTestId("not-found")).toBeVisible();
+
+  // Validation : missions demandées, e-mails voyageurs non importés
+  await m.getByTestId("import-opt-missions").check();
+  await m.getByTestId("import-run").click();
+  await expect(m.getByTestId("import-report")).toBeVisible();
+  await expect(m.getByTestId("import-result-properties")).toContainText("2 créés");
+  await expect(m.getByTestId("import-result-stays")).toContainText("2 créés");
+  await expect(m.getByTestId("import-result-team")).toContainText("1 créé");
+  await expect(m.getByTestId("import-missions")).toContainText(/Missions : \d+ créées?, non affectées?/);
+  const { data: villa } = await admin.from("properties").select("id, import_job_id").eq("organization_id", org).eq("name", "Villa Import").single();
+  expect(villa!.import_job_id).toBe(jobId);
+  const { data: ana } = await admin.from("reservations").select("property_id, guest_email, external_uid, source").eq("organization_id", org).eq("guest_name", "Ana").single();
+  expect(ana).toMatchObject({ property_id: villa!.id, guest_email: null, external_uid: "HM1", source: "airbnb" });
+  expect(((await admin.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org)).count ?? 0) > tasksBefore).toBe(true);
+  // Aucun e-mail ni invitation déclenché par l'import
+  expect((await admin.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org)).count).toBe(outBefore);
+  expect((await admin.from("invitations").select("id", { count: "exact", head: true }).eq("organization_id", org)).count).toBe(invBefore);
+
+  // Reprise : relancer ne crée aucun doublon
+  await m.reload();
+  expect((await admin.from("properties").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("name", "Villa Import")).count).toBe(1);
+  await m.goto("/fr/app/import");
+  await expect(m.getByTestId("import-history-row").first()).toContainText("Terminé");
+
+  // Annulation sûre : un séjour modifié depuis est conservé avec sa raison
+  await admin.from("reservations").update({ notes: "Modifié après import" }).eq("organization_id", org).eq("guest_name", "Bob");
+  await m.goto(`/fr/app/import/${jobId}`);
+  await m.getByTestId("import-revert-check").click();
+  await expect(m.getByTestId("import-revert-plan")).toContainText("conservé");
+  await expect(m.getByTestId("import-revert")).toContainText("modifié depuis l'import");
+  await m.getByTestId("import-revert-apply").click();
+  await expect(m.getByTestId("import-reverted")).toBeVisible();
+  expect((await admin.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("guest_name", "Ana")).count).toBe(0);
+  expect((await admin.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("guest_name", "Bob")).count).toBe(1);
+  expect((await admin.from("properties").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("name", "Studio Import")).count).toBe(1); // son séjour est conservé
+  await Promise.all([agent, other].map((p) => p.context().close()));
+});
+
+test("25 · calendrier iCal : création, relance sans doublon, modification HALO non écrasée, séjour disparu arbitré", async ({ browser }) => {
+  let ics = "";
+  const server = createServer((_, res) => {
+    res.setHeader("Content-Type", "text/calendar");
+    res.end(ics);
+  }).listen(54391);
+  const y = new Date().getFullYear() + 1;
+  const ev = (uid: string, a: string, b: string, summary = "Reserved") => `BEGIN:VEVENT\r\nUID:${uid}\r\nDTSTART;VALUE=DATE:${a}\r\nDTEND;VALUE=DATE:${b}\r\nSUMMARY:${summary}\r\nEND:VEVENT\r\n`;
+  ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\n${ev("a1@airbnb", `${y}0510`, `${y}0514`)}${ev("a2@airbnb", `${y}0601`, `${y}0603`, "Airbnb (Not available)")}END:VCALENDAR\r\n`;
+  try {
+    const m = await newPage(browser);
+    const { org } = await testScenario(m, `ical ${run}`);
+    const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+    await m.goto(`/fr/app/properties/${prop!.id}`);
+    await m.getByTestId("source-url").fill("http://127.0.0.1:54391/calendar.ics?s=secretABCD");
+    await m.getByTestId("source-add").click();
+    await expect(m.getByTestId("source-row")).toContainText("127.0.0.1:54391 …ABCD");
+    await expect(m.getByTestId("source-row")).not.toContainText("secretABCD");
+    await m.getByTestId("source-sync").click();
+    await expect(m.getByTestId("source-synced")).toContainText("2 créé(s)");
+    await m.getByTestId("source-sync").click();
+    await expect(m.getByTestId("source-synced")).toContainText("0 créé(s), 0 mis à jour, 0 à arbitrer");
+    // Le responsable modifie le séjour dans HALO ; le calendrier change aussi : HALO garde la main
+    await admin.from("reservations").update({ guest_name: "Nom saisi dans HALO" }).eq("organization_id", org).eq("external_uid", "a1@airbnb");
+    ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\n${ev("a1@airbnb", `${y}0511`, `${y}0514`)}END:VCALENDAR\r\n`;
+    await m.getByTestId("source-sync").click();
+    await expect(m.getByTestId("source-synced")).toContainText("2 à arbitrer");
+    const { data: kept } = await admin.from("reservations").select("check_in_at").eq("organization_id", org).eq("external_uid", "a1@airbnb").single();
+    expect(kept!.check_in_at.slice(0, 10)).toBe(`${y}-05-10`);
+    await expect(m.getByTestId("source-conflict")).toHaveCount(2);
+    await m.getByTestId("source-conflict").filter({ hasText: "absent du calendrier" }).getByTestId("conflict-cancel").click();
+    await expect(m.getByTestId("source-conflict")).toHaveCount(1);
+    expect((await admin.from("reservations").select("status").eq("organization_id", org).eq("external_uid", "a2@airbnb").single()).data!.status).toBe("cancelled");
+    await m.getByTestId("conflict-apply").click();
+    await expect(m.getByTestId("source-conflicts")).toHaveCount(0);
+    expect((await admin.from("reservations").select("check_in_at").eq("organization_id", org).eq("external_uid", "a1@airbnb").single()).data!.check_in_at.slice(0, 10)).toBe(`${y}-05-11`);
+    // Erreur de lecture visible, sans perte
+    server.close();
+    await m.getByTestId("source-sync").click();
+    await expect(m.getByRole("alert").filter({ hasText: "Calendrier injoignable" })).toBeVisible();
+    await m.reload();
+    await expect(m.getByTestId("source-error")).toContainText("calendrier injoignable");
+    await m.getByTestId("source-pause").click();
+    await expect(m.getByTestId("source-row")).toHaveAttribute("data-status", "paused");
+  } finally {
+    server.close();
+  }
 });

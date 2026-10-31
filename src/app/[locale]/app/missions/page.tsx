@@ -101,6 +101,8 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
                 <span className="block text-[15px] font-medium">
                   {tt(k.type)} · {p?.name}
                 </span>
+                {k.title && <span className="block text-[15px] font-semibold text-accent-text" data-testid="mission-title">{k.title}</span>}
+                {k.notes && <span className="block truncate text-[13px] text-fg" data-testid="mission-notes-preview">{k.notes}</span>}
                 <span className="block text-[13px] text-muted">
                   {t("windowLabel", { window: windowText(f, k.window_start, k.window_end, false, p?.timezone ?? undefined) })}
                   {zone && <span data-testid="mission-zone"> ({t("localTime", { zone })})</span>} · {t("durationLabel", { duration: durationText(k.duration_min) })} · {tts(k.status)}

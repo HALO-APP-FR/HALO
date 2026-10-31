@@ -31,6 +31,8 @@ interface GStay {
   guide?: Record<string, string | null>;
   preparation: { questionnaire_status: string; answers: Record<string, unknown>; updated_at: string | null; editable: boolean };
   prepared: GItem[];
+  /** Numéro de contact communiqué par l'équipe (disponible dès la préparation) */
+  contact_phone?: string | null;
   vip: { motifs: { id: string; label: string }[]; request: { status: string; message: string | null; created_at: string } | null; confirmed: boolean };
   services: GService[];
   messages: { author: "guest" | "member"; body: string; at: string }[];
@@ -48,7 +50,7 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
 
   let data: GStay | { status: string } | null = null;
   let problems: GProblem[] = [];
-  type Around = { property: { name: string; address: string | null; postal_code: string | null; city: string | null; lat: number | null; lng: number | null }; places: Place[] };
+  type Around = { full?: boolean; property: { name: string; address: string | null; postal_code: string | null; city: string | null; lat: number | null; lng: number | null }; places: Place[] };
   let around = null as Around | null;
   let failed = false;
   if (isConnected()) {
@@ -209,6 +211,7 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
               address: [around.property.address, [around.property.postal_code, around.property.city].filter(Boolean).join(" ")].filter(Boolean).join(", "),
             }}
             places={around.places}
+            hiddenUntil={around.full === false ? d(g.stay.details_from) : undefined}
           />
         )}
 
@@ -281,7 +284,10 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
               </li>
             ))}
           </ul>
-          <GuestMessageForm token={token} />
+          <GuestMessageForm
+            token={token}
+            hint={full ? undefined : g.contact_phone ? t("contact.hintPrepPhone", { phone: g.contact_phone }) : t("contact.hintPrep", { date: d(g.stay.details_from) })}
+          />
         </Card>
         <p className="pb-6 text-center text-[13px] text-muted">{t("linkValid", { until: d(g.stay.link_valid_until) })}</p>
       </main>

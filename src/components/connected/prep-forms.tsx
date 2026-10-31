@@ -66,6 +66,9 @@ export interface PrepActionRow {
   task_id: string | null;
   service_id: string | null;
   done_at: string | null;
+  override_reason?: string | null;
+  /** Statut de la mission liée (si l'action a donné lieu à une mission) */
+  task_status?: string | null;
 }
 
 export function PrepActions({
@@ -87,7 +90,9 @@ export function PrepActions({
   const f = useFormatter();
   const { pending, error, run } = useRun();
   const [n, setN] = useState({ title: "", kind: "other" as PrepActionInput["kind"], assignee: "", due: "", blocking: false });
-  const [open, setOpen] = useState<{ id: string; mode: "service" | "task" } | null>(null);
+  const [open, setOpen] = useState<{ id: string; mode: "service" | "task" | "force" } | null>(null);
+  const [force, setForce] = useState("");
+  const tts = useTranslations("taskStatus");
   const name = (id: string | null) => members.find((m) => m.id === id)?.name ?? t("unassigned");
   const fmt = (x: string) => f.dateTime(new Date(x), { dateStyle: "medium", timeStyle: "short", timeZone });
   return (
@@ -105,11 +110,17 @@ export function PrepActions({
               {t(`kind.${a.kind}`)} · {name(a.assignee_id)}
               {a.due_at ? ` · ${t("dueOn", { date: fmt(a.due_at) })}` : ""}
               {a.service_id ? ` · ${t("linkedService")}` : ""}
-              {a.task_id ? ` · ${t("linkedTask")}` : ""}
+              {a.task_id ? ` · ${t("linkedTask")}${a.task_status ? ` (${tts(a.task_status)})` : ""}` : ""}
             </p>
             {a.status === "open" && (
               <div className="mt-2 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => setPrepActionStatus(a.id, "done"))} data-testid="prep-action-done">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => (a.task_id && a.task_status && !["done", "validated", "cancelled"].includes(a.task_status) ? setOpen({ id: a.id, mode: "force" }) : run(() => setPrepActionStatus(a.id, "done")))}
+                  data-testid="prep-action-done"
+                >
                   <Check />
                   {t("markDone")}
                 </Button>
@@ -133,6 +144,23 @@ export function PrepActions({
               <Button size="sm" variant="ghost" className="mt-1" disabled={pending} onClick={() => run(() => setPrepActionStatus(a.id, "open"))}>
                 {t("reopen")}
               </Button>
+            )}
+            {a.status === "done" && a.override_reason && <p className="mt-1 text-[13px] text-warning" data-testid="prep-action-override">{t("overrideShown", { reason: a.override_reason })}</p>}
+            {open?.id === a.id && open.mode === "force" && (
+              <div className="mt-3 space-y-2 rounded-md border border-warning bg-warning-soft p-3" data-testid="prep-force">
+                <p className="text-[14px]">{t("missionNotDone")}</p>
+                <Field label={t("overrideReason")} htmlFor={`pf-${a.id}`}>
+                  <Input id={`pf-${a.id}`} value={force} maxLength={500} onChange={(e) => setForce(e.target.value)} data-testid="prep-force-reason" />
+                </Field>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setOpen(null)}>
+                    {t("close")}
+                  </Button>
+                  <Button size="sm" variant="outline" disabled={pending || !force.trim()} onClick={() => run(() => setPrepActionStatus(a.id, "done", force), () => (setOpen(null), setForce("")))} data-testid="prep-force-confirm">
+                    {t("overrideConfirm")}
+                  </Button>
+                </div>
+              </div>
             )}
             {open?.id === a.id && open.mode === "service" && (
               <ServiceFromAction reservationId={reservationId} actionId={a.id} kinds={serviceKinds} timeZone={timeZone} title={a.title} onDone={() => setOpen(null)} />
@@ -243,18 +271,21 @@ function TaskFromAction({ reservationId, actionId, timeZone, title, checkIn, onD
   const t = useTranslations("connected.prep");
   const { pending, error, run } = useRun();
   const local = (x: Date) => new Intl.DateTimeFormat("sv-SE", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(x).replace(" ", "T");
-  const [v, setV] = useState({ title, start: "", end: local(new Date(checkIn)), duration: 30 });
+  const [v, setV] = useState({ title, notes: "", start: "", end: local(new Date(checkIn)), duration: 30 });
   return (
     <form
       className="mt-3 grid gap-3 rounded-md bg-subtle p-3 sm:grid-cols-2 dark:bg-surface-hover"
       onSubmit={(e) => {
         e.preventDefault();
-        run(() => createPrepMission(reservationId, actionId, { title: v.title, start: zonedTime(v.start, timeZone).toISOString(), end: zonedTime(v.end, timeZone).toISOString(), durationMin: v.duration }), onDone);
+        run(() => createPrepMission(reservationId, actionId, { title: v.title, notes: v.notes, start: zonedTime(v.start, timeZone).toISOString(), end: zonedTime(v.end, timeZone).toISOString(), durationMin: v.duration }), onDone);
       }}
       data-testid="prep-task-form"
     >
       <Field label={t("taskTitle")} htmlFor={`pt-t-${actionId}`} className="sm:col-span-2">
         <Input id={`pt-t-${actionId}`} value={v.title} maxLength={200} onChange={(e) => setV({ ...v, title: e.target.value })} />
+      </Field>
+      <Field label={t("taskNotes")} htmlFor={`pt-n-${actionId}`} hint={t("taskNotesHint")} className="sm:col-span-2">
+        <Textarea id={`pt-n-${actionId}`} value={v.notes} maxLength={4000} onChange={(e) => setV({ ...v, notes: e.target.value })} data-testid="prep-task-notes" />
       </Field>
       <Field label={t("taskFrom")} htmlFor={`pt-s-${actionId}`} hint={t("localTimeHint")}>
         <Input id={`pt-s-${actionId}`} type="datetime-local" value={v.start} onChange={(e) => setV({ ...v, start: e.target.value })} required />
@@ -395,8 +426,11 @@ export function VipPanel({
   criteria,
   loyalty,
   timeZone,
+  delivery,
 }: {
   reservationId: string;
+  /** État réel du dernier e-mail « réponse VIP » au voyageur (journal d'envoi) */
+  delivery?: { status: string; at: string } | null;
   vip: VipState;
   request: { id: string; status: string; note: string | null; criterion_id: string | null; guest_message: string | null; created_at: string } | null;
   criteria: { id: string; label: string; kind: string; min_stays: number | null; validity_days: number | null }[];
@@ -433,6 +467,17 @@ export function VipPanel({
         {loyalty !== null && <p className="mt-1 text-muted" data-testid="vip-loyalty">{t("loyalty", { count: loyalty })}</p>}
         <p className="mt-1 text-[12px] text-faint">{t("privacy")}</p>
       </div>
+
+      {request && !openReq && request.guest_message && (
+        <div className="rounded-md border border-line p-3 text-[14px]" data-testid="vip-sent-message">
+          <p className="text-[12px] font-medium text-muted">{t("sentToGuest")}</p>
+          <p className="mt-1 whitespace-pre-wrap">« {request.guest_message} »</p>
+          <p className="mt-1 text-[12px] text-muted" data-testid="vip-sent-delivery">
+            {t("visibleInSpace")}
+            {delivery ? ` · ${t(`delivery.${["sent", "pending", "failed", "not_configured"].includes(delivery.status) ? delivery.status : "failed"}`)} (${fmt(delivery.at)})` : ` · ${t("delivery.none")}`}
+          </p>
+        </div>
+      )}
 
       {openReq && (
         <div className="space-y-3 rounded-md border border-accent p-3" data-testid="vip-request">

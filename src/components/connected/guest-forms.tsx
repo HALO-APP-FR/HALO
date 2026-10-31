@@ -98,7 +98,7 @@ export function GuestReply({ token, serviceId, question }: { token: string; serv
   );
 }
 
-export function GuestMessageForm({ token }: { token: string }) {
+export function GuestMessageForm({ token, hint }: { token: string; hint?: string }) {
   const t = useTranslations("guestSpace");
   const { pending, error, run } = useGuestRun();
   const [body, setBody] = useState("");
@@ -110,7 +110,7 @@ export function GuestMessageForm({ token }: { token: string }) {
         run(() => guestSendMessage(token, body), () => setBody(""));
       }}
     >
-      <Field label={t("contact.label")} htmlFor="gm" hint={t("contact.hint")}>
+      <Field label={t("contact.label")} htmlFor="gm" hint={hint ?? t("contact.hint")}>
         <Textarea id="gm" value={body} onChange={(e) => setBody(e.target.value)} maxLength={2000} data-testid="guest-message" />
       </Field>
       {error && <p role="alert" className="text-[14px] text-danger">{error}</p>}
@@ -346,9 +346,17 @@ export function GuestVip({
   const [reply, setReply] = useState("");
   if (confirmed)
     return (
-      <p className="rounded-lg bg-success-soft p-3 text-[15px] font-medium text-success" data-testid="vip-confirmed">
-        {t("confirmed")}
-      </p>
+      <div className="space-y-2">
+        <p className="rounded-lg bg-success-soft p-3 text-[15px] font-medium text-success" data-testid="vip-confirmed">
+          {t("confirmed")}
+        </p>
+        {request?.status === "accepted" && request.message && (
+          <div className="rounded-lg border border-line p-3" data-testid="vip-team-message">
+            <p className="text-[12px] font-medium text-muted">{t("teamMessage")}</p>
+            <p className="mt-1 whitespace-pre-wrap text-[15px]">{request.message}</p>
+          </div>
+        )}
+      </div>
     );
   if (request && (request.status === "pending" || request.status === "info_requested"))
     return (

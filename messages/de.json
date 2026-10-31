@@ -1304,7 +1304,8 @@
       "profile": "Mein Profil",
       "messages": "Nachrichten",
       "preferences": "Einstellungen",
-      "more": "Mehr"
+      "more": "Mehr",
+      "import": "Daten importieren"
     },
     "env": {
       "demo": "Demo",
@@ -1369,7 +1370,7 @@
       "resolution_required": "Geben Sie an, was getan wurde.",
       "invalid_window": "Das Zeitfenster ist ungültig: Zwischen Beginn und Ende muss mindestens die geschätzte Dauer liegen.",
       "out_of_window": "Der Einsatz passt nicht mehr ins Fenster: neues Ende bestätigen.",
-      "stay_overlap": "Dieser Aufenthalt überschneidet sich mit einem anderen bestätigten Aufenthalt derselben Unterkunft.",
+      "stay_overlap": "Dieser Aufenthalt überschneidet sich mit einem anderen derselben Unterkunft.",
       "assignee_unavailable": "Diese Person ist in diesem Zeitfenster abwesend: Der Einsatz passt nicht außerhalb ihrer Abwesenheit.",
       "name_required": "Geben Sie Ihren Namen an.",
       "invalid_period": "Der Zeitraum ist ungültig (Ende nach Beginn).",
@@ -1382,7 +1383,19 @@
       "no_recipient": "Wählen Sie mindestens einen Empfänger.",
       "invalid_context": "Eine Unterhaltung muss einen Einsatz, eine Unterkunft oder einen Aufenthalt betreffen.",
       "blocking_actions": "„Bereit“ nicht möglich: Eine notwendige Aktion ist noch offen.",
-      "no_email": "Keine E-Mail-Adresse für diesen Gast: Link kopieren und selbst senden."
+      "no_email": "Keine E-Mail-Adresse für diesen Gast: Link kopieren und selbst senden.",
+      "mission_not_done": "Der verknüpfte Einsatz ist nicht abgeschlossen: Geben Sie einen Grund an, um die Aktion trotzdem abzuschließen.",
+      "too_many_rows": "Zu viele Zeilen in der Datei.",
+      "not_analyzed": "Analysieren Sie zuerst die Datei.",
+      "invalid_url": "Ungültige Kalenderadresse (https:// oder webcal://).",
+      "paused": "Quelle pausiert: zum Synchronisieren fortsetzen.",
+      "feed_unreachable": "Kalender nicht erreichbar (Adresse abgelaufen oder Plattform nicht verfügbar).",
+      "feed_timeout": "Der Kalender hat nicht rechtzeitig geantwortet.",
+      "feed_not_ical": "Diese Adresse liefert keinen iCal-Kalender.",
+      "feed_too_large": "Kalender zu groß (max. 2 MB).",
+      "feed_not_https": "Unsichere Adresse: https:// erforderlich.",
+      "feed_forbidden_host": "Adresse abgelehnt (internes Netz).",
+      "feed_invalid": "Ungültige Kalenderadresse."
     },
     "home": {
       "subtitle": "Was Ihre Aufmerksamkeit braucht.",
@@ -2388,7 +2401,7 @@
       "delete": "Löschen",
       "ownTitle": "Empfehlungen von Team und Eigentümer",
       "autoTitle": "Automatische Empfehlungen",
-      "autoSource": "Quelle: OpenStreetMap (kostenlos, ohne Schlüssel; Abdeckung je nach Gegend; Öffnungszeiten oft fehlend; datierte Daten). Es werden keine Gastdaten übermittelt.",
+      "autoSource": "Quelle: OpenStreetMap, über Overpass, dann Photon falls Overpass ablehnt (kostenlos, ohne Schlüssel; Abdeckung variiert; Öffnungszeiten oft fehlend). Die Suche startet in Ihrem Browser; keine Gastdaten werden gesendet.",
       "autoToggle": "Automatische Empfehlungen für Gäste anzeigen",
       "autoOff": "Für diese Unterkunft deaktiviert: Gäste sehen nur Ihre Empfehlungen.",
       "locating": "Wird gesucht …",
@@ -2512,8 +2525,18 @@
         "vip_accepted": "VIP-Anfrage angenommen",
         "vip_refused": "VIP-Anfrage abgelehnt",
         "vip_granted": "VIP-Status vergeben",
-        "vip_revoked": "VIP-Status entzogen"
-      }
+        "vip_revoked": "VIP-Status entzogen",
+        "status_reverted": "„Bereit“ entfernt: notwendige Aktion offen",
+        "action_reopened": "Aktion wieder geöffnet",
+        "action_forced": "Aktion per Ausnahme abgeschlossen",
+        "action_auto_done": "Aktion abgeschlossen: Einsatz erledigt"
+      },
+      "missionNotDone": "Der verknüpfte Einsatz ist nicht abgeschlossen. Die Aktion jetzt abzuschließen ist eine Ausnahme: Sie wird mit Ihrem Grund protokolliert.",
+      "overrideReason": "Grund der Ausnahme",
+      "overrideConfirm": "Trotzdem abschließen",
+      "overrideShown": "Per Ausnahme abgeschlossen: {reason}",
+      "taskNotes": "Anweisungen für den Agenten",
+      "taskNotesHint": "Für den Agenten in seiner Liste und den Einsatzdetails sichtbar."
     },
     "vip": {
       "title": "VIP-Status",
@@ -2548,7 +2571,361 @@
       "noCriterion": "Ohne Kriterium (Grund erforderlich)",
       "expires": "Ablauf",
       "expiresHint": "Leer = ohne Ablauf",
-      "validityDefault": "Leer = {days} Tage (Gültigkeit des Kriteriums)"
+      "validityDefault": "Leer = {days} Tage (Gültigkeit des Kriteriums)",
+      "sentToGuest": "Nachricht an den Gast",
+      "visibleInSpace": "In seinem Gastbereich angezeigt",
+      "delivery": {
+        "sent": "E-Mail gesendet",
+        "pending": "E-Mail ausstehend",
+        "failed": "E-Mail nicht zugestellt",
+        "not_configured": "E-Mail nicht gesendet: kein Dienst eingerichtet",
+        "none": "keine E-Mail (keine Gastadresse)"
+      }
+    },
+    "import": {
+      "title": "Meine Daten importieren",
+      "subtitle": "Sie nutzen bereits eine Software? HALO hilft, Ihre Daten zu übernehmen und den Wechsel vorzubereiten.",
+      "entryTitle": "Sie nutzen bereits eine Software? Importieren Sie Ihre Daten in HALO.",
+      "entryText": "Unterkünfte, Aufenthalte und Team aus einer CSV- oder Excel-Datei, mit Vorschau vor dem Speichern.",
+      "startTitle": "Neuer Import",
+      "startText": "Wählen Sie die Quelle und was übernommen werden soll. Sie können speichern und später fortfahren.",
+      "software": "Software oder Quelle",
+      "softwareName": {
+        "spreadsheet": "Tabellenkalkulation (Excel, Google Sheets, Numbers)",
+        "airbnb": "Airbnb",
+        "booking": "Booking.com",
+        "lodgify": "Lodgify",
+        "smoobu": "Smoobu",
+        "hostaway": "Hostaway",
+        "guesty": "Guesty",
+        "beds24": "Beds24",
+        "superhote": "SuperHote",
+        "other": "Andere Software"
+      },
+      "softwareHint": {
+        "airbnb": "Nutzen Sie den CSV- oder Excel-Export dieser Software: HALO schlägt die Spaltenzuordnung vor. Eine direkte Verbindung ist noch nicht verfügbar.",
+        "booking": "Nutzen Sie den CSV- oder Excel-Export dieser Software: HALO schlägt die Spaltenzuordnung vor. Eine direkte Verbindung ist noch nicht verfügbar.",
+        "lodgify": "Nutzen Sie den CSV- oder Excel-Export dieser Software: HALO schlägt die Spaltenzuordnung vor. Eine direkte Verbindung ist noch nicht verfügbar.",
+        "smoobu": "Nutzen Sie den CSV- oder Excel-Export dieser Software: HALO schlägt die Spaltenzuordnung vor. Eine direkte Verbindung ist noch nicht verfügbar.",
+        "hostaway": "Nutzen Sie den CSV- oder Excel-Export dieser Software: HALO schlägt die Spaltenzuordnung vor. Eine direkte Verbindung ist noch nicht verfügbar.",
+        "guesty": "Nutzen Sie den CSV- oder Excel-Export dieser Software: HALO schlägt die Spaltenzuordnung vor. Eine direkte Verbindung ist noch nicht verfügbar.",
+        "beds24": "Nutzen Sie den CSV- oder Excel-Export dieser Software: HALO schlägt die Spaltenzuordnung vor. Eine direkte Verbindung ist noch nicht verfügbar.",
+        "superhote": "Nutzen Sie den CSV- oder Excel-Export dieser Software: HALO schlägt die Spaltenzuordnung vor. Eine direkte Verbindung ist noch nicht verfügbar."
+      },
+      "kinds": "Zu importierende Daten",
+      "kind": {
+        "properties": "Unterkünfte",
+        "stays": "Aufenthalte",
+        "team": "Team"
+      },
+      "kindShort": {
+        "properties": "Unterkunft",
+        "stays": "Aufenthalt",
+        "team": "Team"
+      },
+      "staysNeedProperties": "Aufenthalte werden mit bereits in HALO vorhandenen Unterkünften verknüpft (nach Name oder Referenz).",
+      "method": "Methode",
+      "methodName": {
+        "file": "CSV- oder Excel-Datei",
+        "ical": "iCal-Kalender",
+        "api": "Direkte Verbindung",
+        "assisted": "Begleitete Migration"
+      },
+      "methodText": {
+        "file": "Verfügbar. Sie behalten jeden Schritt in der Hand: Vorschau, Duplikate, Bestätigung.",
+        "ical": "Pro Unterkunft verfügbar. Liefert Daten (manchmal einen Namen), nicht alle Buchungsdaten.",
+        "api": "Nicht verfügbar: Noch keine direkte Verbindung zu Drittsoftware geprüft.",
+        "assisted": "Auf Anfrage: Das HALO-Team hilft bei der Vorbereitung Ihrer Dateien. Nichts wird automatisch übertragen."
+      },
+      "methodNext": {
+        "file": "",
+        "ical": "Fügen Sie die Kalenderadresse auf der Unterkunftsseite hinzu (Unterkünfte → Unterkunft → Kalender).",
+        "api": "Noch nicht verfügbar. Nutzen Sie bis dahin den Dateiexport Ihrer Software.",
+        "assisted": "Schreiben Sie Ihrem HALO-Ansprechpartner mit der Liste Ihrer Tools; wir bereiten die Importdateien gemeinsam vor."
+      },
+      "continue": "Weiter",
+      "saveForLater": "Für später speichern",
+      "template": "Vorlage {kind}",
+      "templateShort": "Vorlage herunterladen",
+      "templatesTitle": "Dateivorlagen",
+      "templatesText": "CSV-Dateien zum Ausfüllen in Excel, Google Sheets oder Numbers. Überschriften werden automatisch erkannt.",
+      "historyTitle": "Importverlauf",
+      "historyEmpty": "Noch keine Importe.",
+      "createdCount": "{count, plural, =0 {keine Einträge erstellt} one {# Eintrag erstellt} other {# Einträge erstellt}}",
+      "jobStatus": {
+        "draft": "In Vorbereitung",
+        "analyzed": "Bereit zur Bestätigung",
+        "importing": "Unterbrochen — fortsetzen",
+        "completed": "Abgeschlossen",
+        "failed": "Fehlgeschlagen — fortsetzen",
+        "reverted": "Rückgängig gemacht"
+      },
+      "privacyTitle": "Was Sie übermitteln",
+      "privacy1": "Die Datei wird in Ihrem Browser gelesen; nur die gelesenen Zeilen gehen an HALO, nie die Datei selbst.",
+      "privacy2": "Sensible Spalten (Zugangscodes, Passwörter, Ausweise, Bankdaten) werden vor dem Senden entfernt.",
+      "privacy3": "Kein externer Dienst analysiert Ihre Dateien. Zeilen werden 30 Tage nach dem Import gelöscht; der Zahlenbericht bleibt.",
+      "privacy4": "Nur die Verantwortlichen Ihrer Organisation sehen Importe. Ein Import sendet keine E-Mail und keine Einladung.",
+      "jobTitle": "Datenimport",
+      "backToImports": "← Alle Importe",
+      "steps": "Schritte",
+      "step": {
+        "files": "Dateien und Spalten",
+        "preview": "Vorschau und Bestätigung",
+        "report": "Bericht"
+      },
+      "editFiles": "Dateien oder Spalten ändern",
+      "chooseFile": "CSV- oder Excel-Datei (.xlsx) wählen",
+      "fileHint": "Max. 2000 Zeilen und 5 MB. Erste Zeile = Überschriften.",
+      "fileLoaded": "{name} · {rows} Zeilen gelesen",
+      "browse": "Durchsuchen",
+      "replaceFile": "Ersetzen",
+      "reading": "Wird gelesen…",
+      "dropped": "Sensible Spalten entfernt, nie gesendet: {columns}.",
+      "mapping": "Spaltenzuordnung",
+      "mappingHint": "HALO schlägt eine Zuordnung vor; ändern Sie sie bei Bedarf. Eine „nicht importierte“ Spalte wird ignoriert.",
+      "column": "Dateispalte",
+      "example": "Beispiel",
+      "haloField": "HALO-Feld",
+      "haloFieldFor": "HALO-Feld für Spalte {column}",
+      "ignoreColumn": "Nicht importiert",
+      "missingFields": "Pflichtfelder ohne Spalte: {fields}.",
+      "analyze": "Datei analysieren",
+      "analyzeHint": "Die Analyse erstellt oder ändert nichts in HALO.",
+      "field": {
+        "properties": {
+          "name": "Name der Unterkunft",
+          "address": "Adresse",
+          "postal_code": "Postleitzahl",
+          "city": "Stadt",
+          "country": "Land",
+          "timezone": "Zeitzone",
+          "capacity": "Kapazität",
+          "check_in_time": "Übliche Ankunftszeit",
+          "check_out_time": "Übliche Abreisezeit",
+          "cleaning_minutes": "Reinigungsdauer (Min.)",
+          "instructions": "Anweisungen (nicht sensibel)",
+          "external_ref": "Ursprungsreferenz"
+        },
+        "team": {
+          "first_name": "Vorname",
+          "last_name": "Nachname",
+          "full_name": "Vollständiger Name",
+          "email": "Geschäftliche E-Mail",
+          "phone": "Geschäftliche Telefonnummer",
+          "role": "Vorgeschlagene Rolle",
+          "position": "Position",
+          "worker_type": "Angestellt oder Dienstleister"
+        },
+        "stays": {
+          "property": "Unterkunft",
+          "check_in": "Ankunft (Datum)",
+          "check_out": "Abreise (Datum)",
+          "check_in_time": "Ankunftszeit",
+          "check_out_time": "Abreisezeit",
+          "guest_name": "Name des Gastes",
+          "guests": "Anzahl Gäste",
+          "adults": "Erwachsene",
+          "children": "Kinder",
+          "babies": "Babys",
+          "source": "Buchungsquelle",
+          "external_ref": "Buchungsreferenz",
+          "status": "Status",
+          "guest_email": "E-Mail des Gastes",
+          "notes": "Notizen"
+        }
+      },
+      "issue": {
+        "missing": "{field} fehlt",
+        "invalid_date": "Datum nicht erkannt: {field}",
+        "invalid_number": "Ungültige Zahl: {field}",
+        "invalid_time": "Uhrzeit nicht erkannt: {field}",
+        "dates_order": "Abreise vor oder gleich Ankunft",
+        "unknown_property": "Unterkunft nicht gefunden (weder in der Datei noch in HALO)",
+        "invalid_email": "Ungültige E-Mail",
+        "invalid_country": "Land nicht erkannt",
+        "invalid_timezone": "Zeitzone nicht erkannt",
+        "invalid_role": "Rolle nicht erkannt (Verantwortlich oder Agent)",
+        "invalid_status": "Status nicht erkannt",
+        "invalid_phone": "Telefonnummer nicht erkannt: wird ignoriert",
+        "unknown_worker_type": "Status angestellt/Dienstleister nicht erkannt: ignoriert",
+        "dup_existing": "Existiert möglicherweise bereits in HALO",
+        "dup_in_file": "Duplikat von Dateizeile {row}"
+      },
+      "issueShort": {
+        "missing": "Feld fehlt",
+        "invalid_date": "Datum nicht erkannt",
+        "invalid_number": "ungültige Zahl",
+        "invalid_time": "Uhrzeit nicht erkannt",
+        "dates_order": "Daten vertauscht",
+        "unknown_property": "Unterkunft nicht gefunden",
+        "invalid_email": "ungültige E-Mail",
+        "invalid_country": "Land nicht erkannt",
+        "invalid_timezone": "Zeitzone nicht erkannt",
+        "invalid_role": "Rolle nicht erkannt",
+        "invalid_status": "Status nicht erkannt",
+        "invalid_phone": "Telefon ignoriert",
+        "unknown_worker_type": "Status ignoriert",
+        "dup_in_file": "Duplikat in der Datei",
+        "dup_existing": "bereits in HALO"
+      },
+      "summaryTitle": "Zusammenfassung vor dem Import",
+      "summaryText": "Noch nichts gespeichert. Prüfen, Duplikate anpassen, dann bestätigen.",
+      "sum": {
+        "create": "{count, plural, =0 {nichts zu erstellen} one {# zu erstellen} other {# zu erstellen}}",
+        "link": "{count, plural, one {# mit vorhandenem Eintrag verknüpft} other {# mit vorhandenen Einträgen verknüpft}}",
+        "ignore": "{count, plural, one {# Duplikat ignoriert} other {# Duplikate ignoriert}}",
+        "reject": "{count, plural, one {# Zeile abgelehnt} other {# Zeilen abgelehnt}}",
+        "updates": "Kein vorhandener Eintrag geändert (HALO überschreibt nie).",
+        "unmapped": "Nicht importierte Spalten: {columns}"
+      },
+      "rowsTitle": "Zeilen",
+      "rowsFilter": "Angezeigte Zeilen",
+      "rowsProblems": "Zu prüfen",
+      "rowsAll": "Alle",
+      "downloadReport": "Zu korrigierende Zeilen (CSV)",
+      "noProblems": "Keine Zeilen zu prüfen.",
+      "line": "Zeile {n}",
+      "matches": "Vorhandener Eintrag: {label}",
+      "decisionFor": "Entscheidung für Zeile {n}",
+      "decision": {
+        "create": "Erstellen",
+        "link": "Mit vorhandenem Eintrag verknüpfen",
+        "ignore": "Ignorieren",
+        "reject": "Abgelehnt"
+      },
+      "moreRows": "{count, plural, other {+ # Zeilen (siehe CSV)}}",
+      "effectsTitle": "Auswirkungen des Imports",
+      "noSideEffects": "Es werden keine E-Mails, Einladungen, Nachrichten oder externen Buchungen gesendet. Importierte Mitglieder werden Kontakte: Sie laden sie ein, wann Sie wollen.",
+      "optMissions": "Einsätze für importierte Aufenthalte jetzt erstellen",
+      "optMissionsText": "Reinigungen (und Ankünfte, falls aktiviert) nach Ihren üblichen Regeln, nicht zugewiesen. Sonst werden sie bei der nächsten Planaktualisierung jeder Unterkunft erstellt.",
+      "optEmails": "E-Mails der Gäste importieren",
+      "optEmailsText": "Nützlich, um später den Aufenthaltslink zu senden. Beim Import wird nichts gesendet.",
+      "optEmailsNone": "Keine Gast-E-Mail in der Datei gefunden.",
+      "teamNote": "Mitglieder werden als Kontakte gespeichert (Team): kein Konto, keine Einladung.",
+      "runButton": "{what} importieren",
+      "and": " und ",
+      "count": {
+        "properties": "{count, plural, one {# Unterkunft} other {# Unterkünfte}}",
+        "stays": "{count, plural, one {# Aufenthalt} other {# Aufenthalte}}",
+        "team": "{count, plural, one {# Kontakt} other {# Kontakte}}",
+        "links": "die Verknüpfungen"
+      },
+      "nothingToImport": "Nichts zu importieren",
+      "fixMapping": "Ordnen Sie zuerst die Pflichtfelder zu.",
+      "csv": {
+        "type": "Typ",
+        "row": "Dateizeile",
+        "label": "Element",
+        "decision": "Entscheidung",
+        "problems": "Probleme",
+        "result": "Ergebnis",
+        "reason": "Grund"
+      },
+      "reportTitle": "Importbericht",
+      "downloadFullReport": "Vollständiger Bericht (CSV)",
+      "result": {
+        "created": "{count, plural, one {# erstellt} other {# erstellt}}",
+        "linked": "{count, plural, one {# mit Bestehendem verknüpft} other {# mit Bestehendem verknüpft}}",
+        "ignored": "{count, plural, one {# ignoriert} other {# ignoriert}}",
+        "rejected": "{count, plural, one {# abgelehnt} other {# abgelehnt}}",
+        "failed": "{count, plural, one {# fehlgeschlagen} other {# fehlgeschlagen}}",
+        "reverted": "{count, plural, one {# rückgängig} other {# rückgängig}}"
+      },
+      "status": {
+        "pending": "Ausstehend",
+        "created": "Erstellt",
+        "linked": "Verknüpft",
+        "ignored": "Ignoriert",
+        "rejected": "Abgelehnt",
+        "failed": "Fehlgeschlagen",
+        "reverted": "Rückgängig"
+      },
+      "missionsNotCreated": "Einsätze: beim Import nicht erstellt (bei der nächsten Planaktualisierung).",
+      "missionsCreated": "{count, plural, =0 {Einsätze: keine zu erstellen.} one {Einsätze: # erstellt, nicht zugewiesen.} other {Einsätze: # erstellt, nicht zugewiesen.}}",
+      "noneSent": "Dieser Import hat keine E-Mails, Einladungen oder Nachrichten gesendet.",
+      "failuresTitle": "Nicht importierte Zeilen",
+      "failure": {
+        "stay_overlap": "Überschneidet sich mit einem anderen Aufenthalt derselben Unterkunft",
+        "property_not_found": "Unterkunft in Ihrer Organisation nicht gefunden",
+        "duplicate_reference": "Buchungsreferenz für diese Unterkunft bereits verwendet",
+        "match_not_found": "Der gewählte vorhandene Eintrag existiert nicht mehr",
+        "other": "Wert von HALO abgelehnt"
+      },
+      "revertTitle": "Fehlerhaften Import korrigieren",
+      "revertText": "HALO entfernt nur, was dieser Import erstellt hat und seitdem unverändert ist. Geändertes oder Genutztes bleibt erhalten und wird aufgelistet: manuell bearbeiten.",
+      "revertCheck": "Anzeigen, was rückgängig gemacht werden kann",
+      "revertPlan": "{removable} unveränderte(s) Element(e) entfernbar · {kept} behalten",
+      "revertApply": "{count, plural, one {# unverändertes Element entfernen} other {# unveränderte Elemente entfernen}}",
+      "revertDone": "{count, plural, one {# Element entfernt.} other {# Elemente entfernt.}}",
+      "revertedAlready": "Für diesen Import wurde bereits eine Rücknahme angewendet.",
+      "keptReason": {
+        "modified_since": "seit dem Import geändert",
+        "missions_started": "Einsätze begonnen oder erledigt",
+        "has_requests": "verknüpfte Anfragen",
+        "has_messages": "Nachrichten ausgetauscht",
+        "guest_link": "Gastlink erstellt",
+        "other_stays": "andere Aufenthalte verknüpft",
+        "stays_kept": "seine Aufenthalte bleiben",
+        "has_places": "Empfehlungen hinzugefügt",
+        "invited": "Kontakt bereits eingeladen"
+      },
+      "interrupted": "{count, plural, other {Import unterbrochen: # Zeile(n) offen. Fortsetzen erstellt nie eine bereits importierte Zeile neu.}}",
+      "resume": "Import fortsetzen",
+      "errors": {
+        "format": "Erlaubte Formate: CSV oder Excel (.xlsx).",
+        "tooBig": "Datei zu groß (max. 5 MB).",
+        "empty": "Die Datei enthält keine Zeilen nach den Überschriften.",
+        "tooMany": "Zu viele Zeilen: max. {max}. Datei aufteilen.",
+        "read": "Lesen nicht möglich: Prüfen Sie, ob die Datei geschützt oder beschädigt ist."
+      }
+    },
+    "sources": {
+      "title": "Kalender (iCal)",
+      "text": "Liest einen Airbnb-, Booking-, Vrbo- oder PMS-Kalender: HALO erhält gebuchte oder blockierte Daten, manchmal einen Namen. Ein Kalender liefert nicht alle Buchungsdaten.",
+      "rule": "Richtung: nur Kalender → HALO, auf Anfrage. Regel: Ein in HALO geänderter Eintrag wird nie überschrieben; ein im Kalender fehlender Aufenthalt wird nie automatisch storniert — Sie entscheiden.",
+      "none": "Kein Kalender mit dieser Unterkunft verknüpft.",
+      "paused": "Pausiert",
+      "facts": "Nur Daten · auf Anfrage",
+      "lastSuccess": "letzte erfolgreiche Synchronisierung am {date}",
+      "neverSynced": "nie synchronisiert",
+      "counts": "{created} erstellt, {updated} aktualisiert, {conflicts} zu klären",
+      "lastError": "Fehler am {date}: {error}",
+      "error": {
+        "unreachable": "Kalender nicht erreichbar",
+        "timeout": "keine rechtzeitige Antwort",
+        "not_ical": "kein iCal-Kalender",
+        "too_large": "Kalender zu groß",
+        "not_https": "unsichere Adresse",
+        "forbidden_host": "Adresse abgelehnt",
+        "invalid": "ungültige Adresse"
+      },
+      "syncNow": "Jetzt synchronisieren",
+      "pause": "Pausieren",
+      "resume": "Fortsetzen",
+      "disconnect": "Trennen",
+      "synced": "Synchronisiert: {created} erstellt, {updated} aktualisiert, {conflicts} zu klären.",
+      "conflictsTitle": "{count, plural, one {# Abweichung zu klären} other {# Abweichungen zu klären}}",
+      "conflict": {
+        "modified_in_halo": "Daten im Kalender geändert, aber der Aufenthalt wurde in HALO bearbeitet",
+        "missing_from_feed": "Bevorstehender Aufenthalt fehlt im Kalender",
+        "overlap": "Überschneidet sich mit einem Aufenthalt in HALO",
+        "dates_changed": "Daten im Kalender geändert"
+      },
+      "feedDates": "Kalender: {from} → {to}",
+      "keepHalo": "HALO behalten",
+      "applyFeed": "Kalenderdaten übernehmen",
+      "cancelStay": "Aufenthalt in HALO stornieren",
+      "url": "Kalenderadresse (iCal)",
+      "urlHint": "Enthält oft einen privaten Schlüssel: HALO speichert sie getrennt und zeigt nur Anfang und Ende.",
+      "platformLabel": "Plattform",
+      "platform": {
+        "airbnb": "Airbnb",
+        "booking": "Booking.com",
+        "vrbo": "Vrbo",
+        "other": "Andere (PMS…)"
+      },
+      "label": "Name (optional)",
+      "add": "Kalender hinzufügen"
     }
   },
   "email": {
@@ -2711,7 +3088,9 @@
       "hint": "Im Notfall die Nummer in der Mappe anrufen.",
       "send": "Senden",
       "you": "Sie",
-      "team": "Team"
+      "team": "Team",
+      "hintPrep": "Schreiben Sie uns vor der Ankunft hier. Der Leitfaden mit der Notfallnummer ist ab {date} verfügbar.",
+      "hintPrepPhone": "Im Notfall {phone} anrufen. Sonst schreiben Sie uns hier."
     },
     "error": {
       "title": "Dienst vorübergehend nicht verfügbar",
@@ -2802,7 +3181,8 @@
       "addedOn": "Vom Team hinzugefügt am {date}",
       "ownerAddedOn": "Vom Eigentümer hinzugefügt am {date}",
       "hoursVerified": "Öffnungszeiten vom Team geprüft",
-      "hoursToConfirm": "Öffnungszeiten zu bestätigen"
+      "hoursToConfirm": "Öffnungszeiten zu bestätigen",
+      "mapLater": "Karte und Adresse erscheinen ab {date}. Entfernungen sind bereits angegeben."
     },
     "prepBanner": "Ihr Aufenthalt rückt näher. Praktische Infos (Adresse, Zugang, Leitfaden) erscheinen hier ab {date}. Bis dahin können Sie Ihren Aufenthalt vorbereiten und dem Team schreiben.",
     "prepared": {
@@ -2888,7 +3268,8 @@
       "answer": "Ihre Antwort",
       "send": "Antworten",
       "confirmed": "Persönlicher Empfang vom Team bestätigt.",
-      "refused": "Das Team konnte Ihrer Anfrage nicht entsprechen."
+      "refused": "Das Team konnte Ihrer Anfrage nicht entsprechen.",
+      "teamMessage": "Nachricht des Teams"
     }
   },
   "demoEntry": {
