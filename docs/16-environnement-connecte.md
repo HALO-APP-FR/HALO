@@ -214,3 +214,31 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 - **IA** : non configurée — fonctions manuelles uniquement.
 
 **Tests** : isolation 1665/0, unitaires 146, e2e 39/39 (dont 20 · préparation et VIP, 21 · recommandations, 22 · navigation 1 280 px et page introuvable), concurrence d'affectation refusée.
+
+## Corrections, import de données et calendriers (migration 13 : `20261108000001_corrections_import_sources.sql`)
+
+**Corrections**
+- Préparation : une action indispensable créée ou rouverte retire « Prêt » (historisé « Prêt retiré »). Une action liée à une mission ne se clôt que si la mission est terminée (validée, ou faite pour un type sans validation) ; sinon dérogation avec motif, historisée. Mission validée → action close ; mission « à refaire » → action rouverte.
+- Mission issue d'une action : titre + consignes (champ « Consignes pour l'agent ») visibles dans la liste et le détail de l'agent.
+- VIP : le message au voyageur s'affiche dans son espace (« Message de l'équipe ») ; état réel de l'e-mail côté responsable.
+- Lieux : cause de l'échec Champ-de-Mars = overpass-api.de refuse aussi les requêtes du navigateur (échec immédiat, vérifié depuis un navigateur réel) et les miroirs ne répondent pas. Repli : Photon (komoot, OpenStreetMap, gratuit, sans clé) depuis le navigateur puis le serveur. Photon ne donne ni horaires ni téléphone (laissés vides, « non communiqués »).
+- Avant l'arrivée : carte et adresse « affichées à partir du … » ; contact = numéro « urgence » du livret s'il existe, sinon message adapté.
+
+**Import (fichier CSV / XLSX)**
+- Types : logements, séjours, équipe (contacts, jamais de comptes ni d'invitations). Champs : voir `src/lib/engine/import.ts` (FIELDS). Non pris en charge : codes d'accès, mots de passe, pièces d'identité, données bancaires (colonnes écartées dans le navigateur avant envoi), tarifs/montants, checklists, linge, avis, paiements.
+- Étapes : brouillon reprenable → fichiers + correspondance des colonnes → analyse (aucune écriture métier) → aperçu, doublons (ignorer / associer / créer), lignes à corriger (CSV) → validation explicite (« Importer N logements, M séjours… ») → rapport → annulation sûre (seulement ce qui est intact ; le reste est listé avec la raison).
+- Exécution : `run_import` (une organisation, point de reprise par ligne, une ligne traitée ne l'est jamais deux fois). Aucun e-mail, invitation, message. Missions : seulement si l'option est cochée ; sinon créées à la prochaine mise à jour du planning du logement (règle existante).
+- Stockage : le fichier n'est jamais conservé ; lignes lues effacées 30 jours après l'import (`purge_import_rows`, lancée à chaque nouvel import) ; rapport chiffré conservé. Aucun service externe.
+
+**Calendriers iCal (par logement)** — même téléchargeur que la démo (`fetchFeed`) et même lecteur (`parseIcs`).
+- Dates seulement (et parfois un nom), synchronisation à la demande (pas d'automatique), sens calendrier → HALO.
+- Règle : HALO prioritaire. Séjour modifié dans HALO → conflit, jamais écrasé ; séjour absent du calendrier → conflit, jamais annulé seul ; chevauchement → conflit. Arbitrage : garder HALO, appliquer le calendrier, annuler le séjour.
+- Adresse stockée à part (`data_source_secrets`, aucun accès direct), seul un indice est affiché.
+
+**Connexions — état réel**
+| Source | Données | Mode | Sens | État |
+|---|---|---|---|---|
+| Fichier CSV/XLSX (tout logiciel, exports Airbnb, Booking, PMS) | logements, séjours, contacts | ponctuel | entrant | opérationnel |
+| iCal (Airbnb, Booking, Vrbo, PMS) | dates, blocages, parfois nom | à la demande | entrant | opérationnel (dates seulement) |
+| API Lodgify, Smoobu, Hostaway, Guesty, Beds24, SuperHote | réservations complètes selon l'API | — | — | non implémenté, non vérifié |
+| Airbnb / Booking API | réservées aux partenaires agréés | — | — | non disponible |
