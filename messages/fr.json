@@ -1305,7 +1305,9 @@
       "messages": "Messages",
       "preferences": "Préférences",
       "more": "Plus",
-      "import": "Importer mes données"
+      "import": "Importer mes données",
+      "bookings": "Demandes de séjour",
+      "satisfaction": "Satisfaction"
     },
     "env": {
       "demo": "Démo",
@@ -1395,7 +1397,17 @@
       "feed_too_large": "Calendrier trop volumineux (2 Mo maximum).",
       "feed_not_https": "Adresse non sécurisée : https:// requis.",
       "feed_forbidden_host": "Adresse refusée (réseau interne).",
-      "feed_invalid": "Adresse de calendrier non valide."
+      "feed_invalid": "Adresse de calendrier non valide.",
+      "stay_not_finished": "Le séjour n'est pas encore terminé : l'avis se demande après le départ.",
+      "already_reviewed": "Un avis a déjà été déposé pour ce séjour.",
+      "no_managed_property": "Reliez d'abord ce propriétaire à au moins un logement géré.",
+      "offer_incomplete": "Offre incomplète : indiquez le prix, le total et les conditions.",
+      "offer_total_mismatch": "Le total doit être égal au prix plus les frais.",
+      "dates_unavailable": "Ces dates ne sont plus disponibles (un séjour ou un blocage est arrivé entre-temps). Rien n'a été créé ; proposez d'autres dates.",
+      "not_accepted": "Le voyageur n'a pas (encore) accepté l'offre : rien n'est confirmé.",
+      "testimonial_not_allowed": "Un témoignage choisi n'a pas (ou plus) le consentement de son auteur.",
+      "slug_taken": "Cette adresse de vitrine est déjà utilisée : choisissez-en une autre.",
+      "no_property": "Cet avis n'est relié à aucun logement : impossible de créer un incident."
     },
     "home": {
       "subtitle": "Ce qui demande votre attention.",
@@ -1422,7 +1434,9 @@
       "prepReview": "{count, plural, =0 {Aucun questionnaire voyageur à examiner} one {# questionnaire voyageur à examiner} other {# questionnaires voyageurs à examiner}}",
       "prepDue": "{count, plural, =0 {Aucune action de préparation à échéance sous 24 h} one {# action de préparation à échéance sous 24 h} other {# actions de préparation à échéance sous 24 h}}",
       "vipRequests": "{count, plural, =0 {Aucune demande VIP en attente} one {# demande VIP en attente} other {# demandes VIP en attente}}",
-      "teamEmails": "{count, plural, =0 {Aucun e-mail d'équipe non remis} one {# e-mail d'équipe non remis} other {# e-mails d'équipe non remis}}"
+      "teamEmails": "{count, plural, =0 {Aucun e-mail d'équipe non remis} one {# e-mail d'équipe non remis} other {# e-mails d'équipe non remis}}",
+      "bookings": "{count, plural, =0 {Aucune demande de séjour à traiter} one {# demande de séjour à traiter} other {# demandes de séjour à traiter}}",
+      "lowReviews": "{count, plural, =0 {Aucun avis à traiter} one {# avis à traiter (note faible)} other {# avis à traiter (notes faibles)}}"
     },
     "onb": {
       "progress": "Étape {n} sur {total}",
@@ -1810,7 +1824,12 @@
         "vip_update": "Réponse à la demande VIP",
         "team_prep_submitted": "Équipe : questionnaire reçu",
         "team_prep_updated": "Équipe : questionnaire modifié",
-        "team_vip_requested": "Équipe : demande VIP"
+        "team_vip_requested": "Équipe : demande VIP",
+        "booking_link": "Lien de demande de séjour",
+        "booking_update": "Réponse à la demande de séjour",
+        "review_request": "Demande d'avis",
+        "team_booking_requested": "Équipe : demande de séjour",
+        "team_low_review": "Équipe : avis avec note faible"
       },
       "testAddress": "Adresse fictive (compte de test) : rien n'est envoyé.",
       "skippedReason": "Le destinataire a désactivé cet e-mail ; l'événement reste visible dans HALO.",
@@ -2352,7 +2371,12 @@
         "team_assignment_conflict": "Conflit d'affectation (absence acceptée sur une mission affectée)",
         "team_stay_changed": "Séjour modifié ou annulé (arrivée, départ)",
         "agent_task_changed": "Mission modifiée ou annulée",
-        "agent_absence_decided": "Réponse à ma demande d'absence"
+        "agent_absence_decided": "Réponse à ma demande d'absence",
+        "team_prep_submitted": "Questionnaire de préparation envoyé",
+        "team_prep_updated": "Réponses de préparation modifiées",
+        "team_vip_requested": "Demande d'accueil personnalisé (VIP)",
+        "team_booking_requested": "Demande de séjour d'un ancien voyageur",
+        "team_low_review": "Avis avec une note faible"
       },
       "pageTitle": "Préférences",
       "pageSubtitle": "Vos réglages personnels : ils ne changent rien pour les autres membres.",
@@ -2365,7 +2389,9 @@
         "services": "Prestations et Accueil",
         "incidents": "Incidents et Accueil",
         "missions": "Mes missions",
-        "profile": "Mon profil (mes absences)"
+        "profile": "Mon profil (mes absences)",
+        "bookings": "Demandes de séjour et Accueil",
+        "satisfaction": "Satisfaction et Accueil"
       },
       "reset": "Rétablir les réglages par défaut",
       "resetHint": "Par défaut, tout est envoyé par e-mail.",
@@ -2420,7 +2446,8 @@
       "verify": "Vérifier",
       "verified": "vérifié",
       "notVerified": "non vérifié",
-      "verifyHint": "Confirme que nom, adresse, horaires et contact sont exacts aujourd'hui (date et nom enregistrés). Toute modification de ces informations retire la vérification."
+      "verifyHint": "Confirme que nom, adresse, horaires et contact sont exacts aujourd'hui (date et nom enregistrés). Toute modification de ces informations retire la vérification.",
+      "importedPartial": "Certaines catégories n'ont pas pu être récupérées ({categories}) : les lieux existants de ces catégories sont conservés. Réessayez plus tard."
     },
     "prep": {
       "title": "Préparation du séjour",
@@ -2529,14 +2556,17 @@
         "status_reverted": "« Prêt » retiré : action indispensable ouverte",
         "action_reopened": "Action rouverte",
         "action_forced": "Action close par dérogation",
-        "action_auto_done": "Action close : mission terminée"
+        "action_auto_done": "Action close : mission terminée",
+        "mission_reopened": "Mission liée à refaire : action rouverte",
+        "mission_cancelled": "Mission liée annulée : action toujours ouverte"
       },
       "missionNotDone": "La mission liée n'est pas terminée. Clore l'action maintenant est une dérogation : elle sera historisée avec votre motif.",
       "overrideReason": "Motif de la dérogation",
       "overrideConfirm": "Clore quand même",
       "overrideShown": "Close par dérogation : {reason}",
       "taskNotes": "Consignes pour l'agent",
-      "taskNotesHint": "Visibles par l'agent dans sa liste et le détail de la mission."
+      "taskNotesHint": "Visibles par l'agent dans sa liste et le détail de la mission.",
+      "notReadyReason": "Ce séjour n'est plus « Prêt » depuis le {date} : l'action indispensable « {action} » {cause, select, mission {a été rouverte car sa mission doit être refaite} other {a été rouverte}}. Terminez-la (ou close-la avec un motif), puis repassez le séjour à « Prêt »."
     },
     "vip": {
       "title": "Statut VIP",
@@ -2926,6 +2956,263 @@
       },
       "label": "Nom (facultatif)",
       "add": "Ajouter le calendrier"
+    },
+    "relations": {
+      "bookingTitle": "Inviter à revenir",
+      "bookingText": "Un lien distinct de l'espace séjour, valable 60 jours, permet au voyageur de demander un nouveau séjour. Une demande n'est jamais une réservation : vous répondez, proposez, puis confirmez.",
+      "needConfirmed": "Disponible pour un séjour confirmé.",
+      "linkActive": "Lien actif jusqu'au {until}",
+      "linkNone": "Aucun lien de demande actif.",
+      "linkUsed": "ouvert le {at}",
+      "send": "Envoyer le lien par e-mail",
+      "renewSend": "Renouveler et envoyer",
+      "createCopy": "Créer un lien à copier",
+      "renewCopy": "Renouveler (lien à copier)",
+      "revoke": "Désactiver le lien",
+      "linkRules": "Un nouveau lien remplace le précédent. Le lien expire après 60 jours ou dès que vous le désactivez ; les demandes déjà envoyées restent visibles ici.",
+      "reviewTitle": "Demander un avis",
+      "reviewText": "Après le départ : un lien personnel (30 jours) pour une note globale et quelques questions facultatives. Un seul avis par séjour, jamais publié sans l'accord du voyageur.",
+      "reviewAfter": "Disponible après le départ du voyageur.",
+      "reviewReceived": "Avis reçu : {overall}/5 le {date}.",
+      "openSatisfaction": "Voir dans Satisfaction",
+      "reviewSend": "Envoyer la demande d'avis",
+      "reviewCopy": "Créer un lien d'avis à copier",
+      "reviewRules": "Un nouveau lien remplace le précédent. L'avis reste modifiable 14 jours par son auteur ; l'équipe ne peut pas le modifier."
+    },
+    "booking": {
+      "status": {
+        "received": "Reçue",
+        "in_review": "En étude",
+        "info_requested": "Précision demandée",
+        "offer_sent": "Offre envoyée",
+        "accepted": "Offre acceptée — à confirmer",
+        "confirmed": "Confirmée",
+        "declined": "Refusée",
+        "cancelled": "Annulée"
+      },
+      "event": {
+        "received": "Demande reçue",
+        "in_review": "Mise en étude",
+        "info_requested": "Précision demandée",
+        "guest_reply": "Réponse du voyageur",
+        "offer_sent": "Offre envoyée",
+        "accepted": "Offre acceptée par le voyageur",
+        "confirmed": "Séjour confirmé",
+        "declined": "Demande refusée",
+        "cancelled": "Demande annulée par l'équipe",
+        "guest_cancelled": "Demande annulée par le voyageur",
+        "confirm_refused": "Confirmation refusée par HALO"
+      },
+      "title": "Demandes de séjour",
+      "subtitle": "Demandes envoyées par d'anciens voyageurs avec leur lien. Rien n'est réservé sans votre confirmation.",
+      "viewOpen": "À traiter",
+      "viewClosed": "Terminées",
+      "loadError": "Impossible de charger les demandes. Réessayez.",
+      "empty": "Aucune demande en cours. Depuis la fiche d'un séjour terminé ou en cours, utilisez « Inviter à revenir ».",
+      "emptyClosed": "Aucune demande terminée.",
+      "unread": "Nouveau",
+      "people": "{count, plural, one {# voyageur} other {# voyageurs}}",
+      "receivedOn": "reçue le {date}",
+      "back": "← Toutes les demandes",
+      "dates": "Dates demandées",
+      "guests": "Voyageurs",
+      "guestsValue": "{adults} adulte(s), {children} enfant(s), {babies} bébé(s)",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "overCapacity": "Plus de voyageurs que la capacité du logement ({capacity}).",
+      "origin": "Ancien séjour :",
+      "emailDiffers": "e-mail différent de l'ancien séjour (le nouveau séjour ne sera rattaché que comme « séjour précédent »)",
+      "availabilityTitle": "Disponibilité connue",
+      "availabilityAsked": "Dates demandées",
+      "availabilityOffer": "Dates de l'offre : {from} → {to}",
+      "nights": "{count, plural, one {# nuit} other {# nuits}}",
+      "blocked": "Période bloquée",
+      "stay": "Séjour",
+      "noConflict": "Aucun séjour ni blocage connu sur ces dates.",
+      "noCalendars": "Aucun calendrier externe relié à ce logement : seule la disponibilité saisie dans HALO est connue.",
+      "staleCalendars": "Calendriers non à jour ({calendars}) : une réservation récente sur une autre plateforme peut manquer. Vérifiez-les avant de confirmer.",
+      "calendarsOk": "Calendriers externes synchronisés il y a moins de 24 h.",
+      "decisionTitle": "Décision",
+      "act": {
+        "review": "Mettre en étude",
+        "info": "Demander une précision",
+        "offer": "Faire une offre",
+        "offerAgain": "Modifier l'offre",
+        "decline": "Refuser"
+      },
+      "acceptedTitle": "Le voyageur a accepté l'offre.",
+      "acceptedText": "La confirmation revérifie les dates côté serveur, crée un seul séjour, ses missions et un nouvel accès voyageur. Le paiement n'est pas géré par HALO.",
+      "confirm": "Confirmer le séjour",
+      "staleTitle": "Calendriers externes non à jour",
+      "staleText": "{calendars} : la disponibilité n'est pas garantie. Confirmez seulement après avoir vérifié la plateforme concernée.",
+      "confirmAnyway": "J'ai vérifié, confirmer",
+      "cancelAction": "Annuler",
+      "confirmedText": "Séjour confirmé : il apparaît dans Séjours avec ses missions.",
+      "inviteDelivery": "Invitation à préparer le séjour : {status, select, sent {envoyée} pending {en attente d'envoi} not_configured {non envoyée (aucun service d'e-mail)} skipped {non envoyée (préférence)} other {échec — renvoyez-la depuis la fiche séjour}}",
+      "openNewStay": "Ouvrir le nouveau séjour",
+      "paymentOutside": "Paiement : non géré par HALO. Il se règle directement avec le voyageur et n'est jamais affiché comme reçu.",
+      "closedText": "Demande terminée : plus aucune action possible.",
+      "question": "Question au voyageur",
+      "sendQuestion": "Envoyer la question",
+      "conflictHint": "Des séjours ou blocages connus chevauchent les dates demandées : proposez d'autres dates ci-dessous.",
+      "offerIn": "Arrivée proposée",
+      "offerOut": "Départ proposé",
+      "altHint": "Modifiez pour proposer d'autres dates.",
+      "price": "Prix du séjour",
+      "fees": "Frais (ménage, service…)",
+      "currency": "Devise",
+      "validUntil": "Offre valable jusqu'au",
+      "total": "Total",
+      "conditions": "Conditions",
+      "conditionsHint": "Acompte, modalités de paiement, annulation… Le voyageur les voit avant d'accepter.",
+      "messageToGuest": "Message au voyageur (facultatif)",
+      "sendOffer": "Envoyer l'offre",
+      "offerInvalid": "Prix ou frais non valides.",
+      "declineMessage": "Message au voyageur",
+      "declineHint": "Restez simple et courtois ; la raison interne va dans la note interne.",
+      "declineConfirm": "Refuser la demande",
+      "internalNote": "Note interne",
+      "internalHint": "Visible par l'équipe uniquement, jamais par le voyageur.",
+      "internalBadge": "interne",
+      "offerTitle": "Offre en cours",
+      "offerValid": "Valable jusqu'au {date}",
+      "historyTitle": "Historique",
+      "datesUnavailable": "Dates devenues indisponibles",
+      "deliveryTitle": "E-mails au voyageur",
+      "deliveryText": "Envoyés à {email}. L'état affiché est le résultat réel de l'envoi."
+    },
+    "reviews": {
+      "title": "Satisfaction",
+      "subtitle": "Avis des voyageurs et des propriétaires, séparés. Les notes et commentaires des auteurs ne sont jamais modifiés.",
+      "tabs": {
+        "reviews": "Avis",
+        "owners": "Propriétaires",
+        "showcase": "Vitrine"
+      },
+      "kindName": {
+        "guest": "Voyageurs",
+        "owner": "Propriétaires"
+      },
+      "months": "{count} mois",
+      "periodLine": "Période : du {from} au {to}",
+      "loadError": "Impossible de charger les avis.",
+      "verifiedTitle": "Avis vérifiés (via HALO)",
+      "importedTitle": "Avis importés (autres plateformes)",
+      "noReviews": "Aucun avis sur la période : aucune moyenne n'est calculée.",
+      "count": "{count, plural, one {sur # avis} other {sur # avis}}",
+      "byQuestion": "Détail (avis vérifiés)",
+      "unanswered": "{count} sans réponse",
+      "returnShort": {
+        "guest": "Reviendraient",
+        "owner": "Recommanderaient"
+      },
+      "yesNo": "{yes} oui · {no} non · {none} sans réponse",
+      "method": "Moyennes calculées sur tous les avis de la période, sans exclusion. Les avis importés ne sont jamais mélangés aux avis vérifiés.",
+      "listTitle": "Avis",
+      "filter": {
+        "all": "Tous",
+        "to_handle": "À traiter",
+        "low": "Notes ≤ 2"
+      },
+      "followState": {
+        "new": "Nouveau",
+        "to_handle": "À traiter",
+        "handled": "Traité"
+      },
+      "emptyList": "Aucun avis pour ce filtre.",
+      "importedBadge": "Importé · {from}",
+      "verifiedBadge": "Vérifié",
+      "consentGiven": "Publication autorisée",
+      "consentWithdrawn": "Accord retiré",
+      "noComment": "Sans commentaire.",
+      "returnAnswer": {
+        "guest": {
+          "yes": "Reviendrait : oui",
+          "no": "Reviendrait : non"
+        },
+        "owner": {
+          "yes": "Recommanderait : oui",
+          "no": "Recommanderait : non"
+        }
+      },
+      "editedByAuthor": "Modifié par son auteur le {date}",
+      "followNote": "Suivi interne",
+      "followNoteHint": "Action menée, décision… Visible par l'équipe uniquement.",
+      "openStay": "Ouvrir le séjour",
+      "openIncident": "Voir l'incident",
+      "follow": "Suivre cet avis",
+      "followStatus": "État du suivi",
+      "makeIncident": "Ouvrir un incident sur le logement (sans désigner de responsable)",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "importedAdd": "Ajouter un avis importé",
+      "importedText": "Recopie d'un avis reçu ailleurs (Airbnb, Google…). Il reste marqué « importé », n'est jamais compté parmi les avis vérifiés et ne peut pas être publié dans la vitrine.",
+      "kind": "Type",
+      "overallShort": "Note globale",
+      "importedFrom": "Provenance",
+      "importedFromHint": "Par exemple « Airbnb ».",
+      "importedDate": "Date d'origine",
+      "property": "Logement",
+      "noProperty": "Aucun logement précis",
+      "comment": "Commentaire",
+      "noBlame": "Un avis décrit une expérience, pas la faute d'une personne : HALO n'attribue jamais une note à un agent.",
+      "owners": {
+        "title": "Propriétaires",
+        "subtitle": "Propriétaires dont vous gérez au moins un logement, pour leur demander leur avis sur votre gestion.",
+        "limits": "Pas d'espace propriétaire authentifié pour l'instant : l'avis se dépose par un lien personnel (30 jours). Seul un propriétaire relié à un logement géré peut être sollicité ; ses informations restent internes.",
+        "add": "Ajouter un propriétaire",
+        "edit": "Modifier",
+        "name": "Nom",
+        "email": "E-mail",
+        "emailHint": "Pour lui envoyer la demande d'avis.",
+        "phone": "Téléphone",
+        "properties": "Logements gérés pour ce propriétaire",
+        "propertiesHint": "C'est cette relation de gestion qui permet de lui demander un avis.",
+        "save": "Enregistrer",
+        "cancel": "Annuler",
+        "empty": "Aucun propriétaire enregistré.",
+        "noEmail": "pas d'e-mail",
+        "noProperty": "Aucun logement relié : impossible de demander un avis.",
+        "lastReview": "Dernier avis : {overall}/5 le {date}",
+        "needProperty": "Reliez un logement pour pouvoir demander un avis.",
+        "askReview": "Envoyer une demande d'avis",
+        "copyLink": "Créer un lien à copier"
+      },
+      "showcase": {
+        "title": "Vitrine",
+        "subtitle": "Une page publique de présentation, publiée seulement quand vous le décidez.",
+        "slug": "Adresse de la page",
+        "slugHint": "Lettres minuscules, chiffres et tirets (ex. ma-conciergerie).",
+        "titleField": "Titre",
+        "intro": "Présentation",
+        "services": "Services proposés",
+        "contact": "Contact professionnel",
+        "contactHint": "Coordonnées de l'entreprise uniquement.",
+        "period": "Période des scores",
+        "months": "{count} mois",
+        "scores": "Scores affichés",
+        "showGuest": "Satisfaction des voyageurs",
+        "showOwner": "Satisfaction des propriétaires",
+        "scoresHint": "Calculés sur tous les avis vérifiés de la période, y compris les notes faibles, avec leur nombre.",
+        "testimonials": "Témoignages",
+        "testimonialsHint": "Seuls les avis vérifiés dont l'auteur a donné son accord peuvent être choisis. La page indique qu'il s'agit d'une sélection.",
+        "noCandidates": "Aucun avis avec accord de publication pour l'instant.",
+        "anon": {
+          "guest": "Voyageur",
+          "owner": "Propriétaire"
+        },
+        "save": "Enregistrer les réglages",
+        "saved": "Enregistré.",
+        "unsaved": "Modifications non enregistrées.",
+        "isPublished": "La vitrine est publiée.",
+        "notPublished": "La vitrine n'est pas publiée.",
+        "publishText": "La page devient accessible à toute personne qui a son adresse. Vous pouvez la retirer à tout moment ; un témoignage dont l'auteur retire son accord disparaît aussitôt.",
+        "publish": "Publier la vitrine",
+        "unpublish": "Retirer la vitrine",
+        "preview": "Aperçu",
+        "previewNote": "Aperçu calculé avec les mêmes règles que la page publique (réglages enregistrés).",
+        "openPublic": "Ouvrir la page publique"
+      }
     }
   },
   "email": {
@@ -3055,6 +3342,29 @@
     "team_vip_requested": {
       "subject": "Demande VIP — {guest} ({property})",
       "body": "{guest} demande un accueil personnalisé ({property}). À accepter, refuser ou préciser ; rien n'est confirmé au voyageur sans votre décision."
+    },
+    "booking_link": {
+      "subject": "{org} — envie de revenir ?",
+      "body": "Merci pour votre séjour à {property}. Si vous souhaitez revenir, ce lien personnel vous permet de nous adresser une demande de séjour (dates, voyageurs, précisions). Une demande n'est pas une réservation : l'équipe vous répond avec une proposition. Lien valable 60 jours, à ne pas transférer.",
+      "footer": "Cet e-mail est automatique. Pour toute question, répondez depuis le lien ci-dessus."
+    },
+    "booking_update": {
+      "subject": "{org} — votre demande de séjour",
+      "body": "{choice, select, info_requested {L'équipe a besoin d'une précision sur votre demande de séjour à {property}.} offer_sent {L'équipe vous fait une proposition pour {property}. Consultez-la et acceptez-la si elle vous convient : rien n'est réservé tant que l'équipe n'a pas confirmé.} declined {L'équipe ne peut pas donner suite à votre demande de séjour à {property}.} cancelled {Votre demande de séjour à {property} a été annulée.} confirmed {Votre séjour à {property} est confirmé par l'équipe. Vous recevrez un lien pour le préparer. Le paiement se règle directement avec l'équipe, en dehors de HALO.} other {Votre demande de séjour à {property} a été mise à jour.}} Retrouvez le détail avec votre lien de demande.",
+      "footer": "Cet e-mail est automatique. Répondez depuis votre lien de demande de séjour."
+    },
+    "review_request": {
+      "subject": "{org} — votre avis compte",
+      "body": "Pourriez-vous nous dire en deux minutes comment s'est passé votre expérience ? Seule la note globale est demandée ; le reste est facultatif. Votre avis n'est jamais publié sans votre accord explicite, et vous pouvez le modifier pendant 14 jours. Lien personnel valable 30 jours.",
+      "footer": "Cet e-mail est automatique. Ce lien est personnel : ne le transférez pas."
+    },
+    "team_booking_requested": {
+      "subject": "Demande de séjour — {guest} ({property})",
+      "body": "{guest} a envoyé ou mis à jour une demande de séjour pour {property}. Rien n'est confirmé au voyageur sans votre décision."
+    },
+    "team_low_review": {
+      "subject": "Avis avec une note faible — {property}",
+      "body": "Un avis avec une note de 2/5 ou moins vient d'arriver ({property}). Il est marqué « À traiter » dans Satisfaction : vous pouvez y noter une action interne ou ouvrir un incident."
     }
   },
   "guestSpace": {
@@ -3316,5 +3626,190 @@
     "textApp": "Cet élément n'existe pas ou n'appartient pas à l'organisation active. Vérifiez l'organisation sélectionnée.",
     "home": "Retour à HALO",
     "site": "Page d'accueil"
+  },
+  "bookingPortal": {
+    "unavailable": {
+      "title": "Lien indisponible",
+      "text": "Ce lien de demande a expiré ou a été remplacé. Contactez l'équipe pour en recevoir un nouveau."
+    },
+    "error": {
+      "title": "Service momentanément indisponible",
+      "text": "Rien n'a été perdu. Réessayez dans quelques instants."
+    },
+    "hello": "Bonjour {name}",
+    "helloAnon": "Bonjour",
+    "intro": "Vous souhaitez revenir ? Envoyez une demande : l'équipe vous répond avec une proposition.",
+    "yourRequests": "Vos demandes",
+    "status": {
+      "received": "Reçue",
+      "in_review": "En étude",
+      "info_requested": "Précision demandée",
+      "offer_sent": "Offre reçue",
+      "accepted": "Offre acceptée",
+      "confirmed": "Séjour confirmé",
+      "declined": "Non retenue",
+      "cancelled": "Annulée"
+    },
+    "statusText": {
+      "received": "L'équipe a bien reçu votre demande. Ce n'est pas encore une réservation.",
+      "in_review": "L'équipe étudie votre demande.",
+      "info_requested": "L'équipe a besoin d'une précision : répondez ci-dessous.",
+      "offer_sent": "Voici la proposition de l'équipe. Rien n'est réservé tant que vous ne l'avez pas acceptée et que l'équipe n'a pas confirmé.",
+      "accepted": "Vous avez accepté l'offre. L'équipe doit encore confirmer le séjour : ce n'est pas encore une réservation confirmée.",
+      "confirmed": "Votre séjour est confirmé par l'équipe. Vous recevrez un lien pour le préparer. Le paiement se règle directement avec l'équipe.",
+      "declined": "L'équipe ne peut pas donner suite à cette demande.",
+      "cancelled": "Cette demande est annulée."
+    },
+    "altDates": "Dates proposées par l'équipe : {from} → {to}",
+    "offer": {
+      "title": "Proposition",
+      "price": "Séjour",
+      "fees": "Frais",
+      "total": "Total",
+      "validUntil": "Valable jusqu'au {date}",
+      "expired": "Cette offre a expiré : écrivez à l'équipe pour une nouvelle proposition.",
+      "payment": "Aucun paiement n'est demandé ici. Les modalités de paiement sont indiquées dans les conditions et se règlent directement avec l'équipe."
+    },
+    "history": "Historique",
+    "event": {
+      "received": "Demande envoyée",
+      "in_review": "En étude",
+      "info_requested": "Précision demandée",
+      "guest_reply": "Votre réponse",
+      "offer_sent": "Offre reçue",
+      "accepted": "Offre acceptée",
+      "confirmed": "Séjour confirmé",
+      "declined": "Non retenue",
+      "cancelled": "Annulée par l'équipe",
+      "guest_cancelled": "Annulée par vous",
+      "confirm_refused": "En attente"
+    },
+    "acceptText": "En acceptant, vous indiquez à l'équipe que l'offre vous convient. Le séjour ne sera réservé qu'après sa confirmation.",
+    "accept": "Accepter l'offre",
+    "replyAnswer": "Votre réponse",
+    "replyAdd": "Ajouter une précision",
+    "replySend": "Envoyer",
+    "cancel": "Annuler ma demande",
+    "cancelConfirmText": "Annuler cette demande ?",
+    "cancelConfirm": "Oui, annuler",
+    "keep": "Garder",
+    "newTitle": "Demander un séjour",
+    "newText": "Indiquez vos dates et vos besoins. L'équipe vous répond avec une proposition.",
+    "busyTitle": "Périodes déjà occupées (connues)",
+    "calendarsNotGuaranteed": "Ces disponibilités sont indicatives : certains calendriers ne sont pas à jour. Seule la confirmation de l'équipe vaut réservation.",
+    "calendarsInfo": "Disponibilités indicatives. Seule la confirmation de l'équipe vaut réservation.",
+    "linkValid": "Lien personnel valable jusqu'au {date}.",
+    "form": {
+      "checkIn": "Arrivée",
+      "checkOut": "Départ",
+      "adults": "Adultes",
+      "children": "Enfants",
+      "babies": "Bébés",
+      "name": "Nom",
+      "email": "E-mail",
+      "phone": "Téléphone (facultatif)",
+      "message": "Précisions (facultatif)",
+      "send": "Envoyer ma demande",
+      "emailHint": "Pour vous répondre au sujet de cette demande uniquement.",
+      "messagePlaceholder": "Heure d'arrivée, occasion particulière, besoins…",
+      "overlap": "Ces dates chevauchent une période déjà occupée. Vous pouvez quand même envoyer la demande : l'équipe pourra proposer d'autres dates.",
+      "overCapacity": "Le logement accueille {capacity} personnes : l'équipe vous confirmera ce qui est possible.",
+      "notConfirmed": "Ceci est une demande, pas une réservation confirmée. Aucun paiement n'est demandé ici.",
+      "sent": "Demande envoyée. L'équipe vous répondra ; ce n'est pas encore une réservation.",
+      "sentConflict": "Demande envoyée. Ces dates semblent déjà prises : l'équipe pourra vous proposer d'autres dates."
+    },
+    "errors": {
+      "unavailable": "Ce lien n'est plus valable. Contactez l'équipe.",
+      "invalid_dates": "Dates non valides : l'arrivée doit être aujourd'hui ou plus tard, et le départ après l'arrivée.",
+      "too_many": "Vous avez déjà 3 demandes en cours : attendez une réponse ou annulez-en une.",
+      "invalid": "Certaines informations ne sont pas valides (e-mail, nombre de voyageurs…).",
+      "empty": "Écrivez votre message.",
+      "conflict": "La demande a changé entre-temps : la page est actualisée.",
+      "offer_expired": "Cette offre a expiré. Écrivez à l'équipe pour une nouvelle proposition.",
+      "server": "Le service n'a pas pu enregistrer. Rien n'a été envoyé ; réessayez.",
+      "network": "Connexion impossible. Vérifiez votre réseau ; rien n'a été envoyé."
+    }
+  },
+  "reviewPortal": {
+    "unavailable": {
+      "title": "Lien indisponible",
+      "text": "Ce lien d'avis a expiré ou a été remplacé."
+    },
+    "error": {
+      "title": "Service momentanément indisponible",
+      "text": "Réessayez dans quelques instants."
+    },
+    "title": {
+      "guest": "Comment s'est passé votre séjour ?",
+      "owner": "Votre avis sur notre gestion"
+    },
+    "stayLine": "{property} · {from} → {to}",
+    "ownerLine": "{name} · {count, plural, one {# logement géré} other {# logements gérés}}",
+    "existing": "Votre avis du {date} est enregistré.",
+    "editableNote": "Vous pouvez encore la modifier.",
+    "locked": "Le délai de modification (14 jours) est passé : votre avis est conservé tel quel.",
+    "starsLabel": "{n} sur 5",
+    "overall": {
+      "guest": "Note globale du séjour (obligatoire)",
+      "owner": "Note globale de notre gestion (obligatoire)"
+    },
+    "q": {
+      "cleanliness": "Propreté",
+      "condition": "État et conformité du logement",
+      "checkin": "Arrivée et départ",
+      "communication": "Communication",
+      "reactivity": "Réactivité",
+      "follow_up": "Suivi des interventions",
+      "quality": "Qualité de l'entretien",
+      "transparency": "Transparence (comptes rendus, informations)"
+    },
+    "optional": "Les autres notes sont facultatives : laissez vide si vous ne souhaitez pas répondre.",
+    "return": {
+      "guest": "Reviendriez-vous ?",
+      "owner": "Recommanderiez-vous notre gestion ?"
+    },
+    "yes": "Oui",
+    "no": "Non",
+    "noAnswer": "Sans réponse",
+    "comment": "Commentaire (facultatif)",
+    "consent": "J'accepte que mon commentaire puisse être publié sur la page de présentation de l'équipe (jamais mon nom complet, mon adresse ni le logement). Je peux retirer cet accord à tout moment avec ce lien.",
+    "label": "Signature affichée",
+    "labelHint": "Par exemple « Camille, Lyon ». Laissez vide pour « Voyageur ».",
+    "consentHint": "Sans cet accord, votre avis reste interne à l'équipe. Aucune récompense n'est liée à votre note.",
+    "thanks": "Merci, votre avis est enregistré.",
+    "send": "Envoyer mon avis",
+    "update": "Mettre à jour mon avis",
+    "privacy": "Votre avis est lu par l'équipe qui a géré votre séjour. Il n'est jamais modifié par elle.",
+    "errors": {
+      "unavailable": "Ce lien n'est plus valable.",
+      "invalid": "Choisissez une note globale de 1 à 5.",
+      "overall_required": "La note globale est obligatoire.",
+      "locked": "Le délai de modification est passé.",
+      "server": "Le service n'a pas pu enregistrer. Réessayez.",
+      "network": "Connexion impossible ; rien n'a été envoyé."
+    }
+  },
+  "showcasePage": {
+    "unavailable": "Cette page n'est pas disponible.",
+    "score": {
+      "guest": "Satisfaction des voyageurs",
+      "owner": "Satisfaction des propriétaires"
+    },
+    "noScore": "Pas encore d'avis",
+    "basedOn": "{count, plural, =0 {Aucun avis} one {# avis vérifié} other {# avis vérifiés}} du {from} au {to}",
+    "method": "Notes calculées sur tous les avis vérifiés de la période (séjours et gestion réellement suivis dans HALO), sans exclusion des notes faibles. Aucune récompense n'est offerte en échange d'un avis.",
+    "services": "Services",
+    "testimonials": "Témoignages",
+    "selection": "Sélection de témoignages publiés avec l'accord de leurs auteurs.",
+    "anon": {
+      "guest": "Voyageur",
+      "owner": "Propriétaire"
+    },
+    "kind": {
+      "guest": "séjour",
+      "owner": "gestion"
+    },
+    "contact": "Contact",
+    "withdraw": "Vous êtes l'auteur d'un témoignage et souhaitez le retirer ? Utilisez le lien d'avis reçu par e-mail, ou contactez l'équipe."
   }
 }

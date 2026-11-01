@@ -802,7 +802,7 @@ export async function locateProperty(propertyId: string, manual?: { lat: number;
 }
 
 /** Import des lieux OpenStreetMap autour du logement : remplace l'import précédent, garde les lieux masqués et ceux de l'équipe. */
-export async function importNearbyPlaces(propertyId: string): Promise<Result<{ count: number; dataDate: string | null }>> {
+export async function importNearbyPlaces(propertyId: string): Promise<Result<{ count: number; dataDate: string | null; missing: string[] }>> {
   const { ctx, error } = await manager();
   if (error) return fail(error);
   const o = ctx.org!.id;
@@ -832,14 +832,19 @@ export async function importNearbyPlaces(propertyId: string): Promise<Result<{ c
     const { error: ue } = await ctx.supabase.from("property_places").upsert(rows, { onConflict: "property_id,source,external_id" });
     if (ue) return fail(errCode(ue));
   }
-  // Lieux qui n'existent plus dans OpenStreetMap : retirés (sauf ceux que l'équipe a masqués, gardés pour mémoire)
-  const keep = rows.map((x) => x.external_id);
-  let del = ctx.supabase.from("property_places").delete().eq("organization_id", o).eq("property_id", propertyId).eq("source", "openstreetmap").eq("hidden", false);
-  if (keep.length) del = del.not("external_id", "in", `(${keep.map((k) => `"${k}"`).join(",")})`);
-  const { error: de } = await del;
-  if (de) return fail(errCode(de));
+  // Lieux qui n'existent plus dans OpenStreetMap : retirés, seulement pour les catégories obtenues et si la
+  // réponse n'est pas vide (sauf ceux que l'équipe a masqués, gardés pour mémoire)
+  const covered = "covered" in r && Array.isArray(r.covered) ? (r.covered as string[]) : null;
+  if (rows.length) {
+    const keep = rows.map((x) => x.external_id);
+    let del = ctx.supabase.from("property_places").delete().eq("organization_id", o).eq("property_id", propertyId).eq("source", "openstreetmap").eq("hidden", false);
+    if (covered) del = del.in("category", covered);
+    const { error: de } = await del.not("external_id", "in", `(${keep.map((k) => `"${k}"`).join(",")})`);
+    if (de) return fail(errCode(de));
+  }
   revalidatePath("/", "layout");
-  return { ok: true, data: { count: rows.length, dataDate: r.dataDate } };
+  const { PLACE_CATEGORIES } = await import("@/lib/engine/places");
+  return { ok: true, data: { count: rows.length, dataDate: r.dataDate, missing: covered ? PLACE_CATEGORIES.filter((c) => !covered.includes(c)) : [] } };
 }
 
 export interface PlaceInput {
@@ -972,7 +977,12 @@ export async function cancelTask(taskId: string): Promise<Result> {
  * Le serveur ne fait pas confiance au contenu reçu : distance recalculée depuis les coordonnées enregistrées
  * du logement, rayon, catégories et longueurs contrôlés. Même règle de mise à jour que l'import serveur.
  */
-export async function storeImportedPlaces(propertyId: string, places: ImportedPlaceInput[], dataDate: string | null): Promise<Result<{ count: number }>> {
+/**
+ * Lieux importés (navigateur du responsable) revalidés puis enregistrés.
+ * `covered` : catégories réellement obtenues — seules celles-ci sont rafraîchies ; une catégorie en échec
+ * garde ses lieux. Un import vide n'efface rien.
+ */
+export async function storeImportedPlaces(propertyId: string, places: ImportedPlaceInput[], dataDate: string | null, covered?: string[]): Promise<Result<{ count: number; missing: string[] }>> {
   const { ctx, error } = await manager();
   if (error) return fail(error);
   const o = ctx.org!.id;
@@ -1007,13 +1017,23 @@ export async function storeImportedPlaces(propertyId: string, places: ImportedPl
     const { error: ue } = await ctx.supabase.from("property_places").upsert(rows, { onConflict: "property_id,source,external_id" });
     if (ue) return fail(errCode(ue));
   }
-  const keep = rows.map((x) => x.external_id);
-  let del = ctx.supabase.from("property_places").delete().eq("organization_id", o).eq("property_id", propertyId).eq("source", "openstreetmap").eq("hidden", false);
-  if (keep.length) del = del.not("external_id", "in", `(${keep.map((k) => `"${k}"`).join(",")})`);
-  const { error: de } = await del;
-  if (de) return fail(errCode(de));
+  const cats = (covered ?? PLACE_CATEGORIES).filter((c) => PLACE_CATEGORIES.includes(c as never));
+  if (rows.length && cats.length) {
+    // Rafraîchissement : lieux automatiques non masqués, des catégories obtenues, absents de la nouvelle liste
+    const keep = rows.map((x) => x.external_id);
+    const { error: de } = await ctx.supabase
+      .from("property_places")
+      .delete()
+      .eq("organization_id", o)
+      .eq("property_id", propertyId)
+      .eq("source", "openstreetmap")
+      .eq("hidden", false)
+      .in("category", cats)
+      .not("external_id", "in", `(${keep.map((k) => `"${k}"`).join(",")})`);
+    if (de) return fail(errCode(de));
+  }
   revalidatePath("/", "layout");
-  return { ok: true, data: { count: rows.length } };
+  return { ok: true, data: { count: rows.length, missing: PLACE_CATEGORIES.filter((c) => !cats.includes(c)) } };
 }
 export interface ImportedPlaceInput {
   externalId: string;

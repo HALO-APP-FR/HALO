@@ -247,13 +247,34 @@ export async function GET(request: NextRequest) {
     // Overpass public refuse les serveurs d'hébergement (406) : l'import passe alors par le navigateur du responsable.
     // Ce contrôle vérifie que le serveur obtient des lieux (Geoapify configuré) OU que le refus est bien celui attendu.
     const blocked = !near.ok && !process.env.GEOAPIFY_API_KEY && /overpass-api\.de:406/.test(near.detail ?? "");
-    check("places_provider_server_side", near.ok || blocked, near.ok ? `${near.places.length} lieux via ${near.source}` : blocked ? `serveur refusé par Overpass (406) : import par le navigateur du responsable${process.env.GEOAPIFY_API_KEY ? "" : " ; GEOAPIFY_API_KEY non configurée"}` : `${near.error} (${near.detail})`);
+    // Détail complet (Photon puis Overpass) pour savoir quelle source a répondu ou échoué
+    check("places_provider_server_side", near.ok || blocked, near.ok ? `${near.places.length} lieux via ${near.source}` : `${blocked ? "refus Overpass (406) ; import par le navigateur du responsable" : near.error} — essais : ${near.detail}`);
 
     // 7. Révocation
     const { data: links } = await a1.from("guest_links").select("id").eq("reservation_id", rA!.id).is("revoked_at", null);
     await a1.rpc("revoke_guest_link", { org: orgA, link: links![0].id });
     const { data: revoked } = await guest.rpc("get_guest_stay", { token: tokenA as string });
     check("revoked_link_refused", (revoked as { status: string })?.status === "unavailable");
+
+    // 8. Réservation directe (migration 14) : lien dédié, demande, cloisonnement, aucune confirmation sans acceptation
+    const { data: bTok, error: bte } = await a1.rpc("create_booking_link", { org: orgA, reservation: rA!.id });
+    check("manager_creates_booking_link", !bte && typeof bTok === "string", bte?.message);
+    if (typeof bTok === "string") {
+      const d0 = new Date(Date.now() + 200 * 86_400_000).toISOString().slice(0, 10);
+      const d1 = new Date(Date.now() + 203 * 86_400_000).toISOString().slice(0, 10);
+      const sub = { token: bTok, client: crypto.randomUUID(), d_in: d0, d_out: d1, n_adults: 2, n_children: 0, n_babies: 0, c_name: "Voyageur A", c_email: `selftest-${run}-guest@halo.invalid`, c_phone: null, msg: null };
+      const { data: bs } = await guest.rpc("booking_submit", sub);
+      const { data: bs2 } = await guest.rpc("booking_submit", sub);
+      const reqId = (bs as { id?: string } | null)?.id;
+      check("guest_sends_booking_request_once", (bs as { status: string })?.status === "ok" && (bs2 as { replayed?: boolean })?.replayed === true && (bs2 as { id?: string })?.id === reqId);
+      const { data: bOther } = await b.from("booking_requests").select("id").eq("id", reqId ?? "");
+      const { error: bDecide } = await b.rpc("booking_decide", { org: orgA, request: reqId, act: "decline" });
+      check("other_org_cannot_read_or_decide_booking", (bOther ?? []).length === 0 && Boolean(bDecide));
+      const { data: early } = await a1.rpc("booking_confirm", { org: orgA, request: reqId, ack_calendars: true });
+      check("booking_not_confirmed_without_acceptance", (early as { status: string })?.status === "not_accepted");
+    }
+    const { data: bReviews } = await b.from("reviews").select("id").eq("organization_id", orgA);
+    check("other_org_cannot_read_reviews", (bReviews ?? []).length === 0);
   } catch (e) {
     check("run_completed", false, e instanceof Error ? e.message.slice(0, 200) : "error");
   } finally {

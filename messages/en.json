@@ -1305,7 +1305,9 @@
       "messages": "Messages",
       "preferences": "Preferences",
       "more": "More",
-      "import": "Import my data"
+      "import": "Import my data",
+      "bookings": "Stay requests",
+      "satisfaction": "Satisfaction"
     },
     "env": {
       "demo": "Demo",
@@ -1395,7 +1397,17 @@
       "feed_too_large": "Calendar too large (2 MB max).",
       "feed_not_https": "Insecure address: https:// required.",
       "feed_forbidden_host": "Address refused (internal network).",
-      "feed_invalid": "Invalid calendar address."
+      "feed_invalid": "Invalid calendar address.",
+      "stay_not_finished": "The stay hasn't ended yet: ask for a review after check-out.",
+      "already_reviewed": "A review has already been left for this stay.",
+      "no_managed_property": "First link this owner to at least one managed property.",
+      "offer_incomplete": "Incomplete offer: enter the price, total and conditions.",
+      "offer_total_mismatch": "The total must equal the price plus fees.",
+      "dates_unavailable": "These dates are no longer available (a stay or block arrived in the meantime). Nothing was created; offer other dates.",
+      "not_accepted": "The guest hasn't accepted the offer (yet): nothing is confirmed.",
+      "testimonial_not_allowed": "A selected testimonial no longer has (or never had) its author's consent.",
+      "slug_taken": "This showcase address is already taken: choose another.",
+      "no_property": "This review isn't linked to a property: an incident can't be created."
     },
     "home": {
       "subtitle": "What needs your attention.",
@@ -1422,7 +1434,9 @@
       "prepReview": "{count, plural, =0 {No guest questionnaire to review} one {# guest questionnaire to review} other {# guest questionnaires to review}}",
       "prepDue": "{count, plural, =0 {No preparation action due within 24 h} one {# preparation action due within 24 h} other {# preparation actions due within 24 h}}",
       "vipRequests": "{count, plural, =0 {No pending VIP request} one {# pending VIP request} other {# pending VIP requests}}",
-      "teamEmails": "{count, plural, =0 {No undelivered team e-mail} one {# undelivered team e-mail} other {# undelivered team e-mails}}"
+      "teamEmails": "{count, plural, =0 {No undelivered team e-mail} one {# undelivered team e-mail} other {# undelivered team e-mails}}",
+      "bookings": "{count, plural, =0 {No stay request to handle} one {# stay request to handle} other {# stay requests to handle}}",
+      "lowReviews": "{count, plural, =0 {No review to follow up} one {# review to follow up (low rating)} other {# reviews to follow up (low ratings)}}"
     },
     "onb": {
       "progress": "Step {n} of {total}",
@@ -1810,7 +1824,12 @@
         "vip_update": "Reply to VIP request",
         "team_prep_submitted": "Team: questionnaire received",
         "team_prep_updated": "Team: questionnaire updated",
-        "team_vip_requested": "Team: VIP request"
+        "team_vip_requested": "Team: VIP request",
+        "booking_link": "Stay request link",
+        "booking_update": "Stay request update",
+        "review_request": "Review request",
+        "team_booking_requested": "Team: stay request",
+        "team_low_review": "Team: low-rated review"
       },
       "testAddress": "Fictitious address (test account): nothing is sent.",
       "skippedReason": "The recipient disabled this email; the event remains visible in HALO.",
@@ -2352,7 +2371,12 @@
         "team_assignment_conflict": "Assignment conflict (accepted absence on an assigned mission)",
         "team_stay_changed": "Stay changed or cancelled (check-in, check-out)",
         "agent_task_changed": "Mission changed or cancelled",
-        "agent_absence_decided": "Reply to my absence request"
+        "agent_absence_decided": "Reply to my absence request",
+        "team_prep_submitted": "Preparation questionnaire submitted",
+        "team_prep_updated": "Preparation answers changed",
+        "team_vip_requested": "Personalised welcome request (VIP)",
+        "team_booking_requested": "Stay request from a past guest",
+        "team_low_review": "Review with a low rating"
       },
       "pageTitle": "Preferences",
       "pageSubtitle": "Your personal settings: they change nothing for other members.",
@@ -2365,7 +2389,9 @@
         "services": "Services and Home",
         "incidents": "Incidents and Home",
         "missions": "My missions",
-        "profile": "My profile (my absences)"
+        "profile": "My profile (my absences)",
+        "bookings": "Stay requests and Home",
+        "satisfaction": "Satisfaction and Home"
       },
       "reset": "Restore default settings",
       "resetHint": "By default, everything is sent by email.",
@@ -2420,7 +2446,8 @@
       "verify": "Verify",
       "verified": "verified",
       "notVerified": "not verified",
-      "verifyHint": "Confirms name, address, hours and contact are correct today (date and name recorded). Any change to this information removes the verification."
+      "verifyHint": "Confirms name, address, hours and contact are correct today (date and name recorded). Any change to this information removes the verification.",
+      "importedPartial": "Some categories couldn't be retrieved ({categories}): existing places in those categories are kept. Try again later."
     },
     "prep": {
       "title": "Stay preparation",
@@ -2529,14 +2556,17 @@
         "status_reverted": "“Ready” removed: required action open",
         "action_reopened": "Action reopened",
         "action_forced": "Action closed by override",
-        "action_auto_done": "Action closed: mission finished"
+        "action_auto_done": "Action closed: mission finished",
+        "mission_reopened": "Linked mission to redo: action reopened",
+        "mission_cancelled": "Linked mission cancelled: action still open"
       },
       "missionNotDone": "The linked mission isn't finished. Closing the action now is an override: it will be logged with your reason.",
       "overrideReason": "Reason for the override",
       "overrideConfirm": "Close anyway",
       "overrideShown": "Closed by override: {reason}",
       "taskNotes": "Instructions for the agent",
-      "taskNotesHint": "Visible to the agent in their list and the mission details."
+      "taskNotesHint": "Visible to the agent in their list and the mission details.",
+      "notReadyReason": "This stay is no longer “Ready” since {date}: the required action “{action}” {cause, select, mission {was reopened because its mission must be redone} other {was reopened}}. Complete it (or close it with a reason), then set the stay back to “Ready”."
     },
     "vip": {
       "title": "VIP status",
@@ -2926,6 +2956,263 @@
       },
       "label": "Name (optional)",
       "add": "Add calendar"
+    },
+    "relations": {
+      "bookingTitle": "Invite to come back",
+      "bookingText": "A link separate from the stay space, valid for 60 days, lets the guest request a new stay. A request is never a booking: you reply, make an offer, then confirm.",
+      "needConfirmed": "Available for a confirmed stay.",
+      "linkActive": "Link active until {until}",
+      "linkNone": "No active request link.",
+      "linkUsed": "opened on {at}",
+      "send": "Send the link by email",
+      "renewSend": "Renew and send",
+      "createCopy": "Create a link to copy",
+      "renewCopy": "Renew (link to copy)",
+      "revoke": "Disable the link",
+      "linkRules": "A new link replaces the previous one. The link expires after 60 days or as soon as you disable it; requests already sent stay visible here.",
+      "reviewTitle": "Ask for a review",
+      "reviewText": "After check-out: a personal link (30 days) for an overall rating and a few optional questions. One review per stay, never published without the guest's consent.",
+      "reviewAfter": "Available after the guest checks out.",
+      "reviewReceived": "Review received: {overall}/5 on {date}.",
+      "openSatisfaction": "See in Satisfaction",
+      "reviewSend": "Send the review request",
+      "reviewCopy": "Create a review link to copy",
+      "reviewRules": "A new link replaces the previous one. The author can edit the review for 14 days; the team can't change it."
+    },
+    "booking": {
+      "status": {
+        "received": "Received",
+        "in_review": "Under review",
+        "info_requested": "Details requested",
+        "offer_sent": "Offer sent",
+        "accepted": "Offer accepted — to confirm",
+        "confirmed": "Confirmed",
+        "declined": "Declined",
+        "cancelled": "Cancelled"
+      },
+      "event": {
+        "received": "Request received",
+        "in_review": "Put under review",
+        "info_requested": "Details requested",
+        "guest_reply": "Guest reply",
+        "offer_sent": "Offer sent",
+        "accepted": "Offer accepted by the guest",
+        "confirmed": "Stay confirmed",
+        "declined": "Request declined",
+        "cancelled": "Request cancelled by the team",
+        "guest_cancelled": "Request cancelled by the guest",
+        "confirm_refused": "Confirmation refused by HALO"
+      },
+      "title": "Stay requests",
+      "subtitle": "Requests sent by past guests through their link. Nothing is booked without your confirmation.",
+      "viewOpen": "To handle",
+      "viewClosed": "Closed",
+      "loadError": "Couldn't load requests. Try again.",
+      "empty": "No open request. From a stay page, use “Invite to come back”.",
+      "emptyClosed": "No closed request.",
+      "unread": "New",
+      "people": "{count, plural, one {# guest} other {# guests}}",
+      "receivedOn": "received on {date}",
+      "back": "← All requests",
+      "dates": "Requested dates",
+      "guests": "Guests",
+      "guestsValue": "{adults} adult(s), {children} child(ren), {babies} baby(ies)",
+      "email": "Email",
+      "phone": "Phone",
+      "overCapacity": "More guests than the property's capacity ({capacity}).",
+      "origin": "Previous stay:",
+      "emailDiffers": "email differs from the previous stay (the new stay will only be linked as “previous stay”)",
+      "availabilityTitle": "Known availability",
+      "availabilityAsked": "Requested dates",
+      "availabilityOffer": "Offer dates: {from} → {to}",
+      "nights": "{count, plural, one {# night} other {# nights}}",
+      "blocked": "Blocked period",
+      "stay": "Stay",
+      "noConflict": "No known stay or block on these dates.",
+      "noCalendars": "No external calendar linked to this property: only availability entered in HALO is known.",
+      "staleCalendars": "Calendars not up to date ({calendars}): a recent booking on another platform may be missing. Check them before confirming.",
+      "calendarsOk": "External calendars synced less than 24 h ago.",
+      "decisionTitle": "Decision",
+      "act": {
+        "review": "Put under review",
+        "info": "Ask for details",
+        "offer": "Make an offer",
+        "offerAgain": "Change the offer",
+        "decline": "Decline"
+      },
+      "acceptedTitle": "The guest accepted the offer.",
+      "acceptedText": "Confirming re-checks the dates on the server, creates a single stay, its missions and a new guest access. Payment isn't handled by HALO.",
+      "confirm": "Confirm the stay",
+      "staleTitle": "External calendars not up to date",
+      "staleText": "{calendars}: availability isn't guaranteed. Confirm only after checking the platform concerned.",
+      "confirmAnyway": "I've checked, confirm",
+      "cancelAction": "Cancel",
+      "confirmedText": "Stay confirmed: it appears in Stays with its missions.",
+      "inviteDelivery": "Invitation to prepare the stay: {status, select, sent {sent} pending {pending} not_configured {not sent (no email service)} skipped {not sent (preference)} other {failed — resend it from the stay page}}",
+      "openNewStay": "Open the new stay",
+      "paymentOutside": "Payment: not handled by HALO. It's settled directly with the guest and is never shown as received.",
+      "closedText": "Request closed: no further action possible.",
+      "question": "Question for the guest",
+      "sendQuestion": "Send the question",
+      "conflictHint": "Known stays or blocks overlap the requested dates: offer other dates below.",
+      "offerIn": "Proposed check-in",
+      "offerOut": "Proposed check-out",
+      "altHint": "Change to offer other dates.",
+      "price": "Stay price",
+      "fees": "Fees (cleaning, service…)",
+      "currency": "Currency",
+      "validUntil": "Offer valid until",
+      "total": "Total",
+      "conditions": "Conditions",
+      "conditionsHint": "Deposit, payment terms, cancellation… The guest sees them before accepting.",
+      "messageToGuest": "Message to the guest (optional)",
+      "sendOffer": "Send the offer",
+      "offerInvalid": "Invalid price or fees.",
+      "declineMessage": "Message to the guest",
+      "declineHint": "Keep it simple and polite; the internal reason goes in the internal note.",
+      "declineConfirm": "Decline the request",
+      "internalNote": "Internal note",
+      "internalHint": "Visible to the team only, never to the guest.",
+      "internalBadge": "internal",
+      "offerTitle": "Current offer",
+      "offerValid": "Valid until {date}",
+      "historyTitle": "History",
+      "datesUnavailable": "Dates became unavailable",
+      "deliveryTitle": "Emails to the guest",
+      "deliveryText": "Sent to {email}. The status shown is the actual delivery result."
+    },
+    "reviews": {
+      "title": "Satisfaction",
+      "subtitle": "Guest and owner reviews, kept separate. Authors' ratings and comments are never changed.",
+      "tabs": {
+        "reviews": "Reviews",
+        "owners": "Owners",
+        "showcase": "Showcase"
+      },
+      "kindName": {
+        "guest": "Guests",
+        "owner": "Owners"
+      },
+      "months": "{count, plural, one {# month} other {# months}}",
+      "periodLine": "Period: {from} to {to}",
+      "loadError": "Couldn't load reviews.",
+      "verifiedTitle": "Verified reviews (via HALO)",
+      "importedTitle": "Imported reviews (other platforms)",
+      "noReviews": "No review in this period: no average is calculated.",
+      "count": "{count, plural, one {from # review} other {from # reviews}}",
+      "byQuestion": "Breakdown (verified reviews)",
+      "unanswered": "{count} unanswered",
+      "returnShort": {
+        "guest": "Would come back",
+        "owner": "Would recommend"
+      },
+      "yesNo": "{yes} yes · {no} no · {none} no answer",
+      "method": "Averages use every review in the period, with no exclusion. Imported reviews are never mixed with verified ones.",
+      "listTitle": "Reviews",
+      "filter": {
+        "all": "All",
+        "to_handle": "To handle",
+        "low": "Ratings ≤ 2"
+      },
+      "followState": {
+        "new": "New",
+        "to_handle": "To handle",
+        "handled": "Handled"
+      },
+      "emptyList": "No review for this filter.",
+      "importedBadge": "Imported · {from}",
+      "verifiedBadge": "Verified",
+      "consentGiven": "Publication allowed",
+      "consentWithdrawn": "Consent withdrawn",
+      "noComment": "No comment.",
+      "returnAnswer": {
+        "guest": {
+          "yes": "Would come back: yes",
+          "no": "Would come back: no"
+        },
+        "owner": {
+          "yes": "Would recommend: yes",
+          "no": "Would recommend: no"
+        }
+      },
+      "editedByAuthor": "Edited by its author on {date}",
+      "followNote": "Internal follow-up",
+      "followNoteHint": "Action taken, decision… Visible to the team only.",
+      "openStay": "Open the stay",
+      "openIncident": "See the incident",
+      "follow": "Follow up",
+      "followStatus": "Follow-up status",
+      "makeIncident": "Open an incident on the property (without naming anyone)",
+      "save": "Save",
+      "cancel": "Cancel",
+      "importedAdd": "Add an imported review",
+      "importedText": "Copy of a review received elsewhere (Airbnb, Google…). It stays marked “imported”, is never counted as verified and can't be published in the showcase.",
+      "kind": "Type",
+      "overallShort": "Overall rating",
+      "importedFrom": "Source",
+      "importedFromHint": "For example “Airbnb”.",
+      "importedDate": "Original date",
+      "property": "Property",
+      "noProperty": "No specific property",
+      "comment": "Comment",
+      "noBlame": "A review describes an experience, not someone's fault: HALO never assigns a rating to a team member.",
+      "owners": {
+        "title": "Owners",
+        "subtitle": "Owners whose property you manage, to ask for their view of your management.",
+        "limits": "No authenticated owner space yet: the review is left through a personal link (30 days). Only an owner linked to a managed property can be asked; their details stay internal.",
+        "add": "Add an owner",
+        "edit": "Edit",
+        "name": "Name",
+        "email": "Email",
+        "emailHint": "To send them the review request.",
+        "phone": "Phone",
+        "properties": "Properties managed for this owner",
+        "propertiesHint": "This management relationship is what allows you to ask for a review.",
+        "save": "Save",
+        "cancel": "Cancel",
+        "empty": "No owner recorded.",
+        "noEmail": "no email",
+        "noProperty": "No linked property: a review can't be requested.",
+        "lastReview": "Last review: {overall}/5 on {date}",
+        "needProperty": "Link a property to be able to ask for a review.",
+        "askReview": "Send a review request",
+        "copyLink": "Create a link to copy"
+      },
+      "showcase": {
+        "title": "Showcase",
+        "subtitle": "A public presentation page, published only when you decide.",
+        "slug": "Page address",
+        "slugHint": "Lowercase letters, digits and hyphens (e.g. my-concierge).",
+        "titleField": "Title",
+        "intro": "Introduction",
+        "services": "Services offered",
+        "contact": "Business contact",
+        "contactHint": "Company contact details only.",
+        "period": "Score period",
+        "months": "{count, plural, one {# month} other {# months}}",
+        "scores": "Scores shown",
+        "showGuest": "Guest satisfaction",
+        "showOwner": "Owner satisfaction",
+        "scoresHint": "Calculated from all verified reviews in the period, low ratings included, with their count.",
+        "testimonials": "Testimonials",
+        "testimonialsHint": "Only verified reviews whose author consented can be chosen. The page states it's a selection.",
+        "noCandidates": "No review with publication consent yet.",
+        "anon": {
+          "guest": "Guest",
+          "owner": "Owner"
+        },
+        "save": "Save settings",
+        "saved": "Saved.",
+        "unsaved": "Unsaved changes.",
+        "isPublished": "The showcase is published.",
+        "notPublished": "The showcase isn't published.",
+        "publishText": "The page becomes reachable by anyone with its address. You can take it down at any time; a testimonial whose author withdraws consent disappears immediately.",
+        "publish": "Publish the showcase",
+        "unpublish": "Take the showcase down",
+        "preview": "Preview",
+        "previewNote": "Preview built with the same rules as the public page (saved settings).",
+        "openPublic": "Open the public page"
+      }
     }
   },
   "email": {
@@ -3055,6 +3342,29 @@
     "team_vip_requested": {
       "subject": "VIP request — {guest} ({property})",
       "body": "{guest} requests a personalised welcome ({property}). Accept, decline or ask for details; nothing is confirmed to the guest without your decision."
+    },
+    "booking_link": {
+      "subject": "{org} — fancy coming back?",
+      "body": "Thank you for staying at {property}. If you'd like to come back, this personal link lets you send us a stay request (dates, guests, details). A request is not a booking: the team will reply with an offer. Valid for 60 days; please don't forward it.",
+      "footer": "This is an automatic email. For any question, reply through the link above."
+    },
+    "booking_update": {
+      "subject": "{org} — your stay request",
+      "body": "{choice, select, info_requested {The team needs more details about your stay request at {property}.} offer_sent {The team has sent you an offer for {property}. Review it and accept it if it suits you: nothing is booked until the team confirms.} declined {The team can't follow up on your stay request at {property}.} cancelled {Your stay request at {property} has been cancelled.} confirmed {Your stay at {property} is confirmed by the team. You'll receive a link to prepare it. Payment is settled directly with the team, outside HALO.} other {Your stay request at {property} has been updated.}} See the details with your request link.",
+      "footer": "This is an automatic email. Reply through your stay request link."
+    },
+    "review_request": {
+      "subject": "{org} — your feedback matters",
+      "body": "Could you tell us in two minutes how your experience went? Only the overall rating is required; the rest is optional. Your review is never published without your explicit consent, and you can edit it for 14 days. Personal link valid for 30 days.",
+      "footer": "This is an automatic email. This link is personal: please don't forward it."
+    },
+    "team_booking_requested": {
+      "subject": "Stay request — {guest} ({property})",
+      "body": "{guest} sent or updated a stay request for {property}. Nothing is confirmed to the guest without your decision."
+    },
+    "team_low_review": {
+      "subject": "Low-rated review — {property}",
+      "body": "A review rated 2/5 or less has just arrived ({property}). It's marked “To handle” in Satisfaction: you can record an internal action or open an incident there."
     }
   },
   "guestSpace": {
@@ -3316,5 +3626,190 @@
     "textApp": "This item does not exist or does not belong to the active organisation. Check the selected organisation.",
     "home": "Back to HALO",
     "site": "Home page"
+  },
+  "bookingPortal": {
+    "unavailable": {
+      "title": "Link unavailable",
+      "text": "This request link has expired or been replaced. Contact the team to get a new one."
+    },
+    "error": {
+      "title": "Service temporarily unavailable",
+      "text": "Nothing has been lost. Try again in a moment."
+    },
+    "hello": "Hello {name}",
+    "helloAnon": "Hello",
+    "intro": "Want to come back? Send a request: the team will reply with an offer.",
+    "yourRequests": "Your requests",
+    "status": {
+      "received": "Received",
+      "in_review": "Under review",
+      "info_requested": "Details needed",
+      "offer_sent": "Offer received",
+      "accepted": "Offer accepted",
+      "confirmed": "Stay confirmed",
+      "declined": "Not accepted",
+      "cancelled": "Cancelled"
+    },
+    "statusText": {
+      "received": "The team has received your request. It's not a booking yet.",
+      "in_review": "The team is looking at your request.",
+      "info_requested": "The team needs more details: reply below.",
+      "offer_sent": "Here's the team's offer. Nothing is booked until you accept it and the team confirms.",
+      "accepted": "You accepted the offer. The team still has to confirm the stay: it's not a confirmed booking yet.",
+      "confirmed": "Your stay is confirmed by the team. You'll receive a link to prepare it. Payment is settled directly with the team.",
+      "declined": "The team can't follow up on this request.",
+      "cancelled": "This request is cancelled."
+    },
+    "altDates": "Dates suggested by the team: {from} → {to}",
+    "offer": {
+      "title": "Offer",
+      "price": "Stay",
+      "fees": "Fees",
+      "total": "Total",
+      "validUntil": "Valid until {date}",
+      "expired": "This offer has expired: write to the team for a new one.",
+      "payment": "No payment is requested here. Payment terms are in the conditions and settled directly with the team."
+    },
+    "history": "History",
+    "event": {
+      "received": "Request sent",
+      "in_review": "Under review",
+      "info_requested": "Details requested",
+      "guest_reply": "Your reply",
+      "offer_sent": "Offer received",
+      "accepted": "Offer accepted",
+      "confirmed": "Stay confirmed",
+      "declined": "Not accepted",
+      "cancelled": "Cancelled by the team",
+      "guest_cancelled": "Cancelled by you",
+      "confirm_refused": "Pending"
+    },
+    "acceptText": "By accepting, you tell the team the offer suits you. The stay will only be booked once they confirm.",
+    "accept": "Accept the offer",
+    "replyAnswer": "Your answer",
+    "replyAdd": "Add a detail",
+    "replySend": "Send",
+    "cancel": "Cancel my request",
+    "cancelConfirmText": "Cancel this request?",
+    "cancelConfirm": "Yes, cancel",
+    "keep": "Keep",
+    "newTitle": "Request a stay",
+    "newText": "Enter your dates and needs. The team will reply with an offer.",
+    "busyTitle": "Periods already taken (known)",
+    "calendarsNotGuaranteed": "This availability is indicative: some calendars aren't up to date. Only the team's confirmation counts as a booking.",
+    "calendarsInfo": "Indicative availability. Only the team's confirmation counts as a booking.",
+    "linkValid": "Personal link valid until {date}.",
+    "form": {
+      "checkIn": "Check-in",
+      "checkOut": "Check-out",
+      "adults": "Adults",
+      "children": "Children",
+      "babies": "Babies",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone (optional)",
+      "message": "Details (optional)",
+      "send": "Send my request",
+      "emailHint": "Only used to reply about this request.",
+      "messagePlaceholder": "Arrival time, special occasion, needs…",
+      "overlap": "These dates overlap a period already taken. You can still send the request: the team may suggest other dates.",
+      "overCapacity": "The property sleeps {capacity}: the team will confirm what's possible.",
+      "notConfirmed": "This is a request, not a confirmed booking. No payment is requested here.",
+      "sent": "Request sent. The team will reply; it's not a booking yet.",
+      "sentConflict": "Request sent. These dates seem taken: the team may suggest other dates."
+    },
+    "errors": {
+      "unavailable": "This link is no longer valid. Contact the team.",
+      "invalid_dates": "Invalid dates: check-in must be today or later, and check-out after check-in.",
+      "too_many": "You already have 3 open requests: wait for a reply or cancel one.",
+      "invalid": "Some information isn't valid (email, number of guests…).",
+      "empty": "Write your message.",
+      "conflict": "The request changed in the meantime: the page has been refreshed.",
+      "offer_expired": "This offer has expired. Write to the team for a new one.",
+      "server": "The service couldn't save. Nothing was sent; try again.",
+      "network": "Can't connect. Check your network; nothing was sent."
+    }
+  },
+  "reviewPortal": {
+    "unavailable": {
+      "title": "Link unavailable",
+      "text": "This review link has expired or been replaced."
+    },
+    "error": {
+      "title": "Service temporarily unavailable",
+      "text": "Try again in a moment."
+    },
+    "title": {
+      "guest": "How was your stay?",
+      "owner": "Your view of our management"
+    },
+    "stayLine": "{property} · {from} → {to}",
+    "ownerLine": "{name} · {count, plural, one {# managed property} other {# managed properties}}",
+    "existing": "Your review from {date} is saved.",
+    "editableNote": "You can still edit it.",
+    "locked": "The 14-day edit period has passed: your review is kept as is.",
+    "starsLabel": "{n} out of 5",
+    "overall": {
+      "guest": "Overall rating of the stay (required)",
+      "owner": "Overall rating of our management (required)"
+    },
+    "q": {
+      "cleanliness": "Cleanliness",
+      "condition": "Condition and accuracy of the property",
+      "checkin": "Check-in and check-out",
+      "communication": "Communication",
+      "reactivity": "Responsiveness",
+      "follow_up": "Follow-up of work",
+      "quality": "Quality of upkeep",
+      "transparency": "Transparency (reports, information)"
+    },
+    "optional": "The other ratings are optional: leave blank if you prefer not to answer.",
+    "return": {
+      "guest": "Would you come back?",
+      "owner": "Would you recommend our management?"
+    },
+    "yes": "Yes",
+    "no": "No",
+    "noAnswer": "No answer",
+    "comment": "Comment (optional)",
+    "consent": "I agree that my comment may be published on the team's presentation page (never my full name, address or the property). I can withdraw this consent at any time with this link.",
+    "label": "Displayed signature",
+    "labelHint": "For example “Camille, Lyon”. Leave blank for “Guest”.",
+    "consentHint": "Without this consent, your review stays internal to the team. No reward is tied to your rating.",
+    "thanks": "Thank you, your review is saved.",
+    "send": "Send my review",
+    "update": "Update my review",
+    "privacy": "Your review is read by the team that managed your stay. They never edit it.",
+    "errors": {
+      "unavailable": "This link is no longer valid.",
+      "invalid": "Choose an overall rating from 1 to 5.",
+      "overall_required": "The overall rating is required.",
+      "locked": "The edit period has passed.",
+      "server": "The service couldn't save. Try again.",
+      "network": "Can't connect; nothing was sent."
+    }
+  },
+  "showcasePage": {
+    "unavailable": "This page isn't available.",
+    "score": {
+      "guest": "Guest satisfaction",
+      "owner": "Owner satisfaction"
+    },
+    "noScore": "No reviews yet",
+    "basedOn": "{count, plural, =0 {No review} one {# verified review} other {# verified reviews}} from {from} to {to}",
+    "method": "Ratings use every verified review in the period (stays and management actually handled in HALO), with no exclusion of low ratings. No reward is offered in exchange for a review.",
+    "services": "Services",
+    "testimonials": "Testimonials",
+    "selection": "A selection of testimonials published with their authors' consent.",
+    "anon": {
+      "guest": "Guest",
+      "owner": "Owner"
+    },
+    "kind": {
+      "guest": "stay",
+      "owner": "management"
+    },
+    "contact": "Contact",
+    "withdraw": "Are you the author of a testimonial and want it removed? Use the review link you received by email, or contact the team."
   }
 }

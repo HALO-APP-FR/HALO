@@ -4,6 +4,7 @@ import { Link, redirect } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/halo/page-header";
 import { GuestLinkPanel, StayReply, type LinkRow } from "@/components/connected/stay-forms";
+import { StayRelations, type BookingLinkRow } from "@/components/connected/booking-forms";
 import { OutboxList, type OutboxItem } from "@/components/connected/outbox-list";
 import { MarkStayRead } from "@/components/connected/mark-read";
 import { GuestItems, PrepActions, PrepStatusControl, VipPanel, type GuestItemRow, type PrepActionRow } from "@/components/connected/prep-forms";
@@ -56,6 +57,11 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
     supabase.rpc("loyalty_count", { org: o, reservation: id }),
     supabase.from("organizations").select("services_offered").eq("id", o).single(),
   ]);
+  const [{ data: bLinks }, { data: bReqs }, { data: review }] = await Promise.all([
+    supabase.from("booking_links").select("id, valid_until, revoked_at, last_used_at, created_at").eq("organization_id", o).eq("reservation_id", id).order("created_at", { ascending: false }),
+    supabase.from("booking_requests").select("id, status, check_in, check_out").eq("organization_id", o).eq("origin_reservation_id", id).order("created_at", { ascending: false }).limit(10),
+    supabase.from("reviews").select("overall, submitted_at").eq("organization_id", o).eq("reservation_id", id).eq("kind", "guest").maybeSingle(),
+  ]);
   const tp = await getTranslations("connected.prep");
   const tq = await getTranslations("guestSpace.prep");
   const memberList = (members ?? []).map((m) => ({ id: m.user_id as string, name: ((Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as { full_name: string | null } | null)?.full_name || "—" }));
@@ -97,6 +103,20 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
             <div className="mt-3">
               <PrepStatusControl reservationId={s.id} status={(prep?.prep_status as string) ?? "to_prepare"} openBlocking={openBlocking} />
               {prep?.prep_updated_at && <p className="mt-1 text-[12px] text-faint">{tp("statusBy", { who: who(prep.prep_updated_by as string | null) ?? "—", date: d(prep.prep_updated_at as string) })}</p>}
+              {(() => {
+                // Pourquoi le séjour n'est plus « Prêt » : dernier retrait automatique, s'il est postérieur au dernier changement manuel
+                if ((prep?.prep_status as string) === "ready") return null;
+                const ev = events ?? [];
+                const rev = ev.find((e) => e.kind === "status_reverted");
+                const lastManual = ev.find((e) => e.kind === "status_changed");
+                if (!rev || (lastManual && lastManual.at > rev.at)) return null;
+                const cause = ev.find((e) => (e.kind === "mission_reopened" || e.kind === "action_reopened") && e.note === rev.note && Math.abs(Date.parse(e.at) - Date.parse(rev.at)) < 60_000);
+                return (
+                  <p className="mt-2 rounded-lg border border-warning bg-warning-soft p-3 text-[14px]" role="status" data-testid="prep-not-ready-reason">
+                    {tp("notReadyReason", { date: d(rev.at), action: rev.note ?? "—", cause: cause?.kind === "mission_reopened" ? "mission" : "action" })}
+                  </p>
+                );
+              })()}
             </div>
             <h3 className="mt-5 flex items-center gap-2 text-[15px] font-semibold">
               {tp("answers")}
@@ -194,6 +214,21 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
             hasEmail={Boolean(s.guest_email)}
             invite={invite ? { status: invite.status as string, created_at: invite.created_at as string } : null}
             questionnaire={(prep?.questionnaire_status as string) ?? null}
+            timeZone={tz}
+          />
+          <StayRelations
+            reservationId={s.id}
+            hasEmail={Boolean(s.guest_email)}
+            confirmed={s.status === "confirmed"}
+            ended={Date.parse(s.check_out_at) <= nowDate().getTime() + 86_400_000}
+            links={(bLinks ?? []) as BookingLinkRow[]}
+            bookingDelivery={((outbox ?? []).find((x) => x.template === "booking_link")?.status as string) ?? null}
+            review={(review as { overall: number; submitted_at: string } | null) ?? null}
+            reviewDelivery={(() => {
+              const v = (outbox ?? []).find((x) => x.template === "review_request");
+              return v ? { status: v.status as string, at: v.created_at as string } : null;
+            })()}
+            requests={(bReqs ?? []) as { id: string; status: string; check_in: string; check_out: string }[]}
             timeZone={tz}
           />
           <Card className="p-5">

@@ -35,6 +35,9 @@ export interface OutboxRow {
  *  - « not_configured » si aucun service d'envoi n'est configuré (rien n'est simulé) ;
  *  - « failed » avec l'erreur, relançable par un responsable.
  */
+/** E-mails portant un lien personnel : le lien n'existe que dans l'e-mail et quitte le journal après l'envoi. */
+const LINK_TEMPLATES = new Set(["prep_invite", "booking_link", "review_request"]);
+
 export async function processOutbox(orgId?: string) {
   const admin = supabaseAdmin();
   if (!admin) return { processed: 0, reason: "no_admin_key" as const };
@@ -46,7 +49,7 @@ export async function processOutbox(orgId?: string) {
   const orgNames = new Map<string, string>();
   // Invitation : le lien personnel est retiré du journal dès que l'envoi est terminé (réussi ou non)
   const finish = (row: OutboxRow, patch: Record<string, unknown>) => {
-    if (row.template === "prep_invite") {
+    if (LINK_TEMPLATES.has(row.template)) {
       const { url: _url, ...rest } = row.payload as Record<string, unknown>;
       void _url;
       patch = { ...patch, payload: rest };
@@ -54,7 +57,7 @@ export async function processOutbox(orgId?: string) {
     return admin.from("notification_outbox").update(patch).eq("id", row.id);
   };
   for (const row of rows as OutboxRow[]) {
-    if (row.template === "prep_invite" && typeof row.payload.url !== "string") {
+    if (LINK_TEMPLATES.has(row.template) && typeof row.payload.url !== "string") {
       // Relance d'une invitation déjà traitée : le lien n'est plus connu, il faut en envoyer une nouvelle
       await finish(row, { status: "failed", last_error: "link_not_kept_send_new_invite" });
       continue;
@@ -84,7 +87,7 @@ export async function processOutbox(orgId?: string) {
       const decision = str("decision") === "accepted" || str("decision") === "refused" ? t(`decisions.${str("decision")}`) : "";
       const params = { org, kind, decision, choice: str("decision") || "other", property: str("property") || "—", guest: str("guest") || "—", member: str("member") || "—" };
       // Invitation à préparer le séjour : le lien personnel n'existe que dans cet e-mail (jamais stocké en clair)
-      const guestUrl = row.template === "prep_invite" && /^https?:\/\/\S+\/s\/[0-9a-f]{64}$/.test(str("url")) ? str("url") : "";
+      const guestUrl = LINK_TEMPLATES.has(row.template) && /^https?:\/\/\S+\/(s|b|avis)\/[0-9a-f]{64}$/.test(str("url")) ? str("url") : "";
       // E-mails internes (équipe, agent, messagerie) : lien vers HALO et pied de page interne
       const team = /^(team_|agent_|chat_)/.test(row.template);
       const base = appUrl();
@@ -95,7 +98,7 @@ export async function processOutbox(orgId?: string) {
         message ? `\n« ${message} »` : "",
         link ? `\n${t("open")} : ${link}` : "",
         guestUrl ? `\n${guestUrl}` : "",
-        `\n${team ? t("teamFooter") : t("footer")}`,
+        `\n${team ? t("teamFooter") : t.has(`${row.template}.footer`) ? t(`${row.template}.footer`) : t("footer")}`,
       ].join("\n");
       await transport.sendMail({ from: process.env.EMAIL_FROM ?? "HALO <no-reply@halo.app>", to: row.recipient, subject, text });
       await finish(row, { status: "sent", sent_at: new Date().toISOString(), last_error: null });

@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { FileSpreadsheet, Building2, CalendarDays, ConciergeBell, House, ListChecks, Mail, Settings2, TriangleAlert, Users, BellRing, CircleUser, MessagesSquare, SlidersHorizontal } from "lucide-react";
+import { FileSpreadsheet, Building2, CalendarDays, ConciergeBell, House, ListChecks, Mail, Settings2, TriangleAlert, Users, BellRing, CircleUser, MessagesSquare, SlidersHorizontal, CalendarPlus, Star } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Logo } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
@@ -18,6 +18,8 @@ const MANAGER_NAV = [
 ] as const;
 // Rubriques secondaires (moins fréquentes) : regroupées sous « Plus »
 const MANAGER_MORE = [
+  { key: "bookings", href: "/app/bookings", icon: CalendarPlus },
+  { key: "satisfaction", href: "/app/satisfaction", icon: Star },
   { key: "properties", href: "/app/properties", icon: Building2 },
   { key: "notifications", href: "/app/notifications", icon: Mail },
   { key: "settings", href: "/app/settings", icon: SlidersHorizontal },

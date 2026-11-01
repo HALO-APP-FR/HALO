@@ -21,6 +21,11 @@ const MANAGER_EVENTS: [string, PrefRow["critical"], string][] = [
   ["team_guest_problem", "urgent_only", "incidents"],
   ["team_agent_blocker", "always", "incidents"],
   ["team_stay_changed", null, "stays"],
+  ["team_prep_submitted", null, "stays"],
+  ["team_prep_updated", null, "stays"],
+  ["team_vip_requested", null, "stays"],
+  ["team_booking_requested", null, "bookings"],
+  ["team_low_review", null, "satisfaction"],
 ];
 const AGENT_EVENTS: [string, PrefRow["critical"], string][] = [
   ["agent_task_assigned", null, "missions"],

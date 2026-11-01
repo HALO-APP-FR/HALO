@@ -1305,7 +1305,9 @@
       "messages": "Mensagens",
       "preferences": "Preferências",
       "more": "Mais",
-      "import": "Importar dados"
+      "import": "Importar dados",
+      "bookings": "Pedidos de estadia",
+      "satisfaction": "Satisfação"
     },
     "env": {
       "demo": "Demo",
@@ -1395,7 +1397,17 @@
       "feed_too_large": "Calendário demasiado grande (2 MB máx.).",
       "feed_not_https": "Endereço não seguro: https:// obrigatório.",
       "feed_forbidden_host": "Endereço recusado (rede interna).",
-      "feed_invalid": "Endereço de calendário inválido."
+      "feed_invalid": "Endereço de calendário inválido.",
+      "stay_not_finished": "A estadia ainda não terminou: a avaliação pede-se depois da saída.",
+      "already_reviewed": "Já foi deixada uma avaliação para esta estadia.",
+      "no_managed_property": "Ligue primeiro este proprietário a pelo menos um alojamento gerido.",
+      "offer_incomplete": "Oferta incompleta: indique o preço, o total e as condições.",
+      "offer_total_mismatch": "O total tem de ser igual ao preço mais as taxas.",
+      "dates_unavailable": "Estas datas já não estão disponíveis (entretanto chegou uma estadia ou um bloqueio). Nada foi criado; proponha outras datas.",
+      "not_accepted": "O hóspede (ainda) não aceitou a oferta: nada está confirmado.",
+      "testimonial_not_allowed": "Um testemunho escolhido não tem (ou deixou de ter) o consentimento do autor.",
+      "slug_taken": "Este endereço de montra já está em uso: escolha outro.",
+      "no_property": "Esta avaliação não está ligada a nenhum alojamento: não é possível criar um incidente."
     },
     "home": {
       "subtitle": "O que precisa da sua atenção.",
@@ -1422,7 +1434,9 @@
       "prepReview": "{count, plural, =0 {Nenhum questionário a analisar} one {# questionário a analisar} other {# questionários a analisar}}",
       "prepDue": "{count, plural, =0 {Nenhuma ação de preparação com prazo em 24 h} one {# ação de preparação com prazo em 24 h} other {# ações de preparação com prazo em 24 h}}",
       "vipRequests": "{count, plural, =0 {Nenhum pedido VIP pendente} one {# pedido VIP pendente} other {# pedidos VIP pendentes}}",
-      "teamEmails": "{count, plural, =0 {Nenhum e-mail de equipa por entregar} one {# e-mail de equipa por entregar} other {# e-mails de equipa por entregar}}"
+      "teamEmails": "{count, plural, =0 {Nenhum e-mail de equipa por entregar} one {# e-mail de equipa por entregar} other {# e-mails de equipa por entregar}}",
+      "bookings": "{count, plural, =0 {Nenhum pedido de estadia por tratar} one {# pedido de estadia por tratar} other {# pedidos de estadia por tratar}}",
+      "lowReviews": "{count, plural, =0 {Nenhuma avaliação por tratar} one {# avaliação por tratar (nota baixa)} other {# avaliações por tratar (notas baixas)}}"
     },
     "onb": {
       "progress": "Passo {n} de {total}",
@@ -1810,7 +1824,12 @@
         "vip_update": "Resposta ao pedido VIP",
         "team_prep_submitted": "Equipa: questionário recebido",
         "team_prep_updated": "Equipa: questionário alterado",
-        "team_vip_requested": "Equipa: pedido VIP"
+        "team_vip_requested": "Equipa: pedido VIP",
+        "booking_link": "Ligação de pedido de estadia",
+        "booking_update": "Resposta ao pedido de estadia",
+        "review_request": "Pedido de avaliação",
+        "team_booking_requested": "Equipa: pedido de estadia",
+        "team_low_review": "Equipa: avaliação com nota baixa"
       },
       "testAddress": "Endereço fictício (conta de teste): nada é enviado.",
       "skippedReason": "O destinatário desativou este e-mail; o evento continua visível no HALO.",
@@ -2352,7 +2371,12 @@
         "team_assignment_conflict": "Conflito de atribuição (ausência aceite numa missão atribuída)",
         "team_stay_changed": "Estadia alterada ou cancelada (chegada, saída)",
         "agent_task_changed": "Missão alterada ou cancelada",
-        "agent_absence_decided": "Resposta ao meu pedido de ausência"
+        "agent_absence_decided": "Resposta ao meu pedido de ausência",
+        "team_prep_submitted": "Questionário de preparação enviado",
+        "team_prep_updated": "Respostas de preparação alteradas",
+        "team_vip_requested": "Pedido de receção personalizada (VIP)",
+        "team_booking_requested": "Pedido de estadia de um antigo hóspede",
+        "team_low_review": "Avaliação com nota baixa"
       },
       "pageTitle": "Preferências",
       "pageSubtitle": "As suas definições pessoais: não mudam nada para os outros membros.",
@@ -2365,7 +2389,9 @@
         "services": "Serviços e Início",
         "incidents": "Incidentes e Início",
         "missions": "As minhas missões",
-        "profile": "O meu perfil (ausências)"
+        "profile": "O meu perfil (ausências)",
+        "bookings": "Pedidos de estadia e Início",
+        "satisfaction": "Satisfação e Início"
       },
       "reset": "Repor as definições predefinidas",
       "resetHint": "Por predefinição, tudo é enviado por e-mail.",
@@ -2420,7 +2446,8 @@
       "verify": "Verificar",
       "verified": "verificado",
       "notVerified": "não verificado",
-      "verifyHint": "Confirma que nome, morada, horário e contacto estão corretos hoje (data e nome registados). Qualquer alteração retira a verificação."
+      "verifyHint": "Confirma que nome, morada, horário e contacto estão corretos hoje (data e nome registados). Qualquer alteração retira a verificação.",
+      "importedPartial": "Algumas categorias não puderam ser obtidas ({categories}): os locais existentes dessas categorias são mantidos. Tente mais tarde."
     },
     "prep": {
       "title": "Preparação da estadia",
@@ -2529,14 +2556,17 @@
         "status_reverted": "«Pronto» retirado: ação indispensável aberta",
         "action_reopened": "Ação reaberta",
         "action_forced": "Ação fechada por exceção",
-        "action_auto_done": "Ação fechada: missão concluída"
+        "action_auto_done": "Ação fechada: missão concluída",
+        "mission_reopened": "Missão ligada a refazer: ação reaberta",
+        "mission_cancelled": "Missão ligada cancelada: ação ainda aberta"
       },
       "missionNotDone": "A missão ligada não está concluída. Fechar agora a ação é uma exceção: ficará registada com o seu motivo.",
       "overrideReason": "Motivo da exceção",
       "overrideConfirm": "Fechar na mesma",
       "overrideShown": "Fechada por exceção: {reason}",
       "taskNotes": "Instruções para o agente",
-      "taskNotesHint": "Visíveis para o agente na lista e no detalhe da missão."
+      "taskNotesHint": "Visíveis para o agente na lista e no detalhe da missão.",
+      "notReadyReason": "Esta estadia deixou de estar «Pronta» desde {date}: a ação indispensável «{action}» {cause, select, mission {foi reaberta porque a sua missão tem de ser refeita} other {foi reaberta}}. Conclua-a (ou feche-a com um motivo) e volte a marcar a estadia como «Pronta»."
     },
     "vip": {
       "title": "Estatuto VIP",
@@ -2926,6 +2956,263 @@
       },
       "label": "Nome (opcional)",
       "add": "Adicionar calendário"
+    },
+    "relations": {
+      "bookingTitle": "Convidar a voltar",
+      "bookingText": "Uma ligação distinta do espaço da estadia, válida 60 dias, permite ao hóspede pedir uma nova estadia. Um pedido nunca é uma reserva: responde, propõe e depois confirma.",
+      "needConfirmed": "Disponível para uma estadia confirmada.",
+      "linkActive": "Ligação ativa até {until}",
+      "linkNone": "Nenhuma ligação de pedido ativa.",
+      "linkUsed": "aberta em {at}",
+      "send": "Enviar a ligação por e-mail",
+      "renewSend": "Renovar e enviar",
+      "createCopy": "Criar uma ligação para copiar",
+      "renewCopy": "Renovar (ligação para copiar)",
+      "revoke": "Desativar a ligação",
+      "linkRules": "Uma nova ligação substitui a anterior. A ligação expira após 60 dias ou assim que a desativar; os pedidos já enviados continuam visíveis aqui.",
+      "reviewTitle": "Pedir uma avaliação",
+      "reviewText": "Após a saída: uma ligação pessoal (30 dias) para uma nota global e algumas perguntas facultativas. Uma só avaliação por estadia, nunca publicada sem o acordo do hóspede.",
+      "reviewAfter": "Disponível após a saída do hóspede.",
+      "reviewReceived": "Avaliação recebida: {overall}/5 em {date}.",
+      "openSatisfaction": "Ver em Satisfação",
+      "reviewSend": "Enviar o pedido de avaliação",
+      "reviewCopy": "Criar uma ligação de avaliação para copiar",
+      "reviewRules": "Uma nova ligação substitui a anterior. O autor pode alterar a avaliação durante 14 dias; a equipa não a pode modificar."
+    },
+    "booking": {
+      "status": {
+        "received": "Recebido",
+        "in_review": "Em análise",
+        "info_requested": "Esclarecimento pedido",
+        "offer_sent": "Oferta enviada",
+        "accepted": "Oferta aceite — a confirmar",
+        "confirmed": "Confirmado",
+        "declined": "Recusado",
+        "cancelled": "Cancelado"
+      },
+      "event": {
+        "received": "Pedido recebido",
+        "in_review": "Colocado em análise",
+        "info_requested": "Esclarecimento pedido",
+        "guest_reply": "Resposta do hóspede",
+        "offer_sent": "Oferta enviada",
+        "accepted": "Oferta aceite pelo hóspede",
+        "confirmed": "Estadia confirmada",
+        "declined": "Pedido recusado",
+        "cancelled": "Pedido cancelado pela equipa",
+        "guest_cancelled": "Pedido cancelado pelo hóspede",
+        "confirm_refused": "Confirmação recusada pelo HALO"
+      },
+      "title": "Pedidos de estadia",
+      "subtitle": "Pedidos enviados por antigos hóspedes através da sua ligação. Nada é reservado sem a sua confirmação.",
+      "viewOpen": "Por tratar",
+      "viewClosed": "Concluídos",
+      "loadError": "Não foi possível carregar os pedidos. Tente novamente.",
+      "empty": "Nenhum pedido em curso. Na ficha de uma estadia, use «Convidar a voltar».",
+      "emptyClosed": "Nenhum pedido concluído.",
+      "unread": "Novo",
+      "people": "{count, plural, one {# hóspede} other {# hóspedes}}",
+      "receivedOn": "recebido em {date}",
+      "back": "← Todos os pedidos",
+      "dates": "Datas pedidas",
+      "guests": "Hóspedes",
+      "guestsValue": "{adults} adulto(s), {children} criança(s), {babies} bebé(s)",
+      "email": "E-mail",
+      "phone": "Telefone",
+      "overCapacity": "Mais hóspedes do que a capacidade do alojamento ({capacity}).",
+      "origin": "Estadia anterior:",
+      "emailDiffers": "e-mail diferente da estadia anterior (a nova estadia só será ligada como «estadia anterior»)",
+      "availabilityTitle": "Disponibilidade conhecida",
+      "availabilityAsked": "Datas pedidas",
+      "availabilityOffer": "Datas da oferta: {from} → {to}",
+      "nights": "{count, plural, one {# noite} other {# noites}}",
+      "blocked": "Período bloqueado",
+      "stay": "Estadia",
+      "noConflict": "Nenhuma estadia ou bloqueio conhecido nestas datas.",
+      "noCalendars": "Nenhum calendário externo ligado a este alojamento: só se conhece a disponibilidade registada no HALO.",
+      "staleCalendars": "Calendários desatualizados ({calendars}): pode faltar uma reserva recente noutra plataforma. Verifique-os antes de confirmar.",
+      "calendarsOk": "Calendários externos sincronizados há menos de 24 h.",
+      "decisionTitle": "Decisão",
+      "act": {
+        "review": "Colocar em análise",
+        "info": "Pedir um esclarecimento",
+        "offer": "Fazer uma oferta",
+        "offerAgain": "Alterar a oferta",
+        "decline": "Recusar"
+      },
+      "acceptedTitle": "O hóspede aceitou a oferta.",
+      "acceptedText": "A confirmação volta a verificar as datas no servidor e cria uma única estadia, as suas missões e um novo acesso do hóspede. O pagamento não é gerido pelo HALO.",
+      "confirm": "Confirmar a estadia",
+      "staleTitle": "Calendários externos desatualizados",
+      "staleText": "{calendars}: a disponibilidade não está garantida. Confirme só depois de verificar a plataforma em causa.",
+      "confirmAnyway": "Verifiquei, confirmar",
+      "cancelAction": "Cancelar",
+      "confirmedText": "Estadia confirmada: aparece em Estadias com as suas missões.",
+      "inviteDelivery": "Convite para preparar a estadia: {status, select, sent {enviado} pending {em espera de envio} not_configured {não enviado (sem serviço de e-mail)} skipped {não enviado (preferência)} other {falha — reenvie-o a partir da ficha da estadia}}",
+      "openNewStay": "Abrir a nova estadia",
+      "paymentOutside": "Pagamento: não gerido pelo HALO. É tratado diretamente com o hóspede e nunca é apresentado como recebido.",
+      "closedText": "Pedido concluído: nenhuma ação adicional possível.",
+      "question": "Pergunta ao hóspede",
+      "sendQuestion": "Enviar a pergunta",
+      "conflictHint": "Estadias ou bloqueios conhecidos sobrepõem-se às datas pedidas: proponha outras datas abaixo.",
+      "offerIn": "Chegada proposta",
+      "offerOut": "Saída proposta",
+      "altHint": "Altere para propor outras datas.",
+      "price": "Preço da estadia",
+      "fees": "Taxas (limpeza, serviço…)",
+      "currency": "Moeda",
+      "validUntil": "Oferta válida até",
+      "total": "Total",
+      "conditions": "Condições",
+      "conditionsHint": "Sinal, modalidades de pagamento, cancelamento… O hóspede vê-as antes de aceitar.",
+      "messageToGuest": "Mensagem ao hóspede (facultativa)",
+      "sendOffer": "Enviar a oferta",
+      "offerInvalid": "Preço ou taxas inválidos.",
+      "declineMessage": "Mensagem ao hóspede",
+      "declineHint": "Seja simples e cortês; o motivo interno vai na nota interna.",
+      "declineConfirm": "Recusar o pedido",
+      "internalNote": "Nota interna",
+      "internalHint": "Visível apenas pela equipa, nunca pelo hóspede.",
+      "internalBadge": "interna",
+      "offerTitle": "Oferta atual",
+      "offerValid": "Válida até {date}",
+      "historyTitle": "Histórico",
+      "datesUnavailable": "Datas deixaram de estar disponíveis",
+      "deliveryTitle": "E-mails ao hóspede",
+      "deliveryText": "Enviados para {email}. O estado apresentado é o resultado real do envio."
+    },
+    "reviews": {
+      "title": "Satisfação",
+      "subtitle": "Avaliações de hóspedes e proprietários, separadas. As notas e comentários dos autores nunca são alterados.",
+      "tabs": {
+        "reviews": "Avaliações",
+        "owners": "Proprietários",
+        "showcase": "Montra"
+      },
+      "kindName": {
+        "guest": "Hóspedes",
+        "owner": "Proprietários"
+      },
+      "months": "{count, plural, one {# mês} other {# meses}}",
+      "periodLine": "Período: de {from} a {to}",
+      "loadError": "Não foi possível carregar as avaliações.",
+      "verifiedTitle": "Avaliações verificadas (via HALO)",
+      "importedTitle": "Avaliações importadas (outras plataformas)",
+      "noReviews": "Nenhuma avaliação no período: nenhuma média é calculada.",
+      "count": "{count, plural, one {em # avaliação} other {em # avaliações}}",
+      "byQuestion": "Detalhe (avaliações verificadas)",
+      "unanswered": "{count} sem resposta",
+      "returnShort": {
+        "guest": "Voltariam",
+        "owner": "Recomendariam"
+      },
+      "yesNo": "{yes} sim · {no} não · {none} sem resposta",
+      "method": "As médias usam todas as avaliações do período, sem exclusões. As importadas nunca se misturam com as verificadas.",
+      "listTitle": "Avaliações",
+      "filter": {
+        "all": "Todas",
+        "to_handle": "Por tratar",
+        "low": "Notas ≤ 2"
+      },
+      "followState": {
+        "new": "Nova",
+        "to_handle": "Por tratar",
+        "handled": "Tratada"
+      },
+      "emptyList": "Nenhuma avaliação para este filtro.",
+      "importedBadge": "Importada · {from}",
+      "verifiedBadge": "Verificada",
+      "consentGiven": "Publicação autorizada",
+      "consentWithdrawn": "Acordo retirado",
+      "noComment": "Sem comentário.",
+      "returnAnswer": {
+        "guest": {
+          "yes": "Voltaria: sim",
+          "no": "Voltaria: não"
+        },
+        "owner": {
+          "yes": "Recomendaria: sim",
+          "no": "Recomendaria: não"
+        }
+      },
+      "editedByAuthor": "Alterada pelo autor em {date}",
+      "followNote": "Acompanhamento interno",
+      "followNoteHint": "Ação realizada, decisão… Visível apenas pela equipa.",
+      "openStay": "Abrir a estadia",
+      "openIncident": "Ver o incidente",
+      "follow": "Acompanhar",
+      "followStatus": "Estado do acompanhamento",
+      "makeIncident": "Abrir um incidente no alojamento (sem designar ninguém)",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "importedAdd": "Adicionar uma avaliação importada",
+      "importedText": "Cópia de uma avaliação recebida noutro lado (Airbnb, Google…). Fica marcada «importada», nunca conta como verificada e não pode ser publicada na montra.",
+      "kind": "Tipo",
+      "overallShort": "Nota global",
+      "importedFrom": "Origem",
+      "importedFromHint": "Por exemplo «Airbnb».",
+      "importedDate": "Data original",
+      "property": "Alojamento",
+      "noProperty": "Nenhum alojamento específico",
+      "comment": "Comentário",
+      "noBlame": "Uma avaliação descreve uma experiência, não a culpa de uma pessoa: o HALO nunca atribui uma nota a um agente.",
+      "owners": {
+        "title": "Proprietários",
+        "subtitle": "Proprietários de quem gere pelo menos um alojamento, para lhes pedir a opinião sobre a sua gestão.",
+        "limits": "Ainda não há espaço autenticado para proprietários: a avaliação faz-se através de uma ligação pessoal (30 dias). Só um proprietário ligado a um alojamento gerido pode ser solicitado; os seus dados ficam internos.",
+        "add": "Adicionar um proprietário",
+        "edit": "Alterar",
+        "name": "Nome",
+        "email": "E-mail",
+        "emailHint": "Para lhe enviar o pedido de avaliação.",
+        "phone": "Telefone",
+        "properties": "Alojamentos geridos para este proprietário",
+        "propertiesHint": "É esta relação de gestão que permite pedir-lhe uma avaliação.",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "empty": "Nenhum proprietário registado.",
+        "noEmail": "sem e-mail",
+        "noProperty": "Nenhum alojamento ligado: não é possível pedir uma avaliação.",
+        "lastReview": "Última avaliação: {overall}/5 em {date}",
+        "needProperty": "Ligue um alojamento para poder pedir uma avaliação.",
+        "askReview": "Enviar um pedido de avaliação",
+        "copyLink": "Criar uma ligação para copiar"
+      },
+      "showcase": {
+        "title": "Montra",
+        "subtitle": "Uma página pública de apresentação, publicada só quando decidir.",
+        "slug": "Endereço da página",
+        "slugHint": "Minúsculas, algarismos e hífenes (ex. a-minha-concierge).",
+        "titleField": "Título",
+        "intro": "Apresentação",
+        "services": "Serviços oferecidos",
+        "contact": "Contacto profissional",
+        "contactHint": "Apenas os contactos da empresa.",
+        "period": "Período das notas",
+        "months": "{count, plural, one {# mês} other {# meses}}",
+        "scores": "Notas apresentadas",
+        "showGuest": "Satisfação dos hóspedes",
+        "showOwner": "Satisfação dos proprietários",
+        "scoresHint": "Calculadas com todas as avaliações verificadas do período, incluindo notas baixas, com o seu número.",
+        "testimonials": "Testemunhos",
+        "testimonialsHint": "Só podem ser escolhidas avaliações verificadas cujo autor deu o seu acordo. A página indica que é uma seleção.",
+        "noCandidates": "Ainda não há avaliações com acordo de publicação.",
+        "anon": {
+          "guest": "Hóspede",
+          "owner": "Proprietário"
+        },
+        "save": "Guardar as definições",
+        "saved": "Guardado.",
+        "unsaved": "Alterações não guardadas.",
+        "isPublished": "A montra está publicada.",
+        "notPublished": "A montra não está publicada.",
+        "publishText": "A página fica acessível a quem tiver o endereço. Pode retirá-la a qualquer momento; um testemunho cujo autor retire o acordo desaparece de imediato.",
+        "publish": "Publicar a montra",
+        "unpublish": "Retirar a montra",
+        "preview": "Pré-visualização",
+        "previewNote": "Pré-visualização calculada com as mesmas regras da página pública (definições guardadas).",
+        "openPublic": "Abrir a página pública"
+      }
     }
   },
   "email": {
@@ -3055,6 +3342,29 @@
     "team_vip_requested": {
       "subject": "Pedido VIP — {guest} ({property})",
       "body": "{guest} pede um acolhimento personalizado ({property}). Aceitar, recusar ou pedir esclarecimento; nada é confirmado sem a sua decisão."
+    },
+    "booking_link": {
+      "subject": "{org} — vontade de voltar?",
+      "body": "Obrigado pela sua estadia em {property}. Se quiser voltar, esta ligação pessoal permite enviar-nos um pedido de estadia (datas, hóspedes, detalhes). Um pedido não é uma reserva: a equipa responde com uma proposta. Válida 60 dias; não a reencaminhe.",
+      "footer": "Este e-mail é automático. Para qualquer questão, responda através da ligação acima."
+    },
+    "booking_update": {
+      "subject": "{org} — o seu pedido de estadia",
+      "body": "{choice, select, info_requested {A equipa precisa de um esclarecimento sobre o seu pedido de estadia em {property}.} offer_sent {A equipa enviou-lhe uma proposta para {property}. Consulte-a e aceite-a se lhe convier: nada fica reservado enquanto a equipa não confirmar.} declined {A equipa não pode dar seguimento ao seu pedido de estadia em {property}.} cancelled {O seu pedido de estadia em {property} foi cancelado.} confirmed {A sua estadia em {property} está confirmada pela equipa. Receberá uma ligação para a preparar. O pagamento é tratado diretamente com a equipa, fora do HALO.} other {O seu pedido de estadia em {property} foi atualizado.}} Veja o detalhe com a sua ligação de pedido.",
+      "footer": "Este e-mail é automático. Responda através da sua ligação de pedido de estadia."
+    },
+    "review_request": {
+      "subject": "{org} — a sua opinião conta",
+      "body": "Pode dizer-nos em dois minutos como correu a sua experiência? Só a nota global é pedida; o resto é opcional. A sua avaliação nunca é publicada sem o seu acordo explícito e pode alterá-la durante 14 dias. Ligação pessoal válida 30 dias.",
+      "footer": "Este e-mail é automático. Esta ligação é pessoal: não a reencaminhe."
+    },
+    "team_booking_requested": {
+      "subject": "Pedido de estadia — {guest} ({property})",
+      "body": "{guest} enviou ou atualizou um pedido de estadia para {property}. Nada é confirmado ao hóspede sem a sua decisão."
+    },
+    "team_low_review": {
+      "subject": "Avaliação com nota baixa — {property}",
+      "body": "Acabou de chegar uma avaliação com nota de 2/5 ou menos ({property}). Está marcada «Por tratar» em Satisfação: pode registar uma ação interna ou abrir um incidente."
     }
   },
   "guestSpace": {
@@ -3316,5 +3626,190 @@
     "textApp": "Este elemento não existe ou não pertence à organização ativa. Verifique a organização selecionada.",
     "home": "Voltar ao HALO",
     "site": "Página inicial"
+  },
+  "bookingPortal": {
+    "unavailable": {
+      "title": "Ligação indisponível",
+      "text": "Esta ligação de pedido expirou ou foi substituída. Contacte a equipa para receber uma nova."
+    },
+    "error": {
+      "title": "Serviço temporariamente indisponível",
+      "text": "Nada se perdeu. Tente novamente dentro de instantes."
+    },
+    "hello": "Olá, {name}",
+    "helloAnon": "Olá",
+    "intro": "Quer voltar? Envie um pedido: a equipa responde com uma proposta.",
+    "yourRequests": "Os seus pedidos",
+    "status": {
+      "received": "Recebido",
+      "in_review": "Em análise",
+      "info_requested": "Esclarecimento pedido",
+      "offer_sent": "Oferta recebida",
+      "accepted": "Oferta aceite",
+      "confirmed": "Estadia confirmada",
+      "declined": "Não aceite",
+      "cancelled": "Cancelado"
+    },
+    "statusText": {
+      "received": "A equipa recebeu o seu pedido. Ainda não é uma reserva.",
+      "in_review": "A equipa está a analisar o seu pedido.",
+      "info_requested": "A equipa precisa de um esclarecimento: responda abaixo.",
+      "offer_sent": "Eis a proposta da equipa. Nada fica reservado enquanto não a aceitar e a equipa não confirmar.",
+      "accepted": "Aceitou a oferta. A equipa ainda tem de confirmar a estadia: ainda não é uma reserva confirmada.",
+      "confirmed": "A sua estadia está confirmada pela equipa. Receberá uma ligação para a preparar. O pagamento é tratado diretamente com a equipa.",
+      "declined": "A equipa não pode dar seguimento a este pedido.",
+      "cancelled": "Este pedido está cancelado."
+    },
+    "altDates": "Datas propostas pela equipa: {from} → {to}",
+    "offer": {
+      "title": "Proposta",
+      "price": "Estadia",
+      "fees": "Taxas",
+      "total": "Total",
+      "validUntil": "Válida até {date}",
+      "expired": "Esta oferta expirou: escreva à equipa para uma nova proposta.",
+      "payment": "Nenhum pagamento é pedido aqui. As modalidades de pagamento estão nas condições e são tratadas diretamente com a equipa."
+    },
+    "history": "Histórico",
+    "event": {
+      "received": "Pedido enviado",
+      "in_review": "Em análise",
+      "info_requested": "Esclarecimento pedido",
+      "guest_reply": "A sua resposta",
+      "offer_sent": "Oferta recebida",
+      "accepted": "Oferta aceite",
+      "confirmed": "Estadia confirmada",
+      "declined": "Não aceite",
+      "cancelled": "Cancelado pela equipa",
+      "guest_cancelled": "Cancelado por si",
+      "confirm_refused": "Pendente"
+    },
+    "acceptText": "Ao aceitar, indica à equipa que a oferta lhe convém. A estadia só ficará reservada após a confirmação da equipa.",
+    "accept": "Aceitar a oferta",
+    "replyAnswer": "A sua resposta",
+    "replyAdd": "Acrescentar um esclarecimento",
+    "replySend": "Enviar",
+    "cancel": "Cancelar o meu pedido",
+    "cancelConfirmText": "Cancelar este pedido?",
+    "cancelConfirm": "Sim, cancelar",
+    "keep": "Manter",
+    "newTitle": "Pedir uma estadia",
+    "newText": "Indique as suas datas e necessidades. A equipa responde com uma proposta.",
+    "busyTitle": "Períodos já ocupados (conhecidos)",
+    "calendarsNotGuaranteed": "Esta disponibilidade é indicativa: alguns calendários não estão atualizados. Só a confirmação da equipa vale como reserva.",
+    "calendarsInfo": "Disponibilidade indicativa. Só a confirmação da equipa vale como reserva.",
+    "linkValid": "Ligação pessoal válida até {date}.",
+    "form": {
+      "checkIn": "Chegada",
+      "checkOut": "Saída",
+      "adults": "Adultos",
+      "children": "Crianças",
+      "babies": "Bebés",
+      "name": "Nome",
+      "email": "E-mail",
+      "phone": "Telefone (facultativo)",
+      "message": "Detalhes (facultativo)",
+      "send": "Enviar o meu pedido",
+      "emailHint": "Apenas para lhe responder sobre este pedido.",
+      "messagePlaceholder": "Hora de chegada, ocasião especial, necessidades…",
+      "overlap": "Estas datas sobrepõem-se a um período já ocupado. Pode enviar o pedido mesmo assim: a equipa poderá propor outras datas.",
+      "overCapacity": "O alojamento acolhe {capacity} pessoas: a equipa confirmará o que é possível.",
+      "notConfirmed": "Isto é um pedido, não uma reserva confirmada. Nenhum pagamento é pedido aqui.",
+      "sent": "Pedido enviado. A equipa responderá; ainda não é uma reserva.",
+      "sentConflict": "Pedido enviado. Estas datas parecem ocupadas: a equipa poderá propor outras."
+    },
+    "errors": {
+      "unavailable": "Esta ligação já não é válida. Contacte a equipa.",
+      "invalid_dates": "Datas inválidas: a chegada tem de ser hoje ou depois, e a saída após a chegada.",
+      "too_many": "Já tem 3 pedidos em curso: aguarde uma resposta ou cancele um.",
+      "invalid": "Alguns dados não são válidos (e-mail, número de hóspedes…).",
+      "empty": "Escreva a sua mensagem.",
+      "conflict": "O pedido mudou entretanto: a página foi atualizada.",
+      "offer_expired": "Esta oferta expirou. Escreva à equipa para uma nova proposta.",
+      "server": "O serviço não conseguiu guardar. Nada foi enviado; tente novamente.",
+      "network": "Sem ligação. Verifique a sua rede; nada foi enviado."
+    }
+  },
+  "reviewPortal": {
+    "unavailable": {
+      "title": "Ligação indisponível",
+      "text": "Esta ligação de avaliação expirou ou foi substituída."
+    },
+    "error": {
+      "title": "Serviço temporariamente indisponível",
+      "text": "Tente novamente dentro de instantes."
+    },
+    "title": {
+      "guest": "Como correu a sua estadia?",
+      "owner": "A sua opinião sobre a nossa gestão"
+    },
+    "stayLine": "{property} · {from} → {to}",
+    "ownerLine": "{name} · {count, plural, one {# alojamento gerido} other {# alojamentos geridos}}",
+    "existing": "A sua avaliação de {date} está guardada.",
+    "editableNote": "Ainda a pode alterar.",
+    "locked": "O prazo de alteração (14 dias) terminou: a sua avaliação é mantida tal como está.",
+    "starsLabel": "{n} em 5",
+    "overall": {
+      "guest": "Nota global da estadia (obrigatória)",
+      "owner": "Nota global da nossa gestão (obrigatória)"
+    },
+    "q": {
+      "cleanliness": "Limpeza",
+      "condition": "Estado e conformidade do alojamento",
+      "checkin": "Chegada e saída",
+      "communication": "Comunicação",
+      "reactivity": "Reatividade",
+      "follow_up": "Acompanhamento das intervenções",
+      "quality": "Qualidade da manutenção",
+      "transparency": "Transparência (relatórios, informações)"
+    },
+    "optional": "As outras notas são facultativas: deixe em branco se não quiser responder.",
+    "return": {
+      "guest": "Voltaria?",
+      "owner": "Recomendaria a nossa gestão?"
+    },
+    "yes": "Sim",
+    "no": "Não",
+    "noAnswer": "Sem resposta",
+    "comment": "Comentário (facultativo)",
+    "consent": "Aceito que o meu comentário possa ser publicado na página de apresentação da equipa (nunca o meu nome completo, morada ou o alojamento). Posso retirar este acordo a qualquer momento com esta ligação.",
+    "label": "Assinatura apresentada",
+    "labelHint": "Por exemplo «Camille, Lyon». Deixe em branco para «Hóspede».",
+    "consentHint": "Sem este acordo, a sua avaliação fica interna à equipa. Nenhuma recompensa está ligada à sua nota.",
+    "thanks": "Obrigado, a sua avaliação está guardada.",
+    "send": "Enviar a minha avaliação",
+    "update": "Atualizar a minha avaliação",
+    "privacy": "A sua avaliação é lida pela equipa que geriu a sua estadia. Nunca a altera.",
+    "errors": {
+      "unavailable": "Esta ligação já não é válida.",
+      "invalid": "Escolha uma nota global de 1 a 5.",
+      "overall_required": "A nota global é obrigatória.",
+      "locked": "O prazo de alteração terminou.",
+      "server": "O serviço não conseguiu guardar. Tente novamente.",
+      "network": "Sem ligação; nada foi enviado."
+    }
+  },
+  "showcasePage": {
+    "unavailable": "Esta página não está disponível.",
+    "score": {
+      "guest": "Satisfação dos hóspedes",
+      "owner": "Satisfação dos proprietários"
+    },
+    "noScore": "Ainda sem avaliações",
+    "basedOn": "{count, plural, =0 {Nenhuma avaliação} one {# avaliação verificada} other {# avaliações verificadas}} de {from} a {to}",
+    "method": "Notas calculadas com todas as avaliações verificadas do período (estadias e gestão realmente acompanhadas no HALO), sem excluir notas baixas. Nenhuma recompensa é oferecida em troca de uma avaliação.",
+    "services": "Serviços",
+    "testimonials": "Testemunhos",
+    "selection": "Seleção de testemunhos publicados com o acordo dos autores.",
+    "anon": {
+      "guest": "Hóspede",
+      "owner": "Proprietário"
+    },
+    "kind": {
+      "guest": "estadia",
+      "owner": "gestão"
+    },
+    "contact": "Contacto",
+    "withdraw": "É autor de um testemunho e quer retirá-lo? Use a ligação de avaliação recebida por e-mail ou contacte a equipa."
   }
 }

@@ -7,7 +7,7 @@ import "server-only";
  * avec un identifiant d'application comme l'exigent leurs règles d'usage. Adresses remplaçables
  * par un service équivalent (NOMINATIM_URL, OVERPASS_URL) pour un usage intensif en production.
  */
-import { geoapifyUrl, geocodeQuery, overpassQuery, parseGeoapify, parseOverpass, parsePhoton, photonUrls, PHOTON_URL } from "@/lib/engine/places";
+import { geoapifyUrl, geocodeQuery, overpassQuery, parseGeoapify, parseOverpass, parsePhoton, photonUrls, PHOTON_URL, PLACE_CATEGORIES } from "@/lib/engine/places";
 
 const NOMINATIM = () => process.env.NOMINATIM_URL ?? "https://nominatim.openstreetmap.org/search";
 /**
@@ -51,19 +51,31 @@ export async function nearbyPlaces(lat: number, lng: number) {
       tried.push(`geoapify:${e instanceof Error ? e.name : "error"}`);
     }
   }
-  // Photon (OpenStreetMap, sans clé) : une requête par catégorie
-  try {
-    const responses = await Promise.all(
-      photonUrls(lat, lng, process.env.PHOTON_URL ?? PHOTON_URL).map(async ({ category, url }) => {
+  // Photon (OpenStreetMap, sans clé) : une catégorie à la fois (le service limite les requêtes simultanées),
+  // une nouvelle tentative ; les catégories obtenues sont gardées même si une autre échoue
+  const responses: { category: (typeof PLACE_CATEGORIES)[number]; json: unknown }[] = [];
+  let lastError = "";
+  for (const { category, url } of photonUrls(lat, lng, process.env.PHOTON_URL ?? PHOTON_URL)) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
         const res = await fetch(url, { headers: { "User-Agent": headers()["User-Agent"] }, signal: AbortSignal.timeout(12_000), cache: "no-store" });
-        if (!res.ok) throw new Error(`photon:${res.status}`);
-        return { category, json: await res.json() };
-      }),
-    );
-    return { ok: true as const, source: "photon.komoot.io", ...parsePhoton(responses, lat, lng) };
-  } catch (e) {
-    tried.push(e instanceof Error && e.message.startsWith("photon:") ? e.message : `photon:${e instanceof Error ? e.name : "error"}`);
+        if (res.ok) {
+          responses.push({ category, json: await res.json() });
+          break;
+        }
+        lastError = `photon:${res.status}`;
+      } catch (e) {
+        lastError = `photon:${e instanceof Error ? e.name : "error"}`;
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    // Injoignable dès la première catégorie : on n'insiste pas (évite une attente longue sans résultat)
+    if (!responses.length) break;
   }
+  if (responses.length) {
+    return { ok: true as const, source: "photon.komoot.io", covered: responses.map((r) => r.category), ...parsePhoton(responses as Parameters<typeof parsePhoton>[0], lat, lng) };
+  }
+  tried.push(lastError || "photon:error");
   for (const url of OVERPASS()) {
     try {
       // Requête GET minimale (identifiant d'application seulement) : certaines instances refusent (406)

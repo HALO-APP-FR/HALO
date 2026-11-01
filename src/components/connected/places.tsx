@@ -288,11 +288,12 @@ export function PlacesManager({
    */
   const importFromBrowser = async () => {
     if (coords) {
-      const send = (parsed: ReturnType<typeof parseOverpass>) =>
+      const send = (parsed: ReturnType<typeof parseOverpass>, covered?: string[]) =>
         storeImportedPlaces(
           propertyId,
           parsed.places.map((x) => ({ externalId: x.externalId, category: x.category, name: x.name, address: x.address, lat: x.lat, lng: x.lng, openingHours: x.openingHours, phone: x.phone, website: x.website })),
           parsed.dataDate,
+          covered,
         );
       for (const url of overpassUrls) {
         try {
@@ -306,18 +307,28 @@ export function PlacesManager({
           // source suivante
         }
       }
-      try {
-        const responses = await Promise.all(
-          photonUrls(coords.lat, coords.lng, photonUrl).map(async ({ category, url }) => {
+      // Photon limite les requêtes simultanées (échec observé sur 1 requête sur 5 en parallèle) :
+      // une catégorie à la fois, une nouvelle tentative, et les catégories obtenues sont gardées même si une échoue
+      const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+      const responses: { category: (typeof PLACE_CATEGORIES)[number]; json: unknown }[] = [];
+      for (const { category, url } of photonUrls(coords.lat, coords.lng, photonUrl)) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
             const res = await fetch(url, { signal: AbortSignal.timeout(12_000) });
-            if (!res.ok) throw new Error(String(res.status));
-            return { category, json: await res.json() };
-          }),
-        );
-        return send(parsePhoton(responses, coords.lat, coords.lng));
-      } catch {
-        // dernier recours : serveur HALO
+            if (res.ok) {
+              responses.push({ category, json: await res.json() });
+              break;
+            }
+          } catch {
+            // nouvelle tentative
+          }
+          await pause(1200);
+        }
+        // Photon injoignable dès la première catégorie : inutile d'insister, on passe au serveur
+        if (!responses.length) break;
+        await pause(300);
       }
+      if (responses.length) return send(parsePhoton(responses as Parameters<typeof parsePhoton>[0], coords.lat, coords.lng), responses.map((r) => r.category));
     }
     return importNearbyPlaces(propertyId);
   };
@@ -379,7 +390,7 @@ export function PlacesManager({
         {locate.error && <p role="alert" className="text-[13px] text-danger" data-testid="places-locate-error">{locate.error}</p>}
         {autoOn && (
           <div className="space-y-1">
-            <Button size="sm" onClick={() => imp.run(() => importFromBrowser(), (d) => setMsg(t("imported", { count: d.count })))} disabled={imp.pending || !coords} data-testid="places-import">
+            <Button size="sm" onClick={() => imp.run(() => importFromBrowser(), (d) => setMsg(t("imported", { count: d.count }) + ("missing" in d && Array.isArray(d.missing) && d.missing.length ? ` ${t("importedPartial", { categories: d.missing.map((c: string) => tc(c as PlaceCategory)).join(", ") })}` : "")))} disabled={imp.pending || !coords} data-testid="places-import">
               {imp.pending ? t("importing") : t("import")}
             </Button>
             {!coords && <p className="text-[12px] text-warning">{t("needCoords")}</p>}

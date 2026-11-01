@@ -282,7 +282,7 @@ function IssueList({ issues, kind }: { issues: string[]; kind: ImportKind }) {
     <ul className="space-y-0.5 text-[13px]">
       {sorted.map((i) => {
         const [code, arg] = i.split(":");
-        const label = arg ? (code === "dup_in_file" ? t("issue.dup_in_file", { row: arg }) : t(`issue.${code}`, { field: t(`field.${kind}.${arg}`) })) : t(`issue.${code}`);
+        const label = arg ? (code === "dup_in_file" ? t("issue.dup_in_file", { row: Number(arg) + 1 }) : t(`issue.${code}`, { field: t(`field.${kind}.${arg}`) })) : t(`issue.${code}`);
         return (
           <li key={i} className={cn(/^(dup_|invalid_phone|unknown_worker)/.test(code) ? "text-warning" : "text-danger")}>
             {label}
@@ -464,7 +464,7 @@ export function ImportReport({ jobId, kinds, rows, missions, reverted, resumable
     <div className="space-y-4" data-testid="import-report">
       {resumable && (
         <Card className="space-y-2 border-warning p-5" data-testid="import-resume">
-          <p className="text-[15px] font-medium">{t("interrupted", { pending: rows.filter((r) => r.status === "pending").length })}</p>
+          <p className="text-[15px] font-medium">{t("interrupted", { count: rows.filter((r) => r.status === "pending").length })}</p>
           <Button disabled={pending} onClick={() => run(() => executeImport(jobId))} data-testid="import-resume-btn">
             {t("resume")}
           </Button>

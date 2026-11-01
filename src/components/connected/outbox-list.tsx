@@ -17,6 +17,9 @@ export interface OutboxItem {
 }
 
 /** État RÉEL des e-mails au voyageur : « envoyé » uniquement si le fournisseur a accepté le message. */
+/** E-mails portant un lien personnel : le lien n'est pas conservé, on en envoie un nouveau plutôt que de relancer. */
+const LINK = ["prep_invite", "booking_link", "review_request"];
+
 export function OutboxList({ items }: { items: OutboxItem[] }) {
   const t = useTranslations("connected.outbox");
   const f = useFormatter();
@@ -35,12 +38,12 @@ export function OutboxList({ items }: { items: OutboxItem[] }) {
               <span className="block text-[12px] text-faint">{fmt(o.created_at)}{o.attempts > 1 ? ` · ${t("attempts", { n: o.attempts })}` : ""}</span>
             </span>
             <span className={`font-medium ${tone[o.status]}`}>{t(`status.${o.status}`)}</span>
-            {(o.status === "failed" || o.status === "not_configured") && o.last_error !== "undeliverable_test_address" && o.template !== "prep_invite" && (
+            {(o.status === "failed" || o.status === "not_configured") && o.last_error !== "undeliverable_test_address" && !LINK.includes(o.template) && (
               <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => retryNotification(o.id))} data-testid="outbox-retry">
                 {t("retry")}
               </Button>
             )}
-            {o.template === "prep_invite" && (o.status === "failed" || o.status === "not_configured") && (
+            {LINK.includes(o.template) && (o.status === "failed" || o.status === "not_configured") && (
               <span className="w-full text-[12px] text-muted">{t("inviteResend")}</span>
             )}
             {o.status === "skipped" && (

@@ -1549,6 +1549,8 @@ test("23 · corrections : « Prêt » cohérent, mission issue d'une action avec
   await m.getByRole("button", { name: "Rouvrir" }).click();
   await expect(m.getByTestId("prep-action")).toHaveAttribute("data-status", "open");
   await expect(m.getByTestId("prep-status")).toHaveAttribute("data-status", "in_progress");
+  await expect(m.getByTestId("prep-not-ready-reason")).toContainText("n'est plus « Prêt »");
+  await expect(m.getByTestId("prep-not-ready-reason")).toContainText("QA — préparer table calme");
   await m.getByText("Historique").click();
   await expect(m.getByTestId("prep-history")).toContainText("« Prêt » retiré");
 
@@ -1683,7 +1685,7 @@ test("24 · import : fichier correct, fichier imparfait, reprise sans doublon, d
   await expect(m.getByTestId("import-summary-stays")).toContainText("1 doublon ignoré");
   await expect(preview).toContainText("Date non reconnue : Arrivée (date)");
   await expect(preview).toContainText("Logement introuvable");
-  await expect(preview).toContainText("Doublon de la ligne 1 du fichier");
+  await expect(preview).toContainText("Doublon de la ligne 2 du fichier"); // ligne 1 = en-têtes
   expect((await admin.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("guest_name", "Ana")).count).toBe(0);
   await expect(m.getByTestId("import-run")).toHaveText("Importer 2 logements, 2 séjours et 1 contact");
 
@@ -1738,6 +1740,40 @@ test("24 · import : fichier correct, fichier imparfait, reprise sans doublon, d
   await Promise.all([agent, other].map((p) => p.context().close()));
 });
 
+test("24b · import Excel (.xlsx) puis reprise après interruption : aucune ligne recréée", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `xls ${run}`);
+  await m.goto("/fr/app/import");
+  await m.getByTestId("import-create").click();
+  await m.waitForURL(/\/fr\/app\/import\/[0-9a-f-]{36}$/);
+  const jobId = m.url().split("/").pop()!;
+  await m.getByTestId("import-input-properties").setInputFiles("tests/fixtures/import-logements.xlsx");
+  await expect(m.getByTestId("import-file-properties")).toContainText("2 lignes lues");
+  await m.getByTestId("import-input-stays").setInputFiles("tests/fixtures/import-sejours.xlsx");
+  await expect(m.getByTestId("import-file-stays")).toContainText("2 lignes lues");
+  await m.getByTestId("import-analyze").click();
+  await expect(m.getByTestId("import-summary-properties")).toContainText("2 à créer");
+  await expect(m.getByTestId("import-summary-stays")).toContainText("2 à créer");
+
+  // Interruption simulée : le premier logement a été créé, puis le traitement s'est arrêté
+  const { data: chalet } = await admin.from("properties").insert({ organization_id: org, name: "Chalet Excel", city: "Annecy", country_code: "FR", timezone: "Europe/Paris", import_job_id: jobId, external_ref: "XL-1" }).select("id").single();
+  await admin.from("import_rows").update({ status: "created", target_id: chalet!.id }).eq("job_id", jobId).eq("kind", "properties").eq("row_index", 1);
+  await admin.from("import_jobs").update({ status: "importing" }).eq("id", jobId);
+  await m.reload();
+  await expect(m.getByTestId("import-resume")).toContainText("3 ligne(s) restent à traiter");
+  await m.getByTestId("import-resume-btn").click();
+  await expect(m.getByTestId("import-result-properties")).toContainText("2 créés");
+  await expect(m.getByTestId("import-result-stays")).toContainText("2 créés");
+  expect((await admin.from("properties").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("name", "Chalet Excel")).count).toBe(1);
+  // Le séjour référencé « XL-1 » est rattaché au logement créé avant l'interruption
+  const { data: eva } = await admin.from("reservations").select("property_id, external_uid").eq("organization_id", org).eq("guest_name", "Eva Excel").single();
+  expect(eva).toMatchObject({ property_id: chalet!.id, external_uid: "BK-XL1" });
+  // Relancer encore : sans effet
+  await m.reload();
+  await expect(m.getByTestId("import-resume")).toHaveCount(0);
+  expect((await admin.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org).in("guest_name", ["Eva Excel", "Léo Excel"])).count).toBe(2);
+});
+
 test("25 · calendrier iCal : création, relance sans doublon, modification HALO non écrasée, séjour disparu arbitré", async ({ browser }) => {
   let ics = "";
   const server = createServer((_, res) => {
@@ -1785,4 +1821,265 @@ test("25 · calendrier iCal : création, relance sans doublon, modification HALO
   } finally {
     server.close();
   }
+});
+
+const ymd = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+
+test("26 · réservation directe : lien dédié, demande, précision, offre, acceptation, dates prises puis calendrier non à jour, confirmation unique, révocation", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `book ${run}`);
+  const { data: prop } = await admin.from("properties").select("id, name").eq("organization_id", org).single();
+  const { stayId } = await prepStay(m, browser, "Lea Retour", 5);
+  const outBefore = (await admin.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("template", "booking_link")).count ?? 0;
+
+  // Lien de demande distinct du lien de séjour (copie, aucun e-mail)
+  await m.getByTestId("booking-link-create").click();
+  const bUrl = (await m.getByTestId("once-link-url").inputValue()).replace(/^https?:\/\/[^/]+/, "");
+  expect(bUrl).toMatch(/^\/fr\/b\/[0-9a-f]{64}$/);
+  await expect(m.getByTestId("booking-link-status")).toContainText("Lien actif jusqu'au");
+  expect((await admin.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("template", "booking_link")).count).toBe(outBefore);
+
+  // Voyageur : demande (double clic = une seule demande), mention « pas une réservation »
+  const g = await newPage(browser);
+  await g.goto(bUrl);
+  await expect(g.getByTestId("booking-portal")).toBeVisible();
+  await expect(g.getByTestId("bk-not-confirmed")).toContainText("pas une réservation confirmée");
+  await expect(g.getByTestId("bk-calendar-note")).toContainText("Seule la confirmation de l'équipe vaut réservation");
+  await g.getByTestId("bk-in").fill(ymd(40));
+  await g.getByTestId("bk-out").fill(ymd(44));
+  await g.getByTestId("bk-email").fill(`lea-retour-${run}@halo.invalid`);
+  await g.getByLabel("Précisions (facultatif)").fill("Arrivée tardive, vers 22 h.");
+  await g.getByTestId("bk-send").dblclick();
+  await expect(g.getByTestId("bk-sent")).toBeVisible();
+  await expect(g.getByTestId("bk-request")).toHaveCount(1);
+  const { data: reqs } = await admin.from("booking_requests").select("id, status").eq("organization_id", org);
+  expect(reqs).toHaveLength(1);
+  const reqId = reqs![0].id as string;
+
+  // Responsable : liste, alerte, détail (lu), précision avec note interne
+  await m.goto("/fr/app");
+  await expect(m.getByText("1 demande de séjour à traiter")).toBeVisible();
+  await m.goto("/fr/app/bookings");
+  await expect(m.getByTestId("booking-row")).toHaveAttribute("data-status", "received");
+  await m.getByTestId("booking-row").click();
+  await expect(m.getByTestId("booking-detail")).toContainText("Arrivée tardive");
+  await expect(m.getByTestId("booking-free")).toBeVisible();
+  await expect.poll(async () => (await admin.from("booking_requests").select("manager_unread").eq("id", reqId).single()).data!.manager_unread).toBe(false);
+  await m.getByTestId("booking-info-open").click();
+  await m.getByTestId("booking-question").fill("Combien de lits bébé vous faut-il ?");
+  await m.getByTestId("booking-internal").fill("QA secret interne : client fidèle");
+  await m.getByTestId("booking-info-send").click();
+  await expect(m.getByTestId("booking-status")).toHaveText("Précision demandée");
+  await expect(m.getByTestId("booking-history")).toContainText("QA secret interne");
+
+  // Voyageur : voit la question, jamais la note interne ; répond
+  await g.reload();
+  await expect(g.getByTestId("bk-request")).toHaveAttribute("data-status", "info_requested");
+  await expect(g.getByTestId("bk-team-message")).toContainText("lits bébé");
+  await expect(g.locator("body")).not.toContainText("QA secret interne");
+  await g.getByTestId("bk-reply").fill("Un seul, merci.");
+  await g.getByTestId("bk-reply-send").click();
+  await expect(g.getByTestId("bk-request")).toHaveAttribute("data-status", "in_review");
+
+  // Offre : total = prix + frais, conditions, paiement hors HALO
+  await m.reload();
+  await expect(m.getByTestId("booking-history")).toContainText("Un seul, merci.");
+  await m.getByTestId("booking-offer-open").click();
+  await m.getByTestId("offer-price").fill("480");
+  await m.getByTestId("offer-fees").fill("60");
+  await expect(m.getByTestId("offer-total")).toContainText("540.00 EUR");
+  await m.getByTestId("offer-conditions").fill("Acompte de 30 % par virement, solde à l'arrivée. Annulation gratuite jusqu'à 14 jours avant.");
+  await m.getByTestId("booking-offer-send").click();
+  await expect(m.getByTestId("booking-status")).toHaveText("Offre envoyée");
+  await expect(m.getByTestId("booking-payment")).toContainText("non géré par HALO");
+
+  await g.reload();
+  await expect(g.getByTestId("bk-offer-total")).toContainText("540,00");
+  await expect(g.getByTestId("bk-offer")).toContainText("Aucun paiement n'est demandé ici");
+  await g.getByTestId("bk-accept").click();
+  await expect(g.getByTestId("bk-request")).toHaveAttribute("data-status", "accepted");
+  await expect(g.getByTestId("bk-request")).toContainText("ce n'est pas encore une réservation confirmée");
+
+  // Dates prises entre-temps : refus serveur, rien n'est créé
+  const blocked = (await admin.from("reservations").insert({ organization_id: org, property_id: prop!.id, source: "manual", status: "blocked", check_in_at: `${ymd(41)}T10:00:00Z`, check_out_at: `${ymd(42)}T10:00:00Z` }).select("id").single()).data!.id;
+  await m.reload();
+  await expect(m.getByTestId("booking-conflicts")).toBeVisible();
+  await m.getByTestId("booking-confirm").click();
+  await expect(m.getByTestId("booking-error")).toContainText("Ces dates ne sont plus disponibles");
+  expect((await admin.from("reservations").select("id", { count: "exact", head: true }).eq("origin_request_id", reqId)).count).toBe(0);
+  await admin.from("reservations").delete().eq("id", blocked);
+
+  // Calendrier externe jamais synchronisé : confirmation seulement après vérification explicite
+  await admin.from("data_sources").insert({ organization_id: org, kind: "ical", property_id: prop!.id, label: "Airbnb QA", platform: "airbnb" });
+  await m.reload();
+  await expect(m.getByTestId("booking-stale-cals")).toContainText("Airbnb QA");
+  await m.getByTestId("booking-confirm").click();
+  await expect(m.getByTestId("booking-stale")).toContainText("Airbnb QA");
+  expect((await admin.from("reservations").select("id", { count: "exact", head: true }).eq("origin_request_id", reqId)).count).toBe(0);
+  await m.getByTestId("booking-confirm-ack").click();
+  await expect(m.getByTestId("booking-confirmed")).toBeVisible();
+  await expect(m.getByTestId("booking-invite-delivery")).toHaveAttribute("data-status", "failed");
+
+  // Un seul séjour, rattaché à l'ancien ; missions, accès voyageur et invitation ; décision tracée
+  const { data: created } = await admin.from("reservations").select("id, status, previous_reservation_id, guest_email").eq("origin_request_id", reqId);
+  expect(created).toHaveLength(1);
+  expect(created![0]).toMatchObject({ status: "confirmed", previous_reservation_id: stayId, guest_email: `lea-retour-${run}@halo.invalid` });
+  const newId = created![0].id as string;
+  expect((await admin.from("guest_links").select("id", { count: "exact", head: true }).eq("reservation_id", newId)).count).toBe(1);
+  expect((await admin.from("tasks").select("id", { count: "exact", head: true }).eq("reservation_id", newId).neq("status", "cancelled")).count).toBeGreaterThan(0);
+  const { data: hist } = await admin.from("booking_request_events").select("kind, visibility, body").eq("request_id", reqId);
+  expect(hist!.some((e) => e.kind === "confirm_refused")).toBe(true);
+  expect(hist!.some((e) => e.visibility === "internal" && /Airbnb QA/.test(e.body ?? ""))).toBe(true);
+  // Rejouer la confirmation : sans effet
+  // Sans session : refusé
+  const replay = await anon.rpc("booking_confirm", { org, request: reqId, ack_calendars: true });
+  expect(replay.error).not.toBeNull();
+  expect((await admin.from("reservations").select("id", { count: "exact", head: true }).eq("origin_request_id", reqId)).count).toBe(1);
+  await m.getByTestId("booking-open-stay").click();
+  await expect(m).toHaveURL(new RegExp(`/fr/app/stays/${newId}$`));
+
+  await g.reload();
+  await expect(g.getByTestId("bk-request")).toHaveAttribute("data-status", "confirmed");
+  await expect(g.locator("body")).not.toContainText("QA secret interne");
+
+  // Révocation du lien : plus aucun accès ; un nouveau lien remplace l'ancien
+  await m.goto(`/fr/app/stays/${stayId}`);
+  await m.getByTestId("booking-link-revoke").click();
+  await expect(m.getByTestId("booking-link-status")).toContainText("Aucun lien de demande actif");
+  await g.reload();
+  await expect(g.getByTestId("booking-unavailable")).toBeVisible();
+});
+
+test("27 · satisfaction : avis voyageur et propriétaire, note faible suivie, avis importé séparé, vitrine avec consentement et retrait", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `avis ${run}`);
+  const { data: prop } = await admin.from("properties").select("id, name").eq("organization_id", org).single();
+  // Séjour terminé (fictif)
+  const { data: past } = await admin
+    .from("reservations")
+    .insert({ organization_id: org, property_id: prop!.id, source: "manual", status: "confirmed", guest_name: "Sam Passé", guest_email: `sam-${run}@halo.invalid`, check_in_at: new Date(Date.now() - 64 * 86_400_000).toISOString(), check_out_at: new Date(Date.now() - 60 * 86_400_000).toISOString() })
+    .select("id")
+    .single();
+  expect(past, "séjour passé fictif").not.toBeNull();
+  await m.goto("/fr/app/satisfaction");
+  await expect(m.getByTestId("sat-verified")).toContainText("aucune moyenne n'est calculée");
+
+  await m.goto(`/fr/app/stays/${past!.id}`);
+  await m.getByTestId("review-link-create").click();
+  const rUrl = (await m.getByTestId("once-link-url").inputValue()).replace(/^https?:\/\/[^/]+/, "");
+  expect(rUrl).toMatch(/^\/fr\/avis\/[0-9a-f]{64}$/);
+
+  // Voyageur : note globale obligatoire, le reste facultatif ; consentement explicite
+  const g = await newPage(browser);
+  await g.goto(rUrl);
+  await g.getByTestId("review-send").click();
+  await expect(g.getByText("La note globale est obligatoire.")).toBeVisible();
+  await g.getByTestId("star-overall-2").click();
+  await g.getByTestId("star-cleanliness-1").click();
+  await g.getByTestId("return-false").click();
+  await g.getByTestId("review-comment").fill("Ménage insuffisant à l'arrivée.");
+  await g.getByTestId("review-send").click();
+  await expect(g.getByTestId("review-ok")).toBeVisible();
+  const { data: rev } = await admin.from("reviews").select("id, follow_status, verified, consent_publish").eq("organization_id", org).eq("kind", "guest").single();
+  expect(rev).toMatchObject({ follow_status: "to_handle", verified: true, consent_publish: false });
+  expect((await admin.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("template", "team_low_review")).count).toBeGreaterThan(0);
+
+  // Responsable : alerte, score avec nombre d'avis, suivi + incident sans désigner d'agent
+  await m.goto("/fr/app");
+  await expect(m.getByText("1 avis à traiter (note faible)")).toBeVisible();
+  await m.goto("/fr/app/satisfaction");
+  await expect(m.getByTestId("sat-verified-avg")).toHaveText("2,0");
+  await expect(m.getByTestId("sat-verified")).toContainText("sur 1 avis");
+  await expect(m.getByTestId("sat-questions")).toContainText("Propreté");
+  await expect(m.getByTestId("sat-questions")).toContainText("Communication— · 1 sans réponse");
+  await expect(m.getByTestId("review-row")).toHaveAttribute("data-follow", "to_handle");
+  await m.getByTestId("review-follow-open").click();
+  await m.getByLabel("Suivi interne").fill("Rappel de la checklist propreté à l'équipe.");
+  await m.getByTestId("review-make-incident").check();
+  await m.getByTestId("review-follow-save").click();
+  await expect(m.getByTestId("review-row")).toHaveAttribute("data-follow", "handled");
+  await expect(m.getByTestId("review-incident-link")).toBeVisible();
+  const { data: inc } = await admin.from("incidents").select("source, description").eq("organization_id", org).eq("reservation_id", past!.id).single();
+  expect(inc!.source).toBe("manager");
+  // L'équipe ne peut pas modifier l'avis : aucun bouton d'édition de la note ou du commentaire
+  await expect(m.getByTestId("review-row").getByRole("textbox")).toHaveCount(0);
+
+  // Le voyageur modifie son avis (14 jours) et accepte la publication avec une signature
+  await g.reload();
+  await expect(g.getByTestId("review-existing")).toBeVisible();
+  await g.getByTestId("star-overall-4").click();
+  await g.getByTestId("review-consent").check();
+  await g.getByTestId("review-label").fill("Sam, Lyon");
+  await g.getByTestId("review-send").click();
+  await expect(g.getByTestId("review-ok")).toBeVisible();
+  expect((await admin.from("reviews").select("overall, consent_publish").eq("id", rev!.id).single()).data).toMatchObject({ overall: 4, consent_publish: true });
+
+  // Avis importé : jamais mélangé aux avis vérifiés
+  await m.goto("/fr/app/satisfaction");
+  await m.getByTestId("imported-open").click();
+  await m.getByTestId("imported-from").fill("Airbnb");
+  await m.getByTestId("imported-date").fill(ymd(-20));
+  await m.getByTestId("imported-save").click();
+  await expect(m.getByTestId("sat-imported")).toHaveAttribute("data-count", "1");
+  await expect(m.getByTestId("sat-verified")).toHaveAttribute("data-count", "1");
+  await expect(m.getByTestId("sat-verified-avg")).toHaveText("4,0");
+
+  // Propriétaire relié à un logement géré : lien d'avis
+  await m.goto("/fr/app/satisfaction/owners");
+  await expect(m.getByTestId("owners-limits")).toContainText("Pas d'espace propriétaire authentifié");
+  await m.getByTestId("owner-add").click();
+  await m.getByTestId("owner-name").fill("Mme Propriétaire QA");
+  await m.getByTestId("owner-email").fill(`proprio-${run}@halo.invalid`);
+  await m.getByTestId("owner-save").click();
+  await expect(m.getByTestId("owner-row")).toContainText("Aucun logement relié");
+  await m.getByTestId("owner-edit").click();
+  await m.getByTestId("owner-property").first().check();
+  await m.getByTestId("owner-save").click();
+  await expect(m.getByTestId("owner-row")).toContainText(prop!.name);
+  await m.getByTestId("owner-review-send").click();
+  await expect(m.getByTestId("owner-review-delivery")).toHaveAttribute("data-status", "failed");
+  const oUrl = (await m.getByTestId("owner-review-url").inputValue()).replace(/^https?:\/\/[^/]+/, "");
+  const o = await newPage(browser);
+  await o.goto(oUrl);
+  await expect(o.getByTestId("review-portal")).toHaveAttribute("data-kind", "owner");
+  await o.getByTestId("star-overall-5").click();
+  await o.getByTestId("star-reactivity-5").click();
+  await o.getByTestId("review-comment").fill("Gestion sérieuse et réactive.");
+  await o.getByTestId("review-send").click();
+  await expect(o.getByTestId("review-ok")).toBeVisible();
+
+  // Vitrine : témoignage consenti, aperçu, publication explicite, mention « sélection »
+  const slug = `qa-${run}`;
+  await m.goto("/fr/app/satisfaction/showcase");
+  await expect(m.getByTestId("showcase-testimonial")).toHaveCount(1);
+  await m.getByTestId("showcase-slug").fill(slug);
+  await m.getByTestId("showcase-testimonial").check();
+  await m.getByTestId("showcase-save").click();
+  await expect(m.getByTestId("showcase-preview")).toContainText("Sam, Lyon");
+  const pub = await newPage(browser);
+  await pub.goto(`/fr/v/${slug}`);
+  await expect(pub.getByTestId("showcase-unavailable")).toBeVisible();
+  await m.getByTestId("showcase-publish-btn").click();
+  await expect(m.getByTestId("showcase-unpublish")).toBeVisible();
+  await pub.reload();
+  await expect(pub.getByTestId("showcase-score-guest")).toContainText("1 avis vérifié");
+  await expect(pub.getByTestId("showcase-selection")).toContainText("Sélection");
+  await expect(pub.getByTestId("showcase-testimonial-card")).toContainText("Ménage insuffisant");
+  await expect(pub.locator("body")).not.toContainText(`sam-${run}`);
+  await expect(pub.locator("body")).not.toContainText("Sam Passé");
+
+  // Retrait du consentement : le témoignage disparaît aussitôt
+  await g.reload();
+  await g.getByTestId("review-consent").uncheck();
+  await g.getByTestId("review-send").click();
+  await expect(g.getByTestId("review-ok")).toBeVisible();
+  await pub.reload();
+  await expect(pub.getByTestId("showcase-testimonial-card")).toHaveCount(0);
+
+  // Retrait de la vitrine
+  await m.reload();
+  await m.getByTestId("showcase-unpublish").click();
+  await expect(m.getByTestId("showcase-publish-btn")).toBeVisible();
+  await pub.reload();
+  await expect(pub.getByTestId("showcase-unavailable")).toBeVisible();
 });

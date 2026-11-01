@@ -1305,7 +1305,9 @@
       "messages": "Nachrichten",
       "preferences": "Einstellungen",
       "more": "Mehr",
-      "import": "Daten importieren"
+      "import": "Daten importieren",
+      "bookings": "Aufenthaltsanfragen",
+      "satisfaction": "Zufriedenheit"
     },
     "env": {
       "demo": "Demo",
@@ -1395,7 +1397,17 @@
       "feed_too_large": "Kalender zu groß (max. 2 MB).",
       "feed_not_https": "Unsichere Adresse: https:// erforderlich.",
       "feed_forbidden_host": "Adresse abgelehnt (internes Netz).",
-      "feed_invalid": "Ungültige Kalenderadresse."
+      "feed_invalid": "Ungültige Kalenderadresse.",
+      "stay_not_finished": "Der Aufenthalt ist noch nicht beendet: Bitten Sie nach der Abreise um eine Bewertung.",
+      "already_reviewed": "Für diesen Aufenthalt liegt bereits eine Bewertung vor.",
+      "no_managed_property": "Verknüpfen Sie diesen Eigentümer zuerst mit mindestens einer verwalteten Unterkunft.",
+      "offer_incomplete": "Unvollständiges Angebot: Geben Sie Preis, Gesamtbetrag und Bedingungen an.",
+      "offer_total_mismatch": "Der Gesamtbetrag muss Preis plus Gebühren entsprechen.",
+      "dates_unavailable": "Diese Daten sind nicht mehr verfügbar (inzwischen kam ein Aufenthalt oder eine Sperre hinzu). Nichts wurde angelegt; schlagen Sie andere Daten vor.",
+      "not_accepted": "Der Gast hat das Angebot (noch) nicht angenommen: Nichts ist bestätigt.",
+      "testimonial_not_allowed": "Ein ausgewähltes Zitat hat keine (oder keine gültige) Zustimmung seines Verfassers.",
+      "slug_taken": "Diese Schaufenster-Adresse ist bereits vergeben: Wählen Sie eine andere.",
+      "no_property": "Diese Bewertung ist keiner Unterkunft zugeordnet: Kein Vorfall möglich."
     },
     "home": {
       "subtitle": "Was Ihre Aufmerksamkeit braucht.",
@@ -1422,7 +1434,9 @@
       "prepReview": "{count, plural, =0 {Kein Gastfragebogen zu prüfen} one {# Gastfragebogen zu prüfen} other {# Gastfragebögen zu prüfen}}",
       "prepDue": "{count, plural, =0 {Keine Vorbereitungsaktion in 24 h fällig} one {# Vorbereitungsaktion in 24 h fällig} other {# Vorbereitungsaktionen in 24 h fällig}}",
       "vipRequests": "{count, plural, =0 {Keine offene VIP-Anfrage} one {# offene VIP-Anfrage} other {# offene VIP-Anfragen}}",
-      "teamEmails": "{count, plural, =0 {Keine unzugestellte Team-E-Mail} one {# unzugestellte Team-E-Mail} other {# unzugestellte Team-E-Mails}}"
+      "teamEmails": "{count, plural, =0 {Keine unzugestellte Team-E-Mail} one {# unzugestellte Team-E-Mail} other {# unzugestellte Team-E-Mails}}",
+      "bookings": "{count, plural, =0 {Keine offene Aufenthaltsanfrage} one {# offene Aufenthaltsanfrage} other {# offene Aufenthaltsanfragen}}",
+      "lowReviews": "{count, plural, =0 {Keine Bewertung zu bearbeiten} one {# Bewertung zu bearbeiten (niedrige Note)} other {# Bewertungen zu bearbeiten (niedrige Noten)}}"
     },
     "onb": {
       "progress": "Schritt {n} von {total}",
@@ -1810,7 +1824,12 @@
         "vip_update": "Antwort auf VIP-Anfrage",
         "team_prep_submitted": "Team: Fragebogen erhalten",
         "team_prep_updated": "Team: Fragebogen geändert",
-        "team_vip_requested": "Team: VIP-Anfrage"
+        "team_vip_requested": "Team: VIP-Anfrage",
+        "booking_link": "Link für Aufenthaltsanfrage",
+        "booking_update": "Antwort auf Aufenthaltsanfrage",
+        "review_request": "Bewertungsanfrage",
+        "team_booking_requested": "Team: Aufenthaltsanfrage",
+        "team_low_review": "Team: Bewertung mit niedriger Note"
       },
       "testAddress": "Fiktive Adresse (Testkonto): Es wird nichts gesendet.",
       "skippedReason": "Der Empfänger hat diese E-Mail deaktiviert; das Ereignis bleibt in HALO sichtbar.",
@@ -2352,7 +2371,12 @@
         "team_assignment_conflict": "Zuweisungskonflikt (angenommene Abwesenheit bei zugewiesenem Einsatz)",
         "team_stay_changed": "Aufenthalt geändert oder storniert (Anreise, Abreise)",
         "agent_task_changed": "Einsatz geändert oder storniert",
-        "agent_absence_decided": "Antwort auf meinen Abwesenheitsantrag"
+        "agent_absence_decided": "Antwort auf meinen Abwesenheitsantrag",
+        "team_prep_submitted": "Vorbereitungsfragebogen gesendet",
+        "team_prep_updated": "Vorbereitungsantworten geändert",
+        "team_vip_requested": "Anfrage für persönlichen Empfang (VIP)",
+        "team_booking_requested": "Aufenthaltsanfrage eines früheren Gastes",
+        "team_low_review": "Bewertung mit niedriger Note"
       },
       "pageTitle": "Einstellungen",
       "pageSubtitle": "Ihre persönlichen Einstellungen: Sie ändern nichts für andere Mitglieder.",
@@ -2365,7 +2389,9 @@
         "services": "Leistungen und Startseite",
         "incidents": "Vorfälle und Startseite",
         "missions": "Meine Einsätze",
-        "profile": "Mein Profil (Abwesenheiten)"
+        "profile": "Mein Profil (Abwesenheiten)",
+        "bookings": "Aufenthaltsanfragen und Start",
+        "satisfaction": "Zufriedenheit und Start"
       },
       "reset": "Standardeinstellungen wiederherstellen",
       "resetHint": "Standardmäßig wird alles per E-Mail gesendet.",
@@ -2420,7 +2446,8 @@
       "verify": "Prüfen",
       "verified": "geprüft",
       "notVerified": "nicht geprüft",
-      "verifyHint": "Bestätigt, dass Name, Adresse, Öffnungszeiten und Kontakt heute stimmen (Datum und Name gespeichert). Jede Änderung hebt die Prüfung auf."
+      "verifyHint": "Bestätigt, dass Name, Adresse, Öffnungszeiten und Kontakt heute stimmen (Datum und Name gespeichert). Jede Änderung hebt die Prüfung auf.",
+      "importedPartial": "Einige Kategorien konnten nicht abgerufen werden ({categories}): Vorhandene Orte dieser Kategorien bleiben erhalten. Später erneut versuchen."
     },
     "prep": {
       "title": "Aufenthaltsvorbereitung",
@@ -2529,14 +2556,17 @@
         "status_reverted": "„Bereit“ entfernt: notwendige Aktion offen",
         "action_reopened": "Aktion wieder geöffnet",
         "action_forced": "Aktion per Ausnahme abgeschlossen",
-        "action_auto_done": "Aktion abgeschlossen: Einsatz erledigt"
+        "action_auto_done": "Aktion abgeschlossen: Einsatz erledigt",
+        "mission_reopened": "Verknüpfter Einsatz zu wiederholen: Aktion wieder geöffnet",
+        "mission_cancelled": "Verknüpfter Einsatz storniert: Aktion bleibt offen"
       },
       "missionNotDone": "Der verknüpfte Einsatz ist nicht abgeschlossen. Die Aktion jetzt abzuschließen ist eine Ausnahme: Sie wird mit Ihrem Grund protokolliert.",
       "overrideReason": "Grund der Ausnahme",
       "overrideConfirm": "Trotzdem abschließen",
       "overrideShown": "Per Ausnahme abgeschlossen: {reason}",
       "taskNotes": "Anweisungen für den Agenten",
-      "taskNotesHint": "Für den Agenten in seiner Liste und den Einsatzdetails sichtbar."
+      "taskNotesHint": "Für den Agenten in seiner Liste und den Einsatzdetails sichtbar.",
+      "notReadyReason": "Dieser Aufenthalt ist seit {date} nicht mehr „Bereit“: Die notwendige Aktion „{action}“ {cause, select, mission {wurde wieder geöffnet, weil ihr Einsatz wiederholt werden muss} other {wurde wieder geöffnet}}. Erledigen Sie sie (oder schließen Sie sie mit Begründung) und setzen Sie den Aufenthalt wieder auf „Bereit“."
     },
     "vip": {
       "title": "VIP-Status",
@@ -2926,6 +2956,263 @@
       },
       "label": "Name (optional)",
       "add": "Kalender hinzufügen"
+    },
+    "relations": {
+      "bookingTitle": "Zur Rückkehr einladen",
+      "bookingText": "Ein vom Aufenthaltsbereich getrennter Link, 60 Tage gültig, erlaubt dem Gast, einen neuen Aufenthalt anzufragen. Eine Anfrage ist nie eine Buchung: Sie antworten, machen ein Angebot und bestätigen dann.",
+      "needConfirmed": "Verfügbar für einen bestätigten Aufenthalt.",
+      "linkActive": "Link aktiv bis {until}",
+      "linkNone": "Kein aktiver Anfrage-Link.",
+      "linkUsed": "geöffnet am {at}",
+      "send": "Link per E-Mail senden",
+      "renewSend": "Erneuern und senden",
+      "createCopy": "Link zum Kopieren erstellen",
+      "renewCopy": "Erneuern (Link zum Kopieren)",
+      "revoke": "Link deaktivieren",
+      "linkRules": "Ein neuer Link ersetzt den vorherigen. Er läuft nach 60 Tagen ab oder sobald Sie ihn deaktivieren; bereits gesendete Anfragen bleiben hier sichtbar.",
+      "reviewTitle": "Um Bewertung bitten",
+      "reviewText": "Nach der Abreise: ein persönlicher Link (30 Tage) für eine Gesamtnote und einige optionale Fragen. Eine Bewertung pro Aufenthalt, nie ohne Zustimmung des Gastes veröffentlicht.",
+      "reviewAfter": "Verfügbar nach der Abreise des Gastes.",
+      "reviewReceived": "Bewertung erhalten: {overall}/5 am {date}.",
+      "openSatisfaction": "In Zufriedenheit ansehen",
+      "reviewSend": "Bewertungsanfrage senden",
+      "reviewCopy": "Bewertungslink zum Kopieren erstellen",
+      "reviewRules": "Ein neuer Link ersetzt den vorherigen. Der Verfasser kann die Bewertung 14 Tage lang ändern; das Team kann sie nicht ändern."
+    },
+    "booking": {
+      "status": {
+        "received": "Eingegangen",
+        "in_review": "In Prüfung",
+        "info_requested": "Rückfrage gestellt",
+        "offer_sent": "Angebot gesendet",
+        "accepted": "Angebot angenommen — zu bestätigen",
+        "confirmed": "Bestätigt",
+        "declined": "Abgelehnt",
+        "cancelled": "Storniert"
+      },
+      "event": {
+        "received": "Anfrage eingegangen",
+        "in_review": "In Prüfung genommen",
+        "info_requested": "Rückfrage gestellt",
+        "guest_reply": "Antwort des Gastes",
+        "offer_sent": "Angebot gesendet",
+        "accepted": "Angebot vom Gast angenommen",
+        "confirmed": "Aufenthalt bestätigt",
+        "declined": "Anfrage abgelehnt",
+        "cancelled": "Anfrage vom Team storniert",
+        "guest_cancelled": "Anfrage vom Gast storniert",
+        "confirm_refused": "Bestätigung von HALO abgelehnt"
+      },
+      "title": "Aufenthaltsanfragen",
+      "subtitle": "Anfragen früherer Gäste über ihren Link. Ohne Ihre Bestätigung wird nichts gebucht.",
+      "viewOpen": "Offen",
+      "viewClosed": "Abgeschlossen",
+      "loadError": "Anfragen konnten nicht geladen werden. Bitte erneut versuchen.",
+      "empty": "Keine offene Anfrage. Nutzen Sie auf der Seite eines Aufenthalts „Zur Rückkehr einladen“.",
+      "emptyClosed": "Keine abgeschlossene Anfrage.",
+      "unread": "Neu",
+      "people": "{count, plural, one {# Gast} other {# Gäste}}",
+      "receivedOn": "eingegangen am {date}",
+      "back": "← Alle Anfragen",
+      "dates": "Gewünschte Daten",
+      "guests": "Gäste",
+      "guestsValue": "{adults} Erwachsene, {children} Kind(er), {babies} Baby(s)",
+      "email": "E-Mail",
+      "phone": "Telefon",
+      "overCapacity": "Mehr Gäste als die Kapazität der Unterkunft ({capacity}).",
+      "origin": "Früherer Aufenthalt:",
+      "emailDiffers": "E-Mail weicht vom früheren Aufenthalt ab (der neue Aufenthalt wird nur als „früherer Aufenthalt“ verknüpft)",
+      "availabilityTitle": "Bekannte Verfügbarkeit",
+      "availabilityAsked": "Gewünschte Daten",
+      "availabilityOffer": "Angebotsdaten: {from} → {to}",
+      "nights": "{count, plural, one {# Nacht} other {# Nächte}}",
+      "blocked": "Gesperrter Zeitraum",
+      "stay": "Aufenthalt",
+      "noConflict": "Kein bekannter Aufenthalt und keine Sperre in diesem Zeitraum.",
+      "noCalendars": "Kein externer Kalender mit dieser Unterkunft verknüpft: Bekannt ist nur die in HALO erfasste Verfügbarkeit.",
+      "staleCalendars": "Kalender nicht aktuell ({calendars}): Eine aktuelle Buchung auf einer anderen Plattform könnte fehlen. Prüfen Sie sie vor der Bestätigung.",
+      "calendarsOk": "Externe Kalender vor weniger als 24 Std. synchronisiert.",
+      "decisionTitle": "Entscheidung",
+      "act": {
+        "review": "In Prüfung nehmen",
+        "info": "Rückfrage stellen",
+        "offer": "Angebot machen",
+        "offerAgain": "Angebot ändern",
+        "decline": "Ablehnen"
+      },
+      "acceptedTitle": "Der Gast hat das Angebot angenommen.",
+      "acceptedText": "Die Bestätigung prüft die Daten serverseitig erneut und legt genau einen Aufenthalt, seine Einsätze und einen neuen Gastzugang an. Die Zahlung wird nicht von HALO abgewickelt.",
+      "confirm": "Aufenthalt bestätigen",
+      "staleTitle": "Externe Kalender nicht aktuell",
+      "staleText": "{calendars}: Verfügbarkeit nicht garantiert. Bestätigen Sie erst nach Prüfung der betreffenden Plattform.",
+      "confirmAnyway": "Geprüft, bestätigen",
+      "cancelAction": "Abbrechen",
+      "confirmedText": "Aufenthalt bestätigt: Er erscheint unter Aufenthalte mit seinen Einsätzen.",
+      "inviteDelivery": "Einladung zur Vorbereitung: {status, select, sent {gesendet} pending {wartet auf Versand} not_configured {nicht gesendet (kein E-Mail-Dienst)} skipped {nicht gesendet (Einstellung)} other {fehlgeschlagen — erneut über die Aufenthaltsseite senden}}",
+      "openNewStay": "Neuen Aufenthalt öffnen",
+      "paymentOutside": "Zahlung: nicht über HALO. Sie wird direkt mit dem Gast abgewickelt und nie als erhalten angezeigt.",
+      "closedText": "Anfrage abgeschlossen: keine weitere Aktion möglich.",
+      "question": "Frage an den Gast",
+      "sendQuestion": "Frage senden",
+      "conflictHint": "Bekannte Aufenthalte oder Sperren überschneiden sich mit den Daten: Schlagen Sie unten andere Daten vor.",
+      "offerIn": "Vorgeschlagene Anreise",
+      "offerOut": "Vorgeschlagene Abreise",
+      "altHint": "Ändern, um andere Daten vorzuschlagen.",
+      "price": "Preis des Aufenthalts",
+      "fees": "Gebühren (Reinigung, Service…)",
+      "currency": "Währung",
+      "validUntil": "Angebot gültig bis",
+      "total": "Gesamt",
+      "conditions": "Bedingungen",
+      "conditionsHint": "Anzahlung, Zahlungsbedingungen, Storno… Der Gast sieht sie vor der Annahme.",
+      "messageToGuest": "Nachricht an den Gast (optional)",
+      "sendOffer": "Angebot senden",
+      "offerInvalid": "Ungültiger Preis oder Gebühren.",
+      "declineMessage": "Nachricht an den Gast",
+      "declineHint": "Bleiben Sie kurz und höflich; der interne Grund gehört in die interne Notiz.",
+      "declineConfirm": "Anfrage ablehnen",
+      "internalNote": "Interne Notiz",
+      "internalHint": "Nur für das Team sichtbar, nie für den Gast.",
+      "internalBadge": "intern",
+      "offerTitle": "Aktuelles Angebot",
+      "offerValid": "Gültig bis {date}",
+      "historyTitle": "Verlauf",
+      "datesUnavailable": "Daten nicht mehr verfügbar",
+      "deliveryTitle": "E-Mails an den Gast",
+      "deliveryText": "Gesendet an {email}. Der angezeigte Status ist das tatsächliche Versandergebnis."
+    },
+    "reviews": {
+      "title": "Zufriedenheit",
+      "subtitle": "Bewertungen von Gästen und Eigentümern, getrennt. Noten und Kommentare der Verfasser werden nie geändert.",
+      "tabs": {
+        "reviews": "Bewertungen",
+        "owners": "Eigentümer",
+        "showcase": "Schaufenster"
+      },
+      "kindName": {
+        "guest": "Gäste",
+        "owner": "Eigentümer"
+      },
+      "months": "{count, plural, one {# Monat} other {# Monate}}",
+      "periodLine": "Zeitraum: {from} bis {to}",
+      "loadError": "Bewertungen konnten nicht geladen werden.",
+      "verifiedTitle": "Verifizierte Bewertungen (über HALO)",
+      "importedTitle": "Importierte Bewertungen (andere Plattformen)",
+      "noReviews": "Keine Bewertung im Zeitraum: Kein Durchschnitt berechnet.",
+      "count": "{count, plural, one {aus # Bewertung} other {aus # Bewertungen}}",
+      "byQuestion": "Details (verifizierte Bewertungen)",
+      "unanswered": "{count} ohne Antwort",
+      "returnShort": {
+        "guest": "Würden wiederkommen",
+        "owner": "Würden empfehlen"
+      },
+      "yesNo": "{yes} ja · {no} nein · {none} keine Angabe",
+      "method": "Durchschnitte aus allen Bewertungen des Zeitraums, ohne Ausschluss. Importierte werden nie mit verifizierten vermischt.",
+      "listTitle": "Bewertungen",
+      "filter": {
+        "all": "Alle",
+        "to_handle": "Zu bearbeiten",
+        "low": "Noten ≤ 2"
+      },
+      "followState": {
+        "new": "Neu",
+        "to_handle": "Zu bearbeiten",
+        "handled": "Bearbeitet"
+      },
+      "emptyList": "Keine Bewertung für diesen Filter.",
+      "importedBadge": "Importiert · {from}",
+      "verifiedBadge": "Verifiziert",
+      "consentGiven": "Veröffentlichung erlaubt",
+      "consentWithdrawn": "Zustimmung widerrufen",
+      "noComment": "Kein Kommentar.",
+      "returnAnswer": {
+        "guest": {
+          "yes": "Würde wiederkommen: ja",
+          "no": "Würde wiederkommen: nein"
+        },
+        "owner": {
+          "yes": "Würde empfehlen: ja",
+          "no": "Würde empfehlen: nein"
+        }
+      },
+      "editedByAuthor": "Vom Verfasser geändert am {date}",
+      "followNote": "Interne Nachverfolgung",
+      "followNoteHint": "Ergriffene Maßnahme, Entscheidung… Nur für das Team sichtbar.",
+      "openStay": "Aufenthalt öffnen",
+      "openIncident": "Vorfall ansehen",
+      "follow": "Nachverfolgen",
+      "followStatus": "Status der Nachverfolgung",
+      "makeIncident": "Vorfall zur Unterkunft eröffnen (ohne jemanden zu benennen)",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "importedAdd": "Importierte Bewertung hinzufügen",
+      "importedText": "Kopie einer anderswo erhaltenen Bewertung (Airbnb, Google…). Bleibt als „importiert“ markiert, zählt nie als verifiziert und kann nicht im Schaufenster erscheinen.",
+      "kind": "Art",
+      "overallShort": "Gesamtnote",
+      "importedFrom": "Herkunft",
+      "importedFromHint": "Zum Beispiel „Airbnb“.",
+      "importedDate": "Ursprüngliches Datum",
+      "property": "Unterkunft",
+      "noProperty": "Keine bestimmte Unterkunft",
+      "comment": "Kommentar",
+      "noBlame": "Eine Bewertung beschreibt ein Erlebnis, nicht die Schuld einer Person: HALO ordnet nie eine Note einem Mitarbeiter zu.",
+      "owners": {
+        "title": "Eigentümer",
+        "subtitle": "Eigentümer, deren Unterkunft Sie verwalten, um ihre Meinung zu Ihrer Verwaltung einzuholen.",
+        "limits": "Noch kein angemeldeter Eigentümerbereich: Die Bewertung erfolgt über einen persönlichen Link (30 Tage). Nur mit einer verwalteten Unterkunft verknüpfte Eigentümer können angefragt werden; ihre Daten bleiben intern.",
+        "add": "Eigentümer hinzufügen",
+        "edit": "Bearbeiten",
+        "name": "Name",
+        "email": "E-Mail",
+        "emailHint": "Um ihm die Bewertungsanfrage zu senden.",
+        "phone": "Telefon",
+        "properties": "Für diesen Eigentümer verwaltete Unterkünfte",
+        "propertiesHint": "Diese Verwaltungsbeziehung erlaubt die Bewertungsanfrage.",
+        "save": "Speichern",
+        "cancel": "Abbrechen",
+        "empty": "Kein Eigentümer erfasst.",
+        "noEmail": "keine E-Mail",
+        "noProperty": "Keine verknüpfte Unterkunft: Keine Bewertungsanfrage möglich.",
+        "lastReview": "Letzte Bewertung: {overall}/5 am {date}",
+        "needProperty": "Verknüpfen Sie eine Unterkunft, um eine Bewertung anzufragen.",
+        "askReview": "Bewertungsanfrage senden",
+        "copyLink": "Link zum Kopieren erstellen"
+      },
+      "showcase": {
+        "title": "Schaufenster",
+        "subtitle": "Eine öffentliche Vorstellungsseite, nur veröffentlicht, wenn Sie es entscheiden.",
+        "slug": "Seitenadresse",
+        "slugHint": "Kleinbuchstaben, Ziffern und Bindestriche (z. B. mein-concierge).",
+        "titleField": "Titel",
+        "intro": "Vorstellung",
+        "services": "Angebotene Leistungen",
+        "contact": "Geschäftlicher Kontakt",
+        "contactHint": "Nur Firmenkontaktdaten.",
+        "period": "Zeitraum der Noten",
+        "months": "{count, plural, one {# Monat} other {# Monate}}",
+        "scores": "Angezeigte Noten",
+        "showGuest": "Gästezufriedenheit",
+        "showOwner": "Eigentümerzufriedenheit",
+        "scoresHint": "Aus allen verifizierten Bewertungen des Zeitraums, inklusive niedriger Noten, mit Anzahl.",
+        "testimonials": "Stimmen",
+        "testimonialsHint": "Nur verifizierte Bewertungen mit Zustimmung des Verfassers sind wählbar. Die Seite weist auf die Auswahl hin.",
+        "noCandidates": "Noch keine Bewertung mit Veröffentlichungszustimmung.",
+        "anon": {
+          "guest": "Gast",
+          "owner": "Eigentümer"
+        },
+        "save": "Einstellungen speichern",
+        "saved": "Gespeichert.",
+        "unsaved": "Nicht gespeicherte Änderungen.",
+        "isPublished": "Das Schaufenster ist veröffentlicht.",
+        "notPublished": "Das Schaufenster ist nicht veröffentlicht.",
+        "publishText": "Die Seite ist für jeden mit der Adresse erreichbar. Sie können sie jederzeit zurückziehen; ein Zitat, dessen Verfasser widerruft, verschwindet sofort.",
+        "publish": "Schaufenster veröffentlichen",
+        "unpublish": "Schaufenster zurückziehen",
+        "preview": "Vorschau",
+        "previewNote": "Vorschau nach denselben Regeln wie die öffentliche Seite (gespeicherte Einstellungen).",
+        "openPublic": "Öffentliche Seite öffnen"
+      }
     }
   },
   "email": {
@@ -3055,6 +3342,29 @@
     "team_vip_requested": {
       "subject": "VIP-Anfrage — {guest} ({property})",
       "body": "{guest} bittet um einen persönlichen Empfang ({property}). Annehmen, ablehnen oder nachfragen; ohne Ihre Entscheidung wird nichts bestätigt."
+    },
+    "booking_link": {
+      "subject": "{org} — Lust wiederzukommen?",
+      "body": "Danke für Ihren Aufenthalt in {property}. Wenn Sie wiederkommen möchten, können Sie uns über diesen persönlichen Link eine Aufenthaltsanfrage senden (Daten, Gäste, Details). Eine Anfrage ist keine Buchung: Das Team antwortet mit einem Angebot. 60 Tage gültig; bitte nicht weiterleiten.",
+      "footer": "Diese E-Mail ist automatisch. Bei Fragen antworten Sie über den Link oben."
+    },
+    "booking_update": {
+      "subject": "{org} — Ihre Aufenthaltsanfrage",
+      "body": "{choice, select, info_requested {Das Team benötigt eine Angabe zu Ihrer Aufenthaltsanfrage für {property}.} offer_sent {Das Team hat Ihnen ein Angebot für {property} geschickt. Prüfen und nehmen Sie es an, wenn es passt: Nichts ist gebucht, bevor das Team bestätigt.} declined {Das Team kann Ihre Aufenthaltsanfrage für {property} nicht annehmen.} cancelled {Ihre Aufenthaltsanfrage für {property} wurde storniert.} confirmed {Ihr Aufenthalt in {property} ist vom Team bestätigt. Sie erhalten einen Link zur Vorbereitung. Die Zahlung erfolgt direkt mit dem Team, außerhalb von HALO.} other {Ihre Aufenthaltsanfrage für {property} wurde aktualisiert.}} Details finden Sie über Ihren Anfrage-Link.",
+      "footer": "Diese E-Mail ist automatisch. Antworten Sie über Ihren Anfrage-Link."
+    },
+    "review_request": {
+      "subject": "{org} — Ihre Meinung zählt",
+      "body": "Können Sie uns in zwei Minuten sagen, wie Ihre Erfahrung war? Nur die Gesamtnote ist Pflicht; der Rest ist optional. Ihre Bewertung wird nie ohne Ihre ausdrückliche Zustimmung veröffentlicht, und Sie können sie 14 Tage lang ändern. Persönlicher Link, 30 Tage gültig.",
+      "footer": "Diese E-Mail ist automatisch. Dieser Link ist persönlich: bitte nicht weiterleiten."
+    },
+    "team_booking_requested": {
+      "subject": "Aufenthaltsanfrage — {guest} ({property})",
+      "body": "{guest} hat eine Aufenthaltsanfrage für {property} gesendet oder aktualisiert. Ohne Ihre Entscheidung wird dem Gast nichts bestätigt."
+    },
+    "team_low_review": {
+      "subject": "Bewertung mit niedriger Note — {property}",
+      "body": "Soeben ist eine Bewertung mit 2/5 oder weniger eingegangen ({property}). Sie ist unter Zufriedenheit als „Zu bearbeiten“ markiert: Dort können Sie eine interne Maßnahme notieren oder einen Vorfall eröffnen."
     }
   },
   "guestSpace": {
@@ -3316,5 +3626,190 @@
     "textApp": "Dieses Element existiert nicht oder gehört nicht zur aktiven Organisation. Prüfen Sie die ausgewählte Organisation.",
     "home": "Zurück zu HALO",
     "site": "Startseite"
+  },
+  "bookingPortal": {
+    "unavailable": {
+      "title": "Link nicht verfügbar",
+      "text": "Dieser Anfrage-Link ist abgelaufen oder wurde ersetzt. Kontaktieren Sie das Team für einen neuen."
+    },
+    "error": {
+      "title": "Dienst vorübergehend nicht verfügbar",
+      "text": "Nichts ist verloren gegangen. Versuchen Sie es gleich noch einmal."
+    },
+    "hello": "Hallo {name}",
+    "helloAnon": "Hallo",
+    "intro": "Möchten Sie wiederkommen? Senden Sie eine Anfrage: Das Team antwortet mit einem Angebot.",
+    "yourRequests": "Ihre Anfragen",
+    "status": {
+      "received": "Eingegangen",
+      "in_review": "In Prüfung",
+      "info_requested": "Rückfrage",
+      "offer_sent": "Angebot erhalten",
+      "accepted": "Angebot angenommen",
+      "confirmed": "Aufenthalt bestätigt",
+      "declined": "Nicht angenommen",
+      "cancelled": "Storniert"
+    },
+    "statusText": {
+      "received": "Das Team hat Ihre Anfrage erhalten. Es ist noch keine Buchung.",
+      "in_review": "Das Team prüft Ihre Anfrage.",
+      "info_requested": "Das Team braucht eine Angabe: Antworten Sie unten.",
+      "offer_sent": "Hier ist das Angebot des Teams. Nichts ist gebucht, bevor Sie annehmen und das Team bestätigt.",
+      "accepted": "Sie haben das Angebot angenommen. Das Team muss den Aufenthalt noch bestätigen: Es ist noch keine bestätigte Buchung.",
+      "confirmed": "Ihr Aufenthalt ist vom Team bestätigt. Sie erhalten einen Link zur Vorbereitung. Die Zahlung erfolgt direkt mit dem Team.",
+      "declined": "Das Team kann diese Anfrage nicht annehmen.",
+      "cancelled": "Diese Anfrage ist storniert."
+    },
+    "altDates": "Vom Team vorgeschlagene Daten: {from} → {to}",
+    "offer": {
+      "title": "Angebot",
+      "price": "Aufenthalt",
+      "fees": "Gebühren",
+      "total": "Gesamt",
+      "validUntil": "Gültig bis {date}",
+      "expired": "Dieses Angebot ist abgelaufen: Schreiben Sie dem Team für ein neues.",
+      "payment": "Hier wird keine Zahlung verlangt. Die Zahlungsbedingungen stehen in den Bedingungen und werden direkt mit dem Team geregelt."
+    },
+    "history": "Verlauf",
+    "event": {
+      "received": "Anfrage gesendet",
+      "in_review": "In Prüfung",
+      "info_requested": "Rückfrage",
+      "guest_reply": "Ihre Antwort",
+      "offer_sent": "Angebot erhalten",
+      "accepted": "Angebot angenommen",
+      "confirmed": "Aufenthalt bestätigt",
+      "declined": "Nicht angenommen",
+      "cancelled": "Vom Team storniert",
+      "guest_cancelled": "Von Ihnen storniert",
+      "confirm_refused": "Ausstehend"
+    },
+    "acceptText": "Mit der Annahme teilen Sie dem Team mit, dass das Angebot passt. Gebucht wird erst nach dessen Bestätigung.",
+    "accept": "Angebot annehmen",
+    "replyAnswer": "Ihre Antwort",
+    "replyAdd": "Angabe hinzufügen",
+    "replySend": "Senden",
+    "cancel": "Meine Anfrage stornieren",
+    "cancelConfirmText": "Diese Anfrage stornieren?",
+    "cancelConfirm": "Ja, stornieren",
+    "keep": "Behalten",
+    "newTitle": "Aufenthalt anfragen",
+    "newText": "Geben Sie Ihre Daten und Wünsche an. Das Team antwortet mit einem Angebot.",
+    "busyTitle": "Bereits belegte Zeiträume (bekannt)",
+    "calendarsNotGuaranteed": "Diese Verfügbarkeit ist unverbindlich: Einige Kalender sind nicht aktuell. Nur die Bestätigung des Teams gilt als Buchung.",
+    "calendarsInfo": "Unverbindliche Verfügbarkeit. Nur die Bestätigung des Teams gilt als Buchung.",
+    "linkValid": "Persönlicher Link gültig bis {date}.",
+    "form": {
+      "checkIn": "Anreise",
+      "checkOut": "Abreise",
+      "adults": "Erwachsene",
+      "children": "Kinder",
+      "babies": "Babys",
+      "name": "Name",
+      "email": "E-Mail",
+      "phone": "Telefon (optional)",
+      "message": "Details (optional)",
+      "send": "Anfrage senden",
+      "emailHint": "Nur für Antworten zu dieser Anfrage.",
+      "messagePlaceholder": "Ankunftszeit, besonderer Anlass, Wünsche…",
+      "overlap": "Diese Daten überschneiden sich mit einem belegten Zeitraum. Sie können trotzdem anfragen: Das Team kann andere Daten vorschlagen.",
+      "overCapacity": "Die Unterkunft bietet Platz für {capacity} Personen: Das Team bestätigt, was möglich ist.",
+      "notConfirmed": "Dies ist eine Anfrage, keine bestätigte Buchung. Hier wird keine Zahlung verlangt.",
+      "sent": "Anfrage gesendet. Das Team antwortet; es ist noch keine Buchung.",
+      "sentConflict": "Anfrage gesendet. Diese Daten scheinen belegt: Das Team kann andere vorschlagen."
+    },
+    "errors": {
+      "unavailable": "Dieser Link ist nicht mehr gültig. Kontaktieren Sie das Team.",
+      "invalid_dates": "Ungültige Daten: Anreise ab heute, Abreise nach Anreise.",
+      "too_many": "Sie haben bereits 3 offene Anfragen: Warten Sie auf eine Antwort oder stornieren Sie eine.",
+      "invalid": "Einige Angaben sind ungültig (E-Mail, Gästezahl…).",
+      "empty": "Schreiben Sie Ihre Nachricht.",
+      "conflict": "Die Anfrage hat sich geändert: Die Seite wurde aktualisiert.",
+      "offer_expired": "Dieses Angebot ist abgelaufen. Schreiben Sie dem Team für ein neues.",
+      "server": "Der Dienst konnte nicht speichern. Nichts wurde gesendet; bitte erneut versuchen.",
+      "network": "Keine Verbindung. Prüfen Sie Ihr Netz; nichts wurde gesendet."
+    }
+  },
+  "reviewPortal": {
+    "unavailable": {
+      "title": "Link nicht verfügbar",
+      "text": "Dieser Bewertungslink ist abgelaufen oder wurde ersetzt."
+    },
+    "error": {
+      "title": "Dienst vorübergehend nicht verfügbar",
+      "text": "Versuchen Sie es gleich noch einmal."
+    },
+    "title": {
+      "guest": "Wie war Ihr Aufenthalt?",
+      "owner": "Ihre Meinung zu unserer Verwaltung"
+    },
+    "stayLine": "{property} · {from} → {to}",
+    "ownerLine": "{name} · {count, plural, one {# verwaltete Unterkunft} other {# verwaltete Unterkünfte}}",
+    "existing": "Ihre Bewertung vom {date} ist gespeichert.",
+    "editableNote": "Sie können sie noch ändern.",
+    "locked": "Die Änderungsfrist (14 Tage) ist abgelaufen: Ihre Bewertung bleibt unverändert.",
+    "starsLabel": "{n} von 5",
+    "overall": {
+      "guest": "Gesamtnote des Aufenthalts (Pflicht)",
+      "owner": "Gesamtnote unserer Verwaltung (Pflicht)"
+    },
+    "q": {
+      "cleanliness": "Sauberkeit",
+      "condition": "Zustand und Übereinstimmung der Unterkunft",
+      "checkin": "An- und Abreise",
+      "communication": "Kommunikation",
+      "reactivity": "Reaktionsschnelligkeit",
+      "follow_up": "Nachverfolgung der Arbeiten",
+      "quality": "Qualität der Pflege",
+      "transparency": "Transparenz (Berichte, Informationen)"
+    },
+    "optional": "Die übrigen Noten sind optional: Leer lassen, wenn Sie nicht antworten möchten.",
+    "return": {
+      "guest": "Würden Sie wiederkommen?",
+      "owner": "Würden Sie unsere Verwaltung empfehlen?"
+    },
+    "yes": "Ja",
+    "no": "Nein",
+    "noAnswer": "Keine Angabe",
+    "comment": "Kommentar (optional)",
+    "consent": "Ich bin einverstanden, dass mein Kommentar auf der Vorstellungsseite des Teams veröffentlicht werden darf (nie mein vollständiger Name, meine Adresse oder die Unterkunft). Ich kann dies jederzeit über diesen Link widerrufen.",
+    "label": "Angezeigte Signatur",
+    "labelHint": "Zum Beispiel „Camille, Lyon“. Leer lassen für „Gast“.",
+    "consentHint": "Ohne diese Zustimmung bleibt Ihre Bewertung intern. Keine Belohnung ist an Ihre Note gebunden.",
+    "thanks": "Danke, Ihre Bewertung ist gespeichert.",
+    "send": "Bewertung senden",
+    "update": "Bewertung aktualisieren",
+    "privacy": "Ihre Bewertung wird vom Team gelesen, das Ihren Aufenthalt betreut hat. Es ändert sie nie.",
+    "errors": {
+      "unavailable": "Dieser Link ist nicht mehr gültig.",
+      "invalid": "Wählen Sie eine Gesamtnote von 1 bis 5.",
+      "overall_required": "Die Gesamtnote ist Pflicht.",
+      "locked": "Die Änderungsfrist ist abgelaufen.",
+      "server": "Der Dienst konnte nicht speichern. Bitte erneut versuchen.",
+      "network": "Keine Verbindung; nichts wurde gesendet."
+    }
+  },
+  "showcasePage": {
+    "unavailable": "Diese Seite ist nicht verfügbar.",
+    "score": {
+      "guest": "Gästezufriedenheit",
+      "owner": "Eigentümerzufriedenheit"
+    },
+    "noScore": "Noch keine Bewertungen",
+    "basedOn": "{count, plural, =0 {Keine Bewertung} one {# verifizierte Bewertung} other {# verifizierte Bewertungen}} vom {from} bis {to}",
+    "method": "Noten aus allen verifizierten Bewertungen des Zeitraums (in HALO tatsächlich betreute Aufenthalte und Verwaltung), ohne Ausschluss niedriger Noten. Für Bewertungen wird keine Belohnung angeboten.",
+    "services": "Leistungen",
+    "testimonials": "Stimmen",
+    "selection": "Auswahl von Stimmen, veröffentlicht mit Zustimmung der Verfasser.",
+    "anon": {
+      "guest": "Gast",
+      "owner": "Eigentümer"
+    },
+    "kind": {
+      "guest": "Aufenthalt",
+      "owner": "Verwaltung"
+    },
+    "contact": "Kontakt",
+    "withdraw": "Sie sind Verfasser einer Stimme und möchten sie entfernen? Nutzen Sie den per E-Mail erhaltenen Bewertungslink oder kontaktieren Sie das Team."
   }
 }

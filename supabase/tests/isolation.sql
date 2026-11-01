@@ -186,9 +186,10 @@ where n.nspname = 'public' and c.relkind = 'r' group by c.relname;
 select t.check('aucune fonction exécutable par anon (hors exception invité) : ' || p.proname, p.proname, false)
 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')
-  and p.proname not in ('get_guest_stay', 'guest_request_service', 'guest_reply_service', 'guest_send_message', 'guest_report_problem', 'guest_problems', 'guest_places', 'guest_save_preparation', 'guest_delete_preparation', 'guest_request_vip', 'guest_reply_vip');
+  and p.proname not in ('get_guest_stay', 'guest_request_service', 'guest_reply_service', 'guest_send_message', 'guest_report_problem', 'guest_problems', 'guest_places', 'guest_save_preparation', 'guest_delete_preparation', 'guest_request_vip', 'guest_reply_vip',
+                        'booking_portal', 'booking_submit', 'booking_guest_action', 'review_portal', 'review_submit', 'get_showcase');
 select t.is('exceptions anonymes : uniquement la porte d''entrée voyageur (lien de séjour)', (select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'get_guest_stay,guest_delete_preparation,guest_places,guest_problems,guest_reply_service,guest_reply_vip,guest_report_problem,guest_request_service,guest_request_vip,guest_save_preparation,guest_send_message');
+  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'booking_guest_action,booking_portal,booking_submit,get_guest_stay,get_showcase,guest_delete_preparation,guest_places,guest_problems,guest_reply_service,guest_reply_vip,guest_report_problem,guest_request_service,guest_request_vip,guest_save_preparation,guest_send_message,review_portal,review_submit');
 
 select t.check('fonction security definer avec search_path fixé : ' || p.proname,
   coalesce(array_to_string(p.proconfig, ','), 'aucun'), coalesce(array_to_string(p.proconfig, ','), '') like '%search_path=%')
@@ -1279,6 +1280,113 @@ select t.is('iCal : le responsable applique la date du calendrier', t.keep('a_ma
 select t.is('iCal : dates du calendrier appliquées', (select check_in_at::text from public.reservations where external_uid = 'ev1@airbnb'), '2027-09-02 14:00:00+00');
 select t.is('iCal : erreur de lecture enregistrée', t.keep('a_manager', format('select public.apply_ical_sync(%L, %L, ''[]'', ''unreachable'') ->> ''status''', t.id('A'), t.id('SRC'))), 'error');
 select t.is('iCal : dernière réussite conservée malgré l''erreur', (select (last_error = 'unreachable')::text || '/' || (last_success_at is not null)::text from public.data_sources where id = t.id('SRC')), 'true/true');
+
+
+-- =====================================================================
+-- Migration 14 : missions liées, absences (compléments), réservation directe, satisfaction
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['RPAST', 'TPX', 'CL1', 'CL2', 'CL3', 'OWN', 'OWNB', 'TM1', 'ABS9']) k;
+-- Mission liée annulée puis rouverte : historique clair, action jamais close en silence
+insert into public.tasks (id, organization_id, property_id, next_reservation_id, type, status, title, window_start, window_end, duration_min) values
+  (t.id('TPX'), t.id('A'), t.id('PA2'), t.id('RP'), 'other', 'assigned', 'Panier d''accueil', now() + interval '19 days', now() + interval '20 days', 30);
+insert into public.stay_prep_actions (organization_id, reservation_id, title, blocking, task_id) values (t.id('A'), t.id('RP'), 'Panier d''accueil', true, t.id('TPX'));
+update public.tasks set status = 'cancelled' where id = t.id('TPX');
+select t.is('mission liée annulée : action toujours ouverte', (select status from public.stay_prep_actions where task_id = t.id('TPX')), 'open');
+select t.check('mission liée annulée : historisée', '', exists (select 1 from public.stay_prep_events where reservation_id = t.id('RP') and kind = 'mission_cancelled' and note = 'Panier d''accueil'));
+select t.is('mission annulée : action close sans dérogation possible', t.dml('a_manager', format('update public.stay_prep_actions set status = ''done'' where task_id = %L', t.id('TPX'))), '1');
+update public.stay_prep_actions set status = 'cancelled' where task_id = t.id('TPX');
+-- Absences : fermeture par poste, mission traversant minuit
+update public.memberships set position = 'housekeeper' where organization_id = t.id('A') and user_id = t.id('a_agent');
+update public.memberships set position = 'maintenance' where organization_id = t.id('A') and user_id = t.id('a_agent2');
+insert into public.tasks (id, organization_id, property_id, type, status, window_start, window_end, scheduled_start, duration_min) values
+  (t.id('TM1'), t.id('A'), t.id('PV'), 'turnover', 'unassigned', '2028-01-10 21:00+00', '2028-01-11 03:00+00', '2028-01-10 22:30+00', 120);
+select t.is('fermeture du poste « ménage » (après minuit)', t.keep('a_manager', format('select public.save_absence(%L, %L, ''team'', null, ''closure'', ''2028-01-11 00:00+00'', ''2028-01-12 00:00+00'', false, ''Inventaire'', ''housekeeper'') ->> ''status''', t.id('A'), t.id('ABS9'))), 'accepted');
+select t.err('minuit : mission de 22 h 30 à 0 h 30 refusée à l''agent ménage', t.dml('a_manager', format('update public.tasks set assignee_id = %L, status = ''assigned'' where id = %L', t.id('a_agent'), t.id('TM1'))), '22023');
+select t.is('fermeture d''un poste : un autre poste reste attribuable', t.dml('a_manager', format('update public.tasks set assignee_id = %L, status = ''assigned'' where id = %L', t.id('a_agent2'), t.id('TM1'))), '1');
+select t.is('fermeture annulée', t.keep('a_manager', format('select public.cancel_absence(%L, (select id from public.absences where client_id = %L))', t.id('A'), t.id('ABS9'))), 'applied');
+select t.is('après annulation : affectation autorisée', t.dml('a_manager', format('update public.tasks set assignee_id = %L, status = ''assigned'' where id = %L', t.id('a_agent'), t.id('TM1'))), '1');
+select t.err('affectation à un membre d''une autre organisation refusée', t.dml('a_manager', format('update public.tasks set assignee_id = %L, status = ''assigned'' where id = %L', t.id('b_agent'), t.id('TM1'))), '23503');
+
+-- Réservation directe
+update public.data_sources set last_error = null, last_sync_at = now(), last_success_at = now() where property_id = t.id('PA1');
+insert into public.reservations (id, organization_id, property_id, guest_name, guest_email, check_in_at, check_out_at) values
+  (t.id('RPAST'), t.id('A'), t.id('PA1'), 'Ancien voyageur', 'ancien@test.invalid', now() - interval '30 days', now() - interval '26 days');
+select t.err('demande de séjour : un agent ne crée pas de lien', t.q('a_agent', format('select public.create_booking_link(%L, %L)', t.id('A'), t.id('RPAST'))), '42501');
+select t.err('demande de séjour : une autre organisation non plus', t.q('b_manager', format('select public.create_booking_link(%L, %L)', t.id('A'), t.id('RPAST'))), '42501');
+create temp table t_tok (k text primary key, v text);
+insert into t_tok values ('book', t.keep('a_manager', format('select public.create_booking_link(%L, %L)', t.id('A'), t.id('RPAST'))));
+select t.is('demande de séjour : lien de 64 caractères, haché en base', (select length(v)::text from t_tok where k = 'book') || '/' || (select count(*)::text from public.booking_links where token_hash = encode(extensions.digest((select v from t_tok where k = 'book'), 'sha256'), 'hex')), '64/1');
+select t.is('demande de séjour : l''ancien lien de séjour ne donne rien', t.q(null, format('select public.booking_portal(%L) ->> ''status''', repeat('3', 64))), 'unavailable');
+select t.is('portail : logement connu, sans adresse ni nom d''autres voyageurs', t.q(null, format('select (public.booking_portal(%L) #>> ''{property,name}'') || ''/'' || coalesce(public.booking_portal(%L) #>> ''{property,address}'', ''sans adresse'')', (select v from t_tok where k = 'book'), (select v from t_tok where k = 'book'))), 'A — Canal/sans adresse');
+select t.check('portail : aucune donnée de l''ancien séjour au-delà du prénom', '', position('ancien@test.invalid' in t.q(null, format('select public.booking_portal(%L)::text', (select v from t_tok where k = 'book')))) = 0);
+select t.is('demande : envoyée', t.keep(null, format('select public.booking_submit(%L, %L, current_date + 100, current_date + 104, 2, 0, 0, ''Ancien voyageur'', ''ancien@test.invalid'', null, ''Même logement svp'') ->> ''status''', (select v from t_tok where k = 'book'), t.id('CL1'))), 'ok');
+select t.is('demande : double envoi = une seule demande', t.keep(null, format('select public.booking_submit(%L, %L, current_date + 100, current_date + 104, 2, 0, 0, ''Ancien voyageur'', ''ancien@test.invalid'', null, null) ->> ''replayed''', (select v from t_tok where k = 'book'), t.id('CL1'))), 'true');
+select t.is('demande : dates passées refusées', t.q(null, format('select public.booking_submit(%L, gen_random_uuid(), current_date - 3, current_date + 1, 2, 0, 0, ''x'', ''x@test.invalid'', null, null) ->> ''status''', (select v from t_tok where k = 'book'))), 'invalid_dates');
+select t.check('demande : équipe prévenue', '', exists (select 1 from public.notification_outbox where organization_id = t.id('A') and template = 'team_booking_requested'));
+select t.is('demande : un agent ne la voit pas', t.q('a_agent', 'select count(*) from public.booking_requests'), '0');
+select t.is('demande : une autre organisation ne la voit pas', t.q('b_manager', format('select count(*) from public.booking_requests where organization_id = %L', t.id('A'))), '0');
+select t.deny('demande : aucune écriture directe', t.dml('a_manager', format('update public.booking_requests set status = ''confirmed'' where client_id = %L', t.id('CL1'))));
+select t.is('confirmation impossible sans offre acceptée', t.q('a_manager', format('select public.booking_confirm(%L, (select id from public.booking_requests where client_id = %L)) ->> ''status''', t.id('A'), t.id('CL1'))), 'not_accepted');
+select t.err('offre incohérente refusée (total ≠ prix + frais)', t.q('a_manager', format($q$select public.booking_decide(%L, (select id from public.booking_requests where client_id = %L), 'offer', 'Voici notre offre', null, '{"price": 400, "fees": 50, "total": 500, "conditions": "Paiement à l''arrivée"}')$q$, t.id('A'), t.id('CL1'))), '22023');
+select t.is('offre envoyée', t.keep('a_manager', format($q$select public.booking_decide(%L, (select id from public.booking_requests where client_id = %L), 'offer', 'Voici notre offre', 'Client fidèle, remise 5 %%', '{"price": 400, "fees": 50, "total": 450, "currency": "EUR", "conditions": "Paiement à l''arrivée, annulation gratuite 7 jours avant"}') ->> 'status'$q$, t.id('A'), t.id('CL1'))), 'applied');
+select t.check('voyageur : voit l''offre, jamais la note interne', '', t.q(null, format('select public.booking_portal(%L)::text', (select v from t_tok where k = 'book'))) like '%"total": 450%' and position('remise' in t.q(null, format('select public.booking_portal(%L)::text', (select v from t_tok where k = 'book')))) = 0);
+select t.is('voyageur : accepte l''offre', t.keep(null, format('select public.booking_guest_action(%L, %L, ''accept'') ->> ''status''', (select v from t_tok where k = 'book'), (select id from public.booking_requests where client_id = t.id('CL1')))), 'ok');
+select t.is('voyageur : un autre lien n''agit pas sur cette demande', t.q(null, format('select public.booking_guest_action(%L, %L, ''cancel'') ->> ''status''', repeat('3', 64), (select id from public.booking_requests where client_id = t.id('CL1')))), 'unavailable');
+-- Deux demandes sur les mêmes dates : la seconde confirmation est refusée
+select t.is('seconde demande sur les mêmes dates', t.keep(null, format('select public.booking_submit(%L, %L, current_date + 101, current_date + 103, 2, 0, 0, ''Autre'', ''autre@test.invalid'', null, null) ->> ''status''', (select v from t_tok where k = 'book'), t.id('CL2'))), 'ok');
+update public.booking_requests set status = 'accepted', offer = '{"price": 300, "fees": 0, "total": 300, "conditions": "x"}' where client_id = t.id('CL2');
+select t.is('confirmation : un séjour créé', t.keep('a_manager', format('select public.booking_confirm(%L, (select id from public.booking_requests where client_id = %L)) ->> ''status''', t.id('A'), t.id('CL1'))), 'applied');
+select t.is('confirmation rejouée : sans effet', t.keep('a_manager', format('select public.booking_confirm(%L, (select id from public.booking_requests where client_id = %L)) ->> ''status''', t.id('A'), t.id('CL1'))), 'already');
+select t.is('un seul séjour, relié à l''ancien et à la demande', (select count(*)::text from public.reservations where origin_request_id = (select id from public.booking_requests where client_id = t.id('CL1')) and previous_reservation_id = t.id('RPAST') and property_id = t.id('PA1')), '1');
+select t.is('conflit : la seconde demande n''est pas confirmée', t.keep('a_manager', format('select public.booking_confirm(%L, (select id from public.booking_requests where client_id = %L)) ->> ''status''', t.id('A'), t.id('CL2'))), 'dates_unavailable');
+select t.is('conflit : refus tracé', (select count(*)::text from public.booking_request_events where request_id = (select id from public.booking_requests where client_id = t.id('CL2')) and kind = 'confirm_refused'), '1');
+-- Calendrier externe en échec : confirmation signalée, puis acceptée explicitement
+insert into public.data_sources (organization_id, kind, property_id, platform, last_sync_at, last_error) values (t.id('A'), 'ical', t.id('PA1'), 'airbnb', now(), 'unreachable');
+update public.booking_requests set status = 'accepted', check_in = current_date + 200, check_out = current_date + 202, offer = '{"check_in": null, "price": 300, "fees": 0, "total": 300, "conditions": "x"}' where client_id = t.id('CL2');
+select t.is('calendrier en échec : confirmation suspendue', t.keep('a_manager', format('select public.booking_confirm(%L, (select id from public.booking_requests where client_id = %L)) ->> ''status''', t.id('A'), t.id('CL2'))), 'stale_calendars');
+select t.is('calendrier en échec : confirmé après acceptation explicite', t.keep('a_manager', format('select public.booking_confirm(%L, (select id from public.booking_requests where client_id = %L), true) ->> ''status''', t.id('A'), t.id('CL2'))), 'applied');
+select t.check('calendrier en échec : décision tracée', '', exists (select 1 from public.booking_request_events where request_id = (select id from public.booking_requests where client_id = t.id('CL2')) and visibility = 'internal' and body like 'Calendriers non à jour%'));
+select t.is('lien révoqué : plus d''accès', t.keep('a_manager', format('select public.revoke_booking_link(%L, (select id from public.booking_links where reservation_id = %L and revoked_at is null))', t.id('A'), t.id('RPAST'))) || '/' || t.q(null, format('select public.booking_portal(%L) ->> ''status''', (select v from t_tok where k = 'book'))), 'applied/unavailable');
+
+-- Satisfaction
+select t.err('avis : pas de lien avant la fin du séjour', t.q('a_manager', format('select public.create_review_link(%L, ''guest'', %L)', t.id('A'), t.id('RP'))), '22023');
+insert into t_tok values ('rev', t.keep('a_manager', format('select public.create_review_link(%L, ''guest'', %L)', t.id('A'), t.id('RPAST'))));
+select t.err('avis : un agent ne crée pas de lien', t.q('a_agent', format('select public.create_review_link(%L, ''guest'', %L)', t.id('A'), t.id('RPAST'))), '42501');
+select t.is('avis : questionnaire limité au séjour', t.q(null, format('select public.review_portal(%L) #>> ''{stay,property}''', (select v from t_tok where k = 'rev'))), 'A — Canal');
+select t.is('avis : note hors bornes refusée', t.q(null, format('select public.review_submit(%L, 6, ''{}'', null, null, null, false) ->> ''status''', (select v from t_tok where k = 'rev'))), 'invalid');
+select t.is('avis : note faible déposée', t.keep(null, format($q$select public.review_submit(%L, 2, '{"cleanliness": 1, "checkin": "", "pirate": 5}', 'Salle de bain sale', false, 'Ancien voyageur', false) ->> 'status'$q$, (select v from t_tok where k = 'rev'))), 'ok');
+select t.is('avis : questions sans réponse distinguées, valeurs inconnues écartées', (select ratings::text from public.reviews where reservation_id = t.id('RPAST')), '{"cleanliness": 1}');
+select t.is('avis : vérifié (séjour connu) et à traiter', (select verified::text || '/' || follow_status from public.reviews where reservation_id = t.id('RPAST')), 'true/to_handle');
+select t.check('avis faible : équipe alertée', '', exists (select 1 from public.notification_outbox where organization_id = t.id('A') and template = 'team_low_review'));
+select t.is('avis : un seul par séjour (modification, pas de doublon)', t.keep(null, format('select public.review_submit(%L, 3, ''{}'', ''Salle de bain à revoir'', true, null, true) ->> ''updated''', (select v from t_tok where k = 'rev'))) || '/' || (select count(*)::text from public.reviews where reservation_id = t.id('RPAST')), 'true/1');
+select t.err('avis : second lien impossible une fois l''avis déposé', t.q('a_manager', format('select public.create_review_link(%L, ''guest'', %L)', t.id('A'), t.id('RPAST'))), '22023');
+select t.deny('avis : le responsable ne modifie pas la note', t.dml('a_manager', format('update public.reviews set overall = 5 where reservation_id = %L', t.id('RPAST'))));
+select t.is('avis : un agent ne voit pas les avis', t.q('a_agent', 'select count(*) from public.reviews'), '0');
+select t.is('avis : une autre organisation non plus', t.q('b_manager', format('select count(*) from public.reviews where organization_id = %L', t.id('A'))), '0');
+select t.is('suivi : traité avec incident', t.keep('a_manager', format('select public.review_follow(%L, (select id from public.reviews where reservation_id = %L), ''handled'', ''Ménage refait'', true) ->> ''status''', t.id('A'), t.id('RPAST'))), 'applied');
+select t.check('suivi : incident créé sur le bon logement, sans agent désigné', '', exists (select 1 from public.incidents i join public.reviews r on r.incident_id = i.id where r.reservation_id = t.id('RPAST') and i.property_id = t.id('PA1') and i.taken_by is null));
+select t.err('suivi : une autre organisation ne suit pas', t.q('b_manager', format('select public.review_follow(%L, (select id from public.reviews where reservation_id = %L), ''handled'')', t.id('A'), t.id('RPAST'))), '42501');
+-- Propriétaires
+insert into public.property_owners (id, organization_id, name, email) values (t.id('OWN'), t.id('A'), 'Propriétaire A', 'prop@test.invalid'), (t.id('OWNB'), t.id('B'), 'Propriétaire B', null);
+select t.err('avis propriétaire : refusé sans logement géré', t.q('a_manager', format('select public.create_review_link(%L, ''owner'', %L)', t.id('A'), t.id('OWN'))), '22023');
+select t.err('relation : impossible de relier le logement d''une autre organisation', t.dml('b_manager', format('insert into public.owner_properties (organization_id, owner_id, property_id) values (%L, %L, %L)', t.id('B'), t.id('OWNB'), t.id('PA1'))), '23503');
+insert into public.owner_properties (organization_id, owner_id, property_id) values (t.id('A'), t.id('OWN'), t.id('PA1'));
+insert into t_tok values ('own', t.keep('a_manager', format('select public.create_review_link(%L, ''owner'', %L)', t.id('A'), t.id('OWN'))));
+select t.is('avis propriétaire : déposé', t.keep(null, format($q$select public.review_submit(%L, 5, '{"reactivity": 5, "transparency": 4}', 'Équipe réactive', true, 'M. P.', true) ->> 'status'$q$, (select v from t_tok where k = 'own'))), 'ok');
+select t.is('avis propriétaire : distinct, rattaché au propriétaire', (select kind || '/' || (owner_id = t.id('OWN'))::text from public.reviews where owner_id = t.id('OWN')), 'owner/true');
+select t.check('importé : ajouté', '', t.keep('a_manager', format('select public.add_imported_review(%L, ''guest'', 4, ''Bien'', ''Airbnb'', current_date - 40)', t.id('A'))) not like 'ERR%');
+select t.is('importé : jamais vérifié, provenance conservée', (select verified::text || '/' || imported_from from public.reviews where organization_id = t.id('A') and source = 'imported'), 'false/Airbnb');
+select t.is('score : avis vérifiés seulement, avec leur nombre', t.q('a_manager', format('select public.satisfaction_score(%L, ''guest'', 12) ->> ''count''', t.id('A'))), 'ERR:42501:permission denied for function satisfaction_score');
+-- Vitrine
+select t.err('vitrine : témoignage sans consentement refusé', t.q('a_manager', format('select public.save_showcase(%L, ''conciergerie-a'', ''A'', null, null, null, 12, true, true, array[(select id from public.reviews where source = ''imported'' and organization_id = %L limit 1)])', t.id('A'), t.id('A'))), '22023');
+select t.is('vitrine : enregistrée avec un témoignage consenti', t.keep('a_manager', format('select public.save_showcase(%L, ''conciergerie-a'', ''Conciergerie A'', ''Intro'', ''Ménage'', ''contact@test.invalid'', 12, true, true, array[(select id from public.reviews where reservation_id = %L)]) ->> ''status''', t.id('A'), t.id('RPAST'))), 'applied');
+select t.is('vitrine : invisible avant publication', t.q(null, 'select public.get_showcase(''conciergerie-a'') ->> ''status'''), 'unavailable');
+select t.err('vitrine : un agent ne publie pas', t.q('a_agent', format('select public.publish_showcase(%L, true)', t.id('A'))), '42501');
+select t.is('vitrine : publiée', t.keep('a_manager', format('select public.publish_showcase(%L, true)', t.id('A'))), 'applied');
+select t.is('vitrine : score voyageurs = toutes les notes vérifiées (aucune exclusion)', t.q(null, 'select (public.get_showcase(''conciergerie-a'') #>> ''{guest,count}'') || ''/'' || (public.get_showcase(''conciergerie-a'') #>> ''{guest,average}'')'), '1/3.0');
+select t.check('vitrine : aucune adresse ni e-mail', '', position('test.invalid' in replace(t.q(null, 'select public.get_showcase(''conciergerie-a'')::text'), 'contact@test.invalid', '')) = 0);
+select t.is('vitrine : retrait du consentement → témoignage retiré', t.keep(null, format('select public.review_submit(%L, 3, ''{}'', ''Salle de bain à revoir'', true, null, false) ->> ''status''', (select v from t_tok where k = 'rev'))) || '/' || t.q(null, 'select jsonb_array_length(public.get_showcase(''conciergerie-a'') -> ''testimonials'')'), 'ok/0');
+select t.is('vitrine : une autre organisation ne modifie pas celle de A', t.q('b_manager', format('select public.publish_showcase(%L, false)', t.id('A'))), 'ERR:42501:not_allowed');
 
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);

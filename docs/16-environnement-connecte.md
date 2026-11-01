@@ -242,3 +242,26 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 | iCal (Airbnb, Booking, Vrbo, PMS) | dates, blocages, parfois nom | à la demande | entrant | opérationnel (dates seulement) |
 | API Lodgify, Smoobu, Hostaway, Guesty, Beds24, SuperHote | réservations complètes selon l'API | — | — | non implémenté, non vérifié |
 | Airbnb / Booking API | réservées aux partenaires agréés | — | — | non disponible |
+
+## Réservation directe, satisfaction et vitrine (migration 14 : `20261109000001_reservation_directe_satisfaction.sql`)
+
+**Préparation et missions liées**
+- Mission liée validée → action close ; mission « à refaire » → action rouverte, « Prêt » retiré si indispensable, historisé « Mission liée à refaire » ; mission annulée → historisé, action laissée ouverte (jamais close en silence).
+- Fiche séjour : bandeau « Ce séjour n'est plus « Prêt » depuis le … : l'action indispensable « … » a été rouverte » tant qu'un responsable n'a pas repassé le statut.
+
+**Réservation directe (ancien voyageur)**
+- Lien dédié `/b/<jeton>` (jamais le lien de séjour), créé depuis la fiche d'un séjour confirmé : 60 jours, révocable, renouvelable (un nouveau lien remplace l'ancien), jeton haché.
+- Le voyageur saisit dates, voyageurs, coordonnées, précisions ; mention « pas une réservation confirmée » ; périodes occupées connues affichées sans aucun nom ; calendriers externes non à jour signalés (« disponibilités indicatives »). 3 demandes ouvertes maximum ; double envoi = une seule demande (identifiant d'envoi).
+- Responsable : « Demandes de séjour » (menu Plus + alerte d'accueil). Statuts : reçue, en étude, précision demandée, offre envoyée, acceptée (à confirmer), confirmée, refusée, annulée. Note interne jamais visible du voyageur. Offre : dates (autres dates possibles), prix, frais, total = prix + frais (contrôlé par la base), conditions, validité.
+- Confirmation (`booking_confirm`) : uniquement après acceptation du voyageur ; verrou par logement ; dates revérifiées côté serveur ; calendrier externe non synchronisé depuis 24 h ou en erreur → confirmation seulement après « J'ai vérifié » (tracé en interne) ; un seul séjour (rejouer = sans effet), rattaché à l'ancien (`previous_reservation_id`), puis missions, nouvel accès voyageur et invitation à préparer, avec état réel de l'e-mail.
+- Paiement : `payment_status = outside_halo`, jamais affiché comme reçu.
+
+**Satisfaction**
+- Avis voyageur : lien `/avis/<jeton>` après le départ (30 jours), un avis par séjour, note globale obligatoire, propreté / état et conformité / arrivée et départ / communication facultatifs, commentaire, « reviendriez-vous ? ». Modifiable 14 jours par l'auteur ; l'équipe ne peut jamais le modifier.
+- Avis propriétaire : propriétaire enregistré **et** relié à un logement géré ; lien personnel 30 jours. Pas d'espace propriétaire authentifié (limite affichée).
+- Écran « Satisfaction » : voyageurs et propriétaires séparés, période (3/6/12/24 mois), nombre d'avis, aucune moyenne sans avis, questions sans réponse comptées, avis vérifiés et importés séparés. Note ≤ 2 → « À traiter » + e-mail équipe ; suivi interne, incident éventuel sur le logement, sans désigner d'agent.
+- Vitrine `/v/<adresse>` : publication explicite, retrait à tout moment ; scores sur tous les avis vérifiés de la période (aucune exclusion), avec leur nombre ; témoignages seulement avec consentement de l'auteur (retrait du consentement = retrait immédiat), mention « sélection » ; ni nom complet, ni adresse, ni logement ; aperçu dans l'application.
+
+**E-mails ajoutés** : `booking_link`, `booking_update`, `review_request` (lien retiré du journal après l'envoi), `team_booking_requested`, `team_low_review` (préférences de notification).
+
+**Tests** : isolation 1868/0 ; e2e 26 (réservation directe complète, dates prises, calendrier non à jour, confirmation unique, révocation), 27 (avis voyageur et propriétaire, note faible, avis importé, vitrine et retrait), 24b (import Excel + reprise après interruption), 23 (raison du retrait de « Prêt »).
