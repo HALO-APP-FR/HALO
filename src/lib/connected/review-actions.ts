@@ -117,7 +117,7 @@ export async function publishShowcase(publish: boolean): Promise<Result> {
 }
 
 // ---------- Auteur de l'avis (lien personnel, sans compte) ----------
-export async function submitReview(token: string, input: { overall: number; ratings: Record<string, number>; comment: string; wouldReturn: boolean | null; label: string; consent: boolean }): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function submitReview(token: string, input: { overall: number; service: number | null; ratings: Record<string, number>; comment: string; wouldReturn: boolean | null; label: string; consent: boolean }): Promise<{ ok: true } | { ok: false; error: string }> {
   const { data, error } = await supabaseAnon().rpc("review_submit", {
     token,
     v_overall: input.overall,
@@ -126,6 +126,7 @@ export async function submitReview(token: string, input: { overall: number; rati
     v_return: input.wouldReturn,
     v_label: input.label || null,
     v_consent: input.consent,
+    v_service: input.service,
   });
   if (error) return { ok: false, error: "server" };
   const res = data as { status: string };

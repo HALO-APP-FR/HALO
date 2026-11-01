@@ -30,23 +30,28 @@ function useGuestRun() {
   return { pending, error, run };
 }
 
-export function GuestRequestForm({ token, kinds, minDate, timeZone }: { token: string; kinds: string[]; minDate: string; timeZone: string }) {
+export function GuestRequestForm({ token, kinds, minDate, timeZone, variant = "service" }: { token: string; kinds: string[]; minDate: string; timeZone: string; variant?: "service" | "timing" }) {
   const t = useTranslations("guestSpace");
   const tk = useTranslations("serviceKind");
   const { pending, error, run } = useGuestRun();
   const [f, setF] = useState({ kind: kinds[0] ?? "other", when: "", people: 2, details: "" });
   const [ok, setOk] = useState(false);
+  // Arrivée anticipée / départ tardif : même circuit de décision qu'une prestation, sans nombre de personnes
+  const timing = variant === "timing";
+  const id = (k: string) => `${timing ? "gt" : "gr"}-${k}`;
+  const tid = (k: string) => (timing ? `guest-timing-${k}` : `guest-request-${k}`);
   return (
     <form
       className="grid gap-4 sm:grid-cols-2"
       onSubmit={(e) => {
         e.preventDefault();
         setOk(false);
-        run(() => guestRequestService(token, { kind: f.kind, startAt: zonedTime(f.when, timeZone).toISOString(), people: f.people, details: f.details }), () => (setOk(true), setF({ ...f, when: "", details: "" })));
+        run(() => guestRequestService(token, { kind: f.kind, startAt: zonedTime(f.when, timeZone).toISOString(), people: timing ? 1 : f.people, details: f.details }), () => (setOk(true), setF({ ...f, when: "", details: "" })));
       }}
+      data-testid={timing ? "guest-timing-form" : undefined}
     >
-      <Field label={t("request.kind")} htmlFor="gr-kind" className="sm:col-span-2">
-        <Select id="gr-kind" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}>
+      <Field label={timing ? t("timing.kind") : t("request.kind")} htmlFor={id("kind")} className="sm:col-span-2">
+        <Select id={id("kind")} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })} data-testid={tid("kind")}>
           {kinds.map((k) => (
             <option key={k} value={k}>
               {tk(k)}
@@ -54,21 +59,23 @@ export function GuestRequestForm({ token, kinds, minDate, timeZone }: { token: s
           ))}
         </Select>
       </Field>
-      <Field label={t("request.when")} htmlFor="gr-when">
-        <Input id="gr-when" type="datetime-local" aria-describedby="gr-when-tz" min={minDate} value={f.when} onChange={(e) => setF({ ...f, when: e.target.value })} required />
-        <p id="gr-when-tz" className="mt-1 text-[12px] text-muted">{t("request.localTime")}</p>
+      <Field label={timing ? t("timing.when") : t("request.when")} htmlFor={id("when")}>
+        <Input id={id("when")} type="datetime-local" aria-describedby={`${id("when")}-tz`} min={minDate} value={f.when} onChange={(e) => setF({ ...f, when: e.target.value })} required data-testid={tid("when")} />
+        <p id={`${id("when")}-tz`} className="mt-1 text-[12px] text-muted">{t("request.localTime")}</p>
       </Field>
-      <Field label={t("request.people")} htmlFor="gr-people">
-        <Input id="gr-people" type="number" min={1} max={100} value={f.people} onChange={(e) => setF({ ...f, people: Number(e.target.value) })} />
-      </Field>
-      <Field label={t("request.details")} htmlFor="gr-details" className="sm:col-span-2">
-        <Textarea id="gr-details" value={f.details} onChange={(e) => setF({ ...f, details: e.target.value })} maxLength={2000} placeholder={t("request.detailsPlaceholder")} />
+      {!timing && (
+        <Field label={t("request.people")} htmlFor={id("people")}>
+          <Input id={id("people")} type="number" min={1} max={100} value={f.people} onChange={(e) => setF({ ...f, people: Number(e.target.value) })} />
+        </Field>
+      )}
+      <Field label={timing ? t("timing.details") : t("request.details")} htmlFor={id("details")} className="sm:col-span-2">
+        <Textarea id={id("details")} value={f.details} onChange={(e) => setF({ ...f, details: e.target.value })} maxLength={2000} placeholder={timing ? t("timing.detailsPlaceholder") : t("request.detailsPlaceholder")} />
       </Field>
       <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
         {error && <p role="alert" className="text-[14px] text-danger">{error}</p>}
-        {ok && <p role="status" className="text-[14px] text-success" data-testid="guest-request-ok">{t("request.sent")}</p>}
-        <Button type="submit" className="ms-auto" disabled={pending || !f.when} data-testid="guest-request-send">
-          {t("request.send")}
+        {ok && <p role="status" className="text-[14px] text-success" data-testid={tid("ok")}>{timing ? t("timing.sent") : t("request.sent")}</p>}
+        <Button type="submit" className="ms-auto" disabled={pending || !f.when} data-testid={tid("send")}>
+          {timing ? t("timing.send") : t("request.send")}
         </Button>
       </div>
     </form>

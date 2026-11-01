@@ -1028,7 +1028,9 @@
     "other": "Outro",
     "extra_cleaning": "Limpeza adicional",
     "extra_linen": "Roupa adicional",
-    "premium_package": "Pacote premium"
+    "premium_package": "Pacote premium",
+    "early_checkin": "Chegada antecipada",
+    "late_checkout": "Saída tardia"
   },
   "serviceStatus": {
     "requested": "Pedida",
@@ -1267,7 +1269,10 @@
       "step_unassigned": "{step}: ninguém atribuído",
       "step_late": "{step}: atrasado",
       "step_review": "{step}: terminado, por validar",
-      "prep_blocking": "Preparação: «{title}» ainda não feita"
+      "prep_blocking": "Preparação: «{title}» ainda não feita",
+      "assignee_absent": "Limpeza atribuída a alguém ausente nesse horário",
+      "incident_detail": "{category}: {text}",
+      "service_detail": "Pedido a aguardar decisão: {kind}"
     },
     "action": {
       "assign": "Atribuir",
@@ -1436,7 +1441,10 @@
       "vipRequests": "{count, plural, =0 {Nenhum pedido VIP pendente} one {# pedido VIP pendente} other {# pedidos VIP pendentes}}",
       "teamEmails": "{count, plural, =0 {Nenhum e-mail de equipa por entregar} one {# e-mail de equipa por entregar} other {# e-mails de equipa por entregar}}",
       "bookings": "{count, plural, =0 {Nenhum pedido de estadia por tratar} one {# pedido de estadia por tratar} other {# pedidos de estadia por tratar}}",
-      "lowReviews": "{count, plural, =0 {Nenhuma avaliação por tratar} one {# avaliação por tratar (nota baixa)} other {# avaliações por tratar (notas baixas)}}"
+      "lowReviews": "{count, plural, =0 {Nenhuma avaliação por tratar} one {# avaliação por tratar (nota baixa)} other {# avaliações por tratar (notas baixas)}}",
+      "lowReviewsGuest": "{count, plural, =0 {Nenhuma avaliação de hóspede por tratar} one {# avaliação de hóspede por tratar} other {# avaliações de hóspedes por tratar}}",
+      "lowReviewsOwner": "{count, plural, =0 {Nenhuma avaliação de proprietário por tratar} one {# avaliação de proprietário por tratar} other {# avaliações de proprietários por tratar}}",
+      "moreCauses": "+ {count} outra(s) causa(s)"
     },
     "onb": {
       "progress": "Passo {n} de {total}",
@@ -1943,7 +1951,12 @@
       "cancelTask": "Cancelar a missão",
       "cancelConfirm": "Cancelar definitivamente? O agente atribuído será avisado.",
       "cancelYes": "Sim, cancelar",
-      "localTime": "hora local: {zone}"
+      "localTime": "hora local: {zone}",
+      "suggestTitle": "Pessoas sem ausência conhecida neste horário",
+      "suggestNone": "Ninguém está disponível segundo as ausências conhecidas.",
+      "suggestBusy": "{count, plural, one {já # outra missão neste intervalo} other {já # outras missões neste intervalo}}",
+      "suggestFree": "nenhuma outra missão neste intervalo",
+      "suggestLimits": "Segundo as ausências e missões registadas no HALO. Tempo de deslocação e disponibilidades não declaradas: desconhecidos."
     },
     "team": {
       "title": "Equipa",
@@ -2054,7 +2067,9 @@
         "access": "Acesso ao alojamento",
         "noise": "Ruído",
         "pests": "Pragas",
-        "other": "Outro"
+        "other": "Outro",
+        "linen": "Roupa em falta ou danificada",
+        "delay": "Atraso"
       },
       "resolvedNote": "Nota interna",
       "sentToGuest": "Mensagem ao hóspede",
@@ -2566,7 +2581,9 @@
       "overrideShown": "Fechada por exceção: {reason}",
       "taskNotes": "Instruções para o agente",
       "taskNotesHint": "Visíveis para o agente na lista e no detalhe da missão.",
-      "notReadyReason": "Esta estadia deixou de estar «Pronta» desde {date}: a ação indispensável «{action}» {cause, select, mission {foi reaberta porque a sua missão tem de ser refeita} other {foi reaberta}}. Conclua-a (ou feche-a com um motivo) e volte a marcar a estadia como «Pronta»."
+      "notReadyReason": "Esta estadia deixou de estar «Pronta» desde {date}: a ação indispensável «{action}» {cause, select, mission {foi reaberta porque a sua missão tem de ser refeita} other {foi reaberta}}. Conclua-a (ou feche-a com um motivo) e volte a marcar a estadia como «Pronta».",
+      "blockersTitle": "{count, plural, one {O que impede «Pronta»: # ação indispensável aberta} other {O que impede «Pronta»: # ações indispensáveis abertas}}",
+      "linkedMission": "missão ligada: {status}"
     },
     "vip": {
       "title": "Estatuto VIP",
@@ -3107,7 +3124,7 @@
         "owner": "Recomendariam"
       },
       "yesNo": "{yes} sim · {no} não · {none} sem resposta",
-      "method": "As médias usam todas as avaliações do período, sem exclusões. As importadas nunca se misturam com as verificadas.",
+      "method": "Médias com todas as avaliações do período, sem exclusões. Estadia e serviço da equipa são avaliados em separado; avaliações antigas sem nota de serviço não contam para o serviço. As importadas nunca se misturam com as verificadas. Uma avaliação passa a «Por tratar» se a nota global, o serviço, a limpeza ou o estado (proprietário: reatividade, qualidade) for 2/5 ou menos.",
       "listTitle": "Avaliações",
       "filter": {
         "all": "Todas",
@@ -3212,7 +3229,30 @@
         "preview": "Pré-visualização",
         "previewNote": "Pré-visualização calculada com as mesmas regras da página pública (definições guardadas).",
         "openPublic": "Abrir a página pública"
-      }
+      },
+      "otherToHandle": {
+        "guest": "{count, plural, one {# avaliação de hóspede por tratar} other {# avaliações de hóspedes por tratar}} — abrir",
+        "owner": "{count, plural, one {# avaliação de proprietário por tratar} other {# avaliações de proprietários por tratar}} — abrir"
+      },
+      "serviceRow": "Serviço da equipa (concierge)",
+      "serviceValue": "Serviço da equipa: {n}/5",
+      "serviceNone": "Serviço da equipa: sem nota",
+      "lowReason": "Critério baixo: {criterion}"
+    },
+    "timing": {
+      "before": "Até {date}",
+      "durationShort": "duração prevista {duration}",
+      "slotShort": "horário {start}",
+      "noSlot": "sem horário planeado",
+      "from": "possível a partir de {date}",
+      "deadlineLabel": "Até",
+      "fromLabel": "Possível a partir de",
+      "durationLabel": "Duração prevista do trabalho",
+      "estimate": "estimativa",
+      "slotLabel": "Horário planeado",
+      "noSlotLong": "Sem horário atribuído: a intervenção faz-se no intervalo acima.",
+      "assigneeLabel": "Atribuição",
+      "unassigned": "Não atribuída"
     }
   },
   "email": {
@@ -3364,7 +3404,7 @@
     },
     "team_low_review": {
       "subject": "Avaliação com nota baixa — {property}",
-      "body": "Acabou de chegar uma avaliação com nota de 2/5 ou menos ({property}). Está marcada «Por tratar» em Satisfação: pode registar uma ação interna ou abrir um incidente."
+      "body": "Chegou uma avaliação com nota de 2/5 ou menos (global, serviço ou critério chave) ({property}). Está marcada «Por tratar» em Satisfação: pode registar uma ação interna ou abrir um incidente. Não se atribui culpa a ninguém."
     }
   },
   "guestSpace": {
@@ -3492,7 +3532,11 @@
       "ownerAddedOn": "Adicionado pelo proprietário a {date}",
       "hoursVerified": "horário verificado pela equipa",
       "hoursToConfirm": "horário a confirmar",
-      "mapLater": "O mapa e a morada aparecerão a partir de {date}. As distâncias já estão indicadas."
+      "mapLater": "O mapa e a morada aparecerão a partir de {date}. As distâncias já estão indicadas.",
+      "picksTitle": "Seleção da equipa e do proprietário",
+      "autoTitle": "Sugestões automáticas por perto (não verificadas)",
+      "showAll": "Ver as {count} sugestões",
+      "showLess": "Mostrar menos"
     },
     "prepBanner": "A sua estadia aproxima-se. As informações práticas (morada, acesso, guia) aparecerão aqui a partir de {date}. Entretanto pode preparar a estadia e escrever à equipa.",
     "prepared": {
@@ -3580,6 +3624,16 @@
       "confirmed": "Acolhimento personalizado confirmado pela equipa.",
       "refused": "A equipa não pôde dar seguimento ao pedido.",
       "teamMessage": "Mensagem da equipa"
+    },
+    "timing": {
+      "title": "Chegada antecipada ou saída tardia",
+      "text": "Indique a hora pretendida. Não é aceite automaticamente: a equipa verifica se o alojamento pode estar pronto e responde aqui.",
+      "kind": "Pedido",
+      "when": "Hora pretendida",
+      "detailsPlaceholder": "Voo, comboio, restrição particular…",
+      "sent": "Pedido enviado. Nada está confirmado enquanto a equipa não responder.",
+      "send": "Enviar o pedido",
+      "details": "Detalhes sobre o horário (facultativo)"
     }
   },
   "demoEntry": {
@@ -3745,7 +3799,6 @@
     },
     "stayLine": "{property} · {from} → {to}",
     "ownerLine": "{name} · {count, plural, one {# alojamento gerido} other {# alojamentos geridos}}",
-    "existing": "A sua avaliação de {date} está guardada.",
     "editableNote": "Ainda a pode alterar.",
     "locked": "O prazo de alteração (14 dias) terminou: a sua avaliação é mantida tal como está.",
     "starsLabel": "{n} em 5",
@@ -3779,7 +3832,6 @@
     "thanks": "Obrigado, a sua avaliação está guardada.",
     "send": "Enviar a minha avaliação",
     "update": "Atualizar a minha avaliação",
-    "privacy": "A sua avaliação é lida pela equipa que geriu a sua estadia. Nunca a altera.",
     "errors": {
       "unavailable": "Esta ligação já não é válida.",
       "invalid": "Escolha uma nota global de 1 a 5.",
@@ -3787,13 +3839,23 @@
       "locked": "O prazo de alteração terminou.",
       "server": "O serviço não conseguiu guardar. Tente novamente.",
       "network": "Sem ligação; nada foi enviado."
+    },
+    "serviceOverall": "Serviço da equipa de concierge (receção, respostas, ajuda)",
+    "existing": {
+      "guest": "A sua avaliação desta estadia, de {date}, está guardada.",
+      "owner": "A sua avaliação da gestão do seu imóvel, de {date}, está guardada."
+    },
+    "privacy": {
+      "guest": "A sua avaliação é lida pela equipa que geriu a sua estadia. Nunca a altera.",
+      "owner": "A sua avaliação é lida pela equipa que gere o seu imóvel. Nunca a altera."
     }
   },
   "showcasePage": {
     "unavailable": "Esta página não está disponível.",
     "score": {
-      "guest": "Satisfação dos hóspedes",
-      "owner": "Satisfação dos proprietários"
+      "guest": "Estadias (hóspedes)",
+      "owner": "Gestão (proprietários)",
+      "service": "Serviço da equipa (hóspedes)"
     },
     "noScore": "Ainda sem avaliações",
     "basedOn": "{count, plural, =0 {Nenhuma avaliação} one {# avaliação verificada} other {# avaliações verificadas}} de {from} a {to}",

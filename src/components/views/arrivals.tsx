@@ -36,6 +36,7 @@ export const ARRIVAL_STATE_TONE: Record<ArrivalState, "danger" | "warning" | "ac
 const BLOCKER_ICON: Record<BlockerKind, LucideIcon> = {
   no_cleaning: Sparkles,
   cleaning_unassigned: UserRoundX,
+  assignee_absent: UserRoundX,
   cleaning_infeasible: AlertTriangle,
   cleaning_late_start: Loader,
   awaiting_validation: ClipboardCheck,

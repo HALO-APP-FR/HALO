@@ -22,7 +22,7 @@ export default async function ShowcaseAdmin({ params }: PageProps<"/[locale]/app
     supabase.from("showcases").select("*").eq("organization_id", o).maybeSingle(),
     supabase.from("showcase_testimonials").select("review_id, position").eq("organization_id", o).order("position"),
     supabase.from("reviews").select("id, kind, overall, comment, author_label").eq("organization_id", o).eq("source", "halo").eq("consent_publish", true).is("consent_withdrawn_at", null).not("comment", "is", null).order("review_date", { ascending: false }).limit(100),
-    supabase.from("reviews").select("kind, source, verified, overall, ratings, would_return, review_date").eq("organization_id", o).limit(2000),
+    supabase.from("reviews").select("kind, source, verified, overall, service_overall, ratings, would_return, review_date").eq("organization_id", o).limit(2000),
   ]);
   const months = (sc?.period_months as number) ?? 12;
   const p = period(months);
@@ -63,6 +63,13 @@ export default async function ShowcaseAdmin({ params }: PageProps<"/[locale]/app
                 <p className="text-muted">{tp("score.guest")}</p>
                 <p className="text-[20px] font-semibold">{g.count ? `${g.average}/5` : tp("noScore")}</p>
                 <p className="text-[12px] text-muted">{tp("basedOn", { count: g.count, from: day(p.from), to: day(p.to) })}</p>
+              </div>
+            )}
+            {(sc?.show_guest_score ?? true) && (
+              <div className="rounded-md border border-line p-3 text-[14px]" data-testid="preview-service">
+                <p className="text-muted">{tp("score.service")}</p>
+                <p className="text-[20px] font-semibold">{g.service.answered ? `${g.service.average}/5` : tp("noScore")}</p>
+                <p className="text-[12px] text-muted">{tp("basedOn", { count: g.service.answered, from: day(p.from), to: day(p.to) })}</p>
               </div>
             )}
             {(sc?.show_owner_score ?? true) && (

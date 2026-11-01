@@ -1388,6 +1388,32 @@ select t.check('vitrine : aucune adresse ni e-mail', '', position('test.invalid'
 select t.is('vitrine : retrait du consentement → témoignage retiré', t.keep(null, format('select public.review_submit(%L, 3, ''{}'', ''Salle de bain à revoir'', true, null, false) ->> ''status''', (select v from t_tok where k = 'rev'))) || '/' || t.q(null, 'select jsonb_array_length(public.get_showcase(''conciergerie-a'') -> ''testimonials'')'), 'ok/0');
 select t.is('vitrine : une autre organisation ne modifie pas celle de A', t.q('b_manager', format('select public.publish_showcase(%L, false)', t.id('A'))), 'ERR:42501:not_allowed');
 
+-- =====================================================================
+-- 15. Scénario opérationnel et note du service (migration 15)
+-- =====================================================================
+insert into t.ids values ('RPAST2', gen_random_uuid()), ('RFUT15', gen_random_uuid());
+-- =====================================================================
+insert into public.reservations (id, organization_id, property_id, guest_name, guest_email, check_in_at, check_out_at) values
+  (t.id('RPAST2'), t.id('A'), t.id('PA1'), 'Voyageur critère', 'critere@test.invalid', now() - interval '400 days', now() - interval '397 days');
+insert into t_tok values ('rev2', t.keep('a_manager', format('select public.create_review_link(%L, ''guest'', %L)', t.id('A'), t.id('RPAST2'))));
+select t.is('service : note hors bornes refusée', t.q(null, format('select public.review_submit(%L, 4, ''{}'', null, null, null, false, 7) ->> ''status''', (select v from t_tok where k = 'rev2'))), 'invalid');
+select t.is('critère faible : avis 4/5 avec propreté 2/5 déposé', t.keep(null, format($q$select public.review_submit(%L, 4, '{"cleanliness": 2}', null, true, null, false, 5) ->> 'status'$q$, (select v from t_tok where k = 'rev2'))), 'ok');
+select t.is('critère faible : à traiter, critère et note du service enregistrés', (select follow_status || '/' || coalesce(low_reason, '-') || '/' || coalesce(service_overall::text, '-') from public.reviews where reservation_id = t.id('RPAST2')), 'to_handle/cleanliness/5');
+select t.check('critère faible : équipe alertée avec le critère', '', exists (select 1 from public.notification_outbox where organization_id = t.id('A') and template = 'team_low_review' and payload ->> 'criterion' = 'cleanliness'));
+select t.is('ancien avis : aucune note de service inventée', (select coalesce(service_overall::text, 'vide') from public.reviews where reservation_id = t.id('RPAST')), 'vide');
+select t.is('propriétaire : pas de note de service (la note porte sur la gestion)', (select coalesce(service_overall::text, 'vide') from public.reviews where owner_id = t.id('OWN')), 'vide');
+select t.is('vitrine : score du service séparé (1 réponse)', t.q(null, 'select (public.get_showcase(''conciergerie-a'') #>> ''{service,count}'') || ''/'' || (public.get_showcase(''conciergerie-a'') #>> ''{service,average}'')'), '1/5.0');
+select t.is('vitrine : score du séjour : toutes les notes vérifiées', t.q(null, 'select (public.get_showcase(''conciergerie-a'') #>> ''{guest,count}'') || ''/'' || (public.get_showcase(''conciergerie-a'') #>> ''{guest,average}'')'), '2/3.5');
+select t.is('linge : l''agent signale un manque sur sa mission', t.keep('a_agent', format('select public.report_incident(%L, %L, ''linen'', ''Il manque deux housses de couette'', false) is not null', t.id('A'), t.id('TA1'))), 'true');
+select t.check('linge : incident rattaché au logement et à la mission', '', exists (select 1 from public.incidents where organization_id = t.id('A') and category = 'linen' and task_id = t.id('TA1') and property_id = (select property_id from public.tasks where id = t.id('TA1'))));
+select t.is('retard : signalé par l''agent', t.keep('a_agent', format('select public.report_incident(%L, %L, ''delay'', ''Retard de 30 min'', false) is not null', t.id('A'), t.id('TA1'))), 'true');
+select t.check('linge : une autre organisation ne signale pas sur la mission', '', t.q('b_manager', format('select public.report_incident(%L, %L, ''linen'', ''x'', false)', t.id('A'), t.id('TA1'))) like 'ERR%');
+insert into public.reservations (id, organization_id, property_id, guest_name, guest_email, check_in_at, check_out_at) values
+  (t.id('RFUT15'), t.id('A'), t.id('PA1'), 'Voyageur anticipé', 'anticipe@test.invalid', now() + interval '500 days', now() + interval '503 days');
+insert into t_tok values ('early', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('RFUT15'))));
+select t.is('arrivée anticipée : demande enregistrée', t.keep(null, format('select public.guest_request_service(%L, ''early_checkin'', now() + interval ''500 days'', 2, ''Vers 13 h'')', (select v from t_tok where k = 'early')))::jsonb ->> 'status', 'ok');
+select t.is('arrivée anticipée : jamais confirmée automatiquement', (select status::text from public.service_requests where kind = 'early_checkin' and reservation_id = t.id('RFUT15')), 'requested');
+
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);
 do $$ declare n int; begin

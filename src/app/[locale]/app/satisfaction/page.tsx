@@ -28,17 +28,22 @@ export default async function SatisfactionPage({ params, searchParams }: PagePro
   const [{ data: rows, error }, { data: props }] = await Promise.all([
     supabase
       .from("reviews")
-      .select("id, kind, source, verified, overall, ratings, comment, would_return, author_label, consent_publish, consent_withdrawn_at, imported_from, review_date, submitted_at, updated_at, follow_status, follow_note, follow_at, incident_id, reservation_id, property_id, owner_id, properties(name), reservations(guest_name), property_owners(name)")
+      .select("id, kind, source, verified, overall, service_overall, low_reason, ratings, comment, would_return, author_label, consent_publish, consent_withdrawn_at, imported_from, review_date, submitted_at, updated_at, follow_status, follow_note, follow_at, incident_id, reservation_id, property_id, owner_id, properties(name), reservations(guest_name), property_owners(name)")
       .eq("organization_id", o)
       .eq("kind", kind)
-      .gte("review_date", p.from)
+      // Période choisie, plus tout avis encore « à traiter » même plus ancien (les scores ne gardent que la période)
+      .or(`review_date.gte.${p.from},follow_status.eq.to_handle`)
       .order("review_date", { ascending: false })
       .limit(500),
     supabase.from("properties").select("id, name").eq("organization_id", o).order("name"),
   ]);
+  // Avis à traiter de l'autre catégorie (toutes périodes) : signalés ici pour ne jamais « perdre » une alerte
+  const other: ReviewKind = kind === "guest" ? "owner" : "guest";
+  const { count: otherToHandle } = await supabase.from("reviews").select("id", { count: "exact", head: true }).eq("organization_id", o).eq("kind", other).eq("follow_status", "to_handle");
   const all = rows ?? [];
   const sum = summarize(all as unknown as ReviewRow[], kind, p);
-  const list = all.filter((r) => (filter === "to_handle" ? r.follow_status === "to_handle" : filter === "low" ? r.overall <= 2 : true));
+  const inPeriod = (r: { review_date: string }) => r.review_date >= p.from;
+  const list = all.filter((r) => (filter === "to_handle" ? r.follow_status === "to_handle" : (filter === "low" ? r.overall <= 2 : true) && inPeriod(r)));
   const toHandle = all.filter((r) => r.follow_status === "to_handle").length;
   const one = <T,>(x: T | T[] | null) => (Array.isArray(x) ? x[0] : x);
   const day = (x: string) => f.dateTime(new Date(`${x}T12:00:00Z`), { dateStyle: "medium", timeZone: "UTC" });
@@ -80,7 +85,7 @@ export default async function SatisfactionPage({ params, searchParams }: PagePro
       <SatisfactionNav current="reviews" />
       <div className="mb-4 flex flex-wrap items-center gap-2 text-[14px]">
         {(["guest", "owner"] as const).map((k) => (
-          <Link key={k} href={`/app/satisfaction?kind=${k}&months=${months}`} className={cn("rounded-full px-3 py-1", kind === k ? "bg-fg text-canvas" : "bg-subtle dark:bg-surface-hover")} data-testid={`sat-kind-${k}`}>
+          <Link key={k} href={`/app/satisfaction?kind=${k}&months=${months}&filter=${filter}`} className={cn("rounded-full px-3 py-1", kind === k ? "bg-fg text-canvas" : "bg-subtle dark:bg-surface-hover")} data-testid={`sat-kind-${k}`}>
             {t(`kindName.${k}`)}
           </Link>
         ))}
@@ -91,6 +96,11 @@ export default async function SatisfactionPage({ params, searchParams }: PagePro
           </Link>
         ))}
       </div>
+      {(otherToHandle ?? 0) > 0 && (
+        <Link href={`/app/satisfaction?kind=${other}&months=${months}&filter=to_handle`} className="mb-3 block rounded-lg border border-danger bg-danger-soft p-3 text-[14px] text-danger" data-testid="sat-other-to-handle">
+          {t(`otherToHandle.${other}`, { count: otherToHandle ?? 0 })}
+        </Link>
+      )}
       <p className="mb-3 text-[13px] text-muted" data-testid="sat-period">
         {t("periodLine", { from: day(p.from), to: day(p.to) })}
       </p>
@@ -111,6 +121,14 @@ export default async function SatisfactionPage({ params, searchParams }: PagePro
                 </li>
               );
             })}
+            {kind === "guest" && (
+              <li className="flex justify-between gap-2 border-t border-line pt-1.5" data-testid="sat-service">
+                <span className="font-medium">{t("serviceRow")}</span>
+                <span className="text-muted">
+                  {avg(sum.verified.service.average)} · {t("unanswered", { count: sum.verified.service.unanswered })}
+                </span>
+              </li>
+            )}
             <li className="flex justify-between gap-2 border-t border-line pt-1.5">
               <span>{t(`returnShort.${kind}`)}</span>
               <span className="text-muted">
@@ -143,8 +161,13 @@ export default async function SatisfactionPage({ params, searchParams }: PagePro
           const owner = one(r.property_owners) as { name: string } | null;
           const ratings = (r.ratings ?? {}) as Record<string, number>;
           return (
-            <Card key={r.id} className={cn("p-5", r.overall <= 2 && r.follow_status !== "handled" && "border-danger")} data-testid="review-row" data-follow={r.follow_status} data-source={r.source}>
+            <Card key={r.id} className={cn("p-5", (r.overall <= 2 || r.low_reason) && r.follow_status !== "handled" && "border-danger")} data-testid="review-row" data-follow={r.follow_status} data-source={r.source}>
               <div className="flex flex-wrap items-center gap-2">
+                {r.low_reason && r.low_reason !== "overall" && r.follow_status !== "handled" && (
+                  <span className="rounded-full bg-danger-soft px-2 py-0.5 text-[12px] font-semibold text-danger" data-testid="review-low-reason">
+                    {t("lowReason", { criterion: r.low_reason === "service" ? t("serviceRow") : tq(r.low_reason) })}
+                  </span>
+                )}
                 <span className={cn("rounded-full px-2 py-0.5 text-[13px] font-semibold", r.overall <= 2 ? "bg-danger-soft text-danger" : r.overall >= 4 ? "bg-success-soft text-success" : "bg-subtle")}>{r.overall}/5</span>
                 <span className="rounded-full bg-subtle px-2 py-0.5 text-[12px] dark:bg-surface-hover">{r.source === "imported" ? t("importedBadge", { from: r.imported_from ?? "—" }) : t("verifiedBadge")}</span>
                 <span className="rounded-full bg-subtle px-2 py-0.5 text-[12px] dark:bg-surface-hover">{t(`followState.${r.follow_status}`)}</span>
@@ -157,6 +180,11 @@ export default async function SatisfactionPage({ params, searchParams }: PagePro
                   {owner ? ` · ${owner.name}` : ""}
                 </span>
               </div>
+              {r.kind === "guest" && r.source === "halo" && (
+                <p className="mt-2 text-[13px]" data-testid="review-service">
+                  {r.service_overall != null ? t("serviceValue", { n: r.service_overall }) : <span className="text-muted">{t("serviceNone")}</span>}
+                </p>
+              )}
               {Object.keys(ratings).length > 0 && (
                 <p className="mt-2 text-[13px] text-muted">
                   {Object.entries(ratings)

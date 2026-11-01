@@ -100,7 +100,7 @@ export function PrepActions({
       {actions.length === 0 && <p className="text-[14px] text-muted">{t("noActions")}</p>}
       <ul className="space-y-2">
         {actions.map((a) => (
-          <li key={a.id} className={cn("rounded-md border border-line p-3", a.status !== "open" && "opacity-70")} data-testid="prep-action" data-status={a.status} data-blocking={a.blocking ? "1" : "0"}>
+          <li key={a.id} id={`prep-action-${a.id}`} className={cn("scroll-mt-20 rounded-md border border-line p-3", a.status !== "open" && "opacity-70")} data-testid="prep-action" data-status={a.status} data-blocking={a.blocking ? "1" : "0"}>
             <p className="flex flex-wrap items-center gap-2 text-[15px] font-medium">
               <span className={cn("flex-1", a.status === "done" && "line-through")}>{a.title}</span>
               {a.blocking && <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[12px] font-semibold text-warning">{t("blocking")}</span>}

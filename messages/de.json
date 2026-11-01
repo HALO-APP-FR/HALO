@@ -1028,7 +1028,9 @@
     "other": "Sonstiges",
     "extra_cleaning": "Zusätzliche Reinigung",
     "extra_linen": "Zusätzliche Wäsche",
-    "premium_package": "Premium-Paket"
+    "premium_package": "Premium-Paket",
+    "early_checkin": "Frühe Anreise",
+    "late_checkout": "Späte Abreise"
   },
   "serviceStatus": {
     "requested": "Angefragt",
@@ -1267,7 +1269,10 @@
       "step_unassigned": "{step}: niemand zugewiesen",
       "step_late": "{step}: verspätet",
       "step_review": "{step}: erledigt, zu prüfen",
-      "prep_blocking": "Vorbereitung: „{title}“ noch nicht erledigt"
+      "prep_blocking": "Vorbereitung: „{title}“ noch nicht erledigt",
+      "assignee_absent": "Reinigung einer in diesem Zeitraum abwesenden Person zugewiesen",
+      "incident_detail": "{category}: {text}",
+      "service_detail": "Anfrage wartet auf Entscheidung: {kind}"
     },
     "action": {
       "assign": "Zuweisen",
@@ -1436,7 +1441,10 @@
       "vipRequests": "{count, plural, =0 {Keine offene VIP-Anfrage} one {# offene VIP-Anfrage} other {# offene VIP-Anfragen}}",
       "teamEmails": "{count, plural, =0 {Keine unzugestellte Team-E-Mail} one {# unzugestellte Team-E-Mail} other {# unzugestellte Team-E-Mails}}",
       "bookings": "{count, plural, =0 {Keine offene Aufenthaltsanfrage} one {# offene Aufenthaltsanfrage} other {# offene Aufenthaltsanfragen}}",
-      "lowReviews": "{count, plural, =0 {Keine Bewertung zu bearbeiten} one {# Bewertung zu bearbeiten (niedrige Note)} other {# Bewertungen zu bearbeiten (niedrige Noten)}}"
+      "lowReviews": "{count, plural, =0 {Keine Bewertung zu bearbeiten} one {# Bewertung zu bearbeiten (niedrige Note)} other {# Bewertungen zu bearbeiten (niedrige Noten)}}",
+      "lowReviewsGuest": "{count, plural, =0 {Keine Gästebewertung zu bearbeiten} one {# Gästebewertung zu bearbeiten} other {# Gästebewertungen zu bearbeiten}}",
+      "lowReviewsOwner": "{count, plural, =0 {Keine Eigentümerbewertung zu bearbeiten} one {# Eigentümerbewertung zu bearbeiten} other {# Eigentümerbewertungen zu bearbeiten}}",
+      "moreCauses": "+ {count} weitere Ursache(n)"
     },
     "onb": {
       "progress": "Schritt {n} von {total}",
@@ -1943,7 +1951,12 @@
       "cancelTask": "Einsatz stornieren",
       "cancelConfirm": "Endgültig stornieren? Der zugewiesene Agent wird benachrichtigt.",
       "cancelYes": "Ja, stornieren",
-      "localTime": "Ortszeit: {zone}"
+      "localTime": "Ortszeit: {zone}",
+      "suggestTitle": "Personen ohne bekannte Abwesenheit in diesem Zeitraum",
+      "suggestNone": "Laut bekannten Abwesenheiten ist niemand verfügbar.",
+      "suggestBusy": "{count, plural, one {bereits # weiterer Einsatz in diesem Zeitraum} other {bereits # weitere Einsätze in diesem Zeitraum}}",
+      "suggestFree": "kein weiterer Einsatz in diesem Zeitraum",
+      "suggestLimits": "Basierend auf in HALO erfassten Abwesenheiten und Einsätzen. Fahrzeit und nicht gemeldete Verfügbarkeit: unbekannt."
     },
     "team": {
       "title": "Team",
@@ -2054,7 +2067,9 @@
         "access": "Zugang zur Unterkunft",
         "noise": "Lärm",
         "pests": "Schädlinge",
-        "other": "Sonstiges"
+        "other": "Sonstiges",
+        "linen": "Fehlende oder beschädigte Wäsche",
+        "delay": "Verspätung"
       },
       "resolvedNote": "Interne Notiz",
       "sentToGuest": "Nachricht an den Gast",
@@ -2566,7 +2581,9 @@
       "overrideShown": "Per Ausnahme abgeschlossen: {reason}",
       "taskNotes": "Anweisungen für den Agenten",
       "taskNotesHint": "Für den Agenten in seiner Liste und den Einsatzdetails sichtbar.",
-      "notReadyReason": "Dieser Aufenthalt ist seit {date} nicht mehr „Bereit“: Die notwendige Aktion „{action}“ {cause, select, mission {wurde wieder geöffnet, weil ihr Einsatz wiederholt werden muss} other {wurde wieder geöffnet}}. Erledigen Sie sie (oder schließen Sie sie mit Begründung) und setzen Sie den Aufenthalt wieder auf „Bereit“."
+      "notReadyReason": "Dieser Aufenthalt ist seit {date} nicht mehr „Bereit“: Die notwendige Aktion „{action}“ {cause, select, mission {wurde wieder geöffnet, weil ihr Einsatz wiederholt werden muss} other {wurde wieder geöffnet}}. Erledigen Sie sie (oder schließen Sie sie mit Begründung) und setzen Sie den Aufenthalt wieder auf „Bereit“.",
+      "blockersTitle": "{count, plural, one {Was „Bereit“ verhindert: # notwendige Aktion offen} other {Was „Bereit“ verhindert: # notwendige Aktionen offen}}",
+      "linkedMission": "verknüpfter Einsatz: {status}"
     },
     "vip": {
       "title": "VIP-Status",
@@ -3107,7 +3124,7 @@
         "owner": "Würden empfehlen"
       },
       "yesNo": "{yes} ja · {no} nein · {none} keine Angabe",
-      "method": "Durchschnitte aus allen Bewertungen des Zeitraums, ohne Ausschluss. Importierte werden nie mit verifizierten vermischt.",
+      "method": "Durchschnitte aus allen Bewertungen des Zeitraums, ohne Ausschluss. Aufenthalt und Service werden getrennt bewertet; ältere Bewertungen ohne Servicenote zählen nicht für den Service. Importierte werden nie mit verifizierten vermischt. Eine Bewertung wird „Zu bearbeiten“, wenn Gesamtnote, Service, Sauberkeit oder Zustand (Eigentümer: Reaktion, Qualität) 2/5 oder weniger beträgt.",
       "listTitle": "Bewertungen",
       "filter": {
         "all": "Alle",
@@ -3212,7 +3229,30 @@
         "preview": "Vorschau",
         "previewNote": "Vorschau nach denselben Regeln wie die öffentliche Seite (gespeicherte Einstellungen).",
         "openPublic": "Öffentliche Seite öffnen"
-      }
+      },
+      "otherToHandle": {
+        "guest": "{count, plural, one {# Gästebewertung zu bearbeiten} other {# Gästebewertungen zu bearbeiten}} — öffnen",
+        "owner": "{count, plural, one {# Eigentümerbewertung zu bearbeiten} other {# Eigentümerbewertungen zu bearbeiten}} — öffnen"
+      },
+      "serviceRow": "Service des Teams (Concierge)",
+      "serviceValue": "Service des Teams: {n}/5",
+      "serviceNone": "Service des Teams: nicht bewertet",
+      "lowReason": "Niedriges Kriterium: {criterion}"
+    },
+    "timing": {
+      "before": "Fällig vor {date}",
+      "durationShort": "geplant {duration}",
+      "slotShort": "Termin {start}",
+      "noSlot": "kein Termin geplant",
+      "from": "möglich ab {date}",
+      "deadlineLabel": "Fällig vor",
+      "fromLabel": "Möglich ab",
+      "durationLabel": "Geplante Arbeitszeit",
+      "estimate": "Schätzung",
+      "slotLabel": "Geplanter Termin",
+      "noSlotLong": "Kein Termin vergeben: Der Einsatz erfolgt im obigen Zeitraum.",
+      "assigneeLabel": "Zuweisung",
+      "unassigned": "Nicht zugewiesen"
     }
   },
   "email": {
@@ -3364,7 +3404,7 @@
     },
     "team_low_review": {
       "subject": "Bewertung mit niedriger Note — {property}",
-      "body": "Soeben ist eine Bewertung mit 2/5 oder weniger eingegangen ({property}). Sie ist unter Zufriedenheit als „Zu bearbeiten“ markiert: Dort können Sie eine interne Maßnahme notieren oder einen Vorfall eröffnen."
+      "body": "Eine Bewertung mit 2/5 oder weniger (Gesamt, Service oder Schlüsselkriterium) ist eingegangen ({property}). Sie ist unter Zufriedenheit als „Zu bearbeiten“ markiert: Notieren Sie dort eine interne Maßnahme oder eröffnen Sie einen Vorfall. Niemand wird beschuldigt."
     }
   },
   "guestSpace": {
@@ -3492,7 +3532,11 @@
       "ownerAddedOn": "Vom Eigentümer hinzugefügt am {date}",
       "hoursVerified": "Öffnungszeiten vom Team geprüft",
       "hoursToConfirm": "Öffnungszeiten zu bestätigen",
-      "mapLater": "Karte und Adresse erscheinen ab {date}. Entfernungen sind bereits angegeben."
+      "mapLater": "Karte und Adresse erscheinen ab {date}. Entfernungen sind bereits angegeben.",
+      "picksTitle": "Auswahl des Teams und des Eigentümers",
+      "autoTitle": "Automatische Vorschläge in der Nähe (nicht geprüft)",
+      "showAll": "Alle {count} Vorschläge ansehen",
+      "showLess": "Weniger anzeigen"
     },
     "prepBanner": "Ihr Aufenthalt rückt näher. Praktische Infos (Adresse, Zugang, Leitfaden) erscheinen hier ab {date}. Bis dahin können Sie Ihren Aufenthalt vorbereiten und dem Team schreiben.",
     "prepared": {
@@ -3580,6 +3624,16 @@
       "confirmed": "Persönlicher Empfang vom Team bestätigt.",
       "refused": "Das Team konnte Ihrer Anfrage nicht entsprechen.",
       "teamMessage": "Nachricht des Teams"
+    },
+    "timing": {
+      "title": "Frühe Anreise oder späte Abreise",
+      "text": "Nennen Sie die gewünschte Uhrzeit. Sie wird nicht automatisch angenommen: Das Team prüft, ob die Unterkunft bereit sein kann, und antwortet hier.",
+      "kind": "Anfrage",
+      "when": "Gewünschte Uhrzeit",
+      "detailsPlaceholder": "Flug, Zug, besondere Einschränkung…",
+      "sent": "Anfrage gesendet. Nichts ist bestätigt, bis das Team antwortet.",
+      "send": "Anfrage senden",
+      "details": "Angaben zur Uhrzeit (optional)"
     }
   },
   "demoEntry": {
@@ -3745,7 +3799,6 @@
     },
     "stayLine": "{property} · {from} → {to}",
     "ownerLine": "{name} · {count, plural, one {# verwaltete Unterkunft} other {# verwaltete Unterkünfte}}",
-    "existing": "Ihre Bewertung vom {date} ist gespeichert.",
     "editableNote": "Sie können sie noch ändern.",
     "locked": "Die Änderungsfrist (14 Tage) ist abgelaufen: Ihre Bewertung bleibt unverändert.",
     "starsLabel": "{n} von 5",
@@ -3779,7 +3832,6 @@
     "thanks": "Danke, Ihre Bewertung ist gespeichert.",
     "send": "Bewertung senden",
     "update": "Bewertung aktualisieren",
-    "privacy": "Ihre Bewertung wird vom Team gelesen, das Ihren Aufenthalt betreut hat. Es ändert sie nie.",
     "errors": {
       "unavailable": "Dieser Link ist nicht mehr gültig.",
       "invalid": "Wählen Sie eine Gesamtnote von 1 bis 5.",
@@ -3787,13 +3839,23 @@
       "locked": "Die Änderungsfrist ist abgelaufen.",
       "server": "Der Dienst konnte nicht speichern. Bitte erneut versuchen.",
       "network": "Keine Verbindung; nichts wurde gesendet."
+    },
+    "serviceOverall": "Service des Concierge-Teams (Empfang, Antworten, Hilfe)",
+    "existing": {
+      "guest": "Ihre Bewertung dieses Aufenthalts vom {date} ist gespeichert.",
+      "owner": "Ihre Bewertung der Verwaltung Ihrer Immobilie vom {date} ist gespeichert."
+    },
+    "privacy": {
+      "guest": "Ihre Bewertung wird vom Team gelesen, das Ihren Aufenthalt betreut hat. Es ändert sie nie.",
+      "owner": "Ihre Bewertung wird vom Team gelesen, das Ihre Immobilie verwaltet. Es ändert sie nie."
     }
   },
   "showcasePage": {
     "unavailable": "Diese Seite ist nicht verfügbar.",
     "score": {
-      "guest": "Gästezufriedenheit",
-      "owner": "Eigentümerzufriedenheit"
+      "guest": "Aufenthalte (Gäste)",
+      "owner": "Verwaltung (Eigentümer)",
+      "service": "Service des Teams (Gäste)"
     },
     "noScore": "Noch keine Bewertungen",
     "basedOn": "{count, plural, =0 {Keine Bewertung} one {# verifizierte Bewertung} other {# verifizierte Bewertungen}} vom {from} bis {to}",

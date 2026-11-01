@@ -8,6 +8,8 @@ import type { Alert, ServiceRequest } from "@/lib/domain/types";
 import type { supabaseServer } from "@/lib/supabase/server";
 import { CreateCleaningButton } from "./create-cleaning-button";
 import { cn } from "@/lib/utils";
+import { blockingAbsences } from "@/lib/engine/availability";
+import type { PlanningAlerts } from "@/lib/connected/planning";
 
 type Client = Awaited<ReturnType<typeof supabaseServer>>;
 
@@ -16,9 +18,11 @@ type Client = Awaited<ReturnType<typeof supabaseServer>>;
  * ménage (assigné, commencé, terminé, validé), incidents ouverts, demandes en attente.
  * Même moteur que le poste de pilotage de la démo ; aucune case « prêt » déclarative.
  */
-export async function ArrivalsNow({ supabase, orgId, now, linenRequired }: { supabase: Client; orgId: string; now: Date; linenRequired: boolean }) {
+export async function ArrivalsNow({ supabase, orgId, now, linenRequired, planning }: { supabase: Client; orgId: string; now: Date; linenRequired: boolean; planning?: PlanningAlerts }) {
   const t = await getTranslations("arrivals");
   const tc = await getTranslations("connected.home");
+  const ti = await getTranslations("connected.incidents.category");
+  const tk = await getTranslations("serviceKind");
   const from = new Date(now.getTime() - 12 * 3_600_000).toISOString();
   const to = new Date(now.getTime() + 48 * 3_600_000).toISOString();
   const { data: stays } = await supabase
@@ -54,7 +58,15 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired }: { sup
     takenBy: i.taken_by ?? undefined,
   }));
   const svc: ServiceRequest[] = (services ?? []).map((s) => ({ id: s.id, propertyId: s.property_id, reservationId: s.reservation_id ?? undefined, kind: s.kind, startAt: s.start_at, status: s.status, source: s.source, createdAt: s.created_at }));
-  const rows = arrivalControl({ stays: stays.map((s) => toReservation(s as Row)), tasks: (tasks ?? []).map((x) => toTask(x as Row)), alerts, services: svc, now, steps: { linenRequired }, prepBlocking: (prep ?? []).map((a) => ({ reservationId: a.reservation_id as string, title: a.title as string, assigneeId: (a.assignee_id as string | null) ?? null, dueAt: (a.due_at as string | null) ?? null })) });
+  const rows = arrivalControl({ stays: stays.map((s) => toReservation(s as Row)), tasks: (tasks ?? []).map((x) => toTask(x as Row)), alerts, services: svc, now, steps: { linenRequired }, prepBlocking: (prep ?? []).map((a) => ({ reservationId: a.reservation_id as string, title: a.title as string, assigneeId: (a.assignee_id as string | null) ?? null, dueAt: (a.due_at as string | null) ?? null })),
+    // Absence acceptée de la personne affectée sur ce créneau : la mission n'est pas réellement couverte
+    assigneeAbsent: planning
+      ? (task) => {
+          const m = planning.members.find((x) => x.id === task.assigneeId);
+          return Boolean(m && blockingAbsences(m, task, planning.absences).length);
+        }
+      : undefined,
+  });
   const counts = arrivalCounts(rows);
   const nameOf = new Map((members ?? []).map((m: { user_id: string; profiles: unknown }) => [m.user_id, ((Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as { full_name: string } | null)?.full_name || "—"]));
   const propName = new Map(stays.map((s) => [s.id as string, ((Array.isArray(s.properties) ? s.properties[0] : s.properties) as { name: string } | null)?.name ?? ""]));
@@ -69,6 +81,18 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired }: { sup
     if (a.kind === "open_incident") return "/app/incidents";
     if (a.kind === "open_service") return `/app/services/${a.serviceId}`;
     return `/app/stays/${row.stay.id}`;
+  };
+  // Cause lisible, issue des données réelles (catégorie et description de l'incident, type de demande)
+  const incCat = new Map((incidents ?? []).map((i) => [i.id as string, i.category as string]));
+  const cause = (x: ArrivalRow["blockers"][number]) => {
+    if (x.kind.startsWith("step_")) return t(`blocker.${x.kind}`, { step: t(`step.${x.detail}`) });
+    if (x.kind === "prep_blocking") return t("blocker.prep_blocking", { title: String(x.detail ?? "") });
+    if ((x.kind === "open_incident" || x.kind === "urgent_incident") && x.action.kind === "open_incident") {
+      const d = String(x.detail ?? "");
+      return t("blocker.incident_detail", { category: ti(incCat.get(x.action.alertId) ?? "other"), text: d.length > 80 ? `${d.slice(0, 80)}…` : d });
+    }
+    if (x.kind === "service_pending" && x.detail) return t("blocker.service_detail", { kind: tk(String(x.detail)) });
+    return t(`blocker.${x.kind}`);
   };
   const tone = { blocked: "bg-danger-soft text-danger", watch: "bg-warning-soft text-warning", preparing: "bg-accent-soft text-accent-text", ready: "bg-success-soft text-success" } as const;
   const todo = rows.filter((r) => r.state !== "ready");
@@ -99,10 +123,15 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired }: { sup
                   </span>
                 )}
                 {b && (
-                  <span className="block text-[13px] text-muted">
-                    {b.kind.startsWith("step_") ? t(`blocker.${b.kind}`, { step: t(`step.${b.detail}`) }) : b.kind === "prep_blocking" ? t("blocker.prep_blocking", { title: String(b.detail ?? "") }) : t(`blocker.${b.kind}`)}
-                    {row.blockers.length > 1 ? ` (+${row.blockers.length - 1})` : ""} · {who}
-                  </span>
+                  <ul className="mt-0.5 space-y-0.5 text-[13px] text-muted" data-testid="arrival-causes">
+                    {row.blockers.slice(0, 5).map((x, i) => (
+                      <li key={i} data-kind={x.kind}>
+                        {cause(x)}
+                        {i === 0 ? ` · ${who}` : ""}
+                      </li>
+                    ))}
+                    {row.blockers.length > 5 && <li>{tc("moreCauses", { count: row.blockers.length - 5 })}</li>}
+                  </ul>
                 )}
               </span>
               {b?.action.kind === "create_cleaning" ? (

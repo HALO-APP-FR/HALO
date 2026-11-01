@@ -3,13 +3,14 @@ import { Link, redirect } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/halo/page-header";
 import { AgentActions, AssignSelect } from "@/components/connected/mission-controls";
+import { MissionTiming } from "@/components/connected/mission-timing";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { isoFromNow, nowDate } from "@/lib/connected/time";
 import { infeasibility } from "@/lib/engine/conflicts";
 import { toTask, type Row } from "@/lib/connected/mappers";
 import { loadPlanning } from "@/lib/connected/planning";
 import { blockingAbsences } from "@/lib/engine/availability";
-import { durationText, periodText, windowText, zoneLabel } from "@/lib/connected/format";
+import { durationText, periodText, zoneLabel } from "@/lib/connected/format";
 import { TriangleAlert } from "lucide-react";
 
 export default async function MissionsPage({ params, searchParams }: PageProps<"/[locale]/app/missions">) {
@@ -103,9 +104,10 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
                 </span>
                 {k.title && <span className="block text-[15px] font-semibold text-accent-text" data-testid="mission-title">{k.title}</span>}
                 {k.notes && <span className="block truncate text-[13px] text-fg" data-testid="mission-notes-preview">{k.notes}</span>}
+                <MissionTiming task={k} timeZone={p?.timezone ?? undefined} compact />
                 <span className="block text-[13px] text-muted">
-                  {t("windowLabel", { window: windowText(f, k.window_start, k.window_end, false, p?.timezone ?? undefined) })}
-                  {zone && <span data-testid="mission-zone"> ({t("localTime", { zone })})</span>} · {t("durationLabel", { duration: durationText(k.duration_min) })} · {tts(k.status)}
+                  {tts(k.status)}
+                  {zone && <span data-testid="mission-zone"> · {t("localTime", { zone })}</span>}
                   {!manager && p?.address_line ? ` · ${[p.address_line, p.city].filter(Boolean).join(", ")}` : ""}
                 </span>
               </Link>

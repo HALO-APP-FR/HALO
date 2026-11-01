@@ -24,6 +24,12 @@ describe("satisfaction", () => {
     expect(s.imported).toMatchObject({ count: 1, average: 3 });
     expect(summarize(rows, "owner", { from: "2025-11-01", to: "2026-11-01" }).verified).toMatchObject({ count: 1, average: 2 });
   });
+  it("service de la conciergerie : séparé du séjour, anciens avis sans note jamais comptés", () => {
+    const s = score([r({ overall: 5, service_overall: 2 }), r({ overall: 4 }), r({ overall: 3, service_overall: 4 })], "guest");
+    expect(s.average).toBe(4);
+    expect(s.service).toEqual({ answered: 2, unanswered: 1, average: 3 });
+    expect(score([r({ overall: 5 })], "guest").service).toEqual({ answered: 0, unanswered: 1, average: null });
+  });
   it("période glissante", () => {
     expect(period(12, new Date("2026-11-01T10:00:00Z"))).toEqual({ from: "2025-11-01", to: "2026-11-01" });
   });

@@ -14,6 +14,8 @@ export interface ReviewRow {
   source: "halo" | "imported";
   verified: boolean;
   overall: number;
+  /** Note du service de la conciergerie (voyageur) ; vide pour les anciens avis et les propriétaires */
+  service_overall?: number | null;
   ratings: Record<string, number>;
   would_return: boolean | null;
   review_date: string; // AAAA-MM-JJ
@@ -24,6 +26,8 @@ export interface Score {
   average: number | null;
   distribution: Record<1 | 2 | 3 | 4 | 5, number>;
   questions: Record<string, { answered: number; unanswered: number; average: number | null }>;
+  /** Service de la conciergerie : seuls les avis qui l'ont noté comptent (jamais déduit d'autres champs) */
+  service: { answered: number; unanswered: number; average: number | null };
   wouldReturn: { yes: number; no: number; unanswered: number };
 }
 
@@ -39,7 +43,9 @@ export function score(rows: ReviewRow[], kind: ReviewKind): Score {
       return [q, { answered: vals.length, unanswered: list.length - vals.length, average: vals.length ? round1(vals.reduce((a, b) => a + b, 0) / vals.length) : null }];
     }),
   );
+  const sv = list.map((r) => r.service_overall).filter((v): v is number => typeof v === "number" && v >= 1 && v <= 5);
   return {
+    service: { answered: sv.length, unanswered: list.length - sv.length, average: sv.length ? round1(sv.reduce((a, b) => a + b, 0) / sv.length) : null },
     count: list.length,
     average: list.length ? round1(list.reduce((a, r) => a + r.overall, 0) / list.length) : null,
     distribution,

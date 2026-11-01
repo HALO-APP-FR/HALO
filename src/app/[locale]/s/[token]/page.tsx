@@ -91,7 +91,7 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
     ? g.services.filter((s) => s.events.some((e) => e.author === "member" && Date.parse(e.at) > Date.parse(g.previously_opened_at!))).length +
       g.messages.filter((m) => m.author === "member" && Date.parse(m.at) > Date.parse(g.previously_opened_at!)).length
     : 0;
-  const kinds = g.organization.services_offered?.length ? g.organization.services_offered : ["other"];
+  const kinds = (g.organization.services_offered?.length ? g.organization.services_offered : ["other"]).filter((k) => k !== "early_checkin" && k !== "late_checkout");
   const guideKeys = ["welcome", "house_rules", "checkout_instructions", "wifi_name", "wifi_password", "parking", "trash", "recommendations", "emergency_phone"] as const;
   // Valeur minimale du champ dans le fuseau du logement
   const toLocal = (x: Date) => new Intl.DateTimeFormat("sv-SE", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(x).replace(" ", "T");
@@ -240,6 +240,12 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
               </li>
             ))}
           </ul>
+        </Card>
+
+        <Card className="p-5" data-testid="guest-timing">
+          <h2 className="text-[17px] font-semibold">{t("timing.title")}</h2>
+          <p className="mb-4 mt-1 text-[14px] text-muted">{t("timing.text")}</p>
+          <GuestRequestForm token={token} kinds={["early_checkin", "late_checkout"]} minDate={toLocal(new Date())} timeZone={tz} variant="timing" />
         </Card>
 
         <Card className="p-5">

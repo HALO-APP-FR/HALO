@@ -18,7 +18,7 @@ interface Portal {
   stay: { property: string; check_in_at: string; check_out_at: string; timezone: string } | null;
   owner: { name: string; properties: number } | null;
   link_valid_until: string;
-  review: { overall: number; ratings: Record<string, number>; comment: string | null; would_return: boolean | null; author_label: string | null; consent_publish: boolean; submitted_at: string; updated_at: string; editable: boolean } | null;
+  review: { overall: number; service_overall: number | null; ratings: Record<string, number>; comment: string | null; would_return: boolean | null; author_label: string | null; consent_publish: boolean; submitted_at: string; updated_at: string; editable: boolean } | null;
 }
 
 /** Avis par lien personnel (voyageur après son séjour, ou propriétaire). Rien n'est publié sans son accord. */
@@ -66,13 +66,13 @@ export default async function ReviewPortal({ params }: PageProps<"/[locale]/avis
         </div>
         {p.review && (
           <p className="rounded-xl border border-line bg-canvas p-4 text-[14px]" role="status" data-testid="review-existing">
-            {t("existing", { date: d(p.review.updated_at) })} {p.review.editable ? t("editableNote") : ""}
+            {t(`existing.${p.kind}`, { date: d(p.review.updated_at) })} {p.review.editable ? t("editableNote") : ""}
           </p>
         )}
         <Card className="p-5">
           <ReviewForm token={token} kind={p.kind} questions={QUESTIONS[p.kind]} initial={p.review} editable={p.review ? p.review.editable : true} />
         </Card>
-        <p className="text-[12px] text-faint">{t("privacy")}</p>
+        <p className="text-[12px] text-faint">{t(`privacy.${p.kind}`)}</p>
       </main>
     </div>
   );

@@ -1028,7 +1028,9 @@
     "other": "Other",
     "extra_cleaning": "Extra cleaning",
     "extra_linen": "Extra linen",
-    "premium_package": "Premium package"
+    "premium_package": "Premium package",
+    "early_checkin": "Early check-in",
+    "late_checkout": "Late check-out"
   },
   "serviceStatus": {
     "requested": "Requested",
@@ -1267,7 +1269,10 @@
       "step_unassigned": "{step}: nobody assigned",
       "step_late": "{step}: running late",
       "step_review": "{step}: finished, to check",
-      "prep_blocking": "Preparation: “{title}” not done yet"
+      "prep_blocking": "Preparation: “{title}” not done yet",
+      "assignee_absent": "Cleaning assigned to someone absent on that slot",
+      "incident_detail": "{category}: {text}",
+      "service_detail": "Request awaiting decision: {kind}"
     },
     "action": {
       "assign": "Assign",
@@ -1436,7 +1441,10 @@
       "vipRequests": "{count, plural, =0 {No pending VIP request} one {# pending VIP request} other {# pending VIP requests}}",
       "teamEmails": "{count, plural, =0 {No undelivered team e-mail} one {# undelivered team e-mail} other {# undelivered team e-mails}}",
       "bookings": "{count, plural, =0 {No stay request to handle} one {# stay request to handle} other {# stay requests to handle}}",
-      "lowReviews": "{count, plural, =0 {No review to follow up} one {# review to follow up (low rating)} other {# reviews to follow up (low ratings)}}"
+      "lowReviews": "{count, plural, =0 {No review to follow up} one {# review to follow up (low rating)} other {# reviews to follow up (low ratings)}}",
+      "lowReviewsGuest": "{count, plural, =0 {No guest review to handle} one {# guest review to handle} other {# guest reviews to handle}}",
+      "lowReviewsOwner": "{count, plural, =0 {No owner review to handle} one {# owner review to handle} other {# owner reviews to handle}}",
+      "moreCauses": "+ {count} more cause(s)"
     },
     "onb": {
       "progress": "Step {n} of {total}",
@@ -1943,7 +1951,12 @@
       "cancelTask": "Cancel the mission",
       "cancelConfirm": "Cancel for good? The assigned agent will be notified.",
       "cancelYes": "Yes, cancel",
-      "localTime": "local time: {zone}"
+      "localTime": "local time: {zone}",
+      "suggestTitle": "People with no known absence on this slot",
+      "suggestNone": "No one is available according to known absences.",
+      "suggestBusy": "{count, plural, one {already # other mission in this range} other {already # other missions in this range}}",
+      "suggestFree": "no other mission in this range",
+      "suggestLimits": "Based on absences and missions recorded in HALO. Travel time and undeclared availability: unknown."
     },
     "team": {
       "title": "Team",
@@ -2054,7 +2067,9 @@
         "access": "Access to the property",
         "noise": "Noise",
         "pests": "Pests",
-        "other": "Other"
+        "other": "Other",
+        "linen": "Missing or damaged linen",
+        "delay": "Delay"
       },
       "resolvedNote": "Internal note",
       "sentToGuest": "Message to the guest",
@@ -2566,7 +2581,9 @@
       "overrideShown": "Closed by override: {reason}",
       "taskNotes": "Instructions for the agent",
       "taskNotesHint": "Visible to the agent in their list and the mission details.",
-      "notReadyReason": "This stay is no longer “Ready” since {date}: the required action “{action}” {cause, select, mission {was reopened because its mission must be redone} other {was reopened}}. Complete it (or close it with a reason), then set the stay back to “Ready”."
+      "notReadyReason": "This stay is no longer “Ready” since {date}: the required action “{action}” {cause, select, mission {was reopened because its mission must be redone} other {was reopened}}. Complete it (or close it with a reason), then set the stay back to “Ready”.",
+      "blockersTitle": "{count, plural, one {What blocks “Ready”: # required action open} other {What blocks “Ready”: # required actions open}}",
+      "linkedMission": "linked mission: {status}"
     },
     "vip": {
       "title": "VIP status",
@@ -3107,7 +3124,7 @@
         "owner": "Would recommend"
       },
       "yesNo": "{yes} yes · {no} no · {none} no answer",
-      "method": "Averages use every review in the period, with no exclusion. Imported reviews are never mixed with verified ones.",
+      "method": "Averages use every review in the period, with no exclusion. Stay and team service are rated separately; older reviews without a service rating aren't counted for service. Imported reviews are never mixed with verified ones. A review becomes “To handle” if the overall rating, service, cleanliness or condition (owner: responsiveness, quality) is 2/5 or less.",
       "listTitle": "Reviews",
       "filter": {
         "all": "All",
@@ -3212,7 +3229,30 @@
         "preview": "Preview",
         "previewNote": "Preview built with the same rules as the public page (saved settings).",
         "openPublic": "Open the public page"
-      }
+      },
+      "otherToHandle": {
+        "guest": "{count, plural, one {# guest review to handle} other {# guest reviews to handle}} — open",
+        "owner": "{count, plural, one {# owner review to handle} other {# owner reviews to handle}} — open"
+      },
+      "serviceRow": "Team service (concierge)",
+      "serviceValue": "Team service: {n}/5",
+      "serviceNone": "Team service: not rated",
+      "lowReason": "Low criterion: {criterion}"
+    },
+    "timing": {
+      "before": "Due before {date}",
+      "durationShort": "planned {duration}",
+      "slotShort": "slot {start}",
+      "noSlot": "no slot planned",
+      "from": "possible from {date}",
+      "deadlineLabel": "Due before",
+      "fromLabel": "Possible from",
+      "durationLabel": "Planned work time",
+      "estimate": "estimate",
+      "slotLabel": "Planned slot",
+      "noSlotLong": "No slot assigned: the job happens within the range above.",
+      "assigneeLabel": "Assignment",
+      "unassigned": "Unassigned"
     }
   },
   "email": {
@@ -3364,7 +3404,7 @@
     },
     "team_low_review": {
       "subject": "Low-rated review — {property}",
-      "body": "A review rated 2/5 or less has just arrived ({property}). It's marked “To handle” in Satisfaction: you can record an internal action or open an incident there."
+      "body": "A review has arrived with a rating of 2/5 or less (overall, service or key criterion) ({property}). It's marked “To handle” in Satisfaction: you can record an internal action or open an incident there. No one is blamed."
     }
   },
   "guestSpace": {
@@ -3492,7 +3532,11 @@
       "ownerAddedOn": "Added by the owner on {date}",
       "hoursVerified": "hours verified by the team",
       "hoursToConfirm": "hours to be confirmed",
-      "mapLater": "The map and the property address will appear from {date}. Distances are already shown."
+      "mapLater": "The map and the property address will appear from {date}. Distances are already shown.",
+      "picksTitle": "Picked by the team and the owner",
+      "autoTitle": "Automatic nearby suggestions (not verified)",
+      "showAll": "See all {count} suggestions",
+      "showLess": "Show less"
     },
     "prepBanner": "Your stay is coming up. Practical details (address, access, guide) will appear here from {date}. Meanwhile you can prepare your stay and message the team.",
     "prepared": {
@@ -3580,6 +3624,16 @@
       "confirmed": "Personalised welcome confirmed by the team.",
       "refused": "The team could not follow up on your request.",
       "teamMessage": "Message from the team"
+    },
+    "timing": {
+      "title": "Early check-in or late check-out",
+      "text": "Tell us the time you'd like. It isn't accepted automatically: the team checks the home can be ready, then replies here.",
+      "kind": "Request",
+      "when": "Preferred time",
+      "detailsPlaceholder": "Flight, train, specific constraint…",
+      "sent": "Request sent. Nothing is confirmed until the team replies.",
+      "send": "Send the request",
+      "details": "Details about the time (optional)"
     }
   },
   "demoEntry": {
@@ -3745,7 +3799,6 @@
     },
     "stayLine": "{property} · {from} → {to}",
     "ownerLine": "{name} · {count, plural, one {# managed property} other {# managed properties}}",
-    "existing": "Your review from {date} is saved.",
     "editableNote": "You can still edit it.",
     "locked": "The 14-day edit period has passed: your review is kept as is.",
     "starsLabel": "{n} out of 5",
@@ -3779,7 +3832,6 @@
     "thanks": "Thank you, your review is saved.",
     "send": "Send my review",
     "update": "Update my review",
-    "privacy": "Your review is read by the team that managed your stay. They never edit it.",
     "errors": {
       "unavailable": "This link is no longer valid.",
       "invalid": "Choose an overall rating from 1 to 5.",
@@ -3787,13 +3839,23 @@
       "locked": "The edit period has passed.",
       "server": "The service couldn't save. Try again.",
       "network": "Can't connect; nothing was sent."
+    },
+    "serviceOverall": "Concierge team service (welcome, replies, help)",
+    "existing": {
+      "guest": "Your review of this stay, from {date}, is saved.",
+      "owner": "Your review of how your property is managed, from {date}, is saved."
+    },
+    "privacy": {
+      "guest": "Your review is read by the team that managed your stay. They never edit it.",
+      "owner": "Your review is read by the team that manages your property. They never edit it."
     }
   },
   "showcasePage": {
     "unavailable": "This page isn't available.",
     "score": {
-      "guest": "Guest satisfaction",
-      "owner": "Owner satisfaction"
+      "guest": "Stays (guests)",
+      "owner": "Management (owners)",
+      "service": "Team service (guests)"
     },
     "noScore": "No reviews yet",
     "basedOn": "{count, plural, =0 {No review} one {# verified review} other {# verified reviews}} from {from} to {to}",

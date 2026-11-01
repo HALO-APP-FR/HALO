@@ -21,6 +21,8 @@ interface Showcase {
   period_months: number;
   published_at: string;
   guest: ScoreJ | null;
+  /** Service de la conciergerie (voyageurs ayant répondu à cette question) */
+  service?: ScoreJ | null;
   owner: ScoreJ | null;
   testimonials: { kind: "guest" | "owner"; overall: number; comment: string; author: string; month: string }[];
 }
@@ -48,7 +50,7 @@ export default async function ShowcasePage({ params }: PageProps<"/[locale]/v/[s
   }
   const day = (x: string) => f.dateTime(new Date(`${x}T12:00:00Z`), { dateStyle: "medium", timeZone: "UTC" });
   const month = (x: string) => f.dateTime(new Date(`${x}-15T12:00:00Z`), { month: "long", year: "numeric", timeZone: "UTC" });
-  const scoreCard = ({ kind, sc }: { kind: "guest" | "owner"; sc: ScoreJ }) => (
+  const scoreCard = ({ kind, sc }: { kind: "guest" | "service" | "owner"; sc: ScoreJ }) => (
     <Card className="p-5" data-testid={`showcase-score-${kind}`}>
       <p className="text-[13px] font-medium text-muted">{t(`score.${kind}`)}</p>
       {sc.count > 0 && sc.average != null ? (
@@ -77,8 +79,9 @@ export default async function ShowcasePage({ params }: PageProps<"/[locale]/v/[s
           {s.intro && <p className="mt-3 whitespace-pre-wrap text-[16px]">{s.intro}</p>}
         </div>
         {(s.guest || s.owner) && (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             {s.guest && scoreCard({ kind: "guest", sc: s.guest })}
+            {s.service && scoreCard({ kind: "service", sc: s.service })}
             {s.owner && scoreCard({ kind: "owner", sc: s.owner })}
           </div>
         )}

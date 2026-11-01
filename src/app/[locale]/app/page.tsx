@@ -34,7 +34,7 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     unreadThreads(supabase, org.id),
   ]);
   const in24 = new Date(now.getTime() + 24 * 3_600_000).toISOString();
-  const [teamOutbox, prepReview, prepDue, vipPending, bookings, lowReviews] = await Promise.all([
+  const [teamOutbox, prepReview, prepDue, vipPending, bookings, lowGuest, lowOwner] = await Promise.all([
     supabase.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org.id).in("status", ["failed", "not_configured"]).or("template.like.team_%,template.like.agent_%,template.like.chat_%"),
     // Questionnaires envoyés ou modifiés par un voyageur, pas encore examinés
     supabase.from("stay_preparations").select("reservation_id", { count: "exact", head: true }).eq("organization_id", org.id).eq("needs_review", true),
@@ -43,7 +43,9 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     supabase.from("vip_requests").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "pending"),
     // Demandes de séjour à traiter : nouvelles réponses du voyageur, ou offres acceptées à confirmer
     supabase.from("booking_requests").select("id", { count: "exact", head: true }).eq("organization_id", org.id).in("status", ["received", "in_review", "info_requested", "offer_sent", "accepted"]).or("manager_unread.eq.true,status.eq.accepted,status.eq.received"),
-    supabase.from("reviews").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("follow_status", "to_handle"),
+    // Avis à traiter : voyageurs et propriétaires comptés séparément, chacun mène à sa liste filtrée
+    supabase.from("reviews").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("kind", "guest").eq("follow_status", "to_handle"),
+    supabase.from("reviews").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("kind", "owner").eq("follow_status", "to_handle"),
   ]);
   const onboardingDone = Boolean(org.onboarding?.completed_at);
   // Linge suivi dans « logement prêt » seulement si l'organisation travaille avec une blanchisserie (réponse d'onboarding)
@@ -63,16 +65,17 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     { key: "prepDue", n: prepDue.count ?? 0, href: "/app/stays?prep=due", icon: ClipboardList, danger: true },
     { key: "vipRequests", n: vipPending.count ?? 0, href: "/app/stays?prep=vip", icon: Crown, danger: true },
     { key: "bookings", n: bookings.count ?? 0, href: "/app/bookings", icon: CalendarPlus, danger: true },
-    { key: "lowReviews", n: lowReviews.count ?? 0, href: "/app/satisfaction?filter=to_handle", icon: Star, danger: true },
+    { key: "lowReviewsGuest", n: lowGuest.count ?? 0, href: "/app/satisfaction?kind=guest&filter=to_handle", icon: Star, danger: true },
+    { key: "lowReviewsOwner", n: lowOwner.count ?? 0, href: "/app/satisfaction?kind=owner&filter=to_handle", icon: Star, danger: true },
     { key: "messages", n: messages.count ?? 0, href: "/app/stays", icon: MessageSquare, danger: true },
     { key: "unassigned", n: unassigned.count ?? 0, href: "/app/missions", icon: UserRoundX, danger: true },
     { key: "emails", n: outbox.count ?? 0, href: "/app/notifications?audience=guest", icon: MailWarning, danger: false },
     { key: "teamEmails", n: teamOutbox.count ?? 0, href: "/app/notifications?audience=team", icon: MailWarning, danger: false },
     { key: "stays7", n: stays.count ?? 0, href: "/app/stays", icon: CalendarDays, danger: false },
   ] as const;
-  const alertOf = { toValidate: "unassigned_missions", chats: "unread_messages", schedule: "unassigned_missions", availability: "unassigned_missions", absenceRequests: "unassigned_missions", incidents: "pending_services", services: "pending_services", messages: "unread_messages", unassigned: "unassigned_missions", emails: "failed_emails", teamEmails: "failed_emails", prepReview: "pending_services", prepDue: "pending_services", vipRequests: "pending_services", bookings: "pending_services", lowReviews: "pending_services", stays7: "upcoming_stays" } as const;
+  const alertOf = { toValidate: "unassigned_missions", chats: "unread_messages", schedule: "unassigned_missions", availability: "unassigned_missions", absenceRequests: "unassigned_missions", incidents: "pending_services", services: "pending_services", messages: "unread_messages", unassigned: "unassigned_missions", emails: "failed_emails", teamEmails: "failed_emails", prepReview: "pending_services", prepDue: "pending_services", vipRequests: "pending_services", bookings: "pending_services", lowReviewsGuest: "pending_services", lowReviewsOwner: "pending_services", stays7: "upcoming_stays" } as const;
   // Alertes choisies à l'onboarding ; les demandes et messages voyageurs restent toujours visibles
-  const always = ["toValidate", "chats", "services", "prepReview", "prepDue", "vipRequests", "bookings", "lowReviews", "messages", "incidents", "schedule", "availability", "absenceRequests"];
+  const always = ["toValidate", "chats", "services", "prepReview", "prepDue", "vipRequests", "bookings", "lowReviewsGuest", "lowReviewsOwner", "messages", "incidents", "schedule", "availability", "absenceRequests"];
   const rows = allRows.filter((r) => !enabled || always.includes(r.key) || enabled.includes(alertOf[r.key]));
 
   return (
@@ -90,7 +93,7 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
       )}
       <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">{t("home.arrivalsTitle")}</h2>
       <div className="mb-6">
-        <ArrivalsNow supabase={supabase} orgId={org.id} now={now} linenRequired={linenRequired} />
+        <ArrivalsNow supabase={supabase} orgId={org.id} now={now} linenRequired={linenRequired} planning={planning} />
       </div>
       <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">{t("home.queueTitle")}</h2>
       <Card className="divide-y divide-line">

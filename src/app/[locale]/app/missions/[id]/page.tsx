@@ -13,6 +13,7 @@ import { infeasibility } from "@/lib/engine/conflicts";
 import { toTask } from "@/lib/connected/mappers";
 import { nowDate } from "@/lib/connected/time";
 import { Card } from "@/components/ui/card";
+import { MissionTiming } from "@/components/connected/mission-timing";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { MissionDirections } from "@/components/connected/directions";
 import { ChatThread } from "@/components/connected/chat";
@@ -35,7 +36,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
   // La base ne renvoie la mission qu'à un manager ou à son agent assigné
   const { data: task } = await supabase
     .from("tasks")
-    .select("id, type, title, status, window_start, window_end, duration_min, is_auto_generated, assignee_id, correction_reason, notes, property_id, properties(name, address_line, postal_code, city, country_code, latitude, longitude, timezone, instructions)")
+    .select("id, type, title, status, window_start, window_end, duration_min, scheduled_start, is_auto_generated, assignee_id, correction_reason, notes, property_id, properties(name, address_line, postal_code, city, country_code, latitude, longitude, timezone, instructions)")
     .eq("organization_id", o)
     .eq("id", id)
     .maybeSingle();
@@ -87,6 +88,22 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
       if (b.length) reasons[m.id] = `${ta(`kinds.${b[0].kind}`)} ${periodText(f, b[0].startsAt, b[0].endsAt)}`;
     }
     const conflict = full!.assignee_id && reasons[full!.assignee_id];
+    // Personnes sans absence connue sur ce créneau, avec leurs autres missions sur la même fenêtre (contrainte connue).
+    // Le temps de trajet n'est pas calculé : il n'est jamais promis.
+    const free = planning.members.filter((m) => !reasons[m.id] && m.id !== full!.assignee_id);
+    const { data: overlapping } = free.length
+      ? await supabase
+          .from("tasks")
+          .select("assignee_id")
+          .eq("organization_id", o)
+          .in("assignee_id", free.map((m) => m.id))
+          .in("status", ["assigned", "in_progress", "to_redo"])
+          .neq("id", id)
+          .lt("window_start", full!.window_end)
+          .gt("window_end", full!.window_start)
+      : { data: [] as { assignee_id: string }[] };
+    const busyCount = (uid: string) => (overlapping ?? []).filter((x) => x.assignee_id === uid).length;
+    const needsCover = Boolean(conflict) || full!.status === "unassigned";
     assign = (
       <Card className={conflict ? "mb-4 space-y-3 border-danger p-4" : "mb-4 space-y-3 p-4"} data-testid="mission-assign">
         {conflict && (
@@ -94,6 +111,23 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
             <p className="text-[15px] font-semibold text-danger">{tm("conflictTitle", { name: planning.members.find((m) => m.id === full!.assignee_id)?.name || "—" })}</p>
             <p className="text-[14px]">{conflict}</p>
             <p className="mt-1 text-[13px] text-muted">{tm("conflictActions")}</p>
+          </div>
+        )}
+        {needsCover && (
+          <div className="text-[14px]" data-testid="mission-suggestions">
+            <p className="font-medium">{tm("suggestTitle")}</p>
+            {free.length === 0 ? (
+              <p className="text-muted">{tm("suggestNone")}</p>
+            ) : (
+              <ul className="mt-1 space-y-0.5">
+                {free.slice(0, 6).map((m) => (
+                  <li key={m.id} data-testid="mission-suggestion">
+                    {m.name || tm("noName")} · <span className="text-muted">{busyCount(m.id) ? tm("suggestBusy", { count: busyCount(m.id) }) : tm("suggestFree")}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-1 text-[12px] text-muted">{tm("suggestLimits")}</p>
           </div>
         )}
         <div className="flex flex-wrap items-start gap-3">
@@ -118,6 +152,11 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
     items: [...r.checklist_items].sort((a, b) => a.sort - b.sort).map((i) => ({ id: i.id, label: i.label, photoRequired: i.photo_required })),
   }));
   const mine = task.assignee_id === user!.id;
+  let assigneeName: string | null = null;
+  if (manager && task.assignee_id) {
+    const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", task.assignee_id).maybeSingle();
+    assigneeName = (prof?.full_name as string | null) || tm("noName");
+  }
   return (
     <>
       <Link href="/app/missions" className="mb-3 inline-block text-[14px] text-accent-text hover:underline">
@@ -129,17 +168,12 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
       />
       {/* Deux informations distinctes : la fenêtre pendant laquelle la mission doit être faite, et la durée de travail estimée */}
       <div className="-mt-2 mb-4 flex flex-wrap items-start gap-x-6 gap-y-2 text-[15px]" data-testid="mission-timing">
-        <p>
-          <span className="block text-[13px] font-medium text-muted">{t("window")}</span>
-          <span data-testid="mission-window">{windowText(f, task.window_start, task.window_end, true, p?.timezone ?? undefined)}</span>
+        <div className="basis-full">
+          <MissionTiming task={task} timeZone={p?.timezone ?? undefined} assignee={manager ? (assigneeName ?? null) : undefined} />
           {zoneLabel(p?.timezone, new Date(task.window_start)) && (
-            <span className="block text-[12px] text-muted" data-testid="mission-zone">{tm("localTime", { zone: zoneLabel(p?.timezone, new Date(task.window_start))! })}</span>
+            <span className="mt-1 block text-[12px] text-muted" data-testid="mission-zone">{tm("localTime", { zone: zoneLabel(p?.timezone, new Date(task.window_start))! })}</span>
           )}
-        </p>
-        <p>
-          <span className="block text-[13px] font-medium text-muted">{t("duration")}</span>
-          <span data-testid="mission-duration">{durationText(task.duration_min)}</span>
-        </p>
+        </div>
         <p>
           <span className="block text-[13px] font-medium text-muted">{t("closing")}</span>
           <span data-testid="mission-validation-rule">{needsValidation ? t("needsValidation") : t("autoValidated")}</span>

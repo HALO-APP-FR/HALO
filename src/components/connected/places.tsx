@@ -105,7 +105,18 @@ export function GuestAround({ property, places, hiddenUntil }: { property: { nam
   const [cat, setCat] = useState<PlaceCategory | "all">("all");
   const [tilesFailed, setTilesFailed] = useState(false);
   const center = property.lat != null && property.lng != null ? { lat: property.lat, lng: property.lng } : null;
-  const shown = useMemo(() => places.filter((p) => cat === "all" || p.category === cat), [places, cat]);
+  // Sélection de l'équipe et du propriétaire d'abord ; suggestions automatiques ensuite, les plus proches en premier,
+  // limitées tant que le voyageur ne demande pas à tout voir (la quantité ne fait pas la pertinence)
+  const [showAll, setShowAll] = useState(false);
+  const AUTO_LIMIT = 12;
+  const ordered = useMemo(() => {
+    const inCat = places.filter((p) => cat === "all" || p.category === cat);
+    const picks = inCat.filter((p) => p.source !== "openstreetmap");
+    const auto = inCat.filter((p) => p.source === "openstreetmap").sort((a, b) => (a.distance_m ?? Infinity) - (b.distance_m ?? Infinity));
+    return { picks, auto };
+  }, [places, cat]);
+  const autoShown = showAll ? ordered.auto : ordered.auto.slice(0, AUTO_LIMIT);
+  const shown = useMemo(() => [...ordered.picks, ...autoShown], [ordered.picks, autoShown]);
   const counts = useMemo(() => Object.fromEntries(PLACE_CATEGORIES.map((c) => [c, places.filter((p) => p.category === c).length])), [places]);
   const latestOsm = places.filter((p) => p.source === "openstreetmap").map((p) => p.updated_at).sort().at(-1);
   const sourceLabel = (s: Place["source"]) => (s === "manager" ? t("byTeam") : s === "owner" ? t("byOwner") : t("byOsm"));
@@ -145,12 +156,22 @@ export function GuestAround({ property, places, hiddenUntil }: { property: { nam
                 </button>
               ))}
           </div>
+          {ordered.picks.length > 0 && ordered.auto.length > 0 && (
+            <p className="text-[13px] font-semibold uppercase tracking-wide text-muted" data-testid="around-picks-title">
+              {t("picksTitle")}
+            </p>
+          )}
           <ul className="space-y-2">
-            {shown.map((p) => {
+            {shown.map((p, idx) => {
               const dest = { name: p.name, addressLine: p.address ?? undefined, lat: p.lat ?? undefined, lng: p.lng ?? undefined };
               const routable = Boolean(p.address) || (p.lat != null && p.lng != null);
               return (
                 <li key={p.id}>
+                  {idx === ordered.picks.length && ordered.auto.length > 0 && (
+                    <p className="mb-2 mt-4 text-[13px] font-semibold uppercase tracking-wide text-muted" data-testid="around-auto-title">
+                      {t("autoTitle")}
+                    </p>
+                  )}
                   <Card className="p-4" data-testid="around-place" data-category={p.category} data-source={p.source}>
                     <div className="flex items-start gap-3">
                       <div className="min-w-0 flex-1">
@@ -234,6 +255,11 @@ export function GuestAround({ property, places, hiddenUntil }: { property: { nam
               );
             })}
           </ul>
+          {ordered.auto.length > AUTO_LIMIT && (
+            <Button variant="outline" size="sm" onClick={() => setShowAll((v) => !v)} data-testid="around-show-all">
+              {showAll ? t("showLess") : t("showAll", { count: ordered.auto.length })}
+            </Button>
+          )}
           <p className="text-[12px] text-faint" data-testid="around-sources">
             {t("distanceNote")}
             {latestOsm && ` · ${t("osmData", { date: f.dateTime(new Date(latestOsm), { dateStyle: "medium" }) })}`}

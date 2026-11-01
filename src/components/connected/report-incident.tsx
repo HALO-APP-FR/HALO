@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { useRun } from "./use-run";
 
-const CATEGORIES = ["blocker", "missing_supplies", "damage", "breakdown", "leak", "missing_item", "other"] as const;
+const CATEGORIES = ["blocker", "delay", "linen", "missing_supplies", "damage", "breakdown", "leak", "missing_item", "other"] as const;
 
 /** Signaler un blocage, un manque de matériel ou un dégât depuis la mission : il arrive chez le responsable. */
 export function ReportIncident({ taskId, reported }: { taskId: string; reported: { id: string; category: string; status: string; description: string }[] }) {
@@ -50,7 +50,7 @@ export function ReportIncident({ taskId, reported }: { taskId: string; reported:
           }}
         >
           <Field label={t("categoryLabel")} htmlFor="inc-cat">
-            <Select id="inc-cat" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
+            <Select id="inc-cat" data-testid="report-category" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
                   {t(`category.${c}`)}

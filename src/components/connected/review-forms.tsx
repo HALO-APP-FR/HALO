@@ -47,7 +47,7 @@ export function ReviewForm({
   token: string;
   kind: "guest" | "owner";
   questions: string[];
-  initial: { overall: number; ratings: Record<string, number>; comment: string | null; would_return: boolean | null; author_label: string | null; consent_publish: boolean } | null;
+  initial: { overall: number; service_overall?: number | null; ratings: Record<string, number>; comment: string | null; would_return: boolean | null; author_label: string | null; consent_publish: boolean } | null;
   editable: boolean;
 }) {
   const t = useTranslations("reviewPortal");
@@ -57,6 +57,7 @@ export function ReviewForm({
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
   const [overall, setOverall] = useState<number | null>(initial?.overall ?? null);
+  const [service, setService] = useState<number | null>(initial?.service_overall ?? null);
   const [ratings, setRatings] = useState<Record<string, number | null>>(initial?.ratings ?? {});
   const [comment, setComment] = useState(initial?.comment ?? "");
   const [ret, setRet] = useState<boolean | null>(initial?.would_return ?? null);
@@ -75,7 +76,7 @@ export function ReviewForm({
         start(async () => {
           try {
             const clean = Object.fromEntries(Object.entries(ratings).filter(([, v]) => typeof v === "number")) as Record<string, number>;
-            const r = await submitReview(token, { overall, ratings: clean, comment, wouldReturn: ret, label, consent });
+            const r = await submitReview(token, { overall, service: kind === "guest" ? service : null, ratings: clean, comment, wouldReturn: ret, label, consent });
             if (!r.ok) return setError(te.has(r.error) ? te(r.error) : te("server"));
             setOk(true);
             router.refresh();
@@ -86,6 +87,7 @@ export function ReviewForm({
       }}
     >
       <Stars id="overall" value={overall} onChange={setOverall} label={t(`overall.${kind}`)} />
+      {kind === "guest" && <Stars id="service" value={service} onChange={setService} label={t("serviceOverall")} />}
       <div className="grid gap-4 sm:grid-cols-2">
         {questions.map((q) => (
           <Stars key={q} id={q} value={ratings[q] ?? null} onChange={(v) => setRatings({ ...ratings, [q]: v })} label={t(`q.${q}`)} />
@@ -139,11 +141,12 @@ export function ReviewForm({
 // ---------------------------------------------------------------------------
 // Côté équipe
 // ---------------------------------------------------------------------------
-export function ReviewFollow({ id, note, hasIncident, canIncident }: { id: string; status: string; note: string | null; hasIncident: boolean; canIncident: boolean }) {
+export function ReviewFollow({ id, status, note, hasIncident, canIncident }: { id: string; status: string; note: string | null; hasIncident: boolean; canIncident: boolean }) {
   const t = useTranslations("connected.reviews");
   const { pending, error, run } = useRun();
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ status: "handled", note: note ?? "", incident: false });
+  // État actuel conservé par défaut : un avis n'est jamais marqué « traité » par inadvertance
+  const [f, setF] = useState({ status, note: note ?? "", incident: false });
   if (!open)
     return (
       <Button size="sm" variant="outline" className="mt-3" onClick={() => setOpen(true)} data-testid="review-follow-open">

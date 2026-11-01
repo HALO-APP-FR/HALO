@@ -28,6 +28,8 @@ export type BlockerKind =
   | "open_incident"
   | "linen_shortage"
   | "service_pending"
+  // Ménage affecté à une personne absente sur son créneau : la couverture n'est qu'apparente
+  | "assignee_absent"
   // Action de préparation indispensable encore ouverte (préparation du séjour)
   | "prep_blocking"
   | "guest_arrived_not_ready"
@@ -89,6 +91,8 @@ export interface ArrivalInput {
   steps?: { linenRequired: boolean };
   /** Actions de préparation indispensables encore ouvertes : l'arrivée ne peut pas être « prête ». */
   prepBlocking?: { reservationId: string; title: string; assigneeId: string | null; dueAt: string | null }[];
+  /** Absence connue de la personne affectée sur le créneau de la mission (fausse couverture) */
+  assigneeAbsent?: (task: Task) => boolean;
   now: Date;
 }
 
@@ -131,6 +135,9 @@ export function arrivalControl(input: ArrivalInput): ArrivalRow[] {
               blockers.push({ kind: "cleaning_late_start", severity: "watch", responsible: who, action: { kind: "open_task", taskId: cleaning.id } });
             }
         }
+        if (cleaning.assigneeId && ["assigned", "to_redo"].includes(cleaning.status) && input.assigneeAbsent?.(cleaning)) {
+          blockers.unshift({ kind: "assignee_absent", severity: "blocked", responsible: { kind: "manager" }, action: { kind: "open_task", taskId: cleaning.id } });
+        }
         if (cleaning.status !== "validated" && input.dayKeyOf && input.linenShortageDays?.has(input.dayKeyOf(cleaning))) {
           blockers.push({ kind: "linen_shortage", severity: "watch", responsible: { kind: "manager" }, action: { kind: "open_linen" } });
         }
@@ -140,12 +147,12 @@ export function arrivalControl(input: ArrivalInput): ArrivalRow[] {
         if (a.propertyId !== stay.propertyId || a.status === "resolved") continue;
         // Responsable d'un incident : la personne qui l'a pris en charge (démo : nom) ou personne
         const responsible: Responsible = a.takenBy ? { kind: "manager" } : { kind: "nobody" };
-        if (a.urgent) blockers.push({ kind: "urgent_incident", severity: "blocked", responsible, action: { kind: "open_incident", alertId: a.id } });
-        else blockers.push({ kind: "open_incident", severity: "watch", responsible, action: { kind: "open_incident", alertId: a.id } });
+        if (a.urgent) blockers.push({ kind: "urgent_incident", severity: "blocked", responsible, action: { kind: "open_incident", alertId: a.id }, detail: a.description });
+        else blockers.push({ kind: "open_incident", severity: "watch", responsible, action: { kind: "open_incident", alertId: a.id }, detail: a.description });
       }
       for (const s of input.services) {
         if (s.reservationId === stay.id && (s.status === "requested" || s.status === "info_requested" || s.status === "in_review")) {
-          blockers.push({ kind: "service_pending", severity: "watch", responsible: { kind: "manager" }, action: { kind: "open_service", serviceId: s.id } });
+          blockers.push({ kind: "service_pending", severity: "watch", responsible: { kind: "manager" }, action: { kind: "open_service", serviceId: s.id }, detail: s.kind });
         }
       }
 

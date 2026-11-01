@@ -265,3 +265,28 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 **E-mails ajoutés** : `booking_link`, `booking_update`, `review_request` (lien retiré du journal après l'envoi), `team_booking_requested`, `team_low_review` (préférences de notification).
 
 **Tests** : isolation 1868/0 ; e2e 26 (réservation directe complète, dates prises, calendrier non à jour, confirmation unique, révocation), 27 (avis voyageur et propriétaire, note faible, avis importé, vitrine et retrait), 24b (import Excel + reprise après interruption), 23 (raison du retrait de « Prêt »).
+
+## Scénario opérationnel et note du service (migration 15 : `20261110000001_scenario_operationnel_satisfaction_service.sql`)
+
+**Scénario de référence (e2e 28, données fictives)** — ce que HALO permet, testé de bout en bout :
+- Absence acceptée d'un agent affecté → l'arrivée passe « Bloqué » avec la cause « Ménage affecté à une personne absente » (plus de fausse couverture).
+- Accueil : jusqu'à 5 causes réelles par arrivée (absence, ménage non attribué / irréalisable, incident avec catégorie et texte, demande en attente avec son type, action indispensable, étapes linge/maintenance), et l'action principale.
+- Fiche mission : « À faire avant », « Possible à partir du », « Durée prévue (estimation) », « Créneau planifié » (ou « Aucun créneau attribué »), affectation. Liste : « À faire avant le … · durée prévue … · aucun créneau planifié ».
+- Réaffectation : personnes sans absence connue sur le créneau, avec leurs autres missions sur la même plage ; temps de trajet et disponibilités non déclarées signalés comme inconnus. Après réaffectation, l'ancien agent ne voit plus la mission.
+- Agent : signalements « Linge manquant ou abîmé » et « Retard » depuis la mission, rattachés au logement, à la mission, à l'arrivée suivante et à l'auteur ; suivi par le responsable (pris en charge → résolu).
+- Voyageur : « Arrivée anticipée ou départ tardif » (jamais accepté automatiquement), réponse et statut dans son espace ; e-mail seulement si une adresse existe et que l'envoi réussit.
+- Préparation : « Ce qui empêche « Prêt » » liste les actions indispensables ouvertes (lien direct, état de la mission liée).
+
+**Règles « Prêt » (serveur)** : `set_prep_status` verrouille la préparation puis vérifie les actions ; la réouverture ou la création d'une action indispensable met à jour la même ligne (verrou) et retire « Prêt » : deux actions simultanées ne peuvent pas laisser un « Prêt » contradictoire. Clôture d'une action liée à une mission non terminée : seulement avec motif (auteur, date, motif historisés). Seules les actions marquées « indispensables » bloquent ; missions et incidents ne bloquent pas « Prêt » (ils apparaissent dans l'arrivée à risque).
+
+**Satisfaction**
+- Voyageur : note globale du séjour + note du service de l'équipe (facultative) + critères facultatifs + commentaire + accord de publication séparé. Anciens avis : note du service vide (jamais déduite).
+- « À traiter » si note globale, service, propreté ou état (propriétaire : réactivité, qualité) ≤ 2/5 ; une alerte équipe par avis ; jamais d'attribution à un agent.
+- Accueil : avis voyageurs et propriétaires à traiter comptés séparément, chacun vers sa liste filtrée ; la liste signale les avis à traiter de l'autre catégorie. Le suivi conserve l'état actuel par défaut.
+- Vitrine : séjours, service de l'équipe et gestion (propriétaires) séparés, avec le nombre d'avis.
+
+**Recommandations voyageur** : sélection de l'équipe et du propriétaire d'abord ; suggestions automatiques (OpenStreetMap, non vérifiées) ensuite, les 12 plus proches puis « Voir les N suggestions ».
+
+**Hors périmètre / limites** : photo jointe à un incident (non disponible) ; stock de linge par logement (non suivi : « disponibilité non renseignée ») ; temps de trajet ; hors ligne non garanti ; SMS et push non disponibles ; e-mail du voyageur pour les demandes de séjour en français uniquement.
+
+**Tests** : isolation 1883/0, unitaires 159, e2e 47/47 (dont 28 scénario de référence et 29 alertes d'avis).

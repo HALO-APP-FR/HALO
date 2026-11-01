@@ -8,6 +8,7 @@ import { StayRelations, type BookingLinkRow } from "@/components/connected/booki
 import { OutboxList, type OutboxItem } from "@/components/connected/outbox-list";
 import { MarkStayRead } from "@/components/connected/mark-read";
 import { GuestItems, PrepActions, PrepStatusControl, VipPanel, type GuestItemRow, type PrepActionRow } from "@/components/connected/prep-forms";
+import { MissionTiming } from "@/components/connected/mission-timing";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { cn } from "@/lib/utils";
 import { durationText, windowText, zoneLabel } from "@/lib/connected/format";
@@ -39,7 +40,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
     supabase.from("guest_links").select("id, valid_from, valid_until, revoked_at, revoke_reason, last_opened_at, created_at").eq("organization_id", o).eq("reservation_id", id).order("created_at", { ascending: false }),
     supabase.from("stay_messages").select("id, author_kind, body, created_at, read_by_guest_at, read_by_team_at").eq("organization_id", o).eq("reservation_id", id).order("created_at"),
     supabase.from("service_requests").select("id, kind, start_at, status, manager_unread").eq("organization_id", o).eq("reservation_id", id).order("created_at", { ascending: false }),
-    supabase.from("tasks").select("id, type, status, window_start, window_end").eq("organization_id", o).or(`reservation_id.eq.${id},next_reservation_id.eq.${id}`).neq("status", "cancelled").order("window_start"),
+    supabase.from("tasks").select("id, type, status, window_start, window_end, duration_min, scheduled_start").eq("organization_id", o).or(`reservation_id.eq.${id},next_reservation_id.eq.${id}`).neq("status", "cancelled").order("window_start"),
     supabase.from("notification_outbox").select("id, template, recipient, status, attempts, last_error, created_at, sent_at").eq("organization_id", o).eq("reservation_id", id).order("created_at", { ascending: false }),
     supabase.from("properties").select("*").eq("organization_id", o).eq("id", s.property_id).single(),
     supabase.from("reservations").select("*").eq("organization_id", o).eq("property_id", s.property_id).eq("status", "confirmed"),
@@ -103,6 +104,26 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
             <div className="mt-3">
               <PrepStatusControl reservationId={s.id} status={(prep?.prep_status as string) ?? "to_prepare"} openBlocking={openBlocking} />
               {prep?.prep_updated_at && <p className="mt-1 text-[12px] text-faint">{tp("statusBy", { who: who(prep.prep_updated_by as string | null) ?? "—", date: d(prep.prep_updated_at as string) })}</p>}
+              {openBlocking > 0 && (prep?.prep_status as string) !== "ready" && (
+                <div className="mt-2 rounded-lg border border-line bg-subtle p-3 text-[14px] dark:bg-surface-hover" data-testid="prep-blockers">
+                  <p className="font-medium">{tp("blockersTitle", { count: openBlocking })}</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {(actions ?? [])
+                      .filter((a) => a.status === "open" && a.blocking)
+                      .map((a) => {
+                        const tk = ((Array.isArray(a.task) ? a.task[0] : a.task) as { status: string } | null)?.status;
+                        return (
+                          <li key={a.id}>
+                            <a href={`#prep-action-${a.id}`} className="text-accent-text hover:underline">
+                              {a.title}
+                            </a>
+                            {tk ? <span className="text-muted"> · {tp("linkedMission", { status: tts(tk) })}</span> : null}
+                          </li>
+                        );
+                      })}
+                  </ul>
+                </div>
+              )}
               {(() => {
                 // Pourquoi le séjour n'est plus « Prêt » : dernier retrait automatique, s'il est postérieur au dernier changement manuel
                 if ((prep?.prep_status as string) === "ready") return null;
@@ -255,9 +276,10 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
               {(tasks ?? []).map((k) => (
                 <li key={k.id}>
                   <Link href={`/app/missions/${k.id}`} className="hover:underline">
-                    {tt(k.type)} · {windowText(f, k.window_start, k.window_end, false, p?.timezone ?? undefined)}
+                    {tt(k.type)}
                   </Link>{" "}
                   — <span className="text-muted">{tts(k.status)}</span>
+                  <MissionTiming task={k} timeZone={p?.timezone ?? undefined} compact />
                 </li>
               ))}
               {(tasks ?? []).length === 0 && <li className="text-muted">{t("stays.noMissions")}</li>}

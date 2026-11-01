@@ -177,8 +177,8 @@ test("3-4 · logement, séjour, missions générées et lien voyageur", async ({
   await expect(page.getByRole("heading", { name: "Alex Martin" })).toBeVisible();
   await page.waitForURL(/\/fr\/app\/stays\/[0-9a-f-]{36}$/);
   s.stayA = page.url().split("/").pop()!;
-  await expect(page.getByText(/Ménage ·/)).toBeVisible();
-  await expect(page.getByText(/Arrivée ·/)).toBeVisible(); // catégorie « accueil » confirmée à l'onboarding
+  await expect(page.getByRole("link", { name: "Ménage", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Arrivée", exact: true })).toBeVisible(); // catégorie « accueil » confirmée à l'onboarding
 
   await page.getByTestId("link-create").click();
   const url = await page.getByTestId("guest-link-url").inputValue();
@@ -197,7 +197,7 @@ test("5-7 · prestation, précisions, acceptation, refus, modification, messages
   when.setHours(20, 0, 0, 0);
   await guest.getByLabel("Prestation").selectOption("private_chef");
   await guest.getByLabel("Date et heure souhaitées").fill(local(when));
-  await guest.getByLabel("Précisions").fill("Dîner pour 2");
+  await guest.getByLabel("Précisions", { exact: true }).fill("Dîner pour 2");
   await guest.getByTestId("guest-request-send").click();
   await expect(guest.getByTestId("guest-request-ok")).toBeVisible();
   await expect(guest.getByTestId("guest-service").first()).toHaveAttribute("data-status", "requested");
@@ -1986,7 +1986,8 @@ test("27 · satisfaction : avis voyageur et propriétaire, note faible suivie, a
 
   // Responsable : alerte, score avec nombre d'avis, suivi + incident sans désigner d'agent
   await m.goto("/fr/app");
-  await expect(m.getByText("1 avis à traiter (note faible)")).toBeVisible();
+  await expect(m.getByTestId("home-lowReviewsGuest")).toContainText("1 avis voyageur à traiter");
+  await expect(m.getByTestId("home-lowReviewsOwner")).toContainText("Aucun avis propriétaire à traiter");
   await m.goto("/fr/app/satisfaction");
   await expect(m.getByTestId("sat-verified-avg")).toHaveText("2,0");
   await expect(m.getByTestId("sat-verified")).toContainText("sur 1 avis");
@@ -1994,6 +1995,8 @@ test("27 · satisfaction : avis voyageur et propriétaire, note faible suivie, a
   await expect(m.getByTestId("sat-questions")).toContainText("Communication— · 1 sans réponse");
   await expect(m.getByTestId("review-row")).toHaveAttribute("data-follow", "to_handle");
   await m.getByTestId("review-follow-open").click();
+  await expect(m.getByTestId("review-follow-status")).toHaveValue("to_handle"); // état actuel par défaut
+  await m.getByTestId("review-follow-status").selectOption("handled");
   await m.getByLabel("Suivi interne").fill("Rappel de la checklist propreté à l'équipe.");
   await m.getByTestId("review-make-incident").check();
   await m.getByTestId("review-follow-save").click();
@@ -2082,4 +2085,181 @@ test("27 · satisfaction : avis voyageur et propriétaire, note faible suivie, a
   await expect(m.getByTestId("showcase-publish-btn")).toBeVisible();
   await pub.reload();
   await expect(pub.getByTestId("showcase-unavailable")).toBeVisible();
+});
+
+test("28 · scénario de référence : absence, arrivée menacée, réaffectation, linge, retard, arrivée anticipée, fenêtres lisibles", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org, agentId } = await testScenario(m, `ref ${run}`);
+  const { data: next } = await admin.from("reservations").select("id, check_in_at").eq("organization_id", org).eq("guest_name", "Voyageur test").single();
+  const { data: clean } = await admin.from("tasks").select("id, window_start, window_end").eq("organization_id", org).eq("type", "turnover").eq("next_reservation_id", next!.id).single();
+  // L'agent affecté au ménage devient absent (absence acceptée couvrant le créneau)
+  const { error: absErr } = await admin.from("absences").insert({ organization_id: org, scope: "member", member_id: agentId, kind: "unavailable", starts_at: new Date(Date.parse(clean!.window_start) - 3_600_000).toISOString(), ends_at: new Date(Date.parse(clean!.window_end) + 3_600_000).toISOString(), status: "accepted", unplanned: true, reason: "QA fictif", client_id: crypto.randomUUID() });
+  expect(absErr).toBeNull();
+
+  // Manager : l'arrivée est menacée, avec la cause réelle (fausse couverture)
+  await m.goto("/fr/app");
+  const arrival = m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" });
+  await expect(arrival).toHaveAttribute("data-state", "blocked");
+  await expect(arrival.getByTestId("arrival-causes")).toContainText("affecté à une personne absente");
+
+  // Mission : fenêtre, durée, créneau distincts ; conflit d'absence ; personnes disponibles et limites
+  await m.goto(`/fr/app/missions/${clean!.id}`);
+  await expect(m.getByTestId("mission-deadline")).toBeVisible();
+  await expect(m.getByTestId("mission-from")).toBeVisible();
+  await expect(m.getByTestId("mission-duration")).toContainText("1 h 30");
+  await expect(m.getByTestId("mission-duration")).toContainText("estimation");
+  await expect(m.getByTestId("mission-slot")).toContainText("Aucun créneau attribué");
+  await expect(m.getByTestId("mission-absence-conflict")).toBeVisible();
+  await expect(m.getByTestId("mission-suggestions")).toContainText("Temps de trajet");
+  await expect(m.getByTestId("mission-suggestion")).toHaveCount(1); // le responsable, seul membre sans absence
+
+  // Agent : signale un manque de linge et un retard depuis sa mission
+  const agent = await newPage(browser);
+  await agent.goto("/fr/auth/sign-in");
+  await agent.getByLabel("Nom du compte de test").fill(`ref-${run}-agent`);
+  await agent.getByTestId("test-account-submit").click();
+  await agent.waitForURL(/\/fr\/app/);
+  await agent.goto("/fr/app/missions");
+  await expect(agent.getByTestId("mission-timing-compact").first()).toContainText("À faire avant le");
+  await agent.goto(`/fr/app/missions/${clean!.id}`);
+  for (const [cat, text] of [["linen", "Il manque deux housses de couette"], ["delay", "Retard de 30 min sur la mission précédente"]]) {
+    await agent.getByTestId("report-open").click();
+    await agent.getByTestId("report-category").selectOption(cat);
+    await agent.getByTestId("report-description").fill(text);
+    await agent.getByTestId("report-send").click();
+    await expect(agent.getByTestId("reported-incident").filter({ hasText: cat === "linen" ? "Linge manquant" : "Retard" })).toBeVisible();
+  }
+  const { data: linen } = await admin.from("incidents").select("property_id, task_id, reservation_id, reported_by").eq("organization_id", org).eq("category", "linen").single();
+  expect(linen).toMatchObject({ task_id: clean!.id, reservation_id: next!.id, reported_by: agentId });
+
+  // Manager : incident linge dans le bon contexte, pris en charge ; cause visible sur l'arrivée
+  await m.goto("/fr/app/incidents");
+  const inc = m.getByTestId("incident-row").filter({ hasText: "Il manque deux housses" });
+  await expect(inc).toContainText("Linge manquant ou abîmé");
+  await inc.getByTestId("incident-take").click();
+  await expect(inc).toHaveAttribute("data-status", "in_progress");
+  await m.goto("/fr/app");
+  await expect(arrival.getByTestId("arrival-causes")).toContainText("Linge manquant ou abîmé : Il manque deux housses");
+
+  // Voyageur : demande d'arrivée anticipée, jamais acceptée automatiquement
+  await m.goto(`/fr/app/stays/${next!.id}`);
+  await m.getByTestId("link-create").click();
+  const gUrl = (await m.getByTestId("guest-link-url").inputValue()).replace(/^https?:\/\/[^/]+/, "");
+  const g = await newPage(browser);
+  await g.goto(gUrl);
+  await expect(g.getByTestId("guest-timing")).toContainText("pas accepté automatiquement");
+  const early = new Date(next!.check_in_at);
+  early.setHours(13, 0, 0, 0);
+  await g.getByTestId("guest-timing-kind").selectOption("early_checkin");
+  await g.getByTestId("guest-timing-when").fill(local(early));
+  await g.getByTestId("guest-timing-send").click();
+  await expect(g.getByTestId("guest-timing-ok")).toContainText("Rien n'est confirmé");
+  const { data: svc } = await admin.from("service_requests").select("id, status").eq("organization_id", org).eq("kind", "early_checkin").single();
+  expect(svc!.status).toBe("requested");
+  await m.goto("/fr/app");
+  await expect(arrival.getByTestId("arrival-causes")).toContainText("Arrivée anticipée");
+
+  // Réponse du responsable : retrouvée par le voyageur avec son statut
+  await m.goto(`/fr/app/services/${svc!.id}`);
+  await m.getByTestId("decide-confirmed").click();
+  await m.getByTestId("decide-message").fill("Arrivée possible à 14 h, pas avant.");
+  await m.getByTestId("decide-confirm").click();
+  await expect(m.getByTestId("decide-saved")).toBeVisible();
+  await g.reload();
+  await expect(g.locator("body")).toContainText("Arrivée possible à 14 h");
+  // Aucune notification « envoyée » sans adresse réelle
+  expect((await admin.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org).eq("status", "sent")).count).toBe(0);
+
+  // Réaffectation en connaissance de cause : la fausse couverture disparaît
+  await m.goto(`/fr/app/missions/${clean!.id}`);
+  const options = await m.getByTestId("assign-select").locator("option").evaluateAll((os) => os.map((o) => (o as HTMLOptionElement).value).filter(Boolean));
+  const other = options.find((v) => v !== agentId)!;
+  await m.getByTestId("assign-select").selectOption(other);
+  await expect.poll(async () => (await admin.from("tasks").select("assignee_id").eq("id", clean!.id).single()).data!.assignee_id).toBe(other);
+  await m.goto("/fr/app");
+  await expect(arrival.getByTestId("arrival-causes")).not.toContainText("affecté à une personne absente");
+  // L'ancien agent ne voit plus la mission
+  await agent.goto(`/fr/app/missions/${clean!.id}`);
+  await expect(agent.getByTestId("not-found")).toBeVisible();
+  for (const c of [m, agent, g]) await c.context().close();
+});
+
+test("29 · avis à traiter : voyageur et propriétaire séparés, compteurs, état conservé, critère faible, note du service", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `alerte ${run}`);
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+  const { data: past } = await admin
+    .from("reservations")
+    .insert({ organization_id: org, property_id: prop!.id, source: "manual", status: "confirmed", guest_name: "Gaby Critère", check_in_at: new Date(Date.now() - 74 * 86_400_000).toISOString(), check_out_at: new Date(Date.now() - 70 * 86_400_000).toISOString() })
+    .select("id")
+    .single();
+  // Propriétaire fictif relié au logement : avis 2/5 seul
+  const { data: owner } = await admin.from("property_owners").insert({ organization_id: org, name: "Propriétaire Alerte" }).select("id").single();
+  await admin.from("owner_properties").insert({ organization_id: org, owner_id: owner!.id, property_id: prop!.id });
+  await m.goto("/fr/app/satisfaction/owners");
+  await m.getByTestId("owner-review-copy").click();
+  const oUrl = (await m.getByTestId("owner-review-url").inputValue()).replace(/^https?:\/\/[^/]+/, "");
+  const o = await newPage(browser);
+  await o.goto(oUrl);
+  await expect(o.getByTestId("stars-service")).toHaveCount(0); // pas de note de service pour un propriétaire
+  await o.getByTestId("star-overall-2").click();
+  await o.getByTestId("review-send").click();
+  await expect(o.getByTestId("review-ok")).toBeVisible();
+  await o.reload();
+  await expect(o.getByTestId("review-existing")).toContainText("gestion de votre bien");
+  await expect(o.getByTestId("review-existing")).toContainText("Vous pouvez encore le modifier");
+
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-lowReviewsOwner")).toContainText("1 avis propriétaire à traiter");
+  await expect(m.getByTestId("home-lowReviewsGuest")).toContainText("Aucun avis voyageur à traiter");
+  await m.getByTestId("home-lowReviewsOwner").click();
+  await expect(m).toHaveURL(/kind=owner&filter=to_handle/);
+  await expect(m.getByTestId("review-row")).toHaveCount(1);
+
+  // Voyageur : 4/5 global mais 2/5 en propreté → à traiter ; note du service distincte
+  await m.goto(`/fr/app/stays/${past!.id}`);
+  await m.getByTestId("review-link-create").click();
+  const gUrl = (await m.getByTestId("once-link-url").inputValue()).replace(/^https?:\/\/[^/]+/, "");
+  const g = await newPage(browser);
+  await g.goto(gUrl);
+  await g.getByTestId("star-overall-4").click();
+  await g.getByTestId("star-service-5").click();
+  await g.getByTestId("star-cleanliness-2").click();
+  await g.getByTestId("review-send").click();
+  await expect(g.getByTestId("review-ok")).toBeVisible();
+
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-lowReviewsGuest")).toContainText("1 avis voyageur à traiter");
+  await expect(m.getByTestId("home-lowReviewsOwner")).toContainText("1 avis propriétaire à traiter");
+  await m.getByTestId("home-lowReviewsGuest").click();
+  const row = m.getByTestId("review-row");
+  await expect(row).toHaveCount(1);
+  await expect(row.getByTestId("review-low-reason")).toContainText("Propreté");
+  await expect(row.getByTestId("review-service")).toContainText("5/5");
+  await expect(m.getByTestId("sat-other-to-handle")).toContainText("1 avis propriétaire à traiter");
+  await expect(m.getByTestId("sat-service")).toContainText("5,0");
+
+  // Le suivi garde l'état actuel par défaut : enregistrer une note ne le marque pas « traité »
+  await row.getByTestId("review-follow-open").click();
+  await expect(row.getByTestId("review-follow-status")).toHaveValue("to_handle");
+  await row.getByLabel("Suivi interne").fill("Rappel propreté salle de bain");
+  await row.getByTestId("review-follow-save").click();
+  await expect(row).toHaveAttribute("data-follow", "to_handle");
+  await row.getByTestId("review-follow-open").click();
+  await row.getByTestId("review-follow-status").selectOption("handled");
+  await row.getByTestId("review-follow-save").click();
+  await expect(m.getByTestId("review-row")).toHaveCount(0); // filtre « à traiter »
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-lowReviewsGuest")).toContainText("Aucun avis voyageur à traiter");
+  await expect(m.getByTestId("home-lowReviewsOwner")).toContainText("1 avis propriétaire à traiter");
+
+  // Sans droit : un agent n'accède pas aux avis
+  const agent = await newPage(browser);
+  await agent.goto("/fr/auth/sign-in");
+  await agent.getByLabel("Nom du compte de test").fill(`alerte-${run}-agent`);
+  await agent.getByTestId("test-account-submit").click();
+  await agent.waitForURL(/\/fr\/app/);
+  await agent.goto("/fr/app/satisfaction?kind=owner&filter=to_handle");
+  await expect(agent).toHaveURL(/\/fr\/app\/missions$/);
+  for (const c of [m, o, g, agent]) await c.context().close();
 });

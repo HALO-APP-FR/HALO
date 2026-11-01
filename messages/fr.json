@@ -1028,7 +1028,9 @@
     "other": "Autre",
     "extra_cleaning": "Ménage supplémentaire",
     "extra_linen": "Linge supplémentaire",
-    "premium_package": "Formule premium"
+    "premium_package": "Formule premium",
+    "early_checkin": "Arrivée anticipée",
+    "late_checkout": "Départ tardif"
   },
   "serviceStatus": {
     "requested": "Demandée",
@@ -1267,7 +1269,10 @@
       "step_unassigned": "{step} : personne n'est assigné",
       "step_late": "{step} : en retard sur son créneau",
       "step_review": "{step} : terminé, à valider",
-      "prep_blocking": "Préparation : « {title} » pas encore faite"
+      "prep_blocking": "Préparation : « {title} » pas encore faite",
+      "assignee_absent": "Ménage affecté à une personne absente sur ce créneau",
+      "incident_detail": "{category} : {text}",
+      "service_detail": "Demande en attente de décision : {kind}"
     },
     "action": {
       "assign": "Attribuer",
@@ -1436,7 +1441,10 @@
       "vipRequests": "{count, plural, =0 {Aucune demande VIP en attente} one {# demande VIP en attente} other {# demandes VIP en attente}}",
       "teamEmails": "{count, plural, =0 {Aucun e-mail d'équipe non remis} one {# e-mail d'équipe non remis} other {# e-mails d'équipe non remis}}",
       "bookings": "{count, plural, =0 {Aucune demande de séjour à traiter} one {# demande de séjour à traiter} other {# demandes de séjour à traiter}}",
-      "lowReviews": "{count, plural, =0 {Aucun avis à traiter} one {# avis à traiter (note faible)} other {# avis à traiter (notes faibles)}}"
+      "lowReviews": "{count, plural, =0 {Aucun avis à traiter} one {# avis à traiter (note faible)} other {# avis à traiter (notes faibles)}}",
+      "lowReviewsGuest": "{count, plural, =0 {Aucun avis voyageur à traiter} one {# avis voyageur à traiter} other {# avis voyageurs à traiter}}",
+      "lowReviewsOwner": "{count, plural, =0 {Aucun avis propriétaire à traiter} one {# avis propriétaire à traiter} other {# avis propriétaires à traiter}}",
+      "moreCauses": "+ {count} autre(s) cause(s)"
     },
     "onb": {
       "progress": "Étape {n} sur {total}",
@@ -1943,7 +1951,12 @@
       "cancelTask": "Annuler la mission",
       "cancelConfirm": "Annuler définitivement ? L'agent affecté sera prévenu.",
       "cancelYes": "Oui, annuler",
-      "localTime": "heure locale : {zone}"
+      "localTime": "heure locale : {zone}",
+      "suggestTitle": "Personnes sans absence connue sur ce créneau",
+      "suggestNone": "Personne n'est disponible d'après les absences connues.",
+      "suggestBusy": "{count, plural, one {déjà # autre mission sur cette plage} other {déjà # autres missions sur cette plage}}",
+      "suggestFree": "aucune autre mission sur cette plage",
+      "suggestLimits": "D'après les absences et missions enregistrées dans HALO. Temps de trajet et disponibilités non déclarées : non connus."
     },
     "team": {
       "title": "Équipe",
@@ -2054,7 +2067,9 @@
         "access": "Accès au logement",
         "noise": "Bruit",
         "pests": "Nuisibles",
-        "other": "Autre"
+        "other": "Autre",
+        "linen": "Linge manquant ou abîmé",
+        "delay": "Retard"
       },
       "resolvedNote": "Note interne",
       "sentToGuest": "Message au voyageur",
@@ -2566,7 +2581,9 @@
       "overrideShown": "Close par dérogation : {reason}",
       "taskNotes": "Consignes pour l'agent",
       "taskNotesHint": "Visibles par l'agent dans sa liste et le détail de la mission.",
-      "notReadyReason": "Ce séjour n'est plus « Prêt » depuis le {date} : l'action indispensable « {action} » {cause, select, mission {a été rouverte car sa mission doit être refaite} other {a été rouverte}}. Terminez-la (ou close-la avec un motif), puis repassez le séjour à « Prêt »."
+      "notReadyReason": "Ce séjour n'est plus « Prêt » depuis le {date} : l'action indispensable « {action} » {cause, select, mission {a été rouverte car sa mission doit être refaite} other {a été rouverte}}. Terminez-la (ou close-la avec un motif), puis repassez le séjour à « Prêt ».",
+      "blockersTitle": "{count, plural, one {Ce qui empêche « Prêt » : # action indispensable ouverte} other {Ce qui empêche « Prêt » : # actions indispensables ouvertes}}",
+      "linkedMission": "mission liée : {status}"
     },
     "vip": {
       "title": "Statut VIP",
@@ -3107,7 +3124,7 @@
         "owner": "Recommanderaient"
       },
       "yesNo": "{yes} oui · {no} non · {none} sans réponse",
-      "method": "Moyennes calculées sur tous les avis de la période, sans exclusion. Les avis importés ne sont jamais mélangés aux avis vérifiés.",
+      "method": "Moyennes calculées sur tous les avis de la période, sans exclusion. Séjour et service de l'équipe sont notés séparément ; les anciens avis sans note du service ne sont pas comptés pour le service. Les avis importés ne sont jamais mélangés aux avis vérifiés. Un avis passe « À traiter » si la note globale, le service, la propreté ou l'état du logement (propriétaire : réactivité, qualité) vaut 2/5 ou moins.",
       "listTitle": "Avis",
       "filter": {
         "all": "Tous",
@@ -3212,7 +3229,30 @@
         "preview": "Aperçu",
         "previewNote": "Aperçu calculé avec les mêmes règles que la page publique (réglages enregistrés).",
         "openPublic": "Ouvrir la page publique"
-      }
+      },
+      "otherToHandle": {
+        "guest": "{count, plural, one {# avis voyageur à traiter} other {# avis voyageurs à traiter}} — ouvrir",
+        "owner": "{count, plural, one {# avis propriétaire à traiter} other {# avis propriétaires à traiter}} — ouvrir"
+      },
+      "serviceRow": "Service de l'équipe (conciergerie)",
+      "serviceValue": "Service de l'équipe : {n}/5",
+      "serviceNone": "Service de l'équipe : non noté",
+      "lowReason": "Critère faible : {criterion}"
+    },
+    "timing": {
+      "before": "À faire avant le {date}",
+      "durationShort": "durée prévue {duration}",
+      "slotShort": "créneau {start}",
+      "noSlot": "aucun créneau planifié",
+      "from": "possible dès le {date}",
+      "deadlineLabel": "À faire avant",
+      "fromLabel": "Possible à partir du",
+      "durationLabel": "Durée prévue du travail",
+      "estimate": "estimation",
+      "slotLabel": "Créneau planifié",
+      "noSlotLong": "Aucun créneau attribué : l'intervention se fait dans la plage ci-dessus.",
+      "assigneeLabel": "Affectation",
+      "unassigned": "Non attribuée"
     }
   },
   "email": {
@@ -3355,7 +3395,7 @@
     },
     "review_request": {
       "subject": "{org} — votre avis compte",
-      "body": "Pourriez-vous nous dire en deux minutes comment s'est passé votre expérience ? Seule la note globale est demandée ; le reste est facultatif. Votre avis n'est jamais publié sans votre accord explicite, et vous pouvez le modifier pendant 14 jours. Lien personnel valable 30 jours.",
+      "body": "Pourriez-vous nous dire en deux minutes comment s'est passée votre expérience ? Seule la note globale est demandée ; le reste est facultatif. Votre avis n'est jamais publié sans votre accord explicite, et vous pouvez le modifier pendant 14 jours. Lien personnel valable 30 jours.",
       "footer": "Cet e-mail est automatique. Ce lien est personnel : ne le transférez pas."
     },
     "team_booking_requested": {
@@ -3364,7 +3404,7 @@
     },
     "team_low_review": {
       "subject": "Avis avec une note faible — {property}",
-      "body": "Un avis avec une note de 2/5 ou moins vient d'arriver ({property}). Il est marqué « À traiter » dans Satisfaction : vous pouvez y noter une action interne ou ouvrir un incident."
+      "body": "Un avis vient d'arriver avec une note de 2/5 ou moins (note globale, service ou critère clé) ({property}). Il est marqué « À traiter » dans Satisfaction : vous pouvez y noter une action interne ou ouvrir un incident. Aucune faute n'est attribuée à une personne."
     }
   },
   "guestSpace": {
@@ -3492,7 +3532,11 @@
       "ownerAddedOn": "Ajouté par le propriétaire le {date}",
       "hoursVerified": "horaires vérifiés par l'équipe",
       "hoursToConfirm": "horaires à confirmer",
-      "mapLater": "La carte et l'adresse du logement s'afficheront à partir du {date}. Les distances sont déjà indiquées."
+      "mapLater": "La carte et l'adresse du logement s'afficheront à partir du {date}. Les distances sont déjà indiquées.",
+      "picksTitle": "Sélection de l'équipe et du propriétaire",
+      "autoTitle": "Suggestions automatiques à proximité (non vérifiées)",
+      "showAll": "Voir les {count} suggestions",
+      "showLess": "Afficher moins"
     },
     "prepBanner": "Votre séjour approche. Les informations pratiques (adresse, accès, guide) seront visibles ici à partir du {date}. En attendant, vous pouvez préparer votre séjour et écrire à l'équipe.",
     "prepared": {
@@ -3580,6 +3624,16 @@
       "confirmed": "Accueil personnalisé confirmé par l'équipe.",
       "refused": "L'équipe n'a pas pu donner suite à votre demande.",
       "teamMessage": "Message de l'équipe"
+    },
+    "timing": {
+      "title": "Arrivée anticipée ou départ tardif",
+      "text": "Indiquez l'heure souhaitée. Ce n'est pas accepté automatiquement : l'équipe vérifie que le logement peut être prêt, puis vous répond ici.",
+      "kind": "Demande",
+      "when": "Heure souhaitée",
+      "detailsPlaceholder": "Vol, train, contrainte particulière…",
+      "sent": "Demande envoyée. Rien n'est confirmé tant que l'équipe n'a pas répondu.",
+      "send": "Envoyer la demande",
+      "details": "Précisions sur l'horaire (facultatif)"
     }
   },
   "demoEntry": {
@@ -3745,8 +3799,7 @@
     },
     "stayLine": "{property} · {from} → {to}",
     "ownerLine": "{name} · {count, plural, one {# logement géré} other {# logements gérés}}",
-    "existing": "Votre avis du {date} est enregistré.",
-    "editableNote": "Vous pouvez encore la modifier.",
+    "editableNote": "Vous pouvez encore le modifier.",
     "locked": "Le délai de modification (14 jours) est passé : votre avis est conservé tel quel.",
     "starsLabel": "{n} sur 5",
     "overall": {
@@ -3779,7 +3832,6 @@
     "thanks": "Merci, votre avis est enregistré.",
     "send": "Envoyer mon avis",
     "update": "Mettre à jour mon avis",
-    "privacy": "Votre avis est lu par l'équipe qui a géré votre séjour. Il n'est jamais modifié par elle.",
     "errors": {
       "unavailable": "Ce lien n'est plus valable.",
       "invalid": "Choisissez une note globale de 1 à 5.",
@@ -3787,13 +3839,23 @@
       "locked": "Le délai de modification est passé.",
       "server": "Le service n'a pas pu enregistrer. Réessayez.",
       "network": "Connexion impossible ; rien n'a été envoyé."
+    },
+    "serviceOverall": "Service de l'équipe de conciergerie (accueil, réponses, aide)",
+    "existing": {
+      "guest": "Votre avis sur ce séjour, du {date}, est enregistré.",
+      "owner": "Votre avis sur la gestion de votre bien, du {date}, est enregistré."
+    },
+    "privacy": {
+      "guest": "Votre avis est lu par l'équipe qui a géré votre séjour. Elle ne le modifie jamais.",
+      "owner": "Votre avis est lu par l'équipe qui gère votre bien. Elle ne le modifie jamais."
     }
   },
   "showcasePage": {
     "unavailable": "Cette page n'est pas disponible.",
     "score": {
-      "guest": "Satisfaction des voyageurs",
-      "owner": "Satisfaction des propriétaires"
+      "guest": "Séjours (voyageurs)",
+      "owner": "Gestion (propriétaires)",
+      "service": "Service de l'équipe (voyageurs)"
     },
     "noScore": "Pas encore d'avis",
     "basedOn": "{count, plural, =0 {Aucun avis} one {# avis vérifié} other {# avis vérifiés}} du {from} au {to}",
