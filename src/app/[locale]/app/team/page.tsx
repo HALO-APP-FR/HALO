@@ -1,3 +1,4 @@
+import { durationText } from "@/lib/connected/format";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
 import { Phone, TriangleAlert } from "lucide-react";
 import { Link, redirect } from "@/i18n/navigation";
@@ -63,7 +64,9 @@ export default async function TeamPage({ params }: PageProps<"/[locale]/app/team
       canCancel: true,
       impacts: impactsOf(a.id),
     }));
-  const conflicts = planning.availability;
+  // Conflits confirmés (la mission ne peut pas être faite par cette personne) et risques à examiner, séparés
+  const conflicts = planning.availability.filter((c) => c.kind !== "partial" && c.kind !== "started");
+  const risks = planning.availability.filter((c) => c.kind === "partial" || c.kind === "started");
   return (
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
@@ -123,6 +126,26 @@ export default async function TeamPage({ params }: PageProps<"/[locale]/app/team
                     <Link href={`/app/stays/${s.id}`} className="text-accent-text hover:underline">
                       {ta("closureStay", { guest: s.guestName || "—", dates: windowText(f, s.checkInAt, s.checkOutAt) })}
                     </Link>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
+          {risks.length > 0 && (
+            <Card className="border-warning p-5" data-testid="availability-risks">
+              <h2 className="text-[17px] font-semibold">{ta("risksTitle", { count: risks.length })}</h2>
+              <p className="mt-1 text-[14px] text-muted">{ta("risksText")}</p>
+              <ul className="mt-3 divide-y divide-line">
+                {risks.map((c) => (
+                  <li key={c.taskId} className="flex flex-wrap items-center gap-2 py-2.5" data-testid="availability-risk">
+                    <Link href={`/app/missions/${c.taskId}`} className="flex-1 text-[14px] text-accent-text hover:underline">
+                      {label(c.taskId)}
+                    </Link>
+                    <span className="text-[13px] text-muted">
+                      {c.memberId ? nameOf(c.memberId) : ta("nobody")} · {ta(`conflictKind.${c.kind}`)}
+                      {c.freeMin != null ? ` · ${ta("freeLeft", { duration: durationText(c.freeMin) })}` : ""}
+                    </span>
                   </li>
                 ))}
               </ul>

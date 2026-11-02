@@ -901,7 +901,12 @@ select t.is('créneau réel : congé accepté', t.keep('a_manager', format('sele
 insert into public.tasks (id, organization_id, property_id, type, window_start, window_end, duration_min) values
   (t.id('TX1'), t.id('A'), t.id('PX'), 'turnover', '2027-06-01 10:00+00', '2027-06-04 10:00+00', 90),
   (t.id('TX2'), t.id('A'), t.id('PX'), 'maintenance', '2027-06-01 10:00+00', '2027-06-04 10:00+00', 60);
-select t.err('créneau réel : fenêtre de 3 jours qui chevauche le congé → affectation refusée', t.dml('a_manager', format('update public.tasks set assignee_id = %L, status = ''assigned'' where id = %L', t.id('a_agent2'), t.id('TX1'))), '22023');
+-- Migration 16 : sans horaire, une absence d'un jour dans une fenêtre de 3 jours est un RISQUE (il reste du temps libre), pas un conflit
+select t.is('risque : fenêtre de 3 jours, congé d''un jour → affectation acceptée (risque signalé)', t.dml('a_manager', format('update public.tasks set assignee_id = %L, status = ''assigned'' where id = %L', t.id('a_agent2'), t.id('TX1'))), '1');
+select t.is('risque : niveau calculé côté serveur', (select public.task_absence_level(t.id('A'), t.id('a_agent2'), '2027-06-01 10:00+00', '2027-06-04 10:00+00', null, 90)), 'risk');
+select t.is('conflit : fenêtre entièrement couverte par le congé', (select public.task_absence_level(t.id('A'), t.id('a_agent2'), '2027-06-02 08:00+00', '2027-06-02 18:00+00', null, 90)), 'conflict');
+select t.is('conflit : temps libre restant plus court que la durée', (select public.task_absence_level(t.id('A'), t.id('a_agent2'), '2027-06-01 23:30+00', '2027-06-03 00:30+00', null, 90)), 'conflict');
+select t.is('aucun : fenêtre hors congé', (select public.task_absence_level(t.id('A'), t.id('a_agent2'), '2027-06-03 08:00+00', '2027-06-03 18:00+00', null, 90)), 'none');
 select t.is('créneau réel : horaire fixé hors congé → affectation acceptée', t.dml('a_manager', format('update public.tasks set scheduled_start = ''2027-06-01 12:00+00'', assignee_id = %L, status = ''assigned'' where id = %L', t.id('a_agent2'), t.id('TX1'))), '1');
 select t.err('créneau réel : horaire fixé pendant le congé → refusé', t.dml('a_manager', format('update public.tasks set scheduled_start = ''2027-06-02 09:00+00'', assignee_id = %L, status = ''assigned'' where id = %L', t.id('a_agent2'), t.id('TX1'))), '22023');
 update public.tasks set scheduled_start = '2027-06-01 12:00+00', assignee_id = t.id('a_agent2'), status = 'assigned' where id = t.id('TX1');
@@ -1413,6 +1418,84 @@ insert into public.reservations (id, organization_id, property_id, guest_name, g
 insert into t_tok values ('early', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('RFUT15'))));
 select t.is('arrivée anticipée : demande enregistrée', t.keep(null, format('select public.guest_request_service(%L, ''early_checkin'', now() + interval ''500 days'', 2, ''Vers 13 h'')', (select v from t_tok where k = 'early')))::jsonb ->> 'status', 'ok');
 select t.is('arrivée anticipée : jamais confirmée automatiquement', (select status::text from public.service_requests where kind = 'early_checkin' and reservation_id = t.id('RFUT15')), 'requested');
+
+-- =====================================================================
+-- 16. Arrivée anticipée cohérente, lieux avant ouverture, matrice d'accès (migration 16)
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['P16', 'R16P', 'R16', 'T16', 'ACT16', 'PL16N', 'PL16F', 'R16Z']) k;
+insert into public.properties (id, organization_id, name, latitude, longitude) values (t.id('P16'), t.id('A'), 'Logement 16', 48.8584, 2.2945);
+insert into public.guest_guides (organization_id, property_id, enabled) values (t.id('A'), t.id('P16'), true);
+insert into public.reservations (id, organization_id, property_id, guest_name, guest_email, check_in_at, check_out_at) values
+  (t.id('R16P'), t.id('A'), t.id('P16'), 'Sortant 16', null, '2027-10-07 16:00+00', '2027-10-10 11:00+00'),
+  (t.id('R16'), t.id('A'), t.id('P16'), 'Arrivant 16', 'arrivant16@test.invalid', '2027-10-10 16:00+00', '2027-10-13 11:00+00');
+insert into public.tasks (id, organization_id, property_id, type, status, reservation_id, next_reservation_id, window_start, window_end, duration_min) values
+  (t.id('T16'), t.id('A'), t.id('P16'), 'turnover', 'unassigned', t.id('R16P'), t.id('R16'), '2027-10-10 11:00+00', '2027-10-10 16:00+00', 90);
+insert into public.stay_prep_actions (id, organization_id, reservation_id, title, kind, blocking, due_at, task_id) values
+  (t.id('ACT16'), t.id('A'), t.id('R16'), 'Ménage avant arrivée', 'task', true, '2027-10-10 16:00+00', t.id('T16'));
+insert into t_tok values ('g16', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R16'))));
+select t.is('arrivée anticipée 14 h : demande enregistrée', t.keep(null, format('select public.guest_request_service(%L, ''early_checkin'', ''2027-10-10 14:00+00'', 2, null)', (select v from t_tok where k = 'g16')))::jsonb ->> 'status', 'ok');
+insert into t.ids select 'SV16', (select id from public.service_requests where reservation_id = t.id('R16') and kind = 'early_checkin');
+select t.err('arrivée anticipée : la décision générique ne peut pas confirmer', t.q('a_manager', format('select public.decide_service(%L, %L, ''confirmed'')', t.id('A'), t.id('SV16'))), '22023');
+select t.is('contraintes : ménage non attribué + action indispensable ouverte, aucun blocage dur', t.q('a_manager', format('select (public.timing_check(%L, %L) -> ''risks'')::text || ''/'' || (public.timing_check(%L, %L) -> ''blocking'')::text', t.id('A'), t.id('SV16'), t.id('A'), t.id('SV16'))), '["cleaning_unassigned", "prep_actions_open"]/[]');
+select t.is('contraintes : points non vérifiés listés', t.q('a_manager', format('select (public.timing_check(%L, %L) -> ''unverified'')::text', t.id('A'), t.id('SV16'))), '["linen", "access", "owner_rules"]');
+select t.is('confirmation sans décision explicite : refusée, séjour inchangé', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''confirm'') ->> ''status''', t.id('A'), t.id('SV16'))) || '/' || (select to_char(check_in_at at time zone 'UTC', 'HH24:MI') from public.reservations where id = t.id('R16')), 'risks/16:00');
+select t.is('séjour modifié depuis l''affichage : décision refusée', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''confirm'', true, ''2027-10-10 17:00+00'') ->> ''status''', t.id('A'), t.id('SV16'))), 'stay_changed');
+select t.err('un agent ne décide pas', t.q('a_agent', format('select public.timing_decide(%L, %L, ''confirm'', true)', t.id('A'), t.id('SV16'))), '42501');
+select t.err('une autre organisation ne décide pas', t.q('b_manager', format('select public.timing_decide(%L, %L, ''confirm'', true)', t.id('A'), t.id('SV16'))), '42501');
+select t.is('confirmation en connaissance de cause', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''confirm'', true, ''2027-10-10 16:00+00'', ''Arrivée à 14 h confirmée'') ->> ''status''', t.id('A'), t.id('SV16'))), 'applied');
+select t.is('cohérence : séjour 14 h, échéance du ménage 14 h, action 14 h, demande confirmée',
+  (select to_char(check_in_at at time zone 'UTC', 'HH24:MI') from public.reservations where id = t.id('R16')) || '/' ||
+  (select to_char(window_end at time zone 'UTC', 'HH24:MI') from public.tasks where id = t.id('T16')) || '/' ||
+  (select to_char(due_at at time zone 'UTC', 'HH24:MI') from public.stay_prep_actions where id = t.id('ACT16')) || '/' ||
+  (select status from public.service_requests where id = t.id('SV16')), '14:00/14:00/14:00/confirmed');
+select t.check('historique : changement d''heure tracé', '', exists (select 1 from public.stay_prep_events where reservation_id = t.id('R16') and kind = 'stay_time_changed'));
+select t.check('historique : risques acceptés notés (interne)', '', exists (select 1 from public.service_events where service_id = t.id('SV16') and visibility = 'internal' and body like 'Confirmé en connaissance de cause%prep_actions_open%'));
+select t.is('voyageur : son espace affiche l''arrivée à 14 h', t.q(null, format('select coalesce(public.get_guest_stay(%L) ->> ''status'', ''-'') || ''/'' || coalesce(to_char((public.get_guest_stay(%L) #>> ''{stay,check_in_at}'')::timestamptz at time zone ''UTC'', ''HH24:MI''), ''-'')', (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'))), 'prep/14:00');
+select t.is('confirmer deux fois : sans effet', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''confirm'', true) ->> ''status''', t.id('A'), t.id('SV16'))), 'already');
+select t.err('modifier l''heure d''une demande confirmée hors décision : refusé', t.dml('a_manager', format('update public.service_requests set start_at = ''2027-10-10 13:00+00'' where id = %L', t.id('SV16'))), '22023');
+select t.is('annulation : acceptée', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''cancel'') ->> ''status''', t.id('A'), t.id('SV16'))), 'applied');
+select t.is('annulation : horaire et échéances rétablis', (select to_char(check_in_at at time zone 'UTC', 'HH24:MI') from public.reservations where id = t.id('R16')) || '/' ||
+  (select to_char(window_end at time zone 'UTC', 'HH24:MI') from public.tasks where id = t.id('T16')) || '/' || (select to_char(due_at at time zone 'UTC', 'HH24:MI') from public.stay_prep_actions where id = t.id('ACT16')), '16:00/16:00/16:00');
+-- Ménage impossible avant l'horaire demandé (départ précédent à 11 h + 1 h 30) : refus ferme
+select t.is('arrivée à 12 h : demande enregistrée', t.keep(null, format('select public.guest_request_service(%L, ''early_checkin'', ''2027-10-10 12:00+00'', 2, null)', (select v from t_tok where k = 'g16')))::jsonb ->> 'status', 'ok');
+select t.is('arrivée à 12 h : impossible même avec accord', t.keep('a_manager', format('select public.timing_decide(%L, (select id from public.service_requests where reservation_id = %L and kind = ''early_checkin'' and status = ''requested''), ''confirm'', true) ->> ''status''', t.id('A'), t.id('R16'))), 'not_feasible');
+select t.is('arrivée à 12 h : séjour inchangé', (select to_char(check_in_at at time zone 'UTC', 'HH24:MI') from public.reservations where id = t.id('R16')), '16:00');
+-- Ménage déjà planifié à 15 h : risque explicite, créneau jamais déplacé
+update public.tasks set assignee_id = t.id('a_agent'), status = 'assigned', scheduled_start = '2027-10-10 15:00+00' where id = t.id('T16');
+update public.service_requests set status = 'declined' where reservation_id = t.id('R16') and kind = 'early_checkin' and status = 'requested';
+select t.is('arrivée à 14 h (2) : demande enregistrée', t.keep(null, format('select public.guest_request_service(%L, ''early_checkin'', ''2027-10-10 14:00+00'', 2, null)', (select v from t_tok where k = 'g16')))::jsonb ->> 'status', 'ok');
+select t.is('ménage planifié après 14 h : risque signalé', t.q('a_manager', format('select (public.timing_check(%L, (select id from public.service_requests where reservation_id = %L and kind = ''early_checkin'' and status = ''requested'')) -> ''risks'')::text', t.id('A'), t.id('R16'))), '["cleaning_scheduled_after", "prep_actions_open"]');
+select t.is('confirmé : l''horaire planifié du ménage n''est pas déplacé', t.keep('a_manager', format('select public.timing_decide(%L, (select id from public.service_requests where reservation_id = %L and kind = ''early_checkin'' and status = ''requested''), ''confirm'', true) ->> ''status''', t.id('A'), t.id('R16'))) || '/' || (select to_char(scheduled_start at time zone 'UTC', 'HH24:MI') from public.tasks where id = t.id('T16')), 'applied/15:00');
+select t.check('agent informé du changement d''échéance', '', exists (select 1 from public.notification_outbox where organization_id = t.id('A') and template = 'agent_task_changed' and payload ->> 'path' = '/app/missions/' || t.id('T16')));
+
+-- Lieux avant l'ouverture : rien qui localise le logement
+insert into public.property_places (id, organization_id, property_id, source, category, name, latitude, longitude) values
+  (t.id('PL16N'), t.id('A'), t.id('P16'), 'manager', 'activities', 'Lieu public au même endroit', 48.8584, 2.2945),
+  (t.id('PL16F'), t.id('A'), t.id('P16'), 'manager', 'food', 'Bistrot à 1,5 km', 48.8710, 2.2995);
+select t.is('avant ouverture : lieu au même endroit retenu, compté', t.q(null, format('select (public.guest_places(%L) ->> ''near_hidden'') || ''/'' || jsonb_array_length(public.guest_places(%L) -> ''places'')', (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'))), '1/1');
+select t.is('avant ouverture : ni distance exacte ni coordonnées du logement', t.q(null, format('select coalesce(public.guest_places(%L) #>> ''{places,0,distance_m}'', ''-'') || ''/'' || (public.guest_places(%L) #>> ''{places,0,distance_band}'') || ''/'' || coalesce(public.guest_places(%L) #>> ''{property,lat}'', ''-'')', (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'))), '-/2/-');
+-- Dans la fenêtre habituelle (lien de séjour en cours) : tout est visible
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values (t.id('R16Z'), t.id('A'), t.id('P16'), 'En cours 16', now() - interval '1 day', now() + interval '1 day');
+insert into t_tok values ('g16z', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R16Z'))));
+select t.is('pendant le séjour : lieux proches et distances exactes visibles', t.q(null, format('select (public.guest_places(%L) ->> ''near_hidden'') || ''/'' || jsonb_array_length(public.guest_places(%L) -> ''places'') || ''/'' || (public.guest_places(%L) #>> ''{places,0,distance_m}'')', (select v from t_tok where k = 'g16z'), (select v from t_tok where k = 'g16z'), (select v from t_tok where k = 'g16z'))), '0/2/0');
+
+-- Matrice d'accès serveur : lecture, création, modification, suppression par rôle et organisation
+select t.is('matrice : anonyme ne lit aucun séjour', t.q(null, 'select count(*) from public.reservations'), 'ERR:42501:permission denied for table reservations');
+select t.is('matrice : anonyme ne lit aucune mission', t.q(null, 'select count(*) from public.tasks'), 'ERR:42501:permission denied for table tasks');
+select t.is('matrice : agent ne lit pas un séjour sans mission pour lui', t.q('a_agent', format('select count(*) from public.reservations where id = %L', t.id('R16Z'))), '0');
+select t.deny('matrice : agent ne crée pas de séjour', t.dml('a_agent', format('insert into public.reservations (organization_id, property_id, check_in_at, check_out_at) values (%L, %L, ''2028-01-01'', ''2028-01-02'')', t.id('A'), t.id('P16'))));
+select t.deny('matrice : agent ne modifie pas un logement', t.dml('a_agent', format('update public.properties set name = ''x'' where id = %L', t.id('P16'))));
+select t.deny('matrice : agent ne supprime pas une mission', t.dml('a_agent', format('delete from public.tasks where id = %L', t.id('T16'))));
+select t.is('matrice : autre organisation ne lit ni séjour ni mission ni logement', t.q('b_manager', format('select (select count(*) from public.reservations where id = %L) + (select count(*) from public.tasks where id = %L) + (select count(*) from public.properties where id = %L)', t.id('R16'), t.id('T16'), t.id('P16'))), '0');
+select t.deny('matrice : autre organisation ne crée pas de séjour chez A', t.dml('b_manager', format('insert into public.reservations (organization_id, property_id, check_in_at, check_out_at) values (%L, %L, ''2028-01-01'', ''2028-01-02'')', t.id('A'), t.id('P16'))));
+select t.deny('matrice : autre organisation ne modifie pas un séjour de A', t.dml('b_manager', format('update public.reservations set guest_name = ''x'' where id = %L', t.id('R16'))));
+select t.deny('matrice : autre organisation ne supprime pas un logement de A', t.dml('b_manager', format('delete from public.properties where id = %L', t.id('P16'))));
+select t.deny('matrice : autre organisation ne supprime pas une mission de A', t.dml('b_manager', format('delete from public.tasks where id = %L', t.id('T16'))));
+select t.deny('matrice : autre organisation ne modifie pas une demande voyageur de A', t.dml('b_manager', format('update public.service_requests set status = ''declined'' where id = %L', t.id('SV16'))));
+select t.is('matrice : le responsable de A modifie son séjour', t.dml('a_manager', format('update public.reservations set guest_name = ''Arrivant 16 bis'' where id = %L', t.id('R16'))), '1');
+alter table public.reservations enable trigger reservations_overlap_check;
+select t.err('matrice : séjour chevauchant refusé (même pour le responsable)', t.dml('a_manager', format('insert into public.reservations (organization_id, property_id, check_in_at, check_out_at) values (%L, %L, ''2027-10-11 10:00+00'', ''2027-10-12 10:00+00'')', t.id('A'), t.id('P16'))), '23P01');
+alter table public.reservations disable trigger reservations_overlap_check;
 
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);

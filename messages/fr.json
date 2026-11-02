@@ -1378,7 +1378,7 @@
       "invalid_window": "Le créneau n'est pas valide : la fin doit laisser au moins la durée estimée après le début.",
       "out_of_window": "La mission ne tient plus dans sa fenêtre : confirmez une nouvelle fin avant d'attribuer.",
       "stay_overlap": "Ce séjour chevauche un autre séjour du même logement.",
-      "assignee_unavailable": "Cette personne est absente sur ce créneau : la mission ne tient pas en dehors de son absence.",
+      "assignee_unavailable": "Conflit confirmé : avec ses absences acceptées, cette personne n'a pas assez de temps libre dans la fenêtre (ou l'horaire planifié tombe pendant son absence).",
       "name_required": "Indiquez votre nom.",
       "invalid_period": "La période n'est pas valide (fin après début).",
       "not_member": "Cette personne ne fait pas partie de l'équipe active.",
@@ -1412,7 +1412,8 @@
       "not_accepted": "Le voyageur n'a pas (encore) accepté l'offre : rien n'est confirmé.",
       "testimonial_not_allowed": "Un témoignage choisi n'a pas (ou plus) le consentement de son auteur.",
       "slug_taken": "Cette adresse de vitrine est déjà utilisée : choisissez-en une autre.",
-      "no_property": "Cet avis n'est relié à aucun logement : impossible de créer un incident."
+      "no_property": "Cet avis n'est relié à aucun logement : impossible de créer un incident.",
+      "use_timing_decision": "Un horaire d'arrivée ou de départ se confirme ou s'annule avec la décision dédiée, qui vérifie la préparation."
     },
     "home": {
       "subtitle": "Ce qui demande votre attention.",
@@ -1444,7 +1445,8 @@
       "lowReviews": "{count, plural, =0 {Aucun avis à traiter} one {# avis à traiter (note faible)} other {# avis à traiter (notes faibles)}}",
       "lowReviewsGuest": "{count, plural, =0 {Aucun avis voyageur à traiter} one {# avis voyageur à traiter} other {# avis voyageurs à traiter}}",
       "lowReviewsOwner": "{count, plural, =0 {Aucun avis propriétaire à traiter} one {# avis propriétaire à traiter} other {# avis propriétaires à traiter}}",
-      "moreCauses": "+ {count} autre(s) cause(s)"
+      "moreCauses": "+ {count} autre(s) cause(s)",
+      "availabilityRisks": "{count, plural, =0 {Aucune mission à examiner (absence partielle)} one {# mission à examiner (absence partielle)} other {# missions à examiner (absence partielle)}}"
     },
     "onb": {
       "progress": "Étape {n} sur {total}",
@@ -1956,7 +1958,13 @@
       "suggestNone": "Personne n'est disponible d'après les absences connues.",
       "suggestBusy": "{count, plural, one {déjà # autre mission sur cette plage} other {déjà # autres missions sur cette plage}}",
       "suggestFree": "aucune autre mission sur cette plage",
-      "suggestLimits": "D'après les absences et missions enregistrées dans HALO. Temps de trajet et disponibilités non déclarées : non connus."
+      "suggestLimits": "D'après les absences et missions enregistrées dans HALO. Temps de trajet et disponibilités non déclarées : non connus.",
+      "basisWindow": "Fenêtre {window}, sans horaire planifié : plus long temps libre hors absence {free}, durée prévue {duration} (calcul sur 24 h ; horaires de travail et trajets non connus).",
+      "basisScheduled": "Horaire planifié {slot}, pendant l'absence.",
+      "riskTitle": "{name} est absent(e) sur une partie de la fenêtre",
+      "riskStartedTitle": "Mission commencée par {name}, absent(e) sur une partie de la fenêtre : à vérifier",
+      "riskActions": "Risque à examiner, pas un conflit : la mission reste possible en dehors de l'absence. Planifiez un créneau hors absence pour le confirmer.",
+      "partialFor": "absence partielle ({period})"
     },
     "team": {
       "title": "Équipe",
@@ -2294,12 +2302,14 @@
       "noneMine": "Aucune absence déclarée.",
       "absentNow": "Absent en ce moment",
       "conflictsTitle": "{count, plural, one {# mission à réorganiser} other {# missions à réorganiser}}",
-      "conflictsText": "Ces missions ne tiennent plus hors des absences ou fermetures. HALO ne les réaffecte jamais seul : ouvrez-les pour changer la personne ou le créneau.",
+      "conflictsText": "Conflits confirmés : ces missions ne peuvent pas être faites par la personne affectée (horaire planifié pendant l'absence, ou temps libre restant plus court que la durée prévue). HALO ne les réaffecte jamais seul.",
       "nobody": "Personne n'est attribué",
       "conflictKind": {
         "accepted": "absence acceptée",
         "pending": "si la demande en attente est acceptée",
-        "closure": "fermeture d'équipe"
+        "closure": "fermeture d'équipe",
+        "partial": "absence sur une partie de la fenêtre",
+        "started": "mission commencée pendant une absence"
       },
       "closureStay": "Séjour pendant une fermeture : {guest}, {dates}",
       "listTitle": "Absences et fermetures à venir",
@@ -2313,7 +2323,10 @@
         "accepted": "acceptée",
         "refused": "refusée",
         "cancelled": "annulée"
-      }
+      },
+      "risksTitle": "{count, plural, one {# mission à examiner} other {# missions à examiner}}",
+      "risksText": "Absence sur une partie de la fenêtre seulement : la mission reste possible en dehors. Planifiez un créneau pour lever le doute.",
+      "freeLeft": "temps libre restant {duration}"
     },
     "chat": {
       "title": "Messages d'équipe",
@@ -2573,7 +2586,8 @@
         "action_forced": "Action close par dérogation",
         "action_auto_done": "Action close : mission terminée",
         "mission_reopened": "Mission liée à refaire : action rouverte",
-        "mission_cancelled": "Mission liée annulée : action toujours ouverte"
+        "mission_cancelled": "Mission liée annulée : action toujours ouverte",
+        "stay_time_changed": "Horaire du séjour modifié"
       },
       "missionNotDone": "La mission liée n'est pas terminée. Clore l'action maintenant est une dérogation : elle sera historisée avec votre motif.",
       "overrideReason": "Motif de la dérogation",
@@ -2583,7 +2597,11 @@
       "taskNotesHint": "Visibles par l'agent dans sa liste et le détail de la mission.",
       "notReadyReason": "Ce séjour n'est plus « Prêt » depuis le {date} : l'action indispensable « {action} » {cause, select, mission {a été rouverte car sa mission doit être refaite} other {a été rouverte}}. Terminez-la (ou close-la avec un motif), puis repassez le séjour à « Prêt ».",
       "blockersTitle": "{count, plural, one {Ce qui empêche « Prêt » : # action indispensable ouverte} other {Ce qui empêche « Prêt » : # actions indispensables ouvertes}}",
-      "linkedMission": "mission liée : {status}"
+      "linkedMission": "mission liée : {status}",
+      "timeChange": {
+        "check_in": "arrivée {from} → {to}",
+        "check_out": "départ {from} → {to}"
+      }
     },
     "vip": {
       "title": "Statut VIP",
@@ -3253,6 +3271,62 @@
       "noSlotLong": "Aucun créneau attribué : l'intervention se fait dans la plage ci-dessus.",
       "assigneeLabel": "Affectation",
       "unassigned": "Non attribuée"
+    },
+    "timingDecision": {
+      "title": {
+        "early_checkin": "Décider l'arrivée anticipée",
+        "late_checkout": "Décider le départ tardif"
+      },
+      "requested": "Heure demandée",
+      "currentArrival": "Arrivée actuelle du séjour",
+      "currentDeparture": "Départ actuel du séjour",
+      "knownTitle": "Ce que HALO sait",
+      "cleaning": "Ménage",
+      "assignedTo": "attribué à {name}",
+      "unassigned": "non attribué",
+      "from": "possible dès {date}",
+      "duration": "durée prévue {duration}",
+      "slot": "créneau planifié {date}",
+      "noSlot": "aucun créneau planifié",
+      "noCleaning": "Aucun ménage relié à ce séjour.",
+      "action": "Action indispensable ouverte : « {title} », échéance {due}",
+      "noDue": "sans échéance",
+      "linkedMission": "mission liée : {status}",
+      "blockingTitle": "Impossible de confirmer cet horaire",
+      "blocking": {
+        "cleaning_cannot_fit": "Le ménage ne tient pas avant cette heure : le voyageur précédent part trop tard pour la durée prévue.",
+        "stay_overlap": "Cet horaire chevaucherait un autre séjour du logement."
+      },
+      "risksTitle": "Préparation non garantie à cette heure",
+      "risk": {
+        "no_cleaning": "Aucun ménage n'est prévu avant l'arrivée.",
+        "cleaning_unassigned": "Le ménage n'est attribué à personne.",
+        "cleaning_not_planned": "Le ménage est attribué mais sans créneau : rien ne garantit qu'il sera fait avant cette heure.",
+        "cleaning_scheduled_after": "Le ménage est planifié pour finir après cette heure. Son créneau ne sera pas déplacé : il faudra le replanifier.",
+        "cleaning_scheduled_before": "Le ménage après le départ est planifié avant cette heure. Son créneau ne sera pas déplacé : il faudra le replanifier.",
+        "prep_actions_open": "Des actions indispensables restent ouvertes avec une échéance plus tardive."
+      },
+      "unverified": "Non vérifié par HALO : disponibilité du linge, accès et clés, règles du propriétaire. À confirmer par l'équipe.",
+      "effectsEarly": "En confirmant : l'arrivée du séjour passe à l'heure demandée ; la fin de fenêtre du ménage et les échéances d'actions fixées à l'ancienne heure suivent ; un créneau déjà planifié n'est jamais déplacé ; l'agent affecté est prévenu ; le voyageur voit la nouvelle heure.",
+      "effectsLate": "En confirmant : le départ du séjour passe à l'heure demandée ; le début de fenêtre du ménage suit ; un créneau déjà planifié n'est jamais déplacé ; l'agent affecté est prévenu ; le voyageur voit la nouvelle heure.",
+      "ack": "Je confirme en connaissance de cause : la préparation n'est pas garantie à cette heure (décision tracée).",
+      "ackNeeded": "Cochez la case pour confirmer malgré ces points.",
+      "message": "Message au voyageur",
+      "note": "Note interne",
+      "noteHint": "Visible par l'équipe uniquement.",
+      "confirm": "Confirmer l'horaire",
+      "otherDecisions": "Pour demander une précision ou refuser, utilisez la décision ci-dessous.",
+      "confirmedText": "Horaire confirmé : le séjour affiche la nouvelle heure. Annuler rétablit l'horaire précédent si le séjour n'a pas été modifié depuis.",
+      "cancel": "Annuler cet horaire",
+      "result": {
+        "applied": "Décision enregistrée.",
+        "risks": "Des points ne sont pas garantis : cochez la case pour confirmer en connaissance de cause.",
+        "not_feasible": "Impossible : cet horaire ne peut pas être tenu (voir ci-dessus). Rien n'a été modifié.",
+        "stay_changed": "Le séjour a été modifié entre-temps : rechargez la page pour décider sur les données à jour.",
+        "already": "Déjà fait.",
+        "conflict": "La demande a changé entre-temps : la page est actualisée.",
+        "no_stay": "Aucun séjour relié à cette demande."
+      }
     }
   },
   "email": {
@@ -3536,7 +3610,9 @@
       "picksTitle": "Sélection de l'équipe et du propriétaire",
       "autoTitle": "Suggestions automatiques à proximité (non vérifiées)",
       "showAll": "Voir les {count} suggestions",
-      "showLess": "Afficher moins"
+      "showLess": "Afficher moins",
+      "band": "{n, select, 1 {moins de 1 km} 2 {1 à 2 km} other {2 à 3 km}}",
+      "nearHidden": "{count, plural, one {# lieu tout proche du logement apparaîtra le {date}, avec l'adresse.} other {# lieux tout proches du logement apparaîtront le {date}, avec l'adresse.}}"
     },
     "prepBanner": "Votre séjour approche. Les informations pratiques (adresse, accès, guide) seront visibles ici à partir du {date}. En attendant, vous pouvez préparer votre séjour et écrire à l'équipe.",
     "prepared": {
@@ -3633,7 +3709,19 @@
       "detailsPlaceholder": "Vol, train, contrainte particulière…",
       "sent": "Demande envoyée. Rien n'est confirmé tant que l'équipe n'a pas répondu.",
       "send": "Envoyer la demande",
-      "details": "Précisions sur l'horaire (facultatif)"
+      "details": "Précisions sur l'horaire (facultatif)",
+      "pendingNote": {
+        "early_checkin": "En attente de réponse : votre arrivée reste prévue le {date}.",
+        "late_checkout": "En attente de réponse : votre départ reste prévu le {date}."
+      },
+      "confirmedNote": {
+        "early_checkin": "Confirmé : votre arrivée est désormais prévue le {date}.",
+        "late_checkout": "Confirmé : votre départ est désormais prévu le {date}."
+      },
+      "unchangedNote": {
+        "early_checkin": "Votre arrivée reste prévue le {date}.",
+        "late_checkout": "Votre départ reste prévu le {date}."
+      }
     }
   },
   "demoEntry": {

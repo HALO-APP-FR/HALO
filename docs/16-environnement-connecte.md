@@ -290,3 +290,21 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 **Hors périmètre / limites** : photo jointe à un incident (non disponible) ; stock de linge par logement (non suivi : « disponibilité non renseignée ») ; temps de trajet ; hors ligne non garanti ; SMS et push non disponibles ; e-mail du voyageur pour les demandes de séjour en français uniquement.
 
 **Tests** : isolation 1883/0, unitaires 159, e2e 47/47 (dont 28 scénario de référence et 29 alertes d'avis).
+
+## Arrivée anticipée, absences, confidentialité des lieux, concurrence (migration 16 : `20261111000001_arrivee_anticipee_absences_confidentialite.sql`)
+
+**Arrivée anticipée / départ tardif — garanti côté serveur**
+- La décision générique ne peut plus confirmer, annuler une confirmation ni changer l'heure d'une telle demande (`service_timing_guard`) : seule `timing_decide` le fait.
+- `timing_check` (lecture) : heure demandée, heure actuelle du séjour, ménage concerné (statut, affectation, début possible, durée, créneau), actions indispensables ouvertes à échéance plus tardive ; risques (`cleaning_unassigned`, `cleaning_not_planned`, `cleaning_scheduled_after/before`, `prep_actions_open`, `no_cleaning`) ; blocages (`cleaning_cannot_fit`, `stay_overlap`) ; non vérifié : linge, accès/clés, règles du propriétaire.
+- `timing_decide` : verrous sur la demande et le séjour ; refus si le séjour a changé depuis l'affichage (`stay_changed`) ; refus ferme si le ménage ne tient pas ; avec un risque, accord explicite obligatoire, noté en interne. À la confirmation : heure du séjour, fin de fenêtre du ménage et échéances d'actions fixées à l'ancienne heure mises à jour ensemble ; créneau planifié jamais déplacé (il apparaît irréalisable) ; agent affecté prévenu ; historique « Horaire du séjour modifié ». Annulation : horaire et échéances rétablis si le séjour n'a pas changé. Double confirmation : sans effet.
+
+**Absences — conflit confirmé ou risque à examiner** (`task_absence_level`, même règle dans `src/lib/engine/availability.ts`)
+- Horaire planifié chevauché → conflit (affectation refusée).
+- Sans horaire : conflit seulement si le plus long temps libre de la fenêtre hors absences acceptées est plus court que la durée prévue ; sinon risque (affectation possible, signalé « à examiner »). Calcul sur 24 h : horaires de travail et trajets non connus. Mission commencée pendant une absence : « à vérifier ».
+- Change la règle du 29/10 (toute absence chevauchant une fenêtre sans horaire bloquait l'affectation).
+
+**Lieux avant l'ouverture des informations pratiques** : ni coordonnées du logement, ni distance exacte (tranches « moins de 1 km », « 1 à 2 km », « 2 à 3 km »), lieux à moins de 300 m retenus (seul leur nombre est indiqué), ordre alphabétique. Limite : la liste des lieux (publics) situe le quartier ; c'est voulu.
+
+**Concurrence** : `check_stay_overlap` sous verrou par logement — défaut reproduit avant correction (deux séjours chevauchants créés simultanément), corrigé et testé (`supabase/tests/concurrency.sh`, avec `OLD_OVERLAP=1` pour rejouer le défaut). Demande de séjour envoyée deux fois simultanément : une seule demande, sans erreur.
+
+**Tests** : isolation 1932/0 (dont matrice lecture/création/modification/suppression par rôle et organisation), concurrence 6/6 (+ reproduction), unitaires 159, e2e (30 arrivée anticipée, 31 absences, 32 confidentialité des lieux).

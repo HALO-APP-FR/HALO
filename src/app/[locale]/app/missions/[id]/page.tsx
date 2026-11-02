@@ -8,7 +8,7 @@ import { ReportIncident } from "@/components/connected/report-incident";
 import { WindowEditor } from "@/components/connected/planning-forms";
 import { AssignSelect, CancelTaskButton } from "@/components/connected/mission-controls";
 import { loadPlanning } from "@/lib/connected/planning";
-import { blockingAbsences } from "@/lib/engine/availability";
+import { absenceLevel } from "@/lib/engine/availability";
 import { infeasibility } from "@/lib/engine/conflicts";
 import { toTask } from "@/lib/connected/mappers";
 import { nowDate } from "@/lib/connected/time";
@@ -83,14 +83,28 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
     const [{ data: full }, planning] = await Promise.all([supabase.from("tasks").select("*").eq("organization_id", o).eq("id", id).single(), loadPlanning(supabase, o, now)]);
     const slot = { windowStart: full!.window_start, windowEnd: full!.window_end, durationMin: full!.duration_min, scheduledStart: full!.scheduled_start };
     const reasons: Record<string, string> = {};
+    const partial: Record<string, string> = {};
+    let assigneeLevel: ReturnType<typeof absenceLevel> | null = null;
     for (const m of planning.members) {
-      const b = blockingAbsences(m, slot, planning.absences);
-      if (b.length) reasons[m.id] = `${ta(`kinds.${b[0].kind}`)} ${periodText(f, b[0].startsAt, b[0].endsAt)}`;
+      const lv = absenceLevel(m, slot, planning.absences);
+      if (m.id === full!.assignee_id) assigneeLevel = lv;
+      if (lv.level === "none") continue;
+      const a = lv.absences[0];
+      const txt = `${ta(`kinds.${a.kind}`)} ${periodText(f, a.startsAt, a.endsAt)}`;
+      if (lv.level === "conflict") reasons[m.id] = txt;
+      else partial[m.id] = txt;
     }
     const conflict = full!.assignee_id && reasons[full!.assignee_id];
+    const risk = full!.assignee_id && partial[full!.assignee_id];
+    // Ce qui fonde la conclusion : fenêtre, durée, temps libre restant, horaire planifié éventuel
+    const basis = assigneeLevel && assigneeLevel.level !== "none"
+      ? full!.scheduled_start
+        ? tm("basisScheduled", { slot: periodText(f, full!.scheduled_start, new Date(Date.parse(full!.scheduled_start) + full!.duration_min * 60_000).toISOString()) })
+        : tm("basisWindow", { window: periodText(f, full!.window_start, full!.window_end), free: durationText(assigneeLevel.freeMin ?? 0), duration: durationText(full!.duration_min) })
+      : null;
     // Personnes sans absence connue sur ce créneau, avec leurs autres missions sur la même fenêtre (contrainte connue).
     // Le temps de trajet n'est pas calculé : il n'est jamais promis.
-    const free = planning.members.filter((m) => !reasons[m.id] && m.id !== full!.assignee_id);
+    const free = planning.members.filter((m) => !reasons[m.id] && !partial[m.id] && m.id !== full!.assignee_id);
     const { data: overlapping } = free.length
       ? await supabase
           .from("tasks")
@@ -103,14 +117,23 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
           .gt("window_end", full!.window_start)
       : { data: [] as { assignee_id: string }[] };
     const busyCount = (uid: string) => (overlapping ?? []).filter((x) => x.assignee_id === uid).length;
-    const needsCover = Boolean(conflict) || full!.status === "unassigned";
+    const needsCover = Boolean(conflict) || Boolean(risk) || full!.status === "unassigned";
     assign = (
       <Card className={conflict ? "mb-4 space-y-3 border-danger p-4" : "mb-4 space-y-3 p-4"} data-testid="mission-assign">
         {conflict && (
           <div role="alert" data-testid="mission-absence-conflict">
             <p className="text-[15px] font-semibold text-danger">{tm("conflictTitle", { name: planning.members.find((m) => m.id === full!.assignee_id)?.name || "—" })}</p>
             <p className="text-[14px]">{conflict}</p>
+            {basis && <p className="mt-1 text-[13px]" data-testid="mission-absence-basis">{basis}</p>}
             <p className="mt-1 text-[13px] text-muted">{tm("conflictActions")}</p>
+          </div>
+        )}
+        {!conflict && risk && (
+          <div className="rounded-md border border-warning bg-warning-soft p-3" role="status" data-testid="mission-absence-risk">
+            <p className="text-[15px] font-semibold">{full!.status === "in_progress" ? tm("riskStartedTitle", { name: planning.members.find((m) => m.id === full!.assignee_id)?.name || "—" }) : tm("riskTitle", { name: planning.members.find((m) => m.id === full!.assignee_id)?.name || "—" })}</p>
+            <p className="text-[14px]">{risk}</p>
+            {basis && <p className="mt-1 text-[13px]" data-testid="mission-absence-basis">{basis}</p>}
+            <p className="mt-1 text-[13px] text-muted">{tm("riskActions")}</p>
           </div>
         )}
         {needsCover && (
@@ -140,6 +163,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
             durationMin={full!.duration_min}
             unavailable={Object.keys(reasons)}
             reasons={reasons}
+            partial={partial}
           />
           <CancelTaskButton taskId={task.id} />
         </div>

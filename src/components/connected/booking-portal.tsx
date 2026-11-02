@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { guestBookingAction, guestSubmitBooking } from "@/lib/connected/booking-actions";
@@ -38,6 +38,8 @@ export function BookingRequestForm({ token, defaults, busy, capacity, minDate }:
   const [clientId, setClientId] = useState(uuid);
   const [f, setF] = useState({ checkIn: "", checkOut: "", adults: 2, children: 0, babies: 0, name: defaults.name, email: "", phone: "", message: "" });
   const [sent, setSent] = useState<{ knownConflict: boolean } | null>(null);
+  // Un seul envoi à la fois (double clic) ; la base dédoublonne aussi par identifiant d'envoi
+  const sending = useRef(false);
   const overlaps = f.checkIn && f.checkOut && f.checkOut > f.checkIn ? busy.some((b) => b.from < f.checkOut && b.to > f.checkIn) : false;
   const over = capacity != null && f.adults + f.children > capacity;
   return (
@@ -46,8 +48,10 @@ export function BookingRequestForm({ token, defaults, busy, capacity, minDate }:
       data-testid="booking-form"
       onSubmit={(e) => {
         e.preventDefault();
+        if (sending.current) return;
+        sending.current = true;
         run(
-          () => guestSubmitBooking(token, { clientId, ...f }),
+          () => guestSubmitBooking(token, { clientId, ...f }).finally(() => (sending.current = false)),
           (d) => {
             setSent({ knownConflict: Boolean(d.knownConflict) });
             setClientId(uuid());

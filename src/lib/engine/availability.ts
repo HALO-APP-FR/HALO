@@ -67,13 +67,35 @@ export function slotOf(task: Pick<PlannedTask, "windowStart" | "windowEnd" | "du
   return { start: ms(task.windowStart), end: ms(task.windowEnd) };
 }
 
-/** Absences du statut voulu qui chevauchent le créneau réel de la mission (même règle que la base). */
-export function blockingAbsences(member: Member, task: Pick<PlannedTask, "windowStart" | "windowEnd" | "durationMin" | "scheduledStart">, absences: Absence[], statuses: AbsenceStatus[] = ["accepted"]) {
+/** Absences du statut voulu qui chevauchent le créneau réel de la mission (sans juger s'il reste du temps libre). */
+export function overlappingAbsences(member: Member, task: Pick<PlannedTask, "windowStart" | "windowEnd" | "durationMin" | "scheduledStart">, absences: Absence[], statuses: AbsenceStatus[] = ["accepted"]) {
   const { start, end } = slotOf(task);
   return absences.filter((a) => statuses.includes(a.status) && concerns(a, member) && ms(a.startsAt) < end && ms(a.endsAt) > start);
 }
 
-/** La personne peut-elle recevoir cette mission ? Non dès qu'une absence acceptée chevauche le créneau réel. */
+/**
+ * Niveau d'une absence pour une mission (même règle que public.task_absence_level, migration 16) :
+ *  - « conflict » : horaire planifié chevauché, ou fenêtre sans horaire où le plus long temps libre
+ *    (hors absences) est plus court que la durée prévue → la mission ne peut pas être faite par cette personne ;
+ *  - « risk » : absence sur une partie de la fenêtre, mais il reste un temps libre suffisant → à examiner ;
+ *  - « none ».
+ * Le temps libre est calculé sur 24 h (horaires de travail et trajets non connus de HALO).
+ */
+export function absenceLevel(member: Member, task: Pick<PlannedTask, "windowStart" | "windowEnd" | "durationMin" | "scheduledStart">, absences: Absence[], statuses: AbsenceStatus[] = ["accepted"]) {
+  const over = overlappingAbsences(member, task, absences, statuses);
+  if (!over.length) return { level: "none" as const, absences: over, freeMin: null as number | null };
+  if (task.scheduledStart) return { level: "conflict" as const, absences: over, freeMin: null };
+  const freeMin = freeMinutes(member, task.windowStart, task.windowEnd, absences, statuses);
+  return { level: freeMin >= task.durationMin ? ("risk" as const) : ("conflict" as const), absences: over, freeMin };
+}
+
+/** Absences qui rendent la mission impossible pour cette personne (conflit confirmé, refusé aussi par la base). */
+export function blockingAbsences(member: Member, task: Pick<PlannedTask, "windowStart" | "windowEnd" | "durationMin" | "scheduledStart">, absences: Absence[], statuses: AbsenceStatus[] = ["accepted"]) {
+  const r = absenceLevel(member, task, absences, statuses);
+  return r.level === "conflict" ? r.absences : [];
+}
+
+/** La personne peut-elle recevoir cette mission ? Non en cas de conflit confirmé. */
 export const isAvailable = (member: Member, task: Pick<PlannedTask, "windowStart" | "windowEnd" | "durationMin" | "scheduledStart">, absences: Absence[]) =>
   blockingAbsences(member, task, absences).length === 0;
 
@@ -82,8 +104,15 @@ const OPEN: string[] = ["assigned", "in_progress", "to_redo", "unassigned"];
 export interface AvailabilityConflict {
   taskId: string;
   memberId: string | null;
-  /** accepted : la mission ne tient plus ; pending : elle ne tiendrait plus si la demande est acceptée ; closure : fermeture d'équipe. */
-  kind: "accepted" | "pending" | "closure";
+  /**
+   * accepted : la mission ne peut plus être faite par cette personne (conflit confirmé) ;
+   * partial : absence sur une partie de la fenêtre, temps libre suffisant (risque à examiner) ;
+   * started : mission déjà commencée pendant une absence (à vérifier) ;
+   * pending : elle ne tiendrait plus si la demande est acceptée ; closure : fermeture d'équipe.
+   */
+  kind: "accepted" | "partial" | "started" | "pending" | "closure";
+  /** Plus long temps libre restant dans la fenêtre (minutes), quand il fonde la conclusion */
+  freeMin?: number | null;
   absenceIds: string[];
 }
 
@@ -100,12 +129,14 @@ export function availabilityConflicts(tasks: PlannedTask[], members: Member[], a
     const closures = absences.filter((a) => a.scope === "team" && a.status === "accepted" && overlapping(t, a));
     const m = t.assigneeId ? byId.get(t.assigneeId) : undefined;
     if (m) {
-      if (!isAvailable(m, t, absences)) {
-        const ids = blockingAbsences(m, t, absences).map((a) => a.id);
-        out.push({ taskId: t.id, memberId: m.id, kind: ids.length > 0 && ids.every((id) => closures.some((c) => c.id === id)) ? "closure" : "accepted", absenceIds: ids });
+      const lv = absenceLevel(m, t, absences);
+      if (lv.level !== "none") {
+        const ids = lv.absences.map((a) => a.id);
+        const kind = t.status === "in_progress" ? "started" : lv.level === "risk" ? "partial" : ids.every((id) => closures.some((c) => c.id === id)) ? "closure" : "accepted";
+        out.push({ taskId: t.id, memberId: m.id, kind, absenceIds: ids, freeMin: lv.freeMin });
         continue;
       }
-      const pending = blockingAbsences(m, t, absences, ["pending"]);
+      const pending = overlappingAbsences(m, t, absences, ["pending"]);
       if (pending.length) out.push({ taskId: t.id, memberId: m.id, kind: "pending", absenceIds: pending.map((a) => a.id) });
     } else if (closures.length) {
       // Mission sans personne pendant une fermeture d'équipe : à signaler aussi

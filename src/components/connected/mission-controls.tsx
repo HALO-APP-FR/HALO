@@ -23,6 +23,7 @@ export function AssignSelect({
   arrival,
   unavailable = [],
   reasons = {},
+  partial = {},
 }: {
   taskId: string;
   current: string | null;
@@ -36,6 +37,8 @@ export function AssignSelect({
   unavailable?: string[];
   /** Motif lisible par personne (période d'absence ou fermeture). */
   reasons?: Record<string, string>;
+  /** Absence sur une partie de la fenêtre seulement (risque) : sélectionnable, avec le motif. */
+  partial?: Record<string, string>;
 }) {
   const t = useTranslations("connected.missions");
   const { pending, error, run } = useRun();
@@ -60,7 +63,7 @@ export function AssignSelect({
           const away = unavailable.includes(m.id) && m.id !== current;
           return (
             <option key={m.id} value={m.id} disabled={away} data-away={away ? "1" : "0"}>
-              {unavailable.includes(m.id) ? `${m.name} — ${t("absentFor", { period: reasons[m.id] ?? "" })}` : m.name}
+              {unavailable.includes(m.id) ? `${m.name} — ${t("absentFor", { period: reasons[m.id] ?? "" })}` : partial[m.id] ? `${m.name} — ${t("partialFor", { period: partial[m.id] })}` : m.name}
             </option>
           );
         })}

@@ -1141,7 +1141,7 @@ test("19 · recommandations (modifier, propriétaire, sans coordonnées, automat
   osm?.close(); // fournisseur injoignable
   osm = null;
   await m.getByTestId("places-import").click();
-  await expect(m.getByTestId("places-import-error")).toContainText("OpenStreetMap ne répond pas");
+  await expect(m.getByTestId("places-import-error")).toContainText("OpenStreetMap ne répond pas", { timeout: 30_000 });
   await guest.reload();
   await expect(guest.getByTestId("around-place").filter({ hasText: "Marché couvert" })).toBeVisible();
 
@@ -1476,7 +1476,7 @@ test("21 · recommandations : vérification explicite, import sans doublon, lieu
   osm?.close();
   osm = null;
   await m.getByTestId("places-import").click();
-  await expect(m.getByTestId("places-import-error")).toBeVisible();
+  await expect(m.getByTestId("places-import-error")).toBeVisible({ timeout: 30_000 }); // délais des fournisseurs injoignables
   const { count } = await admin.from("property_places").select("id", { count: "exact", head: true }).eq("property_id", prop!.id).eq("hidden", false);
   expect(count).toBeGreaterThanOrEqual(3); // lieu manuel + lieux importés conservés
   await g.context().close();
@@ -1842,6 +1842,7 @@ test("26 · réservation directe : lien dédié, demande, précision, offre, acc
   // Voyageur : demande (double clic = une seule demande), mention « pas une réservation »
   const g = await newPage(browser);
   await g.goto(bUrl);
+  await g.waitForLoadState("networkidle"); // formulaire interactif (hydraté) avant la saisie
   await expect(g.getByTestId("booking-portal")).toBeVisible();
   await expect(g.getByTestId("bk-not-confirmed")).toContainText("pas une réservation confirmée");
   await expect(g.getByTestId("bk-calendar-note")).toContainText("Seule la confirmation de l'équipe vaut réservation");
@@ -2161,10 +2162,12 @@ test("28 · scénario de référence : absence, arrivée menacée, réaffectatio
 
   // Réponse du responsable : retrouvée par le voyageur avec son statut
   await m.goto(`/fr/app/services/${svc!.id}`);
-  await m.getByTestId("decide-confirmed").click();
-  await m.getByTestId("decide-message").fill("Arrivée possible à 14 h, pas avant.");
-  await m.getByTestId("decide-confirm").click();
-  await expect(m.getByTestId("decide-saved")).toBeVisible();
+  // Confirmation par la décision dédiée : préparation non garantie (ménage sans créneau) → accord explicite
+  await expect(m.getByTestId("decide-confirmed")).toHaveCount(0);
+  await m.getByTestId("timing-ack").check();
+  await m.getByTestId("timing-message").fill("Arrivée possible à 14 h, pas avant.");
+  await m.getByTestId("timing-confirm").click();
+  await expect(m.getByTestId("timing-result")).toHaveAttribute("data-status", "applied");
   await g.reload();
   await expect(g.locator("body")).toContainText("Arrivée possible à 14 h");
   // Aucune notification « envoyée » sans adresse réelle
@@ -2262,4 +2265,130 @@ test("29 · avis à traiter : voyageur et propriétaire séparés, compteurs, é
   await agent.goto("/fr/app/satisfaction?kind=owner&filter=to_handle");
   await expect(agent).toHaveURL(/\/fr\/app\/missions$/);
   for (const c of [m, o, g, agent]) await c.context().close();
+});
+
+test("30 · arrivée anticipée : contraintes affichées, accord explicite, séjour et échéances cohérents, annulation, horaire impossible", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `tim ${run}`);
+  const { data: stay } = await admin.from("reservations").select("id, check_in_at").eq("organization_id", org).eq("guest_name", "Voyageur test").single();
+  const { data: clean } = await admin.from("tasks").select("id, window_start").eq("organization_id", org).eq("next_reservation_id", stay!.id).single();
+  // Cas reproduit : ménage non attribué + action indispensable ouverte, échéance à l'heure d'arrivée
+  await admin.from("tasks").update({ assignee_id: null, status: "unassigned" }).eq("id", clean!.id);
+  await admin.from("stay_prep_actions").insert({ organization_id: org, reservation_id: stay!.id, title: "Ménage avant arrivée (QA)", kind: "task", blocking: true, due_at: stay!.check_in_at, task_id: clean!.id });
+  await m.goto(`/fr/app/stays/${stay!.id}`);
+  await m.getByTestId("link-create").click();
+  const gUrl = (await m.getByTestId("guest-link-url").inputValue()).replace(/^https?:\/\/[^/]+/, "");
+  const g = await newPage(browser);
+  await g.goto(gUrl);
+  const early = new Date(stay!.check_in_at);
+  early.setHours(14, 0, 0, 0);
+  await g.getByTestId("guest-timing-kind").selectOption("early_checkin");
+  await g.getByTestId("guest-timing-when").fill(local(early));
+  await g.getByTestId("guest-timing-send").click();
+  await expect(g.getByTestId("guest-timing-ok")).toBeVisible();
+  await expect(g.getByTestId("guest-timing-note")).toContainText("votre arrivée reste prévue");
+  const { data: svc } = await admin.from("service_requests").select("id").eq("organization_id", org).eq("kind", "early_checkin").single();
+
+  // Responsable : contraintes connues, points non vérifiés, confirmation impossible sans accord explicite
+  await m.goto(`/fr/app/services/${svc!.id}`);
+  const td = m.getByTestId("timing-decision");
+  await expect(td.getByTestId("timing-current")).toContainText("16:00");
+  await expect(td.getByTestId("timing-risks")).toContainText("n'est attribué à personne");
+  await expect(td.getByTestId("timing-risks")).toContainText("actions indispensables");
+  await expect(td.getByTestId("timing-action")).toContainText("Ménage avant arrivée (QA)");
+  await expect(td.getByTestId("timing-unverified")).toContainText("linge");
+  await expect(m.getByTestId("decide-confirmed")).toHaveCount(0); // la décision générique ne confirme pas un horaire
+  await expect(td.getByTestId("timing-confirm")).toBeDisabled();
+  await td.getByTestId("timing-ack").check();
+  await td.getByTestId("timing-message").fill("Arrivée à 14 h confirmée, logement prêt si le ménage est fait à temps.");
+  await td.getByTestId("timing-confirm").click();
+  await expect(td.getByTestId("timing-result")).toHaveAttribute("data-status", "applied");
+
+  // Cohérence : séjour, ménage, action, historique, voyageur, alerte d'arrivée
+  const { data: after } = await admin.from("reservations").select("check_in_at").eq("id", stay!.id).single();
+  expect(Date.parse(after!.check_in_at)).toBe(early.getTime());
+  expect(Date.parse((await admin.from("tasks").select("window_end").eq("id", clean!.id).single()).data!.window_end)).toBe(early.getTime());
+  expect(Date.parse((await admin.from("stay_prep_actions").select("due_at").eq("reservation_id", stay!.id).single()).data!.due_at)).toBe(early.getTime());
+  await m.reload();
+  await expect(m.getByTestId("timing-cancel")).toBeVisible();
+  await m.goto(`/fr/app/stays/${stay!.id}`);
+  await m.getByText("Historique").click();
+  await expect(m.getByTestId("prep-history")).toContainText("Horaire du séjour modifié");
+  await g.reload();
+  await expect(g.getByTestId("guest-timing-note")).toContainText("Confirmé : votre arrivée est désormais prévue");
+  await expect(g.getByTestId("guest-timing-note")).toContainText("14:00");
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" }).getByTestId("arrival-causes")).toContainText("Ménage sans agent");
+
+  // Annulation : horaire et échéances rétablis
+  await m.goto(`/fr/app/services/${svc!.id}`);
+  await m.getByTestId("timing-cancel").click();
+  await expect(m.getByTestId("timing-result")).toHaveAttribute("data-status", "applied");
+  expect((await admin.from("reservations").select("check_in_at").eq("id", stay!.id).single()).data!.check_in_at).toBe(stay!.check_in_at);
+  await g.reload();
+  await expect(g.getByTestId("guest-timing-note")).toContainText("Votre arrivée reste prévue");
+
+  // Horaire impossible (avant la fin du ménage possible) : refus, aucune confirmation proposée
+  const tooEarly = new Date(clean!.window_start);
+  tooEarly.setMinutes(tooEarly.getMinutes() + 30);
+  await g.getByTestId("guest-timing-kind").selectOption("early_checkin");
+  await g.getByTestId("guest-timing-when").fill(local(tooEarly));
+  await g.getByTestId("guest-timing-send").click();
+  await expect(g.getByTestId("guest-timing-ok")).toBeVisible();
+  const { data: svc2 } = await admin.from("service_requests").select("id").eq("organization_id", org).eq("kind", "early_checkin").eq("status", "requested").single();
+  await m.goto(`/fr/app/services/${svc2!.id}`);
+  await expect(m.getByTestId("timing-blocking")).toContainText("Le ménage ne tient pas");
+  await expect(m.getByTestId("timing-confirm")).toHaveCount(0);
+  for (const c of [m, g]) await c.context().close();
+});
+
+test("31 · absences : risque (absence partielle) distingué du conflit confirmé, avec ce qui fonde la conclusion", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org, agentId } = await testScenario(m, `abs ${run}`);
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+  const day = (n: number, h: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + n);
+    d.setHours(h, 0, 0, 0);
+    return d.toISOString();
+  };
+  const { data: k } = await admin.from("tasks").insert({ organization_id: org, property_id: prop!.id, type: "maintenance", status: "assigned", assignee_id: agentId, window_start: day(10, 9), window_end: day(13, 18), duration_min: 90 }).select("id").single();
+  // Absence d'une journée au milieu d'une fenêtre de plusieurs jours : risque, pas conflit
+  const { error } = await admin.from("absences").insert({ organization_id: org, scope: "member", member_id: agentId, kind: "leave", starts_at: day(11, 0), ends_at: day(12, 0), status: "accepted", client_id: crypto.randomUUID() });
+  expect(error).toBeNull();
+  await m.goto(`/fr/app/missions/${k!.id}`);
+  await expect(m.getByTestId("mission-absence-risk")).toContainText("absent(e) sur une partie de la fenêtre");
+  await expect(m.getByTestId("mission-absence-basis")).toContainText("plus long temps libre");
+  await expect(m.getByTestId("mission-absence-conflict")).toHaveCount(0);
+  await m.goto("/fr/app/team");
+  await expect(m.getByTestId("availability-risk")).toContainText("absence sur une partie de la fenêtre");
+  await expect(m.getByTestId("availability-conflict")).toHaveCount(0);
+  // Absence qui couvre toute la fenêtre : conflit confirmé, avec les données qui le fondent
+  await admin.from("absences").insert({ organization_id: org, scope: "member", member_id: agentId, kind: "unavailable", starts_at: day(10, 0), ends_at: day(14, 0), status: "accepted", client_id: crypto.randomUUID() });
+  await m.goto(`/fr/app/missions/${k!.id}`);
+  await expect(m.getByTestId("mission-absence-conflict")).toBeVisible();
+  await expect(m.getByTestId("mission-absence-basis")).toContainText("0 min");
+  await m.close();
+});
+
+test("32 · lieux avant l'ouverture : aucune donnée qui localise le logement", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `loc ${run}`);
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+  await admin.from("properties").update({ latitude: 48.8584, longitude: 2.2945 }).eq("id", prop!.id);
+  await admin.from("property_places").insert([
+    { organization_id: org, property_id: prop!.id, source: "manager", category: "activities", name: "Monument au même endroit", latitude: 48.8584, longitude: 2.2945 },
+    { organization_id: org, property_id: prop!.id, source: "manager", category: "food", name: "Bistrot à 1,5 km", latitude: 48.871, longitude: 2.2995, address: "1 avenue Fictive, Paris" },
+  ]);
+  const { url } = await prepStay(m, browser, "Lou Avance", 12);
+  const g = await newPage(browser);
+  await g.goto(url);
+  const around = g.getByTestId("guest-around");
+  await expect(around.getByTestId("around-near-hidden")).toContainText("1 lieu tout proche du logement apparaîtra");
+  await expect(around.getByTestId("around-place")).toHaveCount(1);
+  await expect(around).not.toContainText("Monument au même endroit");
+  await expect(around.getByTestId("around-distance-band")).toContainText("1 à 2 km");
+  await expect(around.getByTestId("around-distance")).toHaveCount(0);
+  await expect(around.getByTestId("places-map")).toHaveCount(0);
+  for (const c of [m, g]) await c.context().close();
 });

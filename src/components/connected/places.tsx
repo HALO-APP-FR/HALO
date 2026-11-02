@@ -29,6 +29,8 @@ export interface Place {
   note: string | null;
   updated_at: string;
   distance_m: number | null;
+  /** Avant l'ouverture des informations pratiques : tranche de distance (1 = moins de 1 km, 2 = 1 à 2 km, 3 = 2 à 3 km) */
+  distance_band?: number | null;
   hidden?: boolean;
   created_at?: string | null;
   verified_at?: string | null;
@@ -98,7 +100,7 @@ export const fmtDistance = (m: number) => (m < 100 ? "< 100 m" : m < 1000 ? `≈
  * Pour chaque lieu : origine (équipe, propriétaire ou proposé automatiquement), distance arrondie,
  * adresse, horaires seulement si la source les fournit, itinéraire Plans / Google Maps / Waze.
  */
-export function GuestAround({ property, places, hiddenUntil }: { property: { name: string; lat: number | null; lng: number | null; address: string }; places: Place[]; /** Avant la fenêtre habituelle : carte et adresse volontairement masquées jusqu'à cette date */ hiddenUntil?: string }) {
+export function GuestAround({ property, places, hiddenUntil, nearHidden = 0 }: { property: { name: string; lat: number | null; lng: number | null; address: string }; places: Place[]; /** Lieux très proches retenus jusqu'à l'ouverture (seul leur nombre est connu) */ nearHidden?: number; /** Avant la fenêtre habituelle : carte et adresse volontairement masquées jusqu'à cette date */ hiddenUntil?: string }) {
   const t = useTranslations("guestSpace.around");
   const tc = useTranslations("places.category");
   const f = useFormatter();
@@ -123,7 +125,7 @@ export function GuestAround({ property, places, hiddenUntil }: { property: { nam
   return (
     <section className="space-y-3" data-testid="guest-around">
       <h2 className="text-title-3">{t("title")}</h2>
-      {places.length === 0 ? (
+      {places.length === 0 && nearHidden === 0 ? (
         <Card className="p-5 text-[15px] text-muted" data-testid="around-empty">
           {t("empty")}
         </Card>
@@ -132,6 +134,11 @@ export function GuestAround({ property, places, hiddenUntil }: { property: { nam
           <p className="text-[14px] text-muted" data-testid="around-origin">
             {center ? t("originHome", { address: property.address || property.name }) : hiddenUntil ? t("mapLater", { date: hiddenUntil }) : t("noCoordinates")}
           </p>
+          {hiddenUntil && nearHidden > 0 && (
+            <p className="text-[13px] text-muted" data-testid="around-near-hidden">
+              {t("nearHidden", { count: nearHidden, date: hiddenUntil })}
+            </p>
+          )}
           {center && <PlacesMap center={center} places={shown} onTilesFailed={() => setTilesFailed(true)} />}
           {tilesFailed && (
             <p className="text-[13px] text-warning" role="status" data-testid="around-map-offline">
@@ -179,6 +186,7 @@ export function GuestAround({ property, places, hiddenUntil }: { property: { nam
                         <p className="text-[13px] text-muted">
                           {tc(p.category)}
                           {p.distance_m != null && <span data-testid="around-distance"> · {fmtDistance(p.distance_m)}</span>}
+                          {p.distance_m == null && p.distance_band != null && <span data-testid="around-distance-band"> · {t("band", { n: p.distance_band })}</span>}
                         </p>
                       </div>
                       <span

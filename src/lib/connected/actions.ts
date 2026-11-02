@@ -345,7 +345,7 @@ export async function decideService(
     guest_message: guestMessage || null,
     internal_note: internalNote || null,
   });
-  if (e) return fail(e.message?.includes("question_required") ? "question_required" : errCode(e));
+  if (e) return fail(e.message?.includes("question_required") ? "question_required" : e.message?.includes("use_timing_decision") ? "use_timing_decision" : errCode(e));
   const res = data as { status: string; email_queued?: boolean; current?: string };
   if (res.status !== "ok") return fail(`conflict:${res.current}`);
   if (res.email_queued) await processOutbox(ctx.org!.id);

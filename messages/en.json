@@ -1378,7 +1378,7 @@
       "invalid_window": "The time slot is not valid: the end must leave at least the estimated duration after the start.",
       "out_of_window": "The mission no longer fits its window: confirm a new end before assigning.",
       "stay_overlap": "This stay overlaps another stay at the same property.",
-      "assignee_unavailable": "This person is away during this time slot: the mission does not fit outside their absence.",
+      "assignee_unavailable": "Confirmed conflict: with their accepted absences, this person doesn't have enough free time in the window (or the planned slot falls during the absence).",
       "name_required": "Enter your name.",
       "invalid_period": "The period is not valid (end after start).",
       "not_member": "This person is not part of the active team.",
@@ -1412,7 +1412,8 @@
       "not_accepted": "The guest hasn't accepted the offer (yet): nothing is confirmed.",
       "testimonial_not_allowed": "A selected testimonial no longer has (or never had) its author's consent.",
       "slug_taken": "This showcase address is already taken: choose another.",
-      "no_property": "This review isn't linked to a property: an incident can't be created."
+      "no_property": "This review isn't linked to a property: an incident can't be created.",
+      "use_timing_decision": "An arrival or departure time is confirmed or cancelled with the dedicated decision, which checks preparation."
     },
     "home": {
       "subtitle": "What needs your attention.",
@@ -1444,7 +1445,8 @@
       "lowReviews": "{count, plural, =0 {No review to follow up} one {# review to follow up (low rating)} other {# reviews to follow up (low ratings)}}",
       "lowReviewsGuest": "{count, plural, =0 {No guest review to handle} one {# guest review to handle} other {# guest reviews to handle}}",
       "lowReviewsOwner": "{count, plural, =0 {No owner review to handle} one {# owner review to handle} other {# owner reviews to handle}}",
-      "moreCauses": "+ {count} more cause(s)"
+      "moreCauses": "+ {count} more cause(s)",
+      "availabilityRisks": "{count, plural, =0 {No mission to check (partial absence)} one {# mission to check (partial absence)} other {# missions to check (partial absence)}}"
     },
     "onb": {
       "progress": "Step {n} of {total}",
@@ -1956,7 +1958,13 @@
       "suggestNone": "No one is available according to known absences.",
       "suggestBusy": "{count, plural, one {already # other mission in this range} other {already # other missions in this range}}",
       "suggestFree": "no other mission in this range",
-      "suggestLimits": "Based on absences and missions recorded in HALO. Travel time and undeclared availability: unknown."
+      "suggestLimits": "Based on absences and missions recorded in HALO. Travel time and undeclared availability: unknown.",
+      "basisWindow": "Window {window}, no planned slot: longest free time outside absences {free}, planned duration {duration} (computed over 24 h; working hours and travel unknown).",
+      "basisScheduled": "Planned slot {slot}, during the absence.",
+      "riskTitle": "{name} is absent for part of the window",
+      "riskStartedTitle": "Mission started by {name}, absent for part of the window: to check",
+      "riskActions": "A risk to check, not a conflict: the mission is still possible outside the absence. Plan a slot outside it to confirm.",
+      "partialFor": "partial absence ({period})"
     },
     "team": {
       "title": "Team",
@@ -2294,12 +2302,14 @@
       "noneMine": "No absence reported.",
       "absentNow": "Away right now",
       "conflictsTitle": "{count, plural, one {# mission to reorganize} other {# missions to reorganize}}",
-      "conflictsText": "These missions no longer fit outside absences or closures. HALO never reassigns them on its own: open them to change the person or the time slot.",
+      "conflictsText": "Confirmed conflicts: these missions can't be done by the assigned person (planned slot during the absence, or remaining free time shorter than the planned duration). HALO never reassigns them on its own.",
       "nobody": "No one assigned",
       "conflictKind": {
         "accepted": "accepted absence",
         "pending": "if the pending request is accepted",
-        "closure": "team closure"
+        "closure": "team closure",
+        "partial": "absence over part of the window",
+        "started": "mission started during an absence"
       },
       "closureStay": "Stay during a closure: {guest}, {dates}",
       "listTitle": "Upcoming absences and closures",
@@ -2313,7 +2323,10 @@
         "accepted": "accepted",
         "refused": "refused",
         "cancelled": "cancelled"
-      }
+      },
+      "risksTitle": "{count, plural, one {# mission to check} other {# missions to check}}",
+      "risksText": "Absence over only part of the window: the mission is still possible outside it. Plan a slot to remove the doubt.",
+      "freeLeft": "free time left {duration}"
     },
     "chat": {
       "title": "Team messages",
@@ -2573,7 +2586,8 @@
         "action_forced": "Action closed by override",
         "action_auto_done": "Action closed: mission finished",
         "mission_reopened": "Linked mission to redo: action reopened",
-        "mission_cancelled": "Linked mission cancelled: action still open"
+        "mission_cancelled": "Linked mission cancelled: action still open",
+        "stay_time_changed": "Stay time changed"
       },
       "missionNotDone": "The linked mission isn't finished. Closing the action now is an override: it will be logged with your reason.",
       "overrideReason": "Reason for the override",
@@ -2583,7 +2597,11 @@
       "taskNotesHint": "Visible to the agent in their list and the mission details.",
       "notReadyReason": "This stay is no longer “Ready” since {date}: the required action “{action}” {cause, select, mission {was reopened because its mission must be redone} other {was reopened}}. Complete it (or close it with a reason), then set the stay back to “Ready”.",
       "blockersTitle": "{count, plural, one {What blocks “Ready”: # required action open} other {What blocks “Ready”: # required actions open}}",
-      "linkedMission": "linked mission: {status}"
+      "linkedMission": "linked mission: {status}",
+      "timeChange": {
+        "check_in": "arrival {from} → {to}",
+        "check_out": "departure {from} → {to}"
+      }
     },
     "vip": {
       "title": "VIP status",
@@ -3253,6 +3271,62 @@
       "noSlotLong": "No slot assigned: the job happens within the range above.",
       "assigneeLabel": "Assignment",
       "unassigned": "Unassigned"
+    },
+    "timingDecision": {
+      "title": {
+        "early_checkin": "Decide on the early check-in",
+        "late_checkout": "Decide on the late check-out"
+      },
+      "requested": "Requested time",
+      "currentArrival": "Current stay arrival",
+      "currentDeparture": "Current stay departure",
+      "knownTitle": "What HALO knows",
+      "cleaning": "Cleaning",
+      "assignedTo": "assigned to {name}",
+      "unassigned": "unassigned",
+      "from": "possible from {date}",
+      "duration": "planned {duration}",
+      "slot": "planned slot {date}",
+      "noSlot": "no slot planned",
+      "noCleaning": "No cleaning linked to this stay.",
+      "action": "Required action open: “{title}”, due {due}",
+      "noDue": "no due date",
+      "linkedMission": "linked mission: {status}",
+      "blockingTitle": "This time can't be confirmed",
+      "blocking": {
+        "cleaning_cannot_fit": "Cleaning can't fit before this time: the previous guest leaves too late for the planned duration.",
+        "stay_overlap": "This time would overlap another stay at the property."
+      },
+      "risksTitle": "Preparation not guaranteed at this time",
+      "risk": {
+        "no_cleaning": "No cleaning is planned before arrival.",
+        "cleaning_unassigned": "The cleaning isn't assigned to anyone.",
+        "cleaning_not_planned": "The cleaning is assigned but has no slot: nothing guarantees it'll be done before this time.",
+        "cleaning_scheduled_after": "The cleaning is scheduled to finish after this time. Its slot won't be moved: it will need rescheduling.",
+        "cleaning_scheduled_before": "The post-departure cleaning is scheduled before this time. Its slot won't be moved: it will need rescheduling.",
+        "prep_actions_open": "Required actions remain open with a later due date."
+      },
+      "unverified": "Not checked by HALO: linen availability, access and keys, owner rules. To be confirmed by the team.",
+      "effectsEarly": "When confirming: the stay's arrival moves to the requested time; the cleaning window end and action due dates set at the old time follow; an already planned slot is never moved; the assigned agent is notified; the guest sees the new time.",
+      "effectsLate": "When confirming: the stay's departure moves to the requested time; the cleaning window start follows; an already planned slot is never moved; the assigned agent is notified; the guest sees the new time.",
+      "ack": "I confirm knowingly: preparation isn't guaranteed at this time (decision recorded).",
+      "ackNeeded": "Tick the box to confirm despite these points.",
+      "message": "Message to the guest",
+      "note": "Internal note",
+      "noteHint": "Visible to the team only.",
+      "confirm": "Confirm the time",
+      "otherDecisions": "To ask for details or decline, use the decision below.",
+      "confirmedText": "Time confirmed: the stay shows the new time. Cancelling restores the previous time if the stay hasn't changed since.",
+      "cancel": "Cancel this time",
+      "result": {
+        "applied": "Decision saved.",
+        "risks": "Some points aren't guaranteed: tick the box to confirm knowingly.",
+        "not_feasible": "Not possible: this time can't be met (see above). Nothing was changed.",
+        "stay_changed": "The stay changed in the meantime: reload the page to decide on up-to-date data.",
+        "already": "Already done.",
+        "conflict": "The request changed in the meantime: the page has been refreshed.",
+        "no_stay": "No stay linked to this request."
+      }
     }
   },
   "email": {
@@ -3536,7 +3610,9 @@
       "picksTitle": "Picked by the team and the owner",
       "autoTitle": "Automatic nearby suggestions (not verified)",
       "showAll": "See all {count} suggestions",
-      "showLess": "Show less"
+      "showLess": "Show less",
+      "band": "{n, select, 1 {under 1 km} 2 {1 to 2 km} other {2 to 3 km}}",
+      "nearHidden": "{count, plural, one {# place right next to the home will appear on {date}, with the address.} other {# places right next to the home will appear on {date}, with the address.}}"
     },
     "prepBanner": "Your stay is coming up. Practical details (address, access, guide) will appear here from {date}. Meanwhile you can prepare your stay and message the team.",
     "prepared": {
@@ -3633,7 +3709,19 @@
       "detailsPlaceholder": "Flight, train, specific constraint…",
       "sent": "Request sent. Nothing is confirmed until the team replies.",
       "send": "Send the request",
-      "details": "Details about the time (optional)"
+      "details": "Details about the time (optional)",
+      "pendingNote": {
+        "early_checkin": "Awaiting a reply: your arrival stays planned for {date}.",
+        "late_checkout": "Awaiting a reply: your departure stays planned for {date}."
+      },
+      "confirmedNote": {
+        "early_checkin": "Confirmed: your arrival is now planned for {date}.",
+        "late_checkout": "Confirmed: your departure is now planned for {date}."
+      },
+      "unchangedNote": {
+        "early_checkin": "Your arrival stays planned for {date}.",
+        "late_checkout": "Your departure stays planned for {date}."
+      }
     }
   },
   "demoEntry": {

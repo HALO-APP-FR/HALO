@@ -221,7 +221,13 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
                     <span className="text-faint">{d(e.at)} · </span>
                     {tp(`event.${e.kind}`)}
                     {e.actor_id ? ` · ${who(e.actor_id)}` : ""}
-                    {e.note && e.kind !== "status_changed" ? ` — ${e.note}` : e.kind === "status_changed" && e.note ? ` — ${tp(`status.${e.note}`)}` : ""}
+                    {e.kind === "stay_time_changed" && e.note
+                      ? (() => {
+                          const [what, span] = e.note.split(":", 2).length === 2 ? [e.note.slice(0, e.note.indexOf(":")), e.note.slice(e.note.indexOf(":") + 1)] : ["", ""];
+                          const [from, to] = span.split(">");
+                          return from && to ? ` — ${tp(`timeChange.${what === "check_out" ? "check_out" : "check_in"}`, { from: d(from), to: d(to) })}` : "";
+                        })()
+                      : e.note && e.kind !== "status_changed" ? ` — ${e.note}` : e.kind === "status_changed" && e.note ? ` — ${tp(`status.${e.note}`)}` : ""}
                   </li>
                 ))}
                 {(events ?? []).length === 0 && <li className="text-muted">{tp("noHistory")}</li>}

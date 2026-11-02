@@ -1378,7 +1378,7 @@
       "invalid_window": "Das Zeitfenster ist ungültig: Zwischen Beginn und Ende muss mindestens die geschätzte Dauer liegen.",
       "out_of_window": "Der Einsatz passt nicht mehr ins Fenster: neues Ende bestätigen.",
       "stay_overlap": "Dieser Aufenthalt überschneidet sich mit einem anderen derselben Unterkunft.",
-      "assignee_unavailable": "Diese Person ist in diesem Zeitfenster abwesend: Der Einsatz passt nicht außerhalb ihrer Abwesenheit.",
+      "assignee_unavailable": "Bestätigter Konflikt: Mit ihren angenommenen Abwesenheiten hat diese Person nicht genug freie Zeit im Fenster (oder der Termin fällt in die Abwesenheit).",
       "name_required": "Geben Sie Ihren Namen an.",
       "invalid_period": "Der Zeitraum ist ungültig (Ende nach Beginn).",
       "not_member": "Diese Person gehört nicht zum aktiven Team.",
@@ -1412,7 +1412,8 @@
       "not_accepted": "Der Gast hat das Angebot (noch) nicht angenommen: Nichts ist bestätigt.",
       "testimonial_not_allowed": "Ein ausgewähltes Zitat hat keine (oder keine gültige) Zustimmung seines Verfassers.",
       "slug_taken": "Diese Schaufenster-Adresse ist bereits vergeben: Wählen Sie eine andere.",
-      "no_property": "Diese Bewertung ist keiner Unterkunft zugeordnet: Kein Vorfall möglich."
+      "no_property": "Diese Bewertung ist keiner Unterkunft zugeordnet: Kein Vorfall möglich.",
+      "use_timing_decision": "Eine An- oder Abreisezeit wird mit der eigenen Entscheidung bestätigt oder storniert, die die Vorbereitung prüft."
     },
     "home": {
       "subtitle": "Was Ihre Aufmerksamkeit braucht.",
@@ -1444,7 +1445,8 @@
       "lowReviews": "{count, plural, =0 {Keine Bewertung zu bearbeiten} one {# Bewertung zu bearbeiten (niedrige Note)} other {# Bewertungen zu bearbeiten (niedrige Noten)}}",
       "lowReviewsGuest": "{count, plural, =0 {Keine Gästebewertung zu bearbeiten} one {# Gästebewertung zu bearbeiten} other {# Gästebewertungen zu bearbeiten}}",
       "lowReviewsOwner": "{count, plural, =0 {Keine Eigentümerbewertung zu bearbeiten} one {# Eigentümerbewertung zu bearbeiten} other {# Eigentümerbewertungen zu bearbeiten}}",
-      "moreCauses": "+ {count} weitere Ursache(n)"
+      "moreCauses": "+ {count} weitere Ursache(n)",
+      "availabilityRisks": "{count, plural, =0 {Kein Einsatz zu prüfen (teilweise Abwesenheit)} one {# Einsatz zu prüfen (teilweise Abwesenheit)} other {# Einsätze zu prüfen (teilweise Abwesenheit)}}"
     },
     "onb": {
       "progress": "Schritt {n} von {total}",
@@ -1956,7 +1958,13 @@
       "suggestNone": "Laut bekannten Abwesenheiten ist niemand verfügbar.",
       "suggestBusy": "{count, plural, one {bereits # weiterer Einsatz in diesem Zeitraum} other {bereits # weitere Einsätze in diesem Zeitraum}}",
       "suggestFree": "kein weiterer Einsatz in diesem Zeitraum",
-      "suggestLimits": "Basierend auf in HALO erfassten Abwesenheiten und Einsätzen. Fahrzeit und nicht gemeldete Verfügbarkeit: unbekannt."
+      "suggestLimits": "Basierend auf in HALO erfassten Abwesenheiten und Einsätzen. Fahrzeit und nicht gemeldete Verfügbarkeit: unbekannt.",
+      "basisWindow": "Fenster {window}, ohne Termin: längste freie Zeit außerhalb der Abwesenheiten {free}, geplante Dauer {duration} (24-Std.-Berechnung; Arbeitszeiten und Wege unbekannt).",
+      "basisScheduled": "Geplanter Termin {slot}, während der Abwesenheit.",
+      "riskTitle": "{name} ist während eines Teils des Fensters abwesend",
+      "riskStartedTitle": "Einsatz von {name} begonnen, teilweise abwesend: zu prüfen",
+      "riskActions": "Zu prüfendes Risiko, kein Konflikt: Der Einsatz bleibt außerhalb der Abwesenheit möglich. Planen Sie einen Termin außerhalb, um ihn zu bestätigen.",
+      "partialFor": "teilweise abwesend ({period})"
     },
     "team": {
       "title": "Team",
@@ -2294,12 +2302,14 @@
       "noneMine": "Keine Abwesenheit gemeldet.",
       "absentNow": "Gerade abwesend",
       "conflictsTitle": "{count, plural, one {# Einsatz neu zu planen} other {# Einsätze neu zu planen}}",
-      "conflictsText": "Diese Einsätze passen nicht mehr außerhalb der Abwesenheiten oder Schließungen. HALO weist sie nie selbst neu zu: Öffnen Sie sie, um Person oder Zeitfenster zu ändern.",
+      "conflictsText": "Bestätigte Konflikte: Die zugewiesene Person kann diese Einsätze nicht erledigen (Termin in der Abwesenheit oder freie Zeit kürzer als die Dauer). HALO weist nie selbst neu zu.",
       "nobody": "Niemand zugewiesen",
       "conflictKind": {
         "accepted": "angenommene Abwesenheit",
         "pending": "falls der offene Antrag angenommen wird",
-        "closure": "Teamschließung"
+        "closure": "Teamschließung",
+        "partial": "Abwesenheit in einem Teil des Fensters",
+        "started": "Einsatz während einer Abwesenheit begonnen"
       },
       "closureStay": "Aufenthalt während einer Schließung: {guest}, {dates}",
       "listTitle": "Kommende Abwesenheiten und Schließungen",
@@ -2313,7 +2323,10 @@
         "accepted": "angenommen",
         "refused": "abgelehnt",
         "cancelled": "storniert"
-      }
+      },
+      "risksTitle": "{count, plural, one {# Einsatz zu prüfen} other {# Einsätze zu prüfen}}",
+      "risksText": "Abwesenheit nur in einem Teil des Fensters: Der Einsatz bleibt außerhalb möglich. Planen Sie einen Termin, um sicherzugehen.",
+      "freeLeft": "verbleibende freie Zeit {duration}"
     },
     "chat": {
       "title": "Teamnachrichten",
@@ -2573,7 +2586,8 @@
         "action_forced": "Aktion per Ausnahme abgeschlossen",
         "action_auto_done": "Aktion abgeschlossen: Einsatz erledigt",
         "mission_reopened": "Verknüpfter Einsatz zu wiederholen: Aktion wieder geöffnet",
-        "mission_cancelled": "Verknüpfter Einsatz storniert: Aktion bleibt offen"
+        "mission_cancelled": "Verknüpfter Einsatz storniert: Aktion bleibt offen",
+        "stay_time_changed": "Aufenthaltszeit geändert"
       },
       "missionNotDone": "Der verknüpfte Einsatz ist nicht abgeschlossen. Die Aktion jetzt abzuschließen ist eine Ausnahme: Sie wird mit Ihrem Grund protokolliert.",
       "overrideReason": "Grund der Ausnahme",
@@ -2583,7 +2597,11 @@
       "taskNotesHint": "Für den Agenten in seiner Liste und den Einsatzdetails sichtbar.",
       "notReadyReason": "Dieser Aufenthalt ist seit {date} nicht mehr „Bereit“: Die notwendige Aktion „{action}“ {cause, select, mission {wurde wieder geöffnet, weil ihr Einsatz wiederholt werden muss} other {wurde wieder geöffnet}}. Erledigen Sie sie (oder schließen Sie sie mit Begründung) und setzen Sie den Aufenthalt wieder auf „Bereit“.",
       "blockersTitle": "{count, plural, one {Was „Bereit“ verhindert: # notwendige Aktion offen} other {Was „Bereit“ verhindert: # notwendige Aktionen offen}}",
-      "linkedMission": "verknüpfter Einsatz: {status}"
+      "linkedMission": "verknüpfter Einsatz: {status}",
+      "timeChange": {
+        "check_in": "Anreise {from} → {to}",
+        "check_out": "Abreise {from} → {to}"
+      }
     },
     "vip": {
       "title": "VIP-Status",
@@ -3253,6 +3271,62 @@
       "noSlotLong": "Kein Termin vergeben: Der Einsatz erfolgt im obigen Zeitraum.",
       "assigneeLabel": "Zuweisung",
       "unassigned": "Nicht zugewiesen"
+    },
+    "timingDecision": {
+      "title": {
+        "early_checkin": "Über die frühe Anreise entscheiden",
+        "late_checkout": "Über die späte Abreise entscheiden"
+      },
+      "requested": "Gewünschte Uhrzeit",
+      "currentArrival": "Aktuelle Anreise",
+      "currentDeparture": "Aktuelle Abreise",
+      "knownTitle": "Was HALO weiß",
+      "cleaning": "Reinigung",
+      "assignedTo": "zugewiesen an {name}",
+      "unassigned": "nicht zugewiesen",
+      "from": "möglich ab {date}",
+      "duration": "geplant {duration}",
+      "slot": "geplanter Termin {date}",
+      "noSlot": "kein Termin geplant",
+      "noCleaning": "Keine Reinigung mit diesem Aufenthalt verknüpft.",
+      "action": "Notwendige Aktion offen: „{title}“, fällig {due}",
+      "noDue": "ohne Frist",
+      "linkedMission": "verknüpfter Einsatz: {status}",
+      "blockingTitle": "Diese Uhrzeit kann nicht bestätigt werden",
+      "blocking": {
+        "cleaning_cannot_fit": "Die Reinigung passt nicht vor diese Uhrzeit: Der vorherige Gast reist für die geplante Dauer zu spät ab.",
+        "stay_overlap": "Diese Uhrzeit würde sich mit einem anderen Aufenthalt überschneiden."
+      },
+      "risksTitle": "Vorbereitung zu dieser Uhrzeit nicht garantiert",
+      "risk": {
+        "no_cleaning": "Vor der Anreise ist keine Reinigung geplant.",
+        "cleaning_unassigned": "Die Reinigung ist niemandem zugewiesen.",
+        "cleaning_not_planned": "Die Reinigung ist zugewiesen, aber ohne Termin: Nichts garantiert, dass sie vorher erledigt ist.",
+        "cleaning_scheduled_after": "Die Reinigung endet laut Plan nach dieser Uhrzeit. Der Termin wird nicht verschoben: Er muss neu geplant werden.",
+        "cleaning_scheduled_before": "Die Reinigung nach Abreise ist vor dieser Uhrzeit geplant. Der Termin wird nicht verschoben: Er muss neu geplant werden.",
+        "prep_actions_open": "Notwendige Aktionen mit späterer Frist sind noch offen."
+      },
+      "unverified": "Von HALO nicht geprüft: Wäsche, Zugang und Schlüssel, Regeln des Eigentümers. Vom Team zu bestätigen.",
+      "effectsEarly": "Bei Bestätigung: Die Anreise wird auf die gewünschte Uhrzeit gesetzt; Ende des Reinigungsfensters und Fristen zur alten Uhrzeit folgen; ein geplanter Termin wird nie verschoben; der zugewiesene Mitarbeiter wird informiert; der Gast sieht die neue Uhrzeit.",
+      "effectsLate": "Bei Bestätigung: Die Abreise wird auf die gewünschte Uhrzeit gesetzt; Beginn des Reinigungsfensters folgt; ein geplanter Termin wird nie verschoben; der zugewiesene Mitarbeiter wird informiert; der Gast sieht die neue Uhrzeit.",
+      "ack": "Ich bestätige bewusst: Die Vorbereitung ist zu dieser Uhrzeit nicht garantiert (Entscheidung protokolliert).",
+      "ackNeeded": "Kreuzen Sie das Feld an, um trotzdem zu bestätigen.",
+      "message": "Nachricht an den Gast",
+      "note": "Interne Notiz",
+      "noteHint": "Nur für das Team sichtbar.",
+      "confirm": "Uhrzeit bestätigen",
+      "otherDecisions": "Für Rückfragen oder Ablehnung nutzen Sie die Entscheidung unten.",
+      "confirmedText": "Uhrzeit bestätigt: Der Aufenthalt zeigt die neue Uhrzeit. Stornieren stellt die vorherige wieder her, falls der Aufenthalt unverändert ist.",
+      "cancel": "Diese Uhrzeit stornieren",
+      "result": {
+        "applied": "Entscheidung gespeichert.",
+        "risks": "Einige Punkte sind nicht garantiert: Kreuzen Sie das Feld an, um bewusst zu bestätigen.",
+        "not_feasible": "Nicht möglich: Diese Uhrzeit ist nicht einhaltbar (siehe oben). Nichts wurde geändert.",
+        "stay_changed": "Der Aufenthalt hat sich geändert: Laden Sie die Seite neu, um mit aktuellen Daten zu entscheiden.",
+        "already": "Bereits erledigt.",
+        "conflict": "Die Anfrage hat sich geändert: Die Seite wurde aktualisiert.",
+        "no_stay": "Kein Aufenthalt mit dieser Anfrage verknüpft."
+      }
     }
   },
   "email": {
@@ -3536,7 +3610,9 @@
       "picksTitle": "Auswahl des Teams und des Eigentümers",
       "autoTitle": "Automatische Vorschläge in der Nähe (nicht geprüft)",
       "showAll": "Alle {count} Vorschläge ansehen",
-      "showLess": "Weniger anzeigen"
+      "showLess": "Weniger anzeigen",
+      "band": "{n, select, 1 {unter 1 km} 2 {1 bis 2 km} other {2 bis 3 km}}",
+      "nearHidden": "{count, plural, one {# Ort ganz in der Nähe erscheint am {date} mit der Adresse.} other {# Orte ganz in der Nähe erscheinen am {date} mit der Adresse.}}"
     },
     "prepBanner": "Ihr Aufenthalt rückt näher. Praktische Infos (Adresse, Zugang, Leitfaden) erscheinen hier ab {date}. Bis dahin können Sie Ihren Aufenthalt vorbereiten und dem Team schreiben.",
     "prepared": {
@@ -3633,7 +3709,19 @@
       "detailsPlaceholder": "Flug, Zug, besondere Einschränkung…",
       "sent": "Anfrage gesendet. Nichts ist bestätigt, bis das Team antwortet.",
       "send": "Anfrage senden",
-      "details": "Angaben zur Uhrzeit (optional)"
+      "details": "Angaben zur Uhrzeit (optional)",
+      "pendingNote": {
+        "early_checkin": "Antwort ausstehend: Ihre Anreise bleibt für {date} geplant.",
+        "late_checkout": "Antwort ausstehend: Ihre Abreise bleibt für {date} geplant."
+      },
+      "confirmedNote": {
+        "early_checkin": "Bestätigt: Ihre Anreise ist jetzt für {date} geplant.",
+        "late_checkout": "Bestätigt: Ihre Abreise ist jetzt für {date} geplant."
+      },
+      "unchangedNote": {
+        "early_checkin": "Ihre Anreise bleibt für {date} geplant.",
+        "late_checkout": "Ihre Abreise bleibt für {date} geplant."
+      }
     }
   },
   "demoEntry": {

@@ -5,6 +5,8 @@ import { Link, redirect } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/halo/page-header";
 import { ServiceDecision } from "@/components/connected/service-decision";
+import { TimingDecision } from "@/components/connected/timing-decision";
+import type { TimingCheck } from "@/lib/connected/timing-actions";
 import { OutboxList, type OutboxItem } from "@/components/connected/outbox-list";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { cn } from "@/lib/utils";
@@ -31,6 +33,18 @@ export default async function ServicePage({ params }: PageProps<"/[locale]/app/s
     supabase.from("service_events").select("id, kind, status, body, visibility, author_kind, at").eq("organization_id", o).eq("service_id", id).order("id"),
     supabase.from("notification_outbox").select("id, template, recipient, status, attempts, last_error, created_at, sent_at").eq("organization_id", o).eq("service_id", id).order("created_at", { ascending: false }),
   ]);
+  // Arrivée anticipée / départ tardif : contraintes connues calculées par la base (lecture seule)
+  const timing = s.kind === "early_checkin" || s.kind === "late_checkout";
+  let check: TimingCheck | null = null;
+  let assigneeName: string | null = null;
+  if (timing) {
+    const { data: c } = await supabase.rpc("timing_check", { org: o, service: id });
+    check = (c as TimingCheck | null) ?? null;
+    if (check?.cleaning?.assignee_id) {
+      const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", check.cleaning.assignee_id).maybeSingle();
+      assigneeName = (prof?.full_name as string | null) ?? null;
+    }
+  }
   const r = (Array.isArray(s.reservations) ? s.reservations[0] : s.reservations) as { guest_name: string | null; guest_email: string | null } | null;
   const p = (Array.isArray(s.properties) ? s.properties[0] : s.properties) as { name: string } | null;
   const pz = (Array.isArray(s.properties) ? s.properties[0] : s.properties) as { timezone?: string | null } | null;
@@ -47,7 +61,8 @@ export default async function ServicePage({ params }: PageProps<"/[locale]/app/s
               <p className="mt-1 whitespace-pre-wrap text-[15px]">{s.details}</p>
             </Card>
           )}
-          <ServiceDecision serviceId={s.id} status={s.status} guestEmail={r?.guest_email ?? null} unread={s.manager_unread} startAt={s.start_at} people={s.people} timeZone={tz} />
+          {timing && check?.status === "ok" && <TimingDecision serviceId={s.id} status={s.status} check={check} assigneeName={assigneeName} timeZone={tz} />}
+          <ServiceDecision serviceId={s.id} status={s.status} guestEmail={r?.guest_email ?? null} unread={s.manager_unread} startAt={s.start_at} people={s.people} timeZone={tz} timing={timing} />
           {s.reservation_id && (
             <Link href={`/app/stays/${s.reservation_id}`} className="block text-[14px] text-accent-text hover:underline">
               {t("services.openStay")}

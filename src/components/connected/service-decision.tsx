@@ -29,7 +29,7 @@ const NEXT: Record<Status, Decision[]> = {
 const toLocalInput = (iso: string, timeZone: string) =>
   new Intl.DateTimeFormat("sv-SE", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)).replace(" ", "T");
 
-export function ServiceDecision({ serviceId, status, guestEmail, unread, startAt, people, timeZone }: { serviceId: string; status: Status; guestEmail: string | null; unread: boolean; startAt: string; people: number | null; timeZone: string }) {
+export function ServiceDecision({ serviceId, status, guestEmail, unread, startAt, people, timeZone, timing = false }: { serviceId: string; status: Status; guestEmail: string | null; unread: boolean; startAt: string; people: number | null; timeZone: string; /** Arrivée anticipée / départ tardif : confirmation et annulation passent par la décision dédiée */ timing?: boolean }) {
   const t = useTranslations("connected.decide");
   const ts = useTranslations("serviceStatus");
   const { pending, error, run } = useRun();
@@ -46,7 +46,7 @@ export function ServiceDecision({ serviceId, status, guestEmail, unread, startAt
     if (unread) void markServiceSeen(serviceId);
   }, [serviceId, unread]);
 
-  const options = NEXT[status];
+  const options = NEXT[status].filter((o) => !timing || (o !== "confirmed" && !(status === "confirmed" && o === "cancelled")));
   const needsQuestion = choice === "info_requested";
   const channel = guestEmail ? t("channelEmail", { email: guestEmail }) : t("channelSpace");
 
@@ -106,7 +106,7 @@ export function ServiceDecision({ serviceId, status, guestEmail, unread, startAt
       )}
       {done && <p role="status" className="mt-3 text-[14px] text-muted" data-testid="decide-saved">{done}</p>}
 
-      {(status === "requested" || status === "in_review" || status === "info_requested" || status === "confirmed") && (
+      {(status === "requested" || status === "in_review" || status === "info_requested" || (status === "confirmed" && !timing)) && (
         <div className="mt-5 border-t border-line pt-4">
           {!edit ? (
             <Button variant="ghost" size="sm" onClick={() => setEdit(true)} data-testid="service-edit">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { availabilityConflicts, freeMinutes, isAvailable, staysDuringClosures, type Absence } from "@/lib/engine/availability";
+import { absenceLevel, availabilityConflicts, freeMinutes, isAvailable, staysDuringClosures, type Absence } from "@/lib/engine/availability";
 
 const ana = { id: "ana", position: "housekeeper" };
 const leo = { id: "leo", position: "maintenance" };
@@ -18,10 +18,13 @@ describe("disponibilités (même règle que la base)", () => {
     expect(isAvailable(ana, task("a", "2027-04-10T13:00:00Z", "2027-04-10T17:00:00Z"), [abs({})])).toBe(true);
   });
 
-  it("créneau réel : une longue fenêtre qui chevauche un congé est refusée ; un horaire fixé hors congé est accepté", () => {
+  it("migration 16 : longue fenêtre partiellement couverte = risque ; fenêtre sans temps libre suffisant = conflit ; horaire fixé = règle stricte", () => {
     const leave = abs({ startsAt: "2027-06-02T00:00:00Z", endsAt: "2027-06-03T00:00:00Z" });
     const long = { windowStart: "2027-06-01T10:00:00Z", windowEnd: "2027-06-04T10:00:00Z", durationMin: 90 };
-    expect(isAvailable(ana, long, [leave])).toBe(false);
+    expect(absenceLevel(ana, long, [leave])).toMatchObject({ level: "risk", freeMin: 2040 });
+    expect(isAvailable(ana, long, [leave])).toBe(true);
+    expect(absenceLevel(ana, { windowStart: "2027-06-01T23:00:00Z", windowEnd: "2027-06-03T00:30:00Z", durationMin: 90 }, [leave])).toMatchObject({ level: "conflict", freeMin: 60 });
+    expect(absenceLevel(ana, { windowStart: "2027-06-03T08:00:00Z", windowEnd: "2027-06-03T18:00:00Z", durationMin: 90 }, [leave]).level).toBe("none");
     expect(isAvailable(ana, { ...long, scheduledStart: "2027-06-01T12:00:00Z" }, [leave])).toBe(true);
     expect(isAvailable(ana, { ...long, scheduledStart: "2027-06-02T09:00:00Z" }, [leave])).toBe(false);
     expect(isAvailable(ana, { ...long, scheduledStart: "2027-06-01T23:00:00Z" }, [leave])).toBe(false); // 23 h + 1 h 30 déborde sur le congé
@@ -57,7 +60,7 @@ describe("disponibilités (même règle que la base)", () => {
       task("aprem", "2027-04-10T13:00:00Z", "2027-04-10T17:00:00Z"),
       task("libre", "2027-04-10T08:00:00Z", "2027-04-10T12:00:00Z", null),
     ];
-    expect(availabilityConflicts(tasks, [ana, leo], [abs({})], NOW)).toEqual([{ taskId: "matin", memberId: "ana", kind: "accepted", absenceIds: ["a1"] }]);
+    expect(availabilityConflicts(tasks, [ana, leo], [abs({})], NOW)).toMatchObject([{ taskId: "matin", memberId: "ana", kind: "accepted", absenceIds: ["a1"] }]);
     expect(availabilityConflicts(tasks, [ana, leo], [abs({ status: "pending" })], NOW)).toEqual([{ taskId: "matin", memberId: "ana", kind: "pending", absenceIds: ["a1"] }]);
     expect(availabilityConflicts(tasks, [ana, leo], [abs({ status: "cancelled" })], NOW)).toEqual([]);
   });
@@ -93,7 +96,9 @@ describe("journées entières dans le fuseau de l'organisation", () => {
     const leave = { id: "a", scope: "member" as const, memberId: "ana", teamPosition: null, kind: "leave" as const, status: "accepted" as const,
       startsAt: zonedMidnight("2027-02-02", "Europe/Paris").toISOString(), endsAt: zonedMidnight(nextDay("2027-02-02"), "Europe/Paris").toISOString() };
     const night = { windowStart: "2027-02-01T21:00:00Z", windowEnd: "2027-02-02T01:00:00Z", durationMin: 60 }; // 22 h → 2 h (Paris)
-    expect(isAvailable({ id: "ana", position: null }, night, [leave])).toBe(false);
+    // 22 h → minuit reste libre (2 h ≥ 1 h) : risque à examiner, pas conflit ; la base applique la même règle
+    expect(absenceLevel({ id: "ana", position: null }, night, [leave])).toMatchObject({ level: "risk", freeMin: 120 });
+    expect(absenceLevel({ id: "ana", position: null }, { ...night, durationMin: 150 }, [leave]).level).toBe("conflict");
     expect(isAvailable({ id: "ana", position: null }, { ...night, scheduledStart: "2027-02-01T21:00:00Z" }, [leave])).toBe(true); // 22 h → 23 h : avant minuit
     expect(nextDay("2027-12-31")).toBe("2028-01-01");
   });
