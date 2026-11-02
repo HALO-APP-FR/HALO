@@ -100,7 +100,7 @@ export const fmtDistance = (m: number) => (m < 100 ? "< 100 m" : m < 1000 ? `≈
  * Pour chaque lieu : origine (équipe, propriétaire ou proposé automatiquement), distance arrondie,
  * adresse, horaires seulement si la source les fournit, itinéraire Plans / Google Maps / Waze.
  */
-export function GuestAround({ property, places, hiddenUntil, nearHidden = 0 }: { property: { name: string; lat: number | null; lng: number | null; address: string }; places: Place[]; /** Lieux très proches retenus jusqu'à l'ouverture (seul leur nombre est connu) */ nearHidden?: number; /** Avant la fenêtre habituelle : carte et adresse volontairement masquées jusqu'à cette date */ hiddenUntil?: string }) {
+export function GuestAround({ property, places, hiddenUntil, nearHidden = 0, autoHidden = 0 }: { property: { name: string; lat: number | null; lng: number | null; address: string }; places: Place[]; /** Lieux très proches retenus jusqu'à l'ouverture (seul leur nombre est connu) */ nearHidden?: number; /** Suggestions automatiques retenues jusqu'à l'ouverture */ autoHidden?: number; /** Avant la fenêtre habituelle : carte et adresse volontairement masquées jusqu'à cette date */ hiddenUntil?: string }) {
   const t = useTranslations("guestSpace.around");
   const tc = useTranslations("places.category");
   const f = useFormatter();
@@ -125,7 +125,7 @@ export function GuestAround({ property, places, hiddenUntil, nearHidden = 0 }: {
   return (
     <section className="space-y-3" data-testid="guest-around">
       <h2 className="text-title-3">{t("title")}</h2>
-      {places.length === 0 && nearHidden === 0 ? (
+      {places.length === 0 && nearHidden === 0 && autoHidden === 0 ? (
         <Card className="p-5 text-[15px] text-muted" data-testid="around-empty">
           {t("empty")}
         </Card>
@@ -134,6 +134,11 @@ export function GuestAround({ property, places, hiddenUntil, nearHidden = 0 }: {
           <p className="text-[14px] text-muted" data-testid="around-origin">
             {center ? t("originHome", { address: property.address || property.name }) : hiddenUntil ? t("mapLater", { date: hiddenUntil }) : t("noCoordinates")}
           </p>
+          {hiddenUntil && autoHidden > 0 && (
+            <p className="text-[13px] text-muted" data-testid="around-auto-hidden">
+              {t("autoHidden", { count: autoHidden, date: hiddenUntil })}
+            </p>
+          )}
           {hiddenUntil && nearHidden > 0 && (
             <p className="text-[13px] text-muted" data-testid="around-near-hidden">
               {t("nearHidden", { count: nearHidden, date: hiddenUntil })}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useId, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 
@@ -12,6 +12,13 @@ export function useRun() {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  // Une action réussie ailleurs sur la page rend les erreurs précédentes obsolètes : elles disparaissent
+  const id = useId();
+  useEffect(() => {
+    const clear = () => setError(null);
+    window.addEventListener("halo:action-ok", clear);
+    return () => window.removeEventListener("halo:action-ok", clear);
+  }, []);
   const run = <T,>(fn: () => Promise<R<T>>, onOk?: (data: T) => void) => {
     setError(null);
     start(async () => {
@@ -23,11 +30,13 @@ export function useRun() {
           return;
         }
         onOk?.(res.data);
+        // L'identifiant d'origine permet aux autres blocs de la page d'effacer leurs messages devenus obsolètes
+        window.dispatchEvent(new CustomEvent("halo:action-ok", { detail: id }));
         router.refresh();
       } catch {
         setError(te("network"));
       }
     });
   };
-  return { pending, error, setError, run };
+  return { pending, error, setError, run, id };
 }

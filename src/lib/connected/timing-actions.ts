@@ -18,6 +18,10 @@ export interface TimingCheck {
   change: boolean;
   cleaning?: { id: string; status: string; assignee_id: string | null; window_start: string; window_end: string; duration_min: number; scheduled_start: string | null } | null;
   actions?: { id: string; title: string; due_at: string | null; task_status: string | null }[];
+  /** Effet prévu sur chaque mission liée : deadline / start / shift (modifiées), unchanged_* (laissées telles quelles), blocking */
+  tasks?: { id: string; type: string; title: string | null; status: string; assignee_id: string | null; window_start: string; window_end: string; duration_min: number; scheduled_start: string | null; effect: string }[];
+  /** Confirmée avant la migration 16 sans que le séjour ait suivi */
+  legacy_mismatch?: boolean;
   risks: string[];
   blocking: string[];
   unverified?: string[];
@@ -25,7 +29,7 @@ export interface TimingCheck {
 
 export async function decideTiming(
   serviceId: string,
-  act: "confirm" | "cancel",
+  act: "confirm" | "cancel" | "apply_legacy",
   input: { ack: boolean; expectedAt: string | null; message: string; note: string },
 ): Promise<Result<{ status: string; check?: TimingCheck }>> {
   const ctx = await getContext();

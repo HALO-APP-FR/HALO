@@ -1413,7 +1413,8 @@
       "testimonial_not_allowed": "Um testemunho escolhido não tem (ou deixou de ter) o consentimento do autor.",
       "slug_taken": "Este endereço de montra já está em uso: escolha outro.",
       "no_property": "Esta avaliação não está ligada a nenhum alojamento: não é possível criar um incidente.",
-      "use_timing_decision": "Um horário de chegada ou saída confirma-se ou cancela-se com a decisão dedicada, que verifica a preparação."
+      "use_timing_decision": "Um horário de chegada ou saída confirma-se ou cancela-se com a decisão dedicada, que verifica a preparação.",
+      "timing_window": "Uma missão ligada não podia acompanhar este novo horário. Nada foi alterado; recarregue a página para ver o efeito previsto em cada missão."
     },
     "home": {
       "subtitle": "O que precisa da sua atenção.",
@@ -1446,7 +1447,8 @@
       "lowReviewsGuest": "{count, plural, =0 {Nenhuma avaliação de hóspede por tratar} one {# avaliação de hóspede por tratar} other {# avaliações de hóspedes por tratar}}",
       "lowReviewsOwner": "{count, plural, =0 {Nenhuma avaliação de proprietário por tratar} one {# avaliação de proprietário por tratar} other {# avaliações de proprietários por tratar}}",
       "moreCauses": "+ {count} outra(s) causa(s)",
-      "availabilityRisks": "{count, plural, =0 {Nenhuma missão a examinar (ausência parcial)} one {# missão a examinar (ausência parcial)} other {# missões a examinar (ausência parcial)}}"
+      "availabilityRisks": "{count, plural, =0 {Nenhuma missão a examinar (ausência parcial)} one {# missão a examinar (ausência parcial)} other {# missões a examinar (ausência parcial)}}",
+      "timingMismatch": "{count, plural, =0 {Nenhum horário contraditório} one {# horário confirmado não corresponde à estadia} other {# horários confirmados não correspondem às estadias}}"
     },
     "onb": {
       "progress": "Passo {n} de {total}",
@@ -1959,10 +1961,10 @@
       "suggestBusy": "{count, plural, one {já # outra missão neste intervalo} other {já # outras missões neste intervalo}}",
       "suggestFree": "nenhuma outra missão neste intervalo",
       "suggestLimits": "Segundo as ausências e missões registadas no HALO. Tempo de deslocação e disponibilidades não declaradas: desconhecidos.",
-      "basisWindow": "Janela {window}, sem horário planeado: maior tempo livre fora das ausências {free}, duração prevista {duration} (cálculo em 24 h; horários e deslocações desconhecidos).",
+      "basisWindow": "Janela {window}, sem horário: tempo livre calculado fora das ausências registadas {free}, duração prevista {duration}. Cálculo em 24 h só com os dados do HALO (horários, deslocações e outros compromissos desconhecidos): não é disponibilidade garantida.",
       "basisScheduled": "Horário planeado {slot}, durante a ausência.",
       "riskTitle": "{name} está ausente em parte da janela",
-      "riskStartedTitle": "Missão iniciada por {name}, ausente em parte da janela: a verificar",
+      "riskStartedTitle": "Missão em curso: {name} tem uma ausência na sua janela — a verificar",
       "riskActions": "Risco a examinar, não um conflito: a missão continua possível fora da ausência. Planeie um horário fora dela para confirmar.",
       "partialFor": "ausência parcial ({period})"
     },
@@ -2309,7 +2311,8 @@
         "pending": "se o pedido pendente for aceite",
         "closure": "fecho da equipa",
         "partial": "ausência em parte da janela",
-        "started": "missão iniciada durante uma ausência"
+        "started": "missão em curso com a ausência já iniciada: a verificar",
+        "started_upcoming": "missão em curso; ausência prevista a partir de {date} na sua janela"
       },
       "closureStay": "Estadia durante um fecho: {guest}, {dates}",
       "listTitle": "Próximas ausências e fechos",
@@ -2326,7 +2329,7 @@
       },
       "risksTitle": "{count, plural, one {# missão a examinar} other {# missões a examinar}}",
       "risksText": "Ausência apenas em parte da janela: a missão continua possível fora dela. Planeie um horário para tirar a dúvida.",
-      "freeLeft": "tempo livre restante {duration}"
+      "freeLeft": "tempo livre calculado {duration} (segundo as ausências registadas, em 24 h — não é disponibilidade garantida)"
     },
     "chat": {
       "title": "Mensagens da equipa",
@@ -3304,10 +3307,13 @@
         "cleaning_not_planned": "A limpeza está atribuída mas sem horário: nada garante que seja feita antes desta hora.",
         "cleaning_scheduled_after": "A limpeza está planeada para terminar depois desta hora. O horário não será alterado: terá de ser replaneada.",
         "cleaning_scheduled_before": "A limpeza após a saída está planeada antes desta hora. O horário não será alterado: terá de ser replaneada.",
-        "prep_actions_open": "Continuam abertas ações indispensáveis com prazo posterior."
+        "prep_actions_open": "Continuam abertas ações indispensáveis com prazo posterior.",
+        "mission_cannot_fit": "Uma missão ligada não pode ser concluída antes desta hora (fica como está).",
+        "mission_scheduled": "Uma missão ligada tem um horário planeado que não será alterado: replanear.",
+        "mission_unassigned": "Uma missão de preparação ligada não está atribuída a ninguém."
       },
       "unverified": "Não verificado pelo HALO: disponibilidade de roupa, acesso e chaves, regras do proprietário. A confirmar pela equipa.",
-      "effectsEarly": "Ao confirmar: a chegada passa para a hora pedida; o fim da janela da limpeza e os prazos fixados na hora antiga acompanham; um horário já planeado nunca é alterado; o agente atribuído é avisado; o hóspede vê a nova hora.",
+      "effectsEarly": "Ao confirmar: a chegada passa para a hora pedida; cada missão ligada segue o efeito indicado; os prazos fixados na hora antiga acompanham; nenhum horário planeado é alterado; os agentes são avisados; o hóspede vê a nova hora.",
       "effectsLate": "Ao confirmar: a saída passa para a hora pedida; o início da janela da limpeza acompanha; um horário já planeado nunca é alterado; o agente atribuído é avisado; o hóspede vê a nova hora.",
       "ack": "Confirmo com conhecimento de causa: a preparação não está garantida a esta hora (decisão registada).",
       "ackNeeded": "Assinale a caixa para confirmar apesar destes pontos.",
@@ -3326,6 +3332,21 @@
         "already": "Já feito.",
         "conflict": "O pedido mudou entretanto: a página foi atualizada.",
         "no_stay": "Nenhuma estadia ligada a este pedido."
+      },
+      "legacyTitle": "Horários contraditórios",
+      "legacyText": "Este pedido foi confirmado para {confirmed}, mas a estadia indica {stay}: a confirmação é anterior à verificação automática e a estadia não acompanhou. Nada foi alterado. Decida: aplicar o horário confirmado ou retirar a confirmação (o hóspede é avisado).",
+      "applyLegacy": "Aplicar o horário confirmado à estadia",
+      "withdrawLegacy": "Retirar a confirmação",
+      "until": "até {date}",
+      "effect": {
+        "deadline": "Efeito: o prazo passa para {time}.",
+        "deadline_scheduled_after": "Efeito: o prazo passa para {time}; o horário planeado, mais tardio, não é alterado (a replanear).",
+        "start": "Efeito: a missão só pode começar a partir de {time}.",
+        "start_scheduled_before": "Efeito: início possível às {time}; o horário planeado, anterior, não é alterado (a replanear).",
+        "shift": "Efeito: a janela acompanha o novo horário.",
+        "unchanged_scheduled": "Efeito: nenhum — horário planeado, nunca alterado automaticamente (replanear se necessário).",
+        "unchanged_cannot_fit": "Efeito: nenhum — esta missão não cabe antes de {time}; fica como está e terminará depois da chegada.",
+        "blocking": "Não cabe antes de {time}: confirmação impossível."
       }
     }
   },
@@ -3612,7 +3633,8 @@
       "showAll": "Ver as {count} sugestões",
       "showLess": "Mostrar menos",
       "band": "{n, select, 1 {menos de 1 km} 2 {1 a 2 km} other {2 a 3 km}}",
-      "nearHidden": "{count, plural, one {# local muito próximo aparecerá a {date}, com a morada.} other {# locais muito próximos aparecerão a {date}, com a morada.}}"
+      "nearHidden": "{count, plural, one {# local muito próximo aparecerá a {date}, com a morada.} other {# locais muito próximos aparecerão a {date}, com a morada.}}",
+      "autoHidden": "{count, plural, one {# sugestão automática por perto ficará visível a {date}.} other {# sugestões automáticas por perto ficarão visíveis a {date}.}}"
     },
     "prepBanner": "A sua estadia aproxima-se. As informações práticas (morada, acesso, guia) aparecerão aqui a partir de {date}. Entretanto pode preparar a estadia e escrever à equipa.",
     "prepared": {
@@ -3721,6 +3743,10 @@
       "unchangedNote": {
         "early_checkin": "A sua chegada continua prevista para {date}.",
         "late_checkout": "A sua saída continua prevista para {date}."
+      },
+      "mismatchNote": {
+        "early_checkin": "Horário em verificação pela equipa: entretanto, a sua chegada continua prevista para {date}.",
+        "late_checkout": "Horário em verificação pela equipa: entretanto, a sua saída continua prevista para {date}."
       }
     }
   },

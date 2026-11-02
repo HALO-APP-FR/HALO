@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { decideTiming, type TimingCheck } from "@/lib/connected/timing-actions";
 import { Button } from "@/components/ui/button";
@@ -12,36 +12,56 @@ import { useRun } from "./use-run";
 
 /**
  * Arrivée anticipée / départ tardif : tout ce que HALO sait avant de décider, ce qu'il ne sait pas,
- * et ce que la confirmation change. Avec un risque connu, la confirmation exige un accord explicite.
+ * et l'effet prévu sur chaque mission liée. Avec un risque connu, la décision exige un accord explicite.
  */
 export function TimingDecision({
   serviceId,
   status,
   check,
-  assigneeName,
+  names,
   timeZone,
 }: {
   serviceId: string;
   status: string;
   check: TimingCheck;
-  assigneeName: string | null;
+  names: Record<string, string>;
   timeZone: string;
 }) {
   const t = useTranslations("connected.timingDecision");
   const tts = useTranslations("taskStatus");
+  const tt = useTranslations("taskType");
   const f = useFormatter();
-  const { pending, error, run } = useRun();
+  const { pending, error, run, id: runId } = useRun();
   const [ack, setAck] = useState(false);
   const [message, setMessage] = useState("");
   const [note, setNote] = useState("");
   const [result, setResult] = useState<{ status: string; check?: TimingCheck } | null>(null);
+  // Un seul envoi à la fois (double clic) ; la base refuse aussi une seconde confirmation
+  const sending = useRef(false);
+  // Une autre décision réussie (refus, précision…) rend un ancien message d'échec obsolète
+  useEffect(() => {
+    const clear = (e: Event) => {
+      if ((e as CustomEvent<string>).detail !== runId) setResult((r) => (r && r.status !== "applied" ? null : r));
+    };
+    window.addEventListener("halo:action-ok", clear);
+    return () => window.removeEventListener("halo:action-ok", clear);
+  }, [runId]);
   const at = (x: string) => f.dateTime(new Date(x), { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone });
   const c = result?.check ?? check;
   const early = c.kind === "early_checkin";
   const open = ["requested", "in_review", "info_requested"].includes(status);
+  const legacy = status === "confirmed" && Boolean(c.legacy_mismatch);
   const hasRisks = c.risks.length > 0;
   const blocked = c.blocking.length > 0;
   const k = c.cleaning;
+  const go = (act: "confirm" | "cancel" | "apply_legacy") => {
+    if (sending.current) return;
+    sending.current = true;
+    run(
+      () => decideTiming(serviceId, act, { ack, expectedAt: act === "cancel" ? null : c.current_at, message, note }).finally(() => (sending.current = false)),
+      (d) => setResult(d),
+    );
+  };
 
   return (
     <Card className="space-y-4 p-5" data-testid="timing-decision">
@@ -59,28 +79,42 @@ export function TimingDecision({
         </dl>
       </div>
 
+      {legacy && (
+        <div className="rounded-md border border-danger bg-danger-soft p-3 text-[14px]" role="alert" data-testid="timing-legacy">
+          <p className="font-semibold text-danger">{t("legacyTitle")}</p>
+          <p className="mt-1">{t("legacyText", { confirmed: at(c.requested_at), stay: at(c.current_at) })}</p>
+        </div>
+      )}
+
       {c.change && (
         <div className="text-[14px]" data-testid="timing-facts">
           <p className="font-medium">{t("knownTitle")}</p>
-          <ul className="mt-1 list-disc space-y-0.5 ps-5">
-            {k ? (
-              <li data-testid="timing-cleaning">
-                <Link href={`/app/missions/${k.id}`} className="text-accent-text hover:underline">
-                  {t("cleaning")}
-                </Link>{" "}
-                : {tts(k.status)} · {k.assignee_id ? t("assignedTo", { name: assigneeName ?? "—" }) : t("unassigned")} · {t("from", { date: at(k.window_start) })} · {t("duration", { duration: durationText(k.duration_min) })} ·{" "}
-                {k.scheduled_start ? t("slot", { date: at(k.scheduled_start) }) : t("noSlot")}
-              </li>
-            ) : (
-              <li>{t("noCleaning")}</li>
-            )}
-            {(c.actions ?? []).map((a) => (
-              <li key={a.id} data-testid="timing-action">
-                {t("action", { title: a.title, due: a.due_at ? at(a.due_at) : t("noDue") })}
-                {a.task_status ? ` · ${t("linkedMission", { status: tts(a.task_status) })}` : ""}
-              </li>
-            ))}
-          </ul>
+          {!k && <p className="mt-1">{t("noCleaning")}</p>}
+          {(c.tasks ?? []).length > 0 && (
+            <ul className="mt-1 space-y-1.5">
+              {(c.tasks ?? []).map((x) => (
+                <li key={x.id} className="rounded-md border border-line p-2" data-testid="timing-task" data-effect={x.effect}>
+                  <Link href={`/app/missions/${x.id}`} className="font-medium text-accent-text hover:underline">
+                    {x.title ? `${x.title} (${tt(x.type)})` : tt(x.type)}
+                  </Link>{" "}
+                  · {tts(x.status)} · {x.assignee_id ? t("assignedTo", { name: names[x.assignee_id] ?? "—" }) : t("unassigned")}
+                  <span className="block text-[13px] text-muted">
+                    {t("from", { date: at(x.window_start) })} · {t("until", { date: at(x.window_end) })} · {t("duration", { duration: durationText(x.duration_min) })} ·{" "}
+                    {x.scheduled_start ? t("slot", { date: at(x.scheduled_start) }) : t("noSlot")}
+                  </span>
+                  <span className="block text-[13px]" data-testid="timing-task-effect">
+                    {t(`effect.${x.effect}`, { time: at(c.requested_at) })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {(c.actions ?? []).map((a) => (
+            <p key={a.id} className="mt-1" data-testid="timing-action">
+              {t("action", { title: a.title, due: a.due_at ? at(a.due_at) : t("noDue") })}
+              {a.task_status ? ` · ${t("linkedMission", { status: tts(a.task_status) })}` : ""}
+            </p>
+          ))}
         </div>
       )}
 
@@ -94,7 +128,7 @@ export function TimingDecision({
           </ul>
         </div>
       )}
-      {!blocked && hasRisks && (
+      {!blocked && hasRisks && (open || legacy) && (
         <div className="rounded-md border border-warning bg-warning-soft p-3 text-[14px]" data-testid="timing-risks">
           <p className="font-semibold">{t("risksTitle")}</p>
           <ul className="mt-1 list-disc ps-5">
@@ -106,13 +140,13 @@ export function TimingDecision({
           </ul>
         </div>
       )}
-      {c.change && (
+      {c.change && (open || legacy) && (
         <p className="text-[13px] text-muted" data-testid="timing-unverified">
           {t("unverified")}
         </p>
       )}
 
-      {open && !blocked && (
+      {(open || legacy) && !blocked && (
         <div className="space-y-3 border-t border-line pt-4">
           {c.change && <p className="text-[13px]" data-testid="timing-effects">{t(early ? "effectsEarly" : "effectsLate")}</p>}
           {hasRisks && (
@@ -127,21 +161,29 @@ export function TimingDecision({
           <Field label={t("note")} htmlFor="tm-note" hint={t("noteHint")}>
             <Textarea id="tm-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000} />
           </Field>
-          <Button
-            disabled={pending || (hasRisks && !ack)}
-            onClick={() => run(() => decideTiming(serviceId, "confirm", { ack, expectedAt: c.current_at, message, note }), (d) => setResult(d))}
-            data-testid="timing-confirm"
-          >
-            {t("confirm")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button disabled={pending || (hasRisks && !ack)} onClick={() => go(legacy ? "apply_legacy" : "confirm")} data-testid={legacy ? "timing-apply-legacy" : "timing-confirm"}>
+              {legacy ? t("applyLegacy") : t("confirm")}
+            </Button>
+            {legacy && (
+              <Button variant="outline" disabled={pending} onClick={() => go("cancel")} data-testid="timing-withdraw-legacy">
+                {t("withdrawLegacy")}
+              </Button>
+            )}
+          </div>
           {hasRisks && !ack && <p className="text-[12px] text-muted">{t("ackNeeded")}</p>}
-          <p className="text-[12px] text-muted">{t("otherDecisions")}</p>
+          {!legacy && <p className="text-[12px] text-muted">{t("otherDecisions")}</p>}
         </div>
       )}
-      {status === "confirmed" && (
+      {legacy && blocked && (
+        <Button variant="outline" disabled={pending} onClick={() => go("cancel")} data-testid="timing-withdraw-legacy">
+          {t("withdrawLegacy")}
+        </Button>
+      )}
+      {status === "confirmed" && !legacy && (
         <div className="space-y-2 border-t border-line pt-4">
           <p className="text-[14px]">{t("confirmedText")}</p>
-          <Button variant="outline" size="sm" disabled={pending} onClick={() => run(() => decideTiming(serviceId, "cancel", { ack: false, expectedAt: null, message, note }), (d) => setResult(d))} data-testid="timing-cancel">
+          <Button variant="outline" size="sm" disabled={pending} onClick={() => go("cancel")} data-testid="timing-cancel">
             {t("cancel")}
           </Button>
         </div>
@@ -156,7 +198,7 @@ export function TimingDecision({
           {t("result.applied")}
         </p>
       )}
-      {error && <p role="alert" className="text-[14px] text-danger">{error}</p>}
+      {error && <p role="alert" className="text-[14px] text-danger" data-testid="timing-error">{error}</p>}
     </Card>
   );
 }

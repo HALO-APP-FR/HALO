@@ -36,13 +36,14 @@ export default async function ServicePage({ params }: PageProps<"/[locale]/app/s
   // Arrivée anticipée / départ tardif : contraintes connues calculées par la base (lecture seule)
   const timing = s.kind === "early_checkin" || s.kind === "late_checkout";
   let check: TimingCheck | null = null;
-  let assigneeName: string | null = null;
+  const names: Record<string, string> = {};
   if (timing) {
     const { data: c } = await supabase.rpc("timing_check", { org: o, service: id });
     check = (c as TimingCheck | null) ?? null;
-    if (check?.cleaning?.assignee_id) {
-      const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", check.cleaning.assignee_id).maybeSingle();
-      assigneeName = (prof?.full_name as string | null) ?? null;
+    const ids = Array.from(new Set([check?.cleaning?.assignee_id, ...(check?.tasks ?? []).map((x) => x.assignee_id)].filter((x): x is string => Boolean(x))));
+    if (ids.length) {
+      const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+      for (const pr of profs ?? []) names[pr.id as string] = (pr.full_name as string | null) ?? "—";
     }
   }
   const r = (Array.isArray(s.reservations) ? s.reservations[0] : s.reservations) as { guest_name: string | null; guest_email: string | null } | null;
@@ -61,7 +62,7 @@ export default async function ServicePage({ params }: PageProps<"/[locale]/app/s
               <p className="mt-1 whitespace-pre-wrap text-[15px]">{s.details}</p>
             </Card>
           )}
-          {timing && check?.status === "ok" && <TimingDecision serviceId={s.id} status={s.status} check={check} assigneeName={assigneeName} timeZone={tz} />}
+          {timing && check?.status === "ok" && <TimingDecision serviceId={s.id} status={s.status} check={check} names={names} timeZone={tz} />}
           <ServiceDecision serviceId={s.id} status={s.status} guestEmail={r?.guest_email ?? null} unread={s.manager_unread} startAt={s.start_at} people={s.people} timeZone={tz} timing={timing} />
           {s.reservation_id && (
             <Link href={`/app/stays/${s.reservation_id}`} className="block text-[14px] text-accent-text hover:underline">

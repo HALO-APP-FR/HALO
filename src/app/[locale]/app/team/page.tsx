@@ -65,8 +65,9 @@ export default async function TeamPage({ params }: PageProps<"/[locale]/app/team
       impacts: impactsOf(a.id),
     }));
   // Conflits confirmés (la mission ne peut pas être faite par cette personne) et risques à examiner, séparés
-  const conflicts = planning.availability.filter((c) => c.kind !== "partial" && c.kind !== "started");
-  const risks = planning.availability.filter((c) => c.kind === "partial" || c.kind === "started");
+  const RISK = ["partial", "started", "started_upcoming"];
+  const conflicts = planning.availability.filter((c) => !RISK.includes(c.kind));
+  const risks = planning.availability.filter((c) => RISK.includes(c.kind));
   return (
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
@@ -143,7 +144,10 @@ export default async function TeamPage({ params }: PageProps<"/[locale]/app/team
                       {label(c.taskId)}
                     </Link>
                     <span className="text-[13px] text-muted">
-                      {c.memberId ? nameOf(c.memberId) : ta("nobody")} · {ta(`conflictKind.${c.kind}`)}
+                      {c.memberId ? nameOf(c.memberId) : ta("nobody")} ·{" "}
+                      {c.kind === "started_upcoming" && c.absenceStart
+                        ? ta("conflictKind.started_upcoming", { date: f.dateTime(new Date(c.absenceStart), { dateStyle: "medium", timeStyle: "short" }) })
+                        : ta(`conflictKind.${c.kind}`)}
                       {c.freeMin != null ? ` · ${ta("freeLeft", { duration: durationText(c.freeMin) })}` : ""}
                     </span>
                   </li>

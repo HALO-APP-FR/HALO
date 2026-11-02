@@ -308,3 +308,19 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 **Concurrence** : `check_stay_overlap` sous verrou par logement — défaut reproduit avant correction (deux séjours chevauchants créés simultanément), corrigé et testé (`supabase/tests/concurrency.sh`, avec `OLD_OVERLAP=1` pour rejouer le défaut). Demande de séjour envoyée deux fois simultanément : une seule demande, sans erreur.
 
 **Tests** : isolation 1932/0 (dont matrice lecture/création/modification/suppression par rôle et organisation), concurrence 6/6 (+ reproduction), unitaires 159, e2e (30 arrivée anticipée, 31 absences, 32 confidentialité des lieux).
+
+## Horaires cohérents et lieux protégés (migration 17 : `20261112000001_horaires_coherents_lieux_proteges.sql`)
+
+**Cause de l'échec du 2/11 (« Le serveur n'a pas pu enregistrer »)** — vérifiée sur la vraie base de préproduction par l'auto-test (`timing_decide_with_prep_mission` → `22023:invalid_window`) : la confirmation avançait la fin de fenêtre de TOUTES les missions liées à l'arrivée, y compris une mission de préparation (créée depuis une action) qui commençait après l'heure demandée ; le contrôle des fenêtres refusait alors la mise à jour et toute la décision était annulée. Les tests locaux ne couvraient que le ménage.
+
+**Correction** : `timing_effects` calcule l'effet prévu par mission (échéance avancée, début reculé, accueil/départ décalé, ou mission laissée telle quelle si elle ne tient pas ou si son créneau est planifié ; ménage qui ne tient pas = blocage). La vérification et la décision utilisent le même calcul ; l'effet est affiché pour chaque mission avant de décider. Garde-fou étendu à la création (une demande d'horaire ne naît jamais confirmée). Double clic : un seul envoi côté écran, une seule décision côté base.
+
+**Horaires contradictoires** : `timing_inconsistencies` liste les demandes confirmées dont l'heure ne correspond pas au séjour (confirmées avant la décision dédiée, ou séjour modifié depuis). Rien n'est corrigé automatiquement : alerte d'accueil, bandeau sur la demande, message « horaire en cours de vérification » côté voyageur ; le responsable choisit « Appliquer l'horaire confirmé au séjour » (mêmes vérifications, décision tracée) ou « Retirer la confirmation » (voyageur prévenu).
+
+**Messages** : une action réussie efface les messages d'échec devenus obsolètes ailleurs sur la page.
+
+**Absences** : « mission en cours ; absence prévue à partir du … » si l'absence n'a pas commencé ; « temps libre calculé » = plus long temps libre continu d'après les absences enregistrées, sur 24 h, pas une disponibilité garantie.
+
+**Lieux avant l'ouverture — niveau de protection retenu** : ni coordonnées du logement ni coordonnées des lieux ; aucune suggestion automatique (leur répartition centrée sur le logement et le « vide » laissé par les lieux proches masqués permettaient de le situer) ; seulement la sélection de l'équipe et du propriétaire, à plus de 300 m, distances par tranches de 1 km, ordre alphabétique. Vérifié sur la page réellement transmise au navigateur pour trois localisations (Paris, Toulouse, Chamonix). Limite : les adresses publiques des lieux choisis situent le quartier (de l'ordre du kilomètre) ; c'est le niveau voulu.
+
+**Tests** : isolation 1953/0, concurrence 6/6, unitaires 160, e2e 52/52 (33 retest du 2/11, 34 données transmises).

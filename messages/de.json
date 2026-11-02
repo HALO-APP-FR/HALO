@@ -1413,7 +1413,8 @@
       "testimonial_not_allowed": "Ein ausgewähltes Zitat hat keine (oder keine gültige) Zustimmung seines Verfassers.",
       "slug_taken": "Diese Schaufenster-Adresse ist bereits vergeben: Wählen Sie eine andere.",
       "no_property": "Diese Bewertung ist keiner Unterkunft zugeordnet: Kein Vorfall möglich.",
-      "use_timing_decision": "Eine An- oder Abreisezeit wird mit der eigenen Entscheidung bestätigt oder storniert, die die Vorbereitung prüft."
+      "use_timing_decision": "Eine An- oder Abreisezeit wird mit der eigenen Entscheidung bestätigt oder storniert, die die Vorbereitung prüft.",
+      "timing_window": "Ein verknüpfter Einsatz konnte der neuen Uhrzeit nicht folgen. Nichts wurde geändert; laden Sie die Seite neu, um die geplante Wirkung je Einsatz zu sehen."
     },
     "home": {
       "subtitle": "Was Ihre Aufmerksamkeit braucht.",
@@ -1446,7 +1447,8 @@
       "lowReviewsGuest": "{count, plural, =0 {Keine Gästebewertung zu bearbeiten} one {# Gästebewertung zu bearbeiten} other {# Gästebewertungen zu bearbeiten}}",
       "lowReviewsOwner": "{count, plural, =0 {Keine Eigentümerbewertung zu bearbeiten} one {# Eigentümerbewertung zu bearbeiten} other {# Eigentümerbewertungen zu bearbeiten}}",
       "moreCauses": "+ {count} weitere Ursache(n)",
-      "availabilityRisks": "{count, plural, =0 {Kein Einsatz zu prüfen (teilweise Abwesenheit)} one {# Einsatz zu prüfen (teilweise Abwesenheit)} other {# Einsätze zu prüfen (teilweise Abwesenheit)}}"
+      "availabilityRisks": "{count, plural, =0 {Kein Einsatz zu prüfen (teilweise Abwesenheit)} one {# Einsatz zu prüfen (teilweise Abwesenheit)} other {# Einsätze zu prüfen (teilweise Abwesenheit)}}",
+      "timingMismatch": "{count, plural, =0 {Keine widersprüchliche Uhrzeit} one {# bestätigte Uhrzeit passt nicht zum Aufenthalt} other {# bestätigte Uhrzeiten passen nicht zu den Aufenthalten}}"
     },
     "onb": {
       "progress": "Schritt {n} von {total}",
@@ -1959,10 +1961,10 @@
       "suggestBusy": "{count, plural, one {bereits # weiterer Einsatz in diesem Zeitraum} other {bereits # weitere Einsätze in diesem Zeitraum}}",
       "suggestFree": "kein weiterer Einsatz in diesem Zeitraum",
       "suggestLimits": "Basierend auf in HALO erfassten Abwesenheiten und Einsätzen. Fahrzeit und nicht gemeldete Verfügbarkeit: unbekannt.",
-      "basisWindow": "Fenster {window}, ohne Termin: längste freie Zeit außerhalb der Abwesenheiten {free}, geplante Dauer {duration} (24-Std.-Berechnung; Arbeitszeiten und Wege unbekannt).",
+      "basisWindow": "Fenster {window}, ohne Termin: berechnete freie Zeit außerhalb erfasster Abwesenheiten {free}, geplante Dauer {duration}. 24-Std.-Berechnung nur mit HALO-Daten (Arbeitszeiten, Wege, andere Termine unbekannt): keine garantierte Verfügbarkeit.",
       "basisScheduled": "Geplanter Termin {slot}, während der Abwesenheit.",
       "riskTitle": "{name} ist während eines Teils des Fensters abwesend",
-      "riskStartedTitle": "Einsatz von {name} begonnen, teilweise abwesend: zu prüfen",
+      "riskStartedTitle": "Einsatz läuft: {name} hat eine Abwesenheit in seinem Fenster — zu prüfen",
       "riskActions": "Zu prüfendes Risiko, kein Konflikt: Der Einsatz bleibt außerhalb der Abwesenheit möglich. Planen Sie einen Termin außerhalb, um ihn zu bestätigen.",
       "partialFor": "teilweise abwesend ({period})"
     },
@@ -2309,7 +2311,8 @@
         "pending": "falls der offene Antrag angenommen wird",
         "closure": "Teamschließung",
         "partial": "Abwesenheit in einem Teil des Fensters",
-        "started": "Einsatz während einer Abwesenheit begonnen"
+        "started": "Einsatz läuft, Abwesenheit hat bereits begonnen: zu prüfen",
+        "started_upcoming": "Einsatz läuft; Abwesenheit ab {date} innerhalb seines Fensters geplant"
       },
       "closureStay": "Aufenthalt während einer Schließung: {guest}, {dates}",
       "listTitle": "Kommende Abwesenheiten und Schließungen",
@@ -2326,7 +2329,7 @@
       },
       "risksTitle": "{count, plural, one {# Einsatz zu prüfen} other {# Einsätze zu prüfen}}",
       "risksText": "Abwesenheit nur in einem Teil des Fensters: Der Einsatz bleibt außerhalb möglich. Planen Sie einen Termin, um sicherzugehen.",
-      "freeLeft": "verbleibende freie Zeit {duration}"
+      "freeLeft": "berechnete freie Zeit {duration} (laut erfassten Abwesenheiten, über 24 Std. — keine garantierte Verfügbarkeit)"
     },
     "chat": {
       "title": "Teamnachrichten",
@@ -3304,10 +3307,13 @@
         "cleaning_not_planned": "Die Reinigung ist zugewiesen, aber ohne Termin: Nichts garantiert, dass sie vorher erledigt ist.",
         "cleaning_scheduled_after": "Die Reinigung endet laut Plan nach dieser Uhrzeit. Der Termin wird nicht verschoben: Er muss neu geplant werden.",
         "cleaning_scheduled_before": "Die Reinigung nach Abreise ist vor dieser Uhrzeit geplant. Der Termin wird nicht verschoben: Er muss neu geplant werden.",
-        "prep_actions_open": "Notwendige Aktionen mit späterer Frist sind noch offen."
+        "prep_actions_open": "Notwendige Aktionen mit späterer Frist sind noch offen.",
+        "mission_cannot_fit": "Ein verknüpfter Einsatz kann nicht vor dieser Uhrzeit enden (bleibt unverändert).",
+        "mission_scheduled": "Ein verknüpfter Einsatz hat einen geplanten Termin, der nicht verschoben wird: neu planen.",
+        "mission_unassigned": "Ein verknüpfter Vorbereitungseinsatz ist niemandem zugewiesen."
       },
       "unverified": "Von HALO nicht geprüft: Wäsche, Zugang und Schlüssel, Regeln des Eigentümers. Vom Team zu bestätigen.",
-      "effectsEarly": "Bei Bestätigung: Die Anreise wird auf die gewünschte Uhrzeit gesetzt; Ende des Reinigungsfensters und Fristen zur alten Uhrzeit folgen; ein geplanter Termin wird nie verschoben; der zugewiesene Mitarbeiter wird informiert; der Gast sieht die neue Uhrzeit.",
+      "effectsEarly": "Bei Bestätigung: Anreise auf die gewünschte Uhrzeit; jeder verknüpfte Einsatz folgt der angezeigten Wirkung; Fristen zur alten Uhrzeit folgen; kein geplanter Termin wird verschoben; zugewiesene Mitarbeiter werden informiert; der Gast sieht die neue Uhrzeit.",
       "effectsLate": "Bei Bestätigung: Die Abreise wird auf die gewünschte Uhrzeit gesetzt; Beginn des Reinigungsfensters folgt; ein geplanter Termin wird nie verschoben; der zugewiesene Mitarbeiter wird informiert; der Gast sieht die neue Uhrzeit.",
       "ack": "Ich bestätige bewusst: Die Vorbereitung ist zu dieser Uhrzeit nicht garantiert (Entscheidung protokolliert).",
       "ackNeeded": "Kreuzen Sie das Feld an, um trotzdem zu bestätigen.",
@@ -3326,6 +3332,21 @@
         "already": "Bereits erledigt.",
         "conflict": "Die Anfrage hat sich geändert: Die Seite wurde aktualisiert.",
         "no_stay": "Kein Aufenthalt mit dieser Anfrage verknüpft."
+      },
+      "legacyTitle": "Widersprüchliche Uhrzeiten",
+      "legacyText": "Diese Anfrage wurde für {confirmed} bestätigt, der Aufenthalt zeigt aber {stay}: Die Bestätigung stammt aus der Zeit vor der automatischen Prüfung. Nichts wurde geändert. Entscheiden Sie: bestätigte Uhrzeit übernehmen oder Bestätigung zurückziehen (der Gast wird informiert).",
+      "applyLegacy": "Bestätigte Uhrzeit übernehmen",
+      "withdrawLegacy": "Bestätigung zurückziehen",
+      "until": "bis {date}",
+      "effect": {
+        "deadline": "Wirkung: Die Frist wird auf {time} gesetzt.",
+        "deadline_scheduled_after": "Wirkung: Frist auf {time}; der spätere Termin wird nicht verschoben (neu planen).",
+        "start": "Wirkung: Der Einsatz kann erst ab {time} beginnen.",
+        "start_scheduled_before": "Wirkung: Beginn ab {time}; der frühere Termin wird nicht verschoben (neu planen).",
+        "shift": "Wirkung: Das Fenster verschiebt sich mit der neuen Uhrzeit.",
+        "unchanged_scheduled": "Wirkung: keine — geplanter Termin, nie automatisch verschoben (bei Bedarf neu planen).",
+        "unchanged_cannot_fit": "Wirkung: keine — dieser Einsatz passt nicht vor {time}; er bleibt unverändert und endet nach der Anreise.",
+        "blocking": "Passt nicht vor {time}: Bestätigung unmöglich."
       }
     }
   },
@@ -3612,7 +3633,8 @@
       "showAll": "Alle {count} Vorschläge ansehen",
       "showLess": "Weniger anzeigen",
       "band": "{n, select, 1 {unter 1 km} 2 {1 bis 2 km} other {2 bis 3 km}}",
-      "nearHidden": "{count, plural, one {# Ort ganz in der Nähe erscheint am {date} mit der Adresse.} other {# Orte ganz in der Nähe erscheinen am {date} mit der Adresse.}}"
+      "nearHidden": "{count, plural, one {# Ort ganz in der Nähe erscheint am {date} mit der Adresse.} other {# Orte ganz in der Nähe erscheinen am {date} mit der Adresse.}}",
+      "autoHidden": "{count, plural, one {# automatischer Vorschlag in der Nähe ist ab {date} sichtbar.} other {# automatische Vorschläge in der Nähe sind ab {date} sichtbar.}}"
     },
     "prepBanner": "Ihr Aufenthalt rückt näher. Praktische Infos (Adresse, Zugang, Leitfaden) erscheinen hier ab {date}. Bis dahin können Sie Ihren Aufenthalt vorbereiten und dem Team schreiben.",
     "prepared": {
@@ -3721,6 +3743,10 @@
       "unchangedNote": {
         "early_checkin": "Ihre Anreise bleibt für {date} geplant.",
         "late_checkout": "Ihre Abreise bleibt für {date} geplant."
+      },
+      "mismatchNote": {
+        "early_checkin": "Uhrzeit wird vom Team geprüft: Bis dahin bleibt Ihre Anreise für {date} geplant.",
+        "late_checkout": "Uhrzeit wird vom Team geprüft: Bis dahin bleibt Ihre Abreise für {date} geplant."
       }
     }
   },

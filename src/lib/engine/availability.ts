@@ -110,7 +110,9 @@ export interface AvailabilityConflict {
    * started : mission déjà commencée pendant une absence (à vérifier) ;
    * pending : elle ne tiendrait plus si la demande est acceptée ; closure : fermeture d'équipe.
    */
-  kind: "accepted" | "partial" | "started" | "pending" | "closure";
+  kind: "accepted" | "partial" | "started" | "started_upcoming" | "pending" | "closure";
+  /** Début de la première absence concernée (pour dire « absence prévue le … » sans ambiguïté) */
+  absenceStart?: string;
   /** Plus long temps libre restant dans la fenêtre (minutes), quand il fonde la conclusion */
   freeMin?: number | null;
   absenceIds: string[];
@@ -132,8 +134,19 @@ export function availabilityConflicts(tasks: PlannedTask[], members: Member[], a
       const lv = absenceLevel(m, t, absences);
       if (lv.level !== "none") {
         const ids = lv.absences.map((a) => a.id);
-        const kind = t.status === "in_progress" ? "started" : lv.level === "risk" ? "partial" : ids.every((id) => closures.some((c) => c.id === id)) ? "closure" : "accepted";
-        out.push({ taskId: t.id, memberId: m.id, kind, absenceIds: ids, freeMin: lv.freeMin });
+        // Mission en cours : « pendant une absence » seulement si l'absence a déjà commencé, sinon « absence à venir »
+        const first = lv.absences.slice().sort((a, b) => ms(a.startsAt) - ms(b.startsAt))[0];
+        const kind =
+          t.status === "in_progress"
+            ? ms(first.startsAt) <= now.getTime()
+              ? "started"
+              : "started_upcoming"
+            : lv.level === "risk"
+              ? "partial"
+              : ids.every((id) => closures.some((c) => c.id === id))
+                ? "closure"
+                : "accepted";
+        out.push({ taskId: t.id, memberId: m.id, kind, absenceIds: ids, freeMin: lv.freeMin, absenceStart: first.startsAt });
         continue;
       }
       const pending = overlappingAbsences(m, t, absences, ["pending"]);

@@ -1413,7 +1413,8 @@
       "testimonial_not_allowed": "A selected testimonial no longer has (or never had) its author's consent.",
       "slug_taken": "This showcase address is already taken: choose another.",
       "no_property": "This review isn't linked to a property: an incident can't be created.",
-      "use_timing_decision": "An arrival or departure time is confirmed or cancelled with the dedicated decision, which checks preparation."
+      "use_timing_decision": "An arrival or departure time is confirmed or cancelled with the dedicated decision, which checks preparation.",
+      "timing_window": "A linked mission couldn't follow this new time. Nothing was changed; reload the page to see the planned effect on each mission."
     },
     "home": {
       "subtitle": "What needs your attention.",
@@ -1446,7 +1447,8 @@
       "lowReviewsGuest": "{count, plural, =0 {No guest review to handle} one {# guest review to handle} other {# guest reviews to handle}}",
       "lowReviewsOwner": "{count, plural, =0 {No owner review to handle} one {# owner review to handle} other {# owner reviews to handle}}",
       "moreCauses": "+ {count} more cause(s)",
-      "availabilityRisks": "{count, plural, =0 {No mission to check (partial absence)} one {# mission to check (partial absence)} other {# missions to check (partial absence)}}"
+      "availabilityRisks": "{count, plural, =0 {No mission to check (partial absence)} one {# mission to check (partial absence)} other {# missions to check (partial absence)}}",
+      "timingMismatch": "{count, plural, =0 {No contradictory time} one {# confirmed time doesn't match the stay} other {# confirmed times don't match their stays}}"
     },
     "onb": {
       "progress": "Step {n} of {total}",
@@ -1959,10 +1961,10 @@
       "suggestBusy": "{count, plural, one {already # other mission in this range} other {already # other missions in this range}}",
       "suggestFree": "no other mission in this range",
       "suggestLimits": "Based on absences and missions recorded in HALO. Travel time and undeclared availability: unknown.",
-      "basisWindow": "Window {window}, no planned slot: longest free time outside absences {free}, planned duration {duration} (computed over 24 h; working hours and travel unknown).",
+      "basisWindow": "Window {window}, no planned slot: longest continuous free time calculated outside recorded absences {free}, planned duration {duration}. Computed over 24 h from data known to HALO only (working hours, travel and other commitments unknown): not guaranteed availability.",
       "basisScheduled": "Planned slot {slot}, during the absence.",
       "riskTitle": "{name} is absent for part of the window",
-      "riskStartedTitle": "Mission started by {name}, absent for part of the window: to check",
+      "riskStartedTitle": "Mission in progress: {name} has an absence within its window — to check",
       "riskActions": "A risk to check, not a conflict: the mission is still possible outside the absence. Plan a slot outside it to confirm.",
       "partialFor": "partial absence ({period})"
     },
@@ -2309,7 +2311,8 @@
         "pending": "if the pending request is accepted",
         "closure": "team closure",
         "partial": "absence over part of the window",
-        "started": "mission started during an absence"
+        "started": "mission in progress while the absence has started: to check",
+        "started_upcoming": "mission in progress; absence planned from {date} within its window"
       },
       "closureStay": "Stay during a closure: {guest}, {dates}",
       "listTitle": "Upcoming absences and closures",
@@ -2326,7 +2329,7 @@
       },
       "risksTitle": "{count, plural, one {# mission to check} other {# missions to check}}",
       "risksText": "Absence over only part of the window: the mission is still possible outside it. Plan a slot to remove the doubt.",
-      "freeLeft": "free time left {duration}"
+      "freeLeft": "calculated free time {duration} (from recorded absences, over 24 h — not guaranteed availability)"
     },
     "chat": {
       "title": "Team messages",
@@ -3304,10 +3307,13 @@
         "cleaning_not_planned": "The cleaning is assigned but has no slot: nothing guarantees it'll be done before this time.",
         "cleaning_scheduled_after": "The cleaning is scheduled to finish after this time. Its slot won't be moved: it will need rescheduling.",
         "cleaning_scheduled_before": "The post-departure cleaning is scheduled before this time. Its slot won't be moved: it will need rescheduling.",
-        "prep_actions_open": "Required actions remain open with a later due date."
+        "prep_actions_open": "Required actions remain open with a later due date.",
+        "mission_cannot_fit": "A linked mission can't be finished before this time (it will be left as is).",
+        "mission_scheduled": "A linked mission has a planned slot that won't be moved: reschedule it.",
+        "mission_unassigned": "A linked preparation mission isn't assigned to anyone."
       },
       "unverified": "Not checked by HALO: linen availability, access and keys, owner rules. To be confirmed by the team.",
-      "effectsEarly": "When confirming: the stay's arrival moves to the requested time; the cleaning window end and action due dates set at the old time follow; an already planned slot is never moved; the assigned agent is notified; the guest sees the new time.",
+      "effectsEarly": "When confirming: the stay's arrival moves to the requested time; each linked mission follows the effect shown above; action due dates set at the old time follow; no planned slot is moved; assigned agents are notified; the guest sees the new time.",
       "effectsLate": "When confirming: the stay's departure moves to the requested time; the cleaning window start follows; an already planned slot is never moved; the assigned agent is notified; the guest sees the new time.",
       "ack": "I confirm knowingly: preparation isn't guaranteed at this time (decision recorded).",
       "ackNeeded": "Tick the box to confirm despite these points.",
@@ -3326,6 +3332,21 @@
         "already": "Already done.",
         "conflict": "The request changed in the meantime: the page has been refreshed.",
         "no_stay": "No stay linked to this request."
+      },
+      "legacyTitle": "Contradictory times",
+      "legacyText": "This request was confirmed for {confirmed}, but the stay shows {stay}: the confirmation predates the automatic check and the stay wasn't updated. Nothing has been changed. Decide: apply the confirmed time to the stay, or withdraw the confirmation (the guest is notified).",
+      "applyLegacy": "Apply the confirmed time to the stay",
+      "withdrawLegacy": "Withdraw the confirmation",
+      "until": "until {date}",
+      "effect": {
+        "deadline": "Effect: the deadline moves to {time}.",
+        "deadline_scheduled_after": "Effect: the deadline moves to {time}; the later planned slot isn't moved (to reschedule).",
+        "start": "Effect: the mission can only start from {time}.",
+        "start_scheduled_before": "Effect: start possible at {time}; the earlier planned slot isn't moved (to reschedule).",
+        "shift": "Effect: the window shifts with the new time.",
+        "unchanged_scheduled": "Effect: none — planned slot, never moved automatically (reschedule if needed).",
+        "unchanged_cannot_fit": "Effect: none — this mission can't fit before {time}; it's left as is and will end after arrival.",
+        "blocking": "Can't fit before {time}: confirmation impossible."
       }
     }
   },
@@ -3612,7 +3633,8 @@
       "showAll": "See all {count} suggestions",
       "showLess": "Show less",
       "band": "{n, select, 1 {under 1 km} 2 {1 to 2 km} other {2 to 3 km}}",
-      "nearHidden": "{count, plural, one {# place right next to the home will appear on {date}, with the address.} other {# places right next to the home will appear on {date}, with the address.}}"
+      "nearHidden": "{count, plural, one {# place right next to the home will appear on {date}, with the address.} other {# places right next to the home will appear on {date}, with the address.}}",
+      "autoHidden": "{count, plural, one {# automatic nearby suggestion will be visible on {date}.} other {# automatic nearby suggestions will be visible on {date}.}}"
     },
     "prepBanner": "Your stay is coming up. Practical details (address, access, guide) will appear here from {date}. Meanwhile you can prepare your stay and message the team.",
     "prepared": {
@@ -3721,6 +3743,10 @@
       "unchangedNote": {
         "early_checkin": "Your arrival stays planned for {date}.",
         "late_checkout": "Your departure stays planned for {date}."
+      },
+      "mismatchNote": {
+        "early_checkin": "Time being checked by the team: in the meantime, your arrival stays planned for {date}.",
+        "late_checkout": "Time being checked by the team: in the meantime, your departure stays planned for {date}."
       }
     }
   },

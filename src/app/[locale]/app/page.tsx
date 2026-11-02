@@ -47,6 +47,9 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     supabase.from("reviews").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("kind", "guest").eq("follow_status", "to_handle"),
     supabase.from("reviews").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("kind", "owner").eq("follow_status", "to_handle"),
   ]);
+  // Horaires confirmés qui ne correspondent pas au séjour (confirmations antérieures à la décision dédiée)
+  const { data: mismatchRaw } = await supabase.rpc("timing_inconsistencies", { org: org.id });
+  const mismatch = ((mismatchRaw as { service: string }[] | null) ?? []);
   const onboardingDone = Boolean(org.onboarding?.completed_at);
   // Linge suivi dans « logement prêt » seulement si l'organisation travaille avec une blanchisserie (réponse d'onboarding)
   const { data: orgRow } = await supabase.from("organizations").select("linen_model").eq("id", org.id).single();
@@ -58,13 +61,14 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     { key: "incidents", n: incidents.count ?? 0, href: "/app/incidents", icon: TriangleAlert, danger: true },
     // Planning : ménages impossibles, missions touchées par une absence, demandes d'absence — toujours visibles
     { key: "schedule", n: planning.schedule.length, href: "/app/missions", icon: CalendarX2, danger: true },
-    { key: "availability", n: planning.availability.filter((c) => c.kind !== "partial" && c.kind !== "started").length + planning.closureStays.length, href: "/app/team", icon: CalendarClock, danger: true },
-    { key: "availabilityRisks", n: planning.availability.filter((c) => c.kind === "partial" || c.kind === "started").length, href: "/app/team", icon: CalendarClock, danger: false },
+    { key: "availability", n: planning.availability.filter((c) => !["partial", "started", "started_upcoming"].includes(c.kind)).length + planning.closureStays.length, href: "/app/team", icon: CalendarClock, danger: true },
+    { key: "availabilityRisks", n: planning.availability.filter((c) => ["partial", "started", "started_upcoming"].includes(c.kind)).length, href: "/app/team", icon: CalendarClock, danger: false },
     { key: "absenceRequests", n: planning.pendingAbsences, href: "/app/team", icon: CalendarClock, danger: true },
     { key: "services", n: services.count ?? 0, href: "/app/services", icon: ConciergeBell, danger: true },
     { key: "prepReview", n: prepReview.count ?? 0, href: "/app/stays?prep=review", icon: ClipboardList, danger: true },
     { key: "prepDue", n: prepDue.count ?? 0, href: "/app/stays?prep=due", icon: ClipboardList, danger: true },
     { key: "vipRequests", n: vipPending.count ?? 0, href: "/app/stays?prep=vip", icon: Crown, danger: true },
+    { key: "timingMismatch", n: mismatch.length, href: mismatch[0] ? `/app/services/${mismatch[0].service}` : "/app/services", icon: CalendarClock, danger: true },
     { key: "bookings", n: bookings.count ?? 0, href: "/app/bookings", icon: CalendarPlus, danger: true },
     { key: "lowReviewsGuest", n: lowGuest.count ?? 0, href: "/app/satisfaction?kind=guest&filter=to_handle", icon: Star, danger: true },
     { key: "lowReviewsOwner", n: lowOwner.count ?? 0, href: "/app/satisfaction?kind=owner&filter=to_handle", icon: Star, danger: true },
@@ -74,9 +78,9 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     { key: "teamEmails", n: teamOutbox.count ?? 0, href: "/app/notifications?audience=team", icon: MailWarning, danger: false },
     { key: "stays7", n: stays.count ?? 0, href: "/app/stays", icon: CalendarDays, danger: false },
   ] as const;
-  const alertOf = { toValidate: "unassigned_missions", chats: "unread_messages", schedule: "unassigned_missions", availability: "unassigned_missions", availabilityRisks: "unassigned_missions", absenceRequests: "unassigned_missions", incidents: "pending_services", services: "pending_services", messages: "unread_messages", unassigned: "unassigned_missions", emails: "failed_emails", teamEmails: "failed_emails", prepReview: "pending_services", prepDue: "pending_services", vipRequests: "pending_services", bookings: "pending_services", lowReviewsGuest: "pending_services", lowReviewsOwner: "pending_services", stays7: "upcoming_stays" } as const;
+  const alertOf = { toValidate: "unassigned_missions", chats: "unread_messages", schedule: "unassigned_missions", availability: "unassigned_missions", availabilityRisks: "unassigned_missions", absenceRequests: "unassigned_missions", incidents: "pending_services", services: "pending_services", messages: "unread_messages", unassigned: "unassigned_missions", emails: "failed_emails", teamEmails: "failed_emails", prepReview: "pending_services", prepDue: "pending_services", vipRequests: "pending_services", timingMismatch: "pending_services", bookings: "pending_services", lowReviewsGuest: "pending_services", lowReviewsOwner: "pending_services", stays7: "upcoming_stays" } as const;
   // Alertes choisies à l'onboarding ; les demandes et messages voyageurs restent toujours visibles
-  const always = ["toValidate", "chats", "services", "prepReview", "prepDue", "vipRequests", "bookings", "lowReviewsGuest", "lowReviewsOwner", "messages", "incidents", "schedule", "availability", "availabilityRisks", "absenceRequests"];
+  const always = ["toValidate", "chats", "services", "prepReview", "prepDue", "vipRequests", "timingMismatch", "bookings", "lowReviewsGuest", "lowReviewsOwner", "messages", "incidents", "schedule", "availability", "availabilityRisks", "absenceRequests"];
   const rows = allRows.filter((r) => !enabled || always.includes(r.key) || enabled.includes(alertOf[r.key]));
 
   return (

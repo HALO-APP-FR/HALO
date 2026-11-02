@@ -65,6 +65,14 @@ describe("disponibilités (même règle que la base)", () => {
     expect(availabilityConflicts(tasks, [ana, leo], [abs({ status: "cancelled" })], NOW)).toEqual([]);
   });
 
+  it("mission en cours : absence à venir dans la fenêtre ≠ absence déjà commencée", () => {
+    const run = { id: "run", assigneeId: "ana", status: "in_progress", windowStart: "2026-11-01T08:00:00Z", windowEnd: "2026-11-05T18:00:00Z", durationMin: 90 };
+    const day3 = abs({ startsAt: "2026-11-03T00:00:00Z", endsAt: "2026-11-04T00:00:00Z" });
+    const [c] = availabilityConflicts([run], [ana], [day3], new Date("2026-11-02T10:00:00Z"));
+    expect(c).toMatchObject({ kind: "started_upcoming", absenceStart: "2026-11-03T00:00:00Z" });
+    expect(availabilityConflicts([run], [ana], [day3], new Date("2026-11-03T10:00:00Z"))[0].kind).toBe("started");
+  });
+
   it("fermeture : missions attribuées ou non, séjours concernés signalés", () => {
     const closure = abs({ id: "f", scope: "team", memberId: null, kind: "closure", startsAt: "2027-04-10T00:00:00Z", endsAt: "2027-04-11T00:00:00Z" });
     const tasks = [task("matin", "2027-04-10T08:00:00Z", "2027-04-10T12:00:00Z"), task("libre", "2027-04-10T08:00:00Z", "2027-04-10T12:00:00Z", null)];

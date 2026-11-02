@@ -1413,7 +1413,8 @@
       "testimonial_not_allowed": "Una testimonianza scelta non ha (o non ha più) il consenso del suo autore.",
       "slug_taken": "Questo indirizzo vetrina è già in uso: scegline un altro.",
       "no_property": "Questa recensione non è collegata a un alloggio: impossibile creare un incidente.",
-      "use_timing_decision": "Un orario di arrivo o partenza si conferma o annulla con la decisione dedicata, che verifica la preparazione."
+      "use_timing_decision": "Un orario di arrivo o partenza si conferma o annulla con la decisione dedicata, che verifica la preparazione.",
+      "timing_window": "Una missione collegata non poteva seguire questo nuovo orario. Nulla è stato modificato; ricarica la pagina per vedere l'effetto previsto su ogni missione."
     },
     "home": {
       "subtitle": "Ciò che richiede la tua attenzione.",
@@ -1446,7 +1447,8 @@
       "lowReviewsGuest": "{count, plural, =0 {Nessuna recensione ospite da gestire} one {# recensione ospite da gestire} other {# recensioni ospiti da gestire}}",
       "lowReviewsOwner": "{count, plural, =0 {Nessuna recensione proprietario da gestire} one {# recensione proprietario da gestire} other {# recensioni proprietari da gestire}}",
       "moreCauses": "+ {count} altra/e causa/e",
-      "availabilityRisks": "{count, plural, =0 {Nessuna missione da esaminare (assenza parziale)} one {# missione da esaminare (assenza parziale)} other {# missioni da esaminare (assenza parziale)}}"
+      "availabilityRisks": "{count, plural, =0 {Nessuna missione da esaminare (assenza parziale)} one {# missione da esaminare (assenza parziale)} other {# missioni da esaminare (assenza parziale)}}",
+      "timingMismatch": "{count, plural, =0 {Nessun orario contraddittorio} one {# orario confermato non corrisponde al soggiorno} other {# orari confermati non corrispondono ai soggiorni}}"
     },
     "onb": {
       "progress": "Passo {n} di {total}",
@@ -1959,10 +1961,10 @@
       "suggestBusy": "{count, plural, one {già # altra missione in questo intervallo} other {già # altre missioni in questo intervallo}}",
       "suggestFree": "nessun'altra missione in questo intervallo",
       "suggestLimits": "In base alle assenze e missioni registrate in HALO. Tempo di tragitto e disponibilità non dichiarate: sconosciuti.",
-      "basisWindow": "Finestra {window}, senza fascia pianificata: tempo libero più lungo fuori dalle assenze {free}, durata prevista {duration} (calcolo su 24 h; orari di lavoro e tragitti non noti).",
+      "basisWindow": "Finestra {window}, senza fascia: tempo libero calcolato fuori dalle assenze registrate {free}, durata prevista {duration}. Calcolo su 24 h con i soli dati di HALO (orari, tragitti e altri impegni non noti): non è una disponibilità garantita.",
       "basisScheduled": "Fascia pianificata {slot}, durante l'assenza.",
       "riskTitle": "{name} è assente per parte della finestra",
-      "riskStartedTitle": "Missione avviata da {name}, assente per parte della finestra: da verificare",
+      "riskStartedTitle": "Missione in corso: {name} ha un'assenza nella sua finestra — da verificare",
       "riskActions": "Rischio da esaminare, non un conflitto: la missione resta possibile fuori dall'assenza. Pianifica una fascia fuori per confermarlo.",
       "partialFor": "assenza parziale ({period})"
     },
@@ -2309,7 +2311,8 @@
         "pending": "se la richiesta in attesa viene accettata",
         "closure": "chiusura del team",
         "partial": "assenza su parte della finestra",
-        "started": "missione avviata durante un'assenza"
+        "started": "missione in corso mentre l'assenza è già iniziata: da verificare",
+        "started_upcoming": "missione in corso; assenza prevista dal {date} nella sua finestra"
       },
       "closureStay": "Soggiorno durante una chiusura: {guest}, {dates}",
       "listTitle": "Assenze e chiusure in arrivo",
@@ -2326,7 +2329,7 @@
       },
       "risksTitle": "{count, plural, one {# missione da esaminare} other {# missioni da esaminare}}",
       "risksText": "Assenza solo su parte della finestra: la missione resta possibile fuori. Pianifica una fascia per togliere il dubbio.",
-      "freeLeft": "tempo libero restante {duration}"
+      "freeLeft": "tempo libero calcolato {duration} (in base alle assenze registrate, su 24 h — non è una disponibilità garantita)"
     },
     "chat": {
       "title": "Messaggi del team",
@@ -3304,10 +3307,13 @@
         "cleaning_not_planned": "La pulizia è assegnata ma senza fascia: nulla garantisce che sia fatta prima di quest'ora.",
         "cleaning_scheduled_after": "La pulizia è pianificata per finire dopo quest'ora. La fascia non verrà spostata: andrà ripianificata.",
         "cleaning_scheduled_before": "La pulizia dopo la partenza è pianificata prima di quest'ora. La fascia non verrà spostata: andrà ripianificata.",
-        "prep_actions_open": "Restano aperte azioni indispensabili con scadenza successiva."
+        "prep_actions_open": "Restano aperte azioni indispensabili con scadenza successiva.",
+        "mission_cannot_fit": "Una missione collegata non può finire prima di quest'ora (resterà com'è).",
+        "mission_scheduled": "Una missione collegata ha una fascia pianificata che non verrà spostata: ripianificare.",
+        "mission_unassigned": "Una missione di preparazione collegata non è assegnata a nessuno."
       },
       "unverified": "Non verificato da HALO: disponibilità della biancheria, accesso e chiavi, regole del proprietario. Da confermare dal team.",
-      "effectsEarly": "Confermando: l'arrivo passa all'orario richiesto; la fine della finestra di pulizia e le scadenze fissate al vecchio orario seguono; una fascia già pianificata non viene mai spostata; l'operatore assegnato viene avvisato; l'ospite vede il nuovo orario.",
+      "effectsEarly": "Confermando: l'arrivo passa all'orario richiesto; ogni missione collegata segue l'effetto indicato; le scadenze fissate al vecchio orario seguono; nessuna fascia pianificata viene spostata; gli operatori vengono avvisati; l'ospite vede il nuovo orario.",
       "effectsLate": "Confermando: la partenza passa all'orario richiesto; l'inizio della finestra di pulizia segue; una fascia già pianificata non viene mai spostata; l'operatore assegnato viene avvisato; l'ospite vede il nuovo orario.",
       "ack": "Confermo consapevolmente: la preparazione non è garantita a quest'ora (decisione registrata).",
       "ackNeeded": "Spunta la casella per confermare nonostante questi punti.",
@@ -3326,6 +3332,21 @@
         "already": "Già fatto.",
         "conflict": "La richiesta è cambiata nel frattempo: la pagina è stata aggiornata.",
         "no_stay": "Nessun soggiorno collegato a questa richiesta."
+      },
+      "legacyTitle": "Orari contraddittori",
+      "legacyText": "Questa richiesta è stata confermata per {confirmed}, ma il soggiorno indica {stay}: la conferma precede la verifica automatica e il soggiorno non è stato aggiornato. Nulla è stato modificato. Decidi: applicare l'orario confermato o ritirare la conferma (l'ospite viene avvisato).",
+      "applyLegacy": "Applica l'orario confermato al soggiorno",
+      "withdrawLegacy": "Ritira la conferma",
+      "until": "fino a {date}",
+      "effect": {
+        "deadline": "Effetto: la scadenza passa a {time}.",
+        "deadline_scheduled_after": "Effetto: la scadenza passa a {time}; la fascia pianificata, successiva, non viene spostata (da ripianificare).",
+        "start": "Effetto: la missione può iniziare solo da {time}.",
+        "start_scheduled_before": "Effetto: inizio possibile alle {time}; la fascia pianificata, precedente, non viene spostata (da ripianificare).",
+        "shift": "Effetto: la finestra si sposta con il nuovo orario.",
+        "unchanged_scheduled": "Effetto: nessuno — fascia pianificata, mai spostata automaticamente (ripianificare se serve).",
+        "unchanged_cannot_fit": "Effetto: nessuno — questa missione non ci sta prima di {time}; resta com'è e finirà dopo l'arrivo.",
+        "blocking": "Non ci sta prima di {time}: conferma impossibile."
       }
     }
   },
@@ -3612,7 +3633,8 @@
       "showAll": "Vedi tutti i {count} suggerimenti",
       "showLess": "Mostra meno",
       "band": "{n, select, 1 {meno di 1 km} 2 {da 1 a 2 km} other {da 2 a 3 km}}",
-      "nearHidden": "{count, plural, one {# luogo vicinissimo apparirà il {date}, con l'indirizzo.} other {# luoghi vicinissimi appariranno il {date}, con l'indirizzo.}}"
+      "nearHidden": "{count, plural, one {# luogo vicinissimo apparirà il {date}, con l'indirizzo.} other {# luoghi vicinissimi appariranno il {date}, con l'indirizzo.}}",
+      "autoHidden": "{count, plural, one {# suggerimento automatico nelle vicinanze sarà visibile il {date}.} other {# suggerimenti automatici nelle vicinanze saranno visibili il {date}.}}"
     },
     "prepBanner": "Il soggiorno si avvicina. Le informazioni pratiche (indirizzo, accesso, guida) appariranno qui dal {date}. Nel frattempo puoi preparare il soggiorno e scrivere al team.",
     "prepared": {
@@ -3721,6 +3743,10 @@
       "unchangedNote": {
         "early_checkin": "Il tuo arrivo resta previsto il {date}.",
         "late_checkout": "La tua partenza resta prevista il {date}."
+      },
+      "mismatchNote": {
+        "early_checkin": "Orario in verifica da parte del team: nel frattempo il tuo arrivo resta previsto il {date}.",
+        "late_checkout": "Orario in verifica da parte del team: nel frattempo la tua partenza resta prevista il {date}."
       }
     }
   },

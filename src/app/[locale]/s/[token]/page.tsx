@@ -50,7 +50,7 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
 
   let data: GStay | { status: string } | null = null;
   let problems: GProblem[] = [];
-  type Around = { full?: boolean; near_hidden?: number; property: { name: string; address: string | null; postal_code: string | null; city: string | null; lat: number | null; lng: number | null }; places: Place[] };
+  type Around = { full?: boolean; near_hidden?: number; auto_hidden?: number; property: { name: string; address: string | null; postal_code: string | null; city: string | null; lat: number | null; lng: number | null }; places: Place[] };
   let around = null as Around | null;
   let failed = false;
   if (isConnected()) {
@@ -212,6 +212,7 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
             }}
             places={around.places}
             nearHidden={around.near_hidden ?? 0}
+            autoHidden={around.auto_hidden ?? 0}
             hiddenUntil={around.full === false ? d(g.stay.details_from) : undefined}
           />
         )}
@@ -230,7 +231,9 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
                 </p>
                 {(s.kind === "early_checkin" || s.kind === "late_checkout") && (
                   <p className="mt-1 text-[13px] text-muted" data-testid="guest-timing-note">
-                    {s.status === "confirmed"
+                    {s.status === "confirmed" && Date.parse(s.start_at) !== Date.parse(s.kind === "early_checkin" ? g.stay.check_in_at : g.stay.check_out_at)
+                      ? t(`timing.mismatchNote.${s.kind}`, { date: d(s.kind === "early_checkin" ? g.stay.check_in_at : g.stay.check_out_at) })
+                      : s.status === "confirmed"
                       ? t(`timing.confirmedNote.${s.kind}`, { date: d(s.kind === "early_checkin" ? g.stay.check_in_at : g.stay.check_out_at) })
                       : ["requested", "in_review", "info_requested"].includes(s.status)
                         ? t(`timing.pendingNote.${s.kind}`, { date: d(s.kind === "early_checkin" ? g.stay.check_in_at : g.stay.check_out_at) })

@@ -1464,7 +1464,7 @@ select t.is('arrivée à 12 h : séjour inchangé', (select to_char(check_in_at 
 update public.tasks set assignee_id = t.id('a_agent'), status = 'assigned', scheduled_start = '2027-10-10 15:00+00' where id = t.id('T16');
 update public.service_requests set status = 'declined' where reservation_id = t.id('R16') and kind = 'early_checkin' and status = 'requested';
 select t.is('arrivée à 14 h (2) : demande enregistrée', t.keep(null, format('select public.guest_request_service(%L, ''early_checkin'', ''2027-10-10 14:00+00'', 2, null)', (select v from t_tok where k = 'g16')))::jsonb ->> 'status', 'ok');
-select t.is('ménage planifié après 14 h : risque signalé', t.q('a_manager', format('select (public.timing_check(%L, (select id from public.service_requests where reservation_id = %L and kind = ''early_checkin'' and status = ''requested'')) -> ''risks'')::text', t.id('A'), t.id('R16'))), '["cleaning_scheduled_after", "prep_actions_open"]');
+select t.is('ménage planifié après 14 h : risque signalé', t.q('a_manager', format('select (public.timing_check(%L, (select id from public.service_requests where reservation_id = %L and kind = ''early_checkin'' and status = ''requested'')) -> ''risks'')::text', t.id('A'), t.id('R16'))), '["mission_scheduled", "prep_actions_open"]');
 select t.is('confirmé : l''horaire planifié du ménage n''est pas déplacé', t.keep('a_manager', format('select public.timing_decide(%L, (select id from public.service_requests where reservation_id = %L and kind = ''early_checkin'' and status = ''requested''), ''confirm'', true) ->> ''status''', t.id('A'), t.id('R16'))) || '/' || (select to_char(scheduled_start at time zone 'UTC', 'HH24:MI') from public.tasks where id = t.id('T16')), 'applied/15:00');
 select t.check('agent informé du changement d''échéance', '', exists (select 1 from public.notification_outbox where organization_id = t.id('A') and template = 'agent_task_changed' and payload ->> 'path' = '/app/missions/' || t.id('T16')));
 
@@ -1496,6 +1496,82 @@ select t.is('matrice : le responsable de A modifie son séjour', t.dml('a_manage
 alter table public.reservations enable trigger reservations_overlap_check;
 select t.err('matrice : séjour chevauchant refusé (même pour le responsable)', t.dml('a_manager', format('insert into public.reservations (organization_id, property_id, check_in_at, check_out_at) values (%L, %L, ''2027-10-11 10:00+00'', ''2027-10-12 10:00+00'')', t.id('A'), t.id('P16'))), '23P01');
 alter table public.reservations disable trigger reservations_overlap_check;
+
+-- =====================================================================
+-- 17. Horaire : missions liées (cause du 2/11), anciennes confirmations, lieux avant ouverture (migration 17)
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['P17', 'R17P', 'R17', 'T17C', 'T17M', 'T17I', 'SV17', 'R17L', 'SV17L']) k;
+insert into public.properties (id, organization_id, name, latitude, longitude) values (t.id('P17'), t.id('A'), 'Logement 17', 43.6045, 1.4440);
+insert into public.guest_guides (organization_id, property_id, enabled) values (t.id('A'), t.id('P17'), true);
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values
+  (t.id('R17P'), t.id('A'), t.id('P17'), 'Sortant 17', '2027-11-17 16:00+00', '2027-11-20 10:00+00'),
+  (t.id('R17'), t.id('A'), t.id('P17'), 'QA Guest 17', '2027-11-20 16:00+00', '2027-11-23 10:00+00');
+-- Configuration du retest : ménage, mission de préparation (non attribuée) liée à une action indispensable, accueil
+insert into public.tasks (id, organization_id, property_id, type, status, reservation_id, next_reservation_id, title, window_start, window_end, duration_min) values
+  (t.id('T17C'), t.id('A'), t.id('P17'), 'turnover', 'unassigned', t.id('R17P'), t.id('R17'), null, '2027-11-20 10:00+00', '2027-11-20 16:00+00', 90),
+  (t.id('T17M'), t.id('A'), t.id('P17'), 'other', 'unassigned', null, t.id('R17'), 'Préparer la table VIP', '2027-11-20 13:30+00', '2027-11-20 16:00+00', 60),
+  (t.id('T17I'), t.id('A'), t.id('P17'), 'check_in', 'unassigned', t.id('R17'), null, null, '2027-11-20 15:30+00', '2027-11-20 18:00+00', 30);
+insert into public.stay_prep_actions (organization_id, reservation_id, title, kind, blocking, due_at, task_id) values
+  (t.id('A'), t.id('R17'), 'Table VIP', 'task', true, '2027-11-20 16:00+00', t.id('T17M'));
+insert into public.service_requests (id, organization_id, property_id, reservation_id, kind, start_at, status, source) values
+  (t.id('SV17'), t.id('A'), t.id('P17'), t.id('R17'), 'early_checkin', '2027-11-20 13:00+00', 'requested', 'guest');
+select t.is('2/11 : effets prévus par mission (ménage échéance, préparation laissée, accueil décalé)',
+  t.q('a_manager', format('select string_agg((e ->> ''type'') || '':'' || (e ->> ''effect''), '','' order by e ->> ''type'') from jsonb_array_elements(public.timing_check(%L, %L) -> ''tasks'') e', t.id('A'), t.id('SV17'))),
+  'check_in:shift,other:unchanged_cannot_fit,turnover:deadline');
+select t.is('2/11 : risques listés, aucun blocage', t.q('a_manager', format('select (public.timing_check(%L, %L) -> ''risks'')::text || ''/'' || (public.timing_check(%L, %L) -> ''blocking'')::text', t.id('A'), t.id('SV17'), t.id('A'), t.id('SV17'))),
+  '["mission_cannot_fit", "cleaning_unassigned", "mission_unassigned", "prep_actions_open"]/[]');
+select t.is('2/11 : confirmation avec accord — plus d''erreur invalid_window', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''confirm'', true, ''2027-11-20 16:00+00'') ->> ''status''', t.id('A'), t.id('SV17'))), 'applied');
+select t.is('2/11 : séjour 13 h, ménage avant 13 h, préparation inchangée, accueil 12:30-15:00, action 13 h',
+  (select to_char(check_in_at at time zone 'UTC', 'HH24:MI') from public.reservations where id = t.id('R17')) || '/' ||
+  (select to_char(window_end at time zone 'UTC', 'HH24:MI') from public.tasks where id = t.id('T17C')) || '/' ||
+  (select to_char(window_start at time zone 'UTC', 'HH24:MI') || '-' || to_char(window_end at time zone 'UTC', 'HH24:MI') from public.tasks where id = t.id('T17M')) || '/' ||
+  (select to_char(window_start at time zone 'UTC', 'HH24:MI') || '-' || to_char(window_end at time zone 'UTC', 'HH24:MI') from public.tasks where id = t.id('T17I')) || '/' ||
+  (select to_char(due_at at time zone 'UTC', 'HH24:MI') from public.stay_prep_actions where reservation_id = t.id('R17')),
+  '13:00/13:00/13:30-16:00/12:30-15:00/13:00');
+select t.is('2/11 : annulation — tout revient à 16 h (accueil compris)', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''cancel'') ->> ''status''', t.id('A'), t.id('SV17'))), 'applied');
+select t.is('2/11 : après annulation', (select to_char(check_in_at at time zone 'UTC', 'HH24:MI') from public.reservations where id = t.id('R17')) || '/' ||
+  (select to_char(window_end at time zone 'UTC', 'HH24:MI') from public.tasks where id = t.id('T17C')) || '/' ||
+  (select to_char(window_start at time zone 'UTC', 'HH24:MI') from public.tasks where id = t.id('T17I')) || '/' ||
+  (select to_char(due_at at time zone 'UTC', 'HH24:MI') from public.stay_prep_actions where reservation_id = t.id('R17')), '16:00/16:00/15:30/16:00');
+-- Accueil déjà planifié : jamais déplacé, risque signalé
+update public.tasks set scheduled_start = '2027-11-20 15:45+00' where id = t.id('T17I');
+insert into public.service_requests (organization_id, property_id, reservation_id, kind, start_at, status, source) values (t.id('A'), t.id('P17'), t.id('R17'), 'early_checkin', '2027-11-20 14:00+00', 'requested', 'guest');
+select t.check('accueil planifié : risque « mission planifiée »', '', (t.q('a_manager', format('select public.timing_check(%L, (select id from public.service_requests where reservation_id = %L and status = ''requested''))::text', t.id('A'), t.id('R17')))) like '%mission_scheduled%');
+select t.is('accueil planifié : confirmé, créneau laissé à 15:45', t.keep('a_manager', format('select public.timing_decide(%L, (select id from public.service_requests where reservation_id = %L and status = ''requested''), ''confirm'', true) ->> ''status''', t.id('A'), t.id('R17'))) || '/' || (select to_char(scheduled_start at time zone 'UTC', 'HH24:MI') from public.tasks where id = t.id('T17I')), 'applied/15:45');
+
+-- Ancienne confirmation incohérente (avant migration 16) : détectée, jamais corrigée seule, résolue par décision tracée
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values (t.id('R17L'), t.id('A'), t.id('P17'), 'Ancien horaire', '2027-12-10 16:00+00', '2027-12-12 10:00+00');
+insert into public.service_requests (id, organization_id, property_id, reservation_id, kind, start_at, status, source) values (t.id('SV17L'), t.id('A'), t.id('P17'), t.id('R17L'), 'early_checkin', '2027-12-10 14:00+00', 'requested', 'guest');
+alter table public.service_requests disable trigger service_requests_timing_guard;
+update public.service_requests set status = 'confirmed' where id = t.id('SV17L');
+alter table public.service_requests enable trigger service_requests_timing_guard;
+select t.is('incohérence : détectée (14 h confirmé, séjour 16 h)', t.q('a_manager', format('select count(*) from jsonb_array_elements(public.timing_inconsistencies(%L)) e where e ->> ''service'' = %L', t.id('A'), t.id('SV17L'))), '1');
+select t.is('incohérence : invisible pour un agent', t.q('a_agent', format('select jsonb_array_length(public.timing_inconsistencies(%L))', t.id('A'))), '0');
+select t.is('incohérence : signalée dans la vérification', t.q('a_manager', format('select public.timing_check(%L, %L) ->> ''legacy_mismatch''', t.id('A'), t.id('SV17L'))), 'true');
+select t.is('incohérence : rien n''est modifié tant que personne ne décide', (select to_char(check_in_at at time zone 'UTC', 'HH24:MI') from public.reservations where id = t.id('R17L')), '16:00');
+select t.err('garde-fou : une demande d''horaire ne peut pas être créée « confirmée »', t.dml('a_manager', format('insert into public.service_requests (organization_id, property_id, reservation_id, kind, start_at, status, source) values (%L, %L, %L, ''early_checkin'', ''2027-12-10 13:00+00'', ''confirmed'', ''manager'')', t.id('A'), t.id('P17'), t.id('R17L'))), '22023');
+select t.is('résolution : appliquer l''ancienne confirmation (accord explicite)', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''apply_legacy'', true, null, ''Votre arrivée à 14 h est bien confirmée.'') ->> ''status''', t.id('A'), t.id('SV17L'))), 'applied');
+select t.is('résolution : séjour à 14 h, plus d''incohérence, décision tracée',
+  (select to_char(check_in_at at time zone 'UTC', 'HH24:MI') from public.reservations where id = t.id('R17L')) || '/' ||
+  t.q('a_manager', format('select count(*) from jsonb_array_elements(public.timing_inconsistencies(%L)) e where e ->> ''service'' = %L', t.id('A'), t.id('SV17L'))) || '/' ||
+  (select count(*)::text from public.service_events where service_id = t.id('SV17L') and body like 'Ancienne confirmation appliquée%'), '14:00/0/1');
+
+-- Lieux avant ouverture : aucune suggestion automatique, aucune coordonnée transmise (deux localisations)
+insert into public.property_places (organization_id, property_id, source, external_id, category, name, latitude, longitude) values
+  (t.id('A'), t.id('P17'), 'openstreetmap', 'node/17001', 'food', 'Auto proche', 43.6050, 1.4445),
+  (t.id('A'), t.id('P17'), 'openstreetmap', 'node/17002', 'food', 'Auto loin', 43.6150, 1.4540);
+insert into public.property_places (organization_id, property_id, source, category, name, latitude, longitude, address) values
+  (t.id('A'), t.id('P17'), 'manager', 'food', 'Choix équipe à 1,5 km', 43.6170, 1.4500, '1 rue Fictive, Toulouse'),
+  (t.id('A'), t.id('P17'), 'manager', 'food', 'Choix équipe sans coordonnées', null, null, null);
+update public.properties set auto_places = true where id = t.id('P17');
+insert into t_tok values ('g17', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R17'))));
+select t.is('avant ouverture (Toulouse) : seulement la sélection de l''équipe, suggestions comptées',
+  t.q(null, format('select jsonb_array_length(public.guest_places(%L) -> ''places'') || ''/'' || (public.guest_places(%L) ->> ''auto_hidden'')', (select v from t_tok where k = 'g17'), (select v from t_tok where k = 'g17'))), '2/2');
+select t.check('avant ouverture : aucune coordonnée ni distance exacte dans les données transmises', '',
+  not exists (select 1 from jsonb_array_elements(public.guest_places((select v from t_tok where k = 'g17')) -> 'places') e where (e ->> 'lat') is not null or (e ->> 'lng') is not null or (e ->> 'distance_m') is not null)
+  and (public.guest_places((select v from t_tok where k = 'g17')) #>> '{property,lat}') is null);
+select t.check('avant ouverture : les coordonnées du logement n''apparaissent nulle part', '',
+  position('43.6045' in public.guest_places((select v from t_tok where k = 'g17'))::text) = 0 and position('1.444' in public.guest_places((select v from t_tok where k = 'g17'))::text) = 0);
 
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);
