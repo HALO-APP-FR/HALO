@@ -273,6 +273,27 @@ export async function GET(request: NextRequest) {
       const { data: early } = await a1.rpc("booking_confirm", { org: orgA, request: reqId, ack_calendars: true });
       check("booking_not_confirmed_without_acceptance", (early as { status: string })?.status === "not_accepted");
     }
+    // 9. Arrivée anticipée sur la vraie base : action indispensable liée à une mission de préparation non attribuée
+    //    (configuration du retest du 2/11), puis confirmation explicite. Le détail renvoie l'erreur réelle éventuelle.
+    {
+      const day = (h: number, m = 0) => {
+        const d = new Date(Date.now() + 300 * 86_400_000);
+        d.setUTCHours(h, m, 0, 0);
+        return d.toISOString();
+      };
+      const { data: rT } = await a1.from("reservations").insert({ organization_id: orgA, property_id: pA!.id, guest_name: "Voyageur horaire", check_in_at: day(15), check_out_at: new Date(Date.parse(day(10)) + 3 * 86_400_000).toISOString() }).select("id").single();
+      const { data: prepTask } = await a1.from("tasks").insert({ organization_id: orgA, property_id: pA!.id, next_reservation_id: rT!.id, type: "other", title: "Préparation (selftest)", is_auto_generated: false, window_start: day(13, 30), window_end: day(15), duration_min: 60 }).select("id").single();
+      await a1.from("stay_prep_actions").insert({ organization_id: orgA, reservation_id: rT!.id, title: "Préparer (selftest)", kind: "task", blocking: true, due_at: day(15), task_id: prepTask?.id ?? null });
+      const { data: tT } = await a1.rpc("create_guest_link", { org: orgA, reservation: rT!.id });
+      const { data: sv } = await guest.rpc("guest_request_service", { token: tT as string, s_kind: "early_checkin", s_start_at: day(12), s_people: 1, s_details: null });
+      const svId = (sv as { id?: string } | null)?.id;
+      const { data: chk, error: ce } = await a1.rpc("timing_check", { org: orgA, service: svId });
+      const cj = chk as { risks?: string[]; blocking?: string[] } | null;
+      check("timing_check_lists_constraints", !ce && Array.isArray(cj?.risks), ce ? `${ce.code}:${ce.message}` : `risques ${JSON.stringify(cj?.risks)} blocages ${JSON.stringify(cj?.blocking)}`);
+      const { data: dec, error: de2 } = await a1.rpc("timing_decide", { org: orgA, service: svId, act: "confirm", ack: true, expected_at: day(15) });
+      const st = (dec as { status?: string } | null)?.status;
+      check("timing_decide_with_prep_mission", !de2 && (st === "applied" || st === "not_feasible"), de2 ? `${de2.code}:${de2.message}` : `${st}`);
+    }
     const { data: bReviews } = await b.from("reviews").select("id").eq("organization_id", orgA);
     check("other_org_cannot_read_reviews", (bReviews ?? []).length === 0);
   } catch (e) {

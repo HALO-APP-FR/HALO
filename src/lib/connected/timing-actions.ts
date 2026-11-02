@@ -40,7 +40,11 @@ export async function decideTiming(
     guest_message: input.message.trim() || null,
     internal_note: input.note.trim() || null,
   });
-  if (error) return { ok: false, error: error.code === "42501" ? "forbidden" : error.code === "P0002" ? "not_found" : "server" };
+  if (error) {
+    // Journal serveur (sans donnée personnelle) : code et message de la base, pour diagnostiquer en préproduction
+    console.error("timing_decide", act, error.code, error.message);
+    return { ok: false, error: error.code === "42501" ? "forbidden" : error.code === "P0002" ? "not_found" : error.message?.includes("invalid_window") ? "timing_window" : "server" };
+  }
   const res = data as { status: string; check?: TimingCheck; property?: string; changed?: boolean; restored?: boolean };
   if (res.status === "applied") {
     // Missions recalculées selon la nouvelle heure (règles habituelles), e-mails envoyés selon le résultat réel
