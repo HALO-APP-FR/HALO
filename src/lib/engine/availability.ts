@@ -36,6 +36,8 @@ export interface PlannedTask {
   durationMin: number;
   /** Horaire planifié, s'il est fixé : c'est lui qui compte, pas toute la fenêtre. */
   scheduledStart?: string | null;
+  /** Début réel (mission démarrée), s'il est connu */
+  startedAt?: string | null;
 }
 
 const ms = (s: string) => new Date(s).getTime();
@@ -81,12 +83,23 @@ export function overlappingAbsences(member: Member, task: Pick<PlannedTask, "win
  *  - « none ».
  * Le temps libre est calculé sur 24 h (horaires de travail et trajets non connus de HALO).
  */
-export function absenceLevel(member: Member, task: Pick<PlannedTask, "windowStart" | "windowEnd" | "durationMin" | "scheduledStart">, absences: Absence[], statuses: AbsenceStatus[] = ["accepted"]) {
-  const over = overlappingAbsences(member, task, absences, statuses);
-  if (!over.length) return { level: "none" as const, absences: over, freeMin: null as number | null };
-  if (task.scheduledStart) return { level: "conflict" as const, absences: over, freeMin: null };
-  const freeMin = freeMinutes(member, task.windowStart, task.windowEnd, absences, statuses);
-  return { level: freeMin >= task.durationMin ? ("risk" as const) : ("conflict" as const), absences: over, freeMin };
+export function absenceLevel(
+  member: Member,
+  task: Pick<PlannedTask, "windowStart" | "windowEnd" | "durationMin" | "scheduledStart">,
+  absences: Absence[],
+  statuses: AbsenceStatus[] = ["accepted"],
+  /** Si fourni et que la fenêtre a déjà commencé, le calcul ne porte que sur le temps restant (de maintenant à la fin de fenêtre). */
+  now?: Date,
+) {
+  const clipped = !task.scheduledStart && now != null && ms(task.windowStart) < now.getTime() && now.getTime() < ms(task.windowEnd);
+  const eff = clipped ? { ...task, windowStart: now!.toISOString() } : task;
+  /** Période réellement utilisée pour le calcul (affichée telle quelle au responsable) */
+  const period = { from: eff.windowStart, to: eff.windowEnd, fromNow: clipped };
+  const over = overlappingAbsences(member, eff, absences, statuses);
+  if (!over.length) return { level: "none" as const, absences: over, freeMin: null as number | null, period };
+  if (task.scheduledStart) return { level: "conflict" as const, absences: over, freeMin: null, period };
+  const freeMin = freeMinutes(member, eff.windowStart, eff.windowEnd, absences, statuses);
+  return { level: freeMin >= task.durationMin ? ("risk" as const) : ("conflict" as const), absences: over, freeMin, period };
 }
 
 /** Absences qui rendent la mission impossible pour cette personne (conflit confirmé, refusé aussi par la base). */
@@ -107,14 +120,20 @@ export interface AvailabilityConflict {
   /**
    * accepted : la mission ne peut plus être faite par cette personne (conflit confirmé) ;
    * partial : absence sur une partie de la fenêtre, temps libre suffisant (risque à examiner) ;
-   * started : mission déjà commencée pendant une absence (à vérifier) ;
+   * started_during : mission démarrée pendant une absence acceptée (à vérifier) ;
+   * started_before : mission démarrée avant une absence qui a commencé depuis ;
+   * started_upcoming : mission en cours, absence à venir dans sa fenêtre ;
+   * started : mission en cours, absence commencée, heure de démarrage inconnue ;
    * pending : elle ne tiendrait plus si la demande est acceptée ; closure : fermeture d'équipe.
    */
-  kind: "accepted" | "partial" | "started" | "started_upcoming" | "pending" | "closure";
+  kind: "accepted" | "partial" | "started" | "started_during" | "started_before" | "started_upcoming" | "pending" | "closure";
   /** Début de la première absence concernée (pour dire « absence prévue le … » sans ambiguïté) */
   absenceStart?: string;
-  /** Plus long temps libre restant dans la fenêtre (minutes), quand il fonde la conclusion */
+  /** Plus long temps libre continu (minutes) sur la période indiquée, quand il fonde la conclusion */
   freeMin?: number | null;
+  /** Période du calcul : de maintenant (fenêtre déjà commencée) ou du début de fenêtre, jusqu'à sa fin */
+  period?: { from: string; to: string; fromNow: boolean };
+  startedAt?: string | null;
   absenceIds: string[];
 }
 
@@ -131,22 +150,22 @@ export function availabilityConflicts(tasks: PlannedTask[], members: Member[], a
     const closures = absences.filter((a) => a.scope === "team" && a.status === "accepted" && overlapping(t, a));
     const m = t.assigneeId ? byId.get(t.assigneeId) : undefined;
     if (m) {
-      const lv = absenceLevel(m, t, absences);
+      const lv = absenceLevel(m, t, absences, ["accepted"], now);
       if (lv.level !== "none") {
         const ids = lv.absences.map((a) => a.id);
-        // Mission en cours : « pendant une absence » seulement si l'absence a déjà commencé, sinon « absence à venir »
         const first = lv.absences.slice().sort((a, b) => ms(a.startsAt) - ms(b.startsAt))[0];
-        const kind =
-          t.status === "in_progress"
-            ? ms(first.startsAt) <= now.getTime()
-              ? "started"
-              : "started_upcoming"
-            : lv.level === "risk"
-              ? "partial"
-              : ids.every((id) => closures.some((c) => c.id === id))
-                ? "closure"
-                : "accepted";
-        out.push({ taskId: t.id, memberId: m.id, kind, absenceIds: ids, freeMin: lv.freeMin, absenceStart: first.startsAt });
+        let kind: AvailabilityConflict["kind"];
+        if (t.status === "in_progress") {
+          // Mission en cours : démarrée pendant une absence, avant une absence commencée depuis, ou avant une absence à venir
+          const st = t.startedAt ? ms(t.startedAt) : null;
+          if (ms(first.startsAt) > now.getTime()) kind = "started_upcoming";
+          else if (st == null) kind = "started";
+          else if (lv.absences.some((a) => st >= ms(a.startsAt) && st < ms(a.endsAt))) kind = "started_during";
+          else kind = "started_before";
+        } else {
+          kind = lv.level === "risk" ? "partial" : ids.every((id) => closures.some((c) => c.id === id)) ? "closure" : "accepted";
+        }
+        out.push({ taskId: t.id, memberId: m.id, kind, absenceIds: ids, freeMin: lv.freeMin, period: lv.period, absenceStart: first.startsAt, startedAt: t.startedAt ?? null });
         continue;
       }
       const pending = overlappingAbsences(m, t, absences, ["pending"]);

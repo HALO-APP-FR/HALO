@@ -106,5 +106,33 @@ check "la seconde confirmation est sans effet" "$out" "already"
 n=$(psql "$T" -qAt -c "select count(*) from public.service_events where service_id = '66666666-6666-6666-6666-666666666666' and kind = 'status' and status = 'confirmed'")
 check "une seule décision enregistrée" "$n" "1"
 
+echo "5. Deux responsables décident en même temps deux demandes différentes du même séjour :"
+psql "$T" -qAt -v ON_ERROR_STOP=1 >/dev/null <<SQL
+insert into public.service_requests (id, organization_id, property_id, reservation_id, kind, start_at, status, source) values
+  ('77777777-7777-7777-7777-777777777771', '$ORG', '$PROP', '55555555-5555-5555-5555-555555555555', 'early_checkin', '2030-04-10 13:00+00', 'requested', 'guest'),
+  ('77777777-7777-7777-7777-777777777772', '$ORG', '$PROP', '55555555-5555-5555-5555-555555555555', 'early_checkin', '2030-04-10 12:00+00', 'requested', 'guest');
+SQL
+cur=$(psql "$T" -qAt -c "select check_in_at from public.reservations where id = '55555555-5555-5555-5555-555555555555'")
+( psql "$T" -qAt -c "$(as_mgr $MGR) begin; select public.timing_decide('$ORG', '77777777-7777-7777-7777-777777777771', 'confirm', true, '$cur'); select pg_sleep(1.5); commit;" >/dev/null 2>&1 ) &
+sleep 0.4
+out=$(psql "$T" -qAt -c "$(as_mgr $MGR2) select public.timing_decide('$ORG', '77777777-7777-7777-7777-777777777772', 'confirm', true, '$cur') ->> 'status';" 2>&1 | tail -1)
+wait
+check "la seconde décision, prise sur l'ancienne heure, est refusée" "$out" "stay_changed"
+st=$(psql "$T" -qAt -c "select to_char(check_in_at at time zone 'UTC', 'HH24:MI') from public.reservations where id = '55555555-5555-5555-5555-555555555555'")
+check "le séjour porte l'heure de la décision enregistrée" "$st" "13:00"
+st=$(psql "$T" -qAt -c "select string_agg(status, ',' order by start_at) from public.service_requests where id in ('77777777-7777-7777-7777-777777777771', '77777777-7777-7777-7777-777777777772')")
+check "une confirmée, l'autre toujours en attente (à redécider sur données à jour)" "$st" "requested,confirmed"
+echo "6. Deux envois d'e-mails simultanés (aucun e-mail envoyé deux fois) :"
+psql "$T" -qAt -v ON_ERROR_STOP=1 >/dev/null <<SQL
+insert into public.notification_outbox (organization_id, recipient, template) select '$ORG', 'c' || g || '@example.test', 'timing_confirmed' from generate_series(1, 6) g;
+SQL
+( psql "$T" -qAt -c "begin; select count(*) from public.outbox_claim('$ORG', 4); select pg_sleep(1.5); commit;" > /tmp/claim1_$$ 2>&1 ) &
+sleep 0.4
+n2=$(psql "$T" -qAt -c "select count(*) from public.outbox_claim('$ORG', 50)" 2>&1 | tail -1)
+wait
+n1=$(grep -E '^[0-9]+$' /tmp/claim1_$$ | head -1); rm -f /tmp/claim1_$$
+check "les deux envois se répartissent les e-mails sans chevauchement (4 + 2)" "$n1+$n2" "4+2"
+n=$(psql "$T" -qAt -c "select count(*) from public.notification_outbox where organization_id = '$ORG' and template = 'timing_confirmed' and status = 'pending'")
+check "aucun e-mail laissé en attente ni réservé deux fois" "$n" "0"
 echo "Bilan : $pass réussi(s), $fail échec(s)"
 [ "$fail" = "0" ]

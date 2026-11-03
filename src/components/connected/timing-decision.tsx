@@ -50,7 +50,9 @@ export function TimingDecision({
   const c = result?.check ?? check;
   const early = c.kind === "early_checkin";
   const open = ["requested", "in_review", "info_requested"].includes(status);
-  const legacy = status === "confirmed" && Boolean(c.legacy_mismatch);
+  const state = c.state ?? (status === "confirmed" ? (c.legacy_mismatch ? "contradiction" : "applied") : "pending");
+  const legacy = status === "confirmed" && state === "contradiction";
+  const superseded = status === "confirmed" && state === "superseded";
   const hasRisks = c.risks.length > 0;
   const blocked = c.blocking.length > 0;
   const k = c.cleaning;
@@ -86,6 +88,29 @@ export function TimingDecision({
         </div>
       )}
 
+      {status === "confirmed" && !legacy && (
+        <p className="rounded-md border border-line bg-subtle p-3 text-[14px] dark:bg-surface-hover" data-testid="timing-state" data-state={state}>
+          {t(`state.${["applied", "superseded", "covered"].includes(state) ? state : "applied"}.${early ? "early" : "late"}`, {
+            stay: at(c.current_at),
+            confirmed: at(c.requested_at),
+            by: c.superseded_by_at ? at(c.superseded_by_at) : "—",
+          })}
+          {superseded && c.superseded_by && (
+            <>
+              {" "}
+              <Link href={`/app/services/${c.superseded_by}`} className="text-accent-text hover:underline" data-testid="timing-superseded-link">
+                {t("state.openLater")}
+              </Link>
+            </>
+          )}
+        </p>
+      )}
+      {open && !c.change && c.no_change && (
+        <p className="text-[14px]" data-testid="timing-no-change" data-reason={c.no_change}>
+          {t(`noChange.${c.no_change}.${early ? "early" : "late"}`, { stay: at(c.current_at) })}
+        </p>
+      )}
+
       {c.change && (
         <div className="text-[14px]" data-testid="timing-facts">
           <p className="font-medium">{t("knownTitle")}</p>
@@ -104,17 +129,34 @@ export function TimingDecision({
                   </span>
                   <span className="block text-[13px]" data-testid="timing-task-effect">
                     {t(`effect.${x.effect}`, { time: at(c.requested_at) })}
+                    {["in_progress", "to_redo"].includes(x.status) ? ` ${t("inProgress")}` : ""}
                   </span>
                 </li>
               ))}
             </ul>
           )}
+          {(c.actions ?? []).length > 0 && <p className="mt-2 font-medium">{t("actionsTitle")}</p>}
           {(c.actions ?? []).map((a) => (
-            <p key={a.id} className="mt-1" data-testid="timing-action">
-              {t("action", { title: a.title, due: a.due_at ? at(a.due_at) : t("noDue") })}
+            <p key={a.id} className="mt-1" data-testid="timing-action" data-effect={a.effect ?? ""}>
+              {a.effect
+                ? t(`actionEffect.${a.effect}`, { title: a.title, due: a.due_at ? at(a.due_at) : "", time: at(c.requested_at) })
+                : t("action", { title: a.title, due: a.due_at ? at(a.due_at) : t("noDue") })}
               {a.task_status ? ` · ${t("linkedMission", { status: tts(a.task_status) })}` : ""}
             </p>
           ))}
+          {(c.done_actions ?? 0) > 0 && (
+            <p className="mt-1 text-muted" data-testid="timing-actions-done">
+              {t("actionsDone", { n: c.done_actions ?? 0 })}
+            </p>
+          )}
+          {c.incidents && (c.incidents.open > 0 || c.incidents.linen > 0) && (
+            <p className="mt-1" data-testid="timing-incidents">
+              {t("incidents", { open: c.incidents.open, linen: c.incidents.linen })}
+            </p>
+          )}
+          <p className="mt-2 text-[13px] text-muted" data-testid="timing-not-ready">
+            {t("notReady")}
+          </p>
         </div>
       )}
 
@@ -182,15 +224,15 @@ export function TimingDecision({
       )}
       {status === "confirmed" && !legacy && (
         <div className="space-y-2 border-t border-line pt-4">
-          <p className="text-[14px]">{t("confirmedText")}</p>
+          <p className="text-[14px]">{t(superseded ? "supersededText" : state === "covered" ? "coveredText" : "confirmedText")}</p>
           <Button variant="outline" size="sm" disabled={pending} onClick={() => go("cancel")} data-testid="timing-cancel">
-            {t("cancel")}
+            {t(superseded ? "withdrawSuperseded" : "cancel")}
           </Button>
         </div>
       )}
       {result && result.status !== "applied" && (
         <p role="alert" className="text-[14px] text-danger" data-testid="timing-result" data-status={result.status}>
-          {t(`result.${["risks", "not_feasible", "stay_changed", "already", "conflict", "no_stay"].includes(result.status) ? result.status : "conflict"}`)}
+          {t(`result.${["risks", "not_feasible", "stay_changed", "already", "conflict", "no_stay", "superseded"].includes(result.status) ? result.status : "conflict"}`)}
         </p>
       )}
       {result?.status === "applied" && (

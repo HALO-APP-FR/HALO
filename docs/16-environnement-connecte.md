@@ -324,3 +324,32 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 **Lieux avant l'ouverture — niveau de protection retenu** : ni coordonnées du logement ni coordonnées des lieux ; aucune suggestion automatique (leur répartition centrée sur le logement et le « vide » laissé par les lieux proches masqués permettaient de le situer) ; seulement la sélection de l'équipe et du propriétaire, à plus de 300 m, distances par tranches de 1 km, ordre alphabétique. Vérifié sur la page réellement transmise au navigateur pour trois localisations (Paris, Toulouse, Chamonix). Limite : les adresses publiques des lieux choisis situent le quartier (de l'ordre du kilomètre) ; c'est le niveau voulu.
 
 **Tests** : isolation 1953/0, concurrence 6/6, unitaires 160, e2e 52/52 (33 retest du 2/11, 34 données transmises).
+
+## Horaires successifs, historique fidèle, e-mails à jour (migration 18 : `20261113000001_horaires_successifs_historique.sql`)
+
+**Problème reproduit (test du 3/11)** : 14 h confirmée, puis 13 h/12 h confirmée → la confirmation 14 h restait « Confirmée » et le voyageur lisait « horaire en cours de vérification ». Cause : la règle « confirmée ≠ heure du séjour ⇒ contradiction » ne distinguait pas une confirmation remplacée par une décision plus récente. Le libellé « Demandée » côté voyageur venait d'un message de l'équipe (événement sans statut) affiché avec le libellé par défaut.
+
+**Règle métier unique (`public.timing_state`)**, appliquée par la base et utilisée par toutes les vues :
+- `applied` : confirmée et heure du séjour = heure confirmée → **l'heure applicable** ;
+- `superseded` : confirmée puis remplacée par une confirmation ultérieure encore valable (lien `superseded_by`, posé uniquement par la décision) ;
+- `covered` : séjour modifié autrement mais promesse tenue (arrivée encore plus tôt / départ encore plus tard) — pas d'alerte ;
+- `contradiction` : promesse non tenue et rien ne l'a remplacée → alerte d'accueil, décision du responsable ;
+- `pending`, `declined`, `cancelled`, `done`.
+
+**Décisions** : confirmer applique l'heure et marque « remplacées » les autres confirmations du même séjour (événement visible du voyageur, historique conservé). Annuler l'horaire applicable rétablit l'heure précédente seulement si le séjour n'a pas changé depuis ; les confirmations qu'il avait remplacées redeviennent examinées selon l'heure réelle (« rétablie »). Retirer une confirmation déjà remplacée ne touche pas le séjour et corrige la chaîne (l'annulation suivante revient à l'heure d'avant). Appliquer une confirmation remplacée est refusé. Champs `superseded_by`, `timing_applied_at`, `timing_previous_at` non modifiables hors décision.
+
+**Données existantes (migration)** : pour chaque séjour, si UNE confirmation est l'horaire applicable (appliquée par la décision dédiée) et a été décidée après une autre confirmation du même type, cette dernière est marquée « remplacée » (événement voyageur + note interne « Migration 18 »). Cas ambigus laissés tels quels et évalués par la règle : aucune ou plusieurs confirmations applicables, ou ordre des décisions inverse. Aucune suppression, aucun séjour modifié.
+
+**Effets avant décision** : actions indispensables selon la donnée réelle — échéance à l'heure actuelle (avancée), plus tardive (laissée, risque), sans échéance (« aucune échéance renseignée », risque distinct), avant l'heure demandée (laissée) ; actions déjà terminées comptées ; incidents et problèmes de linge ouverts signalés ; mission commencée signalée ; inconnues listées (stock de linge, accès, règles du propriétaire, trajets). Confirmer ne marque rien comme fait : le logement n'est jamais rendu « prêt » par la décision.
+
+**Historique voyageur** : libellés par type d'événement (demande reçue, décision, message de l'équipe, information d'horaire avec l'heure, message du voyageur) ; notes internes jamais transmises (vérifié sur les données renvoyées).
+
+**E-mails** : modèles `timing_confirmed`, `timing_cancelled`, `timing_updated` avec l'heure applicable dans le fuseau du logement ; un e-mail d'horaire encore en attente devenu obsolète (décision plus récente sur le séjour) passe en « non envoyé » (`superseded_by_newer_decision`) ; envoi par réservation atomique (`outbox_claim`, `for update skip locked`) : deux traitements simultanés n'envoient jamais le même e-mail ; un e-mail réservé non terminé redevient disponible après 10 min. Les tests utilisent des adresses `.invalid` / `.test` : aucun envoi réel.
+
+**Absences** : mission en cours — démarrée pendant une absence / avant une absence commencée depuis / avant une absence à venir / heure de démarrage inconnue. Temps libre : calculé de maintenant à la fin de fenêtre quand la fenêtre a commencé (sinon fenêtre entière), période affichée ; d'après les seules absences enregistrées (horaires de travail, autres missions, trajets non pris en compte).
+
+**Lieux et recommandations avant l'ouverture** : adresse d'un lieu montrée seulement si sa distance au logement est connue et ≥ 300 m (lieu sans coordonnées ou logement sans position : nom et catégorie seulement) ; recommandations publiées : ni coordonnées ni adresse proche. Lien : un séjour raccourci dont la fin est passée ferme aussi le lien.
+
+**Retour arrière** : restaurer les fonctions de la migration 17 (`timing_apply`, `timing_check`, `timing_decide`, `timing_inconsistencies`, `get_guest_stay` de la migration 13, `guest_places`, `service_timing_guard`, `guest_links_follow_stay` de la migration 12), supprimer `timing_state`, `timing_states`, `timing_email*`, `outbox_claim`, `guest_place_address_ok` ; les colonnes ajoutées peuvent rester.
+
+**Tests** : isolation 2027/0 (section 18), concurrence 11/11 (deux responsables sur deux demandes du même séjour, deux envois simultanés), unitaires 163, e2e 54/54 (35 horaires successifs, 36 absences), auto-test local 60/62 (2 échecs = fournisseur de lieux non joignable en local).

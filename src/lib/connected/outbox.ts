@@ -41,9 +41,9 @@ const LINK_TEMPLATES = new Set(["prep_invite", "booking_link", "review_request"]
 export async function processOutbox(orgId?: string) {
   const admin = supabaseAdmin();
   if (!admin) return { processed: 0, reason: "no_admin_key" as const };
-  let q = admin.from("notification_outbox").select("id, recipient, locale, template, payload, organization_id").eq("status", "pending").order("created_at").limit(20);
-  if (orgId) q = q.eq("organization_id", orgId);
-  const { data: rows } = await q;
+  // Réservation atomique (migration 18) : deux traitements simultanés n'envoient jamais le même e-mail
+  const { data: rows, error: claimErr } = await admin.rpc("outbox_claim", { org: orgId ?? null, n: 20 });
+  if (claimErr) return { processed: 0, reason: "claim_failed" as const };
   if (!rows?.length) return { processed: 0 };
   const transport = smtpTransport();
   const orgNames = new Map<string, string>();
@@ -85,7 +85,11 @@ export async function processOutbox(orgId?: string) {
       const org = orgNames.get(row.organization_id)!;
       const str = (k: string) => (typeof row.payload[k] === "string" ? (row.payload[k] as string) : "");
       const decision = str("decision") === "accepted" || str("decision") === "refused" ? t(`decisions.${str("decision")}`) : "";
-      const params = { org, kind, decision, choice: str("decision") || "other", property: str("property") || "—", guest: str("guest") || "—", member: str("member") || "—" };
+      // E-mails d'horaire : l'heure applicable au moment de la décision, dans le fuseau du logement
+      const time = str("stay_at")
+        ? new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: str("tz") || "UTC" }).format(new Date(str("stay_at")))
+        : "";
+      const params = { org, kind, decision, time, which: str("kind") || "other", choice: str("decision") || "other", property: str("property") || "—", guest: str("guest") || "—", member: str("member") || "—" };
       // Invitation à préparer le séjour : le lien personnel n'existe que dans cet e-mail (jamais stocké en clair)
       const guestUrl = LINK_TEMPLATES.has(row.template) && /^https?:\/\/\S+\/(s|b|avis)\/[0-9a-f]{64}$/.test(str("url")) ? str("url") : "";
       // E-mails internes (équipe, agent, messagerie) : lien vers HALO et pied de page interne

@@ -73,6 +73,41 @@ describe("disponibilités (même règle que la base)", () => {
     expect(availabilityConflicts([run], [ana], [day3], new Date("2026-11-03T10:00:00Z"))[0].kind).toBe("started");
   });
 
+  it("brief du 3/11 : mission en cours — démarrée pendant l'absence, avant une absence commencée depuis, avant une absence à venir", () => {
+    const base = { id: "run", assigneeId: "ana", status: "in_progress", windowStart: "2026-11-01T08:00:00Z", windowEnd: "2026-11-05T18:00:00Z", durationMin: 90 };
+    const day4 = abs({ startsAt: "2026-11-04T00:00:00Z", endsAt: "2026-11-05T00:00:00Z" });
+    // Démarrée le 2, absence le 4 : à venir le 3, commencée le 4 (démarrage AVANT l'absence)
+    expect(availabilityConflicts([{ ...base, startedAt: "2026-11-02T09:00:00Z" }], [ana], [day4], new Date("2026-11-03T10:00:00Z"))[0].kind).toBe("started_upcoming");
+    expect(availabilityConflicts([{ ...base, startedAt: "2026-11-02T09:00:00Z" }], [ana], [day4], new Date("2026-11-04T10:00:00Z"))[0]).toMatchObject({ kind: "started_before", startedAt: "2026-11-02T09:00:00Z" });
+    // Démarrée le 4 à 9 h, pendant l'absence
+    expect(availabilityConflicts([{ ...base, startedAt: "2026-11-04T09:00:00Z" }], [ana], [day4], new Date("2026-11-04T10:00:00Z"))[0].kind).toBe("started_during");
+    // Heure de démarrage inconnue : on ne prétend pas savoir
+    expect(availabilityConflicts([base], [ana], [day4], new Date("2026-11-04T10:00:00Z"))[0].kind).toBe("started");
+  });
+
+  it("brief du 3/11 : temps libre calculé à partir de maintenant quand la fenêtre a commencé (période indiquée)", () => {
+    const t1 = { id: "w", assigneeId: "ana", status: "assigned", windowStart: "2026-11-01T08:00:00Z", windowEnd: "2026-11-05T18:00:00Z", durationMin: 90 };
+    const day4 = abs({ startsAt: "2026-11-04T00:00:00Z", endsAt: "2026-11-05T00:00:00Z" });
+    const [c] = availabilityConflicts([t1], [ana], [day4], new Date("2026-11-03T12:00:00Z"));
+    // De maintenant (3/11 12:00) à l'absence (4/11 00:00) : 12 h ; après l'absence : 18 h → 18 h (1080 min), et non les 64 h passées
+    expect(c).toMatchObject({ kind: "partial", freeMin: 1080, period: { from: "2026-11-03T12:00:00.000Z", to: "2026-11-05T18:00:00Z", fromNow: true } });
+    // Avant le début de la fenêtre : fenêtre entière
+    const [c0] = availabilityConflicts([t1], [ana], [day4], new Date("2026-10-30T00:00:00Z"));
+    expect(c0.period).toMatchObject({ fromNow: false, from: "2026-11-01T08:00:00Z" });
+  });
+
+  it("brief du 3/11 : absence sur toute la fenêtre restante = conflit ; plusieurs absences ; absence annulée ignorée", () => {
+    const t1 = { id: "w", assigneeId: "ana", status: "assigned", windowStart: "2026-11-01T08:00:00Z", windowEnd: "2026-11-05T18:00:00Z", durationMin: 90 };
+    const all = abs({ startsAt: "2026-11-01T00:00:00Z", endsAt: "2026-11-06T00:00:00Z" });
+    expect(availabilityConflicts([t1], [ana], [all], new Date("2026-11-03T12:00:00Z"))[0]).toMatchObject({ kind: "accepted", freeMin: 0 });
+    // Le temps libre restant devient trop court à partir de maintenant : conflit, même si la fenêtre entière en avait eu assez
+    const two = [abs({ id: "x", startsAt: "2026-11-03T12:30:00Z", endsAt: "2026-11-05T17:30:00Z" })];
+    expect(availabilityConflicts([t1], [ana], two, new Date("2026-11-03T12:00:00Z"))[0]).toMatchObject({ kind: "accepted", freeMin: 30 });
+    expect(availabilityConflicts([t1], [ana], [abs({ ...all, status: "cancelled" })], new Date("2026-11-03T12:00:00Z"))).toEqual([]);
+    // Horaire planifié chevauché : conflit certain, sans calcul de temps libre
+    expect(availabilityConflicts([{ ...t1, scheduledStart: "2026-11-04T09:00:00Z" }], [ana], [abs({ startsAt: "2026-11-04T00:00:00Z", endsAt: "2026-11-05T00:00:00Z" })], new Date("2026-11-03T12:00:00Z"))[0]).toMatchObject({ kind: "accepted", freeMin: null });
+  });
+
   it("fermeture : missions attribuées ou non, séjours concernés signalés", () => {
     const closure = abs({ id: "f", scope: "team", memberId: null, kind: "closure", startsAt: "2027-04-10T00:00:00Z", endsAt: "2027-04-11T00:00:00Z" });
     const tasks = [task("matin", "2027-04-10T08:00:00Z", "2027-04-10T12:00:00Z"), task("libre", "2027-04-10T08:00:00Z", "2027-04-10T12:00:00Z", null)];

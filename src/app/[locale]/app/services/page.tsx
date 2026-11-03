@@ -22,11 +22,18 @@ export default async function ServicesPage({ params }: PageProps<"/[locale]/app/
     .order("created_at", { ascending: false })
     .limit(200);
   const rows = data ?? [];
+  // Demandes d'horaire : état réel (horaire appliqué, remplacé, contradiction) calculé par la base
+  const { data: statesRaw } = await supabase.rpc("timing_states", { org: org!.id });
+  const stateOf = new Map(((statesRaw as { service: string; state: string }[] | null) ?? []).map((x) => [x.service, x.state]));
+  const label = (s: { id: string; status: string }) => {
+    const st = stateOf.get(s.id);
+    return st && ["superseded", "covered", "contradiction"].includes(st) ? t(`timingState.${st}`) : ts(s.status);
+  };
   const groups = [
     { key: "todo", items: rows.filter((r) => r.status === "requested" || r.manager_unread) },
     { key: "waiting", items: rows.filter((r) => r.status === "info_requested" && !r.manager_unread) },
-    { key: "confirmed", items: rows.filter((r) => r.status === "confirmed" && !r.manager_unread) },
-    { key: "closed", items: rows.filter((r) => ["declined", "done", "cancelled"].includes(r.status) && !r.manager_unread) },
+    { key: "confirmed", items: rows.filter((r) => r.status === "confirmed" && stateOf.get(r.id) !== "superseded" && !r.manager_unread) },
+    { key: "closed", items: rows.filter((r) => (["declined", "done", "cancelled"].includes(r.status) || (r.status === "confirmed" && stateOf.get(r.id) === "superseded")) && !r.manager_unread) },
   ];
   const one = <T,>(x: T | T[] | null) => (Array.isArray(x) ? x[0] : x);
   return (
@@ -48,7 +55,7 @@ export default async function ServicesPage({ params }: PageProps<"/[locale]/app/
                       {tk(s.kind)} · {(one(s.reservations) as { guest_name: string | null } | null)?.guest_name ?? t("noGuest")}
                     </span>
                     <span className="block text-[13px] text-muted">
-                      {(one(s.properties) as { name: string } | null)?.name} · {f.dateTime(new Date(s.start_at), { dateStyle: "medium", timeStyle: "short" })} · {ts(s.status)}
+                      {(one(s.properties) as { name: string } | null)?.name} · {f.dateTime(new Date(s.start_at), { dateStyle: "medium", timeStyle: "short" })} · <span data-testid="service-row-status">{label(s)}</span>
                     </span>
                   </span>
                   {s.manager_unread && <span className="rounded-full bg-danger px-2 py-0.5 text-[12px] font-semibold text-white">{t("new")}</span>}

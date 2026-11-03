@@ -17,10 +17,19 @@ export interface TimingCheck {
   current_at: string;
   change: boolean;
   cleaning?: { id: string; status: string; assignee_id: string | null; window_start: string; window_end: string; duration_min: number; scheduled_start: string | null } | null;
-  actions?: { id: string; title: string; due_at: string | null; task_status: string | null }[];
+  /** Effet sur chaque action indispensable ouverte : due_moved (échéance avancée avec l'arrivée), due_after, due_before, no_due */
+  actions?: { id: string; title: string; due_at: string | null; task_status: string | null; effect?: "due_moved" | "due_after" | "due_before" | "no_due" }[];
+  done_actions?: number;
+  incidents?: { open: number; linen: number };
+  /** applied / superseded / covered / contradiction / pending / declined / cancelled / done (règle unique : public.timing_state) */
+  state?: string;
+  superseded_by?: string | null;
+  superseded_by_at?: string | null;
+  /** Rien à modifier : même heure, ou heure déjà plus favorable */
+  no_change?: "same_time" | "already_better";
   /** Effet prévu sur chaque mission liée : deadline / start / shift (modifiées), unchanged_* (laissées telles quelles), blocking */
   tasks?: { id: string; type: string; title: string | null; status: string; assignee_id: string | null; window_start: string; window_end: string; duration_min: number; scheduled_start: string | null; effect: string }[];
-  /** Confirmée avant la migration 16 sans que le séjour ait suivi */
+  /** Vraie contradiction : confirmée, promesse non tenue par l'horaire du séjour (state = contradiction) */
   legacy_mismatch?: boolean;
   risks: string[];
   blocking: string[];
@@ -47,7 +56,7 @@ export async function decideTiming(
   if (error) {
     // Journal serveur (sans donnée personnelle) : code et message de la base, pour diagnostiquer en préproduction
     console.error("timing_decide", act, error.code, error.message);
-    return { ok: false, error: error.code === "42501" ? "forbidden" : error.code === "P0002" ? "not_found" : error.message?.includes("invalid_window") ? "timing_window" : "server" };
+    return { ok: false, error: error.code === "42501" ? "forbidden" : error.code === "P0002" ? "not_found" : error.message?.includes("invalid_window") ? "timing_window" : error.message?.includes("use_timing_decision") ? "conflict" : "server" };
   }
   const res = data as { status: string; check?: TimingCheck; property?: string; changed?: boolean; restored?: boolean };
   if (res.status === "applied") {

@@ -17,8 +17,9 @@ export const metadata: Metadata = {
   referrer: "no-referrer",
 };
 
-interface GEvent { kind: string; status: string | null; body: string | null; author: string; at: string }
-interface GService { id: string; kind: string; start_at: string; people: number | null; details: string | null; status: string; created_at: string; events: GEvent[] }
+interface GEvent { kind: string; status: string | null; body: string | null; author: string; at: string; ref_at?: string | null }
+/** timing_state : règle unique côté serveur (public.timing_state) — applied, superseded, covered, contradiction, pending… */
+interface GService { id: string; kind: string; start_at: string; people: number | null; details: string | null; status: string; created_at: string; timing_state?: string | null; superseded_by_at?: string | null; events: GEvent[] }
 interface GProblem { id: string; category: string; description: string; urgent: boolean; status: string; created_at: string; resolved_at: string | null; message: string | null }
 interface GItem { kind: "recommendation" | "info"; title: string; body: string | null; url: string | null; published_at: string; place: { category: string; address: string | null } | null }
 interface GStay {
@@ -225,26 +226,41 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
               <li key={s.id} className="rounded-md border border-line p-3" data-testid="guest-service" data-status={s.status}>
                 <p className="flex flex-wrap items-center gap-2 text-[15px] font-medium">
                   <span className="flex-1">{tk(s.kind)} · {d(s.start_at)}</span>
-                  <span className={cn("rounded-full px-2 py-0.5 text-[12px] font-semibold", statusTone(s.status))}>
-                    {t(`status.${s.status}`)}
+                  <span className={cn("rounded-full px-2 py-0.5 text-[12px] font-semibold", s.timing_state === "superseded" ? "bg-subtle text-muted" : statusTone(s.status))} data-testid="guest-service-status">
+                    {s.timing_state === "superseded" ? t("status.superseded") : t(`status.${s.status}`)}
                   </span>
                 </p>
                 {(s.kind === "early_checkin" || s.kind === "late_checkout") && (
-                  <p className="mt-1 text-[13px] text-muted" data-testid="guest-timing-note">
-                    {s.status === "confirmed" && Date.parse(s.start_at) !== Date.parse(s.kind === "early_checkin" ? g.stay.check_in_at : g.stay.check_out_at)
-                      ? t(`timing.mismatchNote.${s.kind}`, { date: d(s.kind === "early_checkin" ? g.stay.check_in_at : g.stay.check_out_at) })
-                      : s.status === "confirmed"
-                      ? t(`timing.confirmedNote.${s.kind}`, { date: d(s.kind === "early_checkin" ? g.stay.check_in_at : g.stay.check_out_at) })
-                      : ["requested", "in_review", "info_requested"].includes(s.status)
-                        ? t(`timing.pendingNote.${s.kind}`, { date: d(s.kind === "early_checkin" ? g.stay.check_in_at : g.stay.check_out_at) })
-                        : t(`timing.unchangedNote.${s.kind}`, { date: d(s.kind === "early_checkin" ? g.stay.check_in_at : g.stay.check_out_at) })}
+                  <p className="mt-1 text-[13px] text-muted" data-testid="guest-timing-note" data-state={s.timing_state ?? ""}>
+                    {(() => {
+                      const stay = d(s.kind === "early_checkin" ? g.stay.check_in_at : g.stay.check_out_at);
+                      const st = s.timing_state ?? (s.status === "confirmed" ? "applied" : ["requested", "in_review", "info_requested"].includes(s.status) ? "pending" : "closed");
+                      if (st === "contradiction") return t(`timing.mismatchNote.${s.kind}`, { date: stay });
+                      if (st === "superseded") return t(`timing.supersededNote.${s.kind}`, { date: stay, old: d(s.start_at) });
+                      if (st === "covered") return t(`timing.coveredNote.${s.kind}`, { date: stay, old: d(s.start_at) });
+                      if (st === "applied") return t(`timing.confirmedNote.${s.kind}`, { date: stay });
+                      if (st === "pending") return t(`timing.pendingNote.${s.kind}`, { date: stay });
+                      return t(`timing.unchangedNote.${s.kind}`, { date: stay });
+                    })()}
                   </p>
                 )}
                 <ol className="mt-2 space-y-1.5 border-s border-line ps-3 text-[14px]">
                   {s.events.map((e, i) => (
-                    <li key={i}>
+                    <li key={i} data-testid="guest-service-event" data-kind={e.kind}>
                       <span className="text-[12px] text-faint">{d(e.at)} · </span>
-                      {e.kind === "guest_message" ? t("event.you") : e.kind === "created" ? t("event.received") : e.kind === "updated" ? t("event.updated") : ts(e.status ?? "requested")}
+                      {e.kind === "guest_message"
+                        ? t("event.you")
+                        : e.kind === "created"
+                          ? t("event.received")
+                          : e.kind === "updated"
+                            ? t("event.updated")
+                            : e.kind === "team_message"
+                              ? t("event.team")
+                              : e.kind === "timing"
+                                ? t(`event.timing.${["superseded", "applied", "reinstated"].includes(e.status ?? "") ? e.status : "applied"}`, { date: e.ref_at ? d(e.ref_at) : "—" })
+                                : e.kind === "status" && e.status
+                                  ? t("event.decision", { status: ts(e.status) })
+                                  : t("event.team")}
                       {e.body && <span className="block whitespace-pre-wrap">« {e.body} »</span>}
                     </li>
                   ))}
@@ -257,7 +273,10 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
 
         <Card className="p-5" data-testid="guest-timing">
           <h2 className="text-[17px] font-semibold">{t("timing.title")}</h2>
-          <p className="mb-4 mt-1 text-[14px] text-muted">{t("timing.text")}</p>
+          <p className="mt-1 text-[14px] text-muted">{t("timing.text")}</p>
+          <p className="mb-4 mt-2 text-[14px]" data-testid="guest-current-times">
+            {t("timing.current", { in: d(g.stay.check_in_at), out: d(g.stay.check_out_at) })}
+          </p>
           <GuestRequestForm token={token} kinds={["early_checkin", "late_checkout"]} minDate={toLocal(new Date())} timeZone={tz} variant="timing" />
         </Card>
 

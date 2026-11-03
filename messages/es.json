@@ -1803,7 +1803,8 @@
         "sent": "Enviado",
         "failed": "Error de envío",
         "not_configured": "No enviado: ningún servicio configurado",
-        "skipped": "No enviado (preferencia)"
+        "skipped": "No enviado",
+        "sending": "Enviando"
       },
       "retry": "Reintentar",
       "template": {
@@ -1841,12 +1842,16 @@
         "booking_update": "Respuesta a la solicitud de estancia",
         "review_request": "Solicitud de opinión",
         "team_booking_requested": "Equipo: solicitud de estancia",
-        "team_low_review": "Equipo: opinión con nota baja"
+        "team_low_review": "Equipo: opinión con nota baja",
+        "timing_confirmed": "Horario confirmado",
+        "timing_cancelled": "Horario anulado",
+        "timing_updated": "Horario de la estancia actualizado"
       },
       "testAddress": "Dirección ficticia (cuenta de prueba): no se envía nada.",
       "skippedReason": "El destinatario desactivó este correo; el evento sigue visible en HALO.",
       "inviteNotKept": "El enlace no se conserva tras un envío: envíe una nueva invitación desde la estancia.",
-      "inviteResend": "Para reintentar, use «Enviar por e-mail» en la estancia (nuevo enlace)."
+      "inviteResend": "Para reintentar, use «Enviar por e-mail» en la estancia (nuevo enlace).",
+      "skippedSuperseded": "No enviado: se tomó una decisión más reciente sobre el horario de esta estancia; solo se envía el último mensaje."
     },
     "services": {
       "title": "Servicios",
@@ -1864,7 +1869,12 @@
       "unread": "No leído",
       "people": "{n} pers.",
       "details": "Detalles del huésped",
-      "openStay": "Ver la estancia"
+      "openStay": "Ver la estancia",
+      "timingState": {
+        "superseded": "Sustituida",
+        "covered": "Confirmada (estancia ya más favorable)",
+        "contradiction": "Horarios contradictorios"
+      }
     },
     "decide": {
       "title": "Responder a la solicitud",
@@ -1920,7 +1930,13 @@
         "guest_message": "Mensaje del huésped",
         "team_message": "Mensaje del equipo",
         "internal_note": "Nota interna",
-        "updated": "Solicitud modificada"
+        "updated": "Solicitud modificada",
+        "timing": "Horario"
+      },
+      "timing": {
+        "superseded": "sustituido por una confirmación posterior ({date})",
+        "applied": "aplicado a la estancia ({date})",
+        "reinstated": "restablecido tras anular la confirmación posterior (estancia: {date})"
       }
     },
     "missions": {
@@ -1966,7 +1982,8 @@
       "riskTitle": "{name} está ausente durante parte de la ventana",
       "riskStartedTitle": "Misión en curso: {name} tiene una ausencia en su ventana — a verificar",
       "riskActions": "Riesgo a examinar, no un conflicto: la misión sigue siendo posible fuera de la ausencia. Planifique una franja fuera para confirmarlo.",
-      "partialFor": "ausencia parcial ({period})"
+      "partialFor": "ausencia parcial ({period})",
+      "basisWindowFromNow": "Ventana ya iniciada: cálculo sobre el tiempo restante, {window}, sin franja planificada. Tiempo libre continuo más largo fuera de las ausencias registradas: {free}; duración prevista {duration}. Horarios de trabajo, otras misiones y desplazamientos desconocidos para HALO: no es una disponibilidad garantizada."
     },
     "team": {
       "title": "Equipo",
@@ -2311,8 +2328,10 @@
         "pending": "si se acepta la solicitud pendiente",
         "closure": "cierre del equipo",
         "partial": "ausencia en parte de la ventana",
-        "started": "misión en curso mientras la ausencia ya empezó: a verificar",
-        "started_upcoming": "misión en curso; ausencia prevista desde el {date} dentro de su ventana"
+        "started": "misión en curso, ausencia iniciada; hora de inicio desconocida: a verificar",
+        "started_upcoming": "misión en curso; ausencia prevista a partir del {date}, dentro de su ventana",
+        "started_during": "misión iniciada el {started}, durante una ausencia aceptada: a verificar",
+        "started_before": "misión iniciada el {started}, antes de la ausencia iniciada el {date}: a verificar"
       },
       "closureStay": "Estancia durante un cierre: {guest}, {dates}",
       "listTitle": "Próximas ausencias y cierres",
@@ -2329,7 +2348,9 @@
       },
       "risksTitle": "{count, plural, one {# misión a examinar} other {# misiones a examinar}}",
       "risksText": "Ausencia solo en parte de la ventana: la misión sigue siendo posible fuera. Planifique una franja para despejar la duda.",
-      "freeLeft": "tiempo libre calculado {duration} (según las ausencias registradas, en 24 h — no es una disponibilidad garantizada)"
+      "freeLeft": "tiempo libre calculado {duration} (según las ausencias registradas, en 24 h — no es una disponibilidad garantizada)",
+      "freeLeftFromNow": "Tiempo libre continuo más largo desde ahora hasta el {to}: {duration}. Solo según las ausencias registradas; horarios de trabajo, otras misiones y desplazamientos no considerados — no es una disponibilidad garantizada.",
+      "freeLeftWindow": "Tiempo libre continuo más largo entre el {from} y el {to} (ventana completa): {duration}. Solo según las ausencias registradas; horarios de trabajo, otras misiones y desplazamientos no considerados — no es una disponibilidad garantizada."
     },
     "chat": {
       "title": "Mensajes del equipo",
@@ -3307,13 +3328,18 @@
         "cleaning_not_planned": "La limpieza está asignada pero sin franja: nada garantiza que se haga antes de esa hora.",
         "cleaning_scheduled_after": "La limpieza está planificada para terminar después de esa hora. Su franja no se moverá: habrá que replanificarla.",
         "cleaning_scheduled_before": "La limpieza tras la salida está planificada antes de esa hora. Su franja no se moverá: habrá que replanificarla.",
-        "prep_actions_open": "Quedan acciones imprescindibles abiertas con un plazo posterior.",
+        "prep_actions_open": "Hay acciones imprescindibles abiertas (plazo anterior a la hora solicitada).",
         "mission_cannot_fit": "Una misión vinculada no puede terminarse antes de esa hora (se dejará tal cual).",
         "mission_scheduled": "Una misión vinculada tiene una franja planificada que no se moverá: replanificar.",
-        "mission_unassigned": "Una misión de preparación vinculada no está asignada a nadie."
+        "mission_unassigned": "Una misión de preparación vinculada no está asignada a nadie.",
+        "prep_actions_late": "Hay acciones imprescindibles abiertas con plazo a la hora actual o más tarde: nada garantiza que se hagan antes de la hora solicitada.",
+        "prep_actions_no_due": "Hay acciones imprescindibles abiertas sin plazo: HALO no puede saber si se harán a tiempo.",
+        "mission_in_progress": "Una misión vinculada ya ha empezado: HALO no sabe si terminará a tiempo.",
+        "incidents_open": "Hay una incidencia abierta en el alojamiento.",
+        "linen_issue_open": "Hay un problema de ropa abierto en el alojamiento."
       },
-      "unverified": "No verificado por HALO: disponibilidad de ropa de cama, acceso y llaves, normas del propietario. A confirmar por el equipo.",
-      "effectsEarly": "Al confirmar: la llegada pasa a la hora solicitada; cada misión vinculada sigue el efecto indicado; los plazos fijados a la hora antigua se ajustan; ninguna franja planificada se mueve; se avisa a los agentes; el huésped ve la nueva hora.",
+      "unverified": "Desconocido para HALO: stock de ropa, acceso y llaves, normas del propietario, desplazamientos de los agentes. A confirmar por el equipo.",
+      "effectsEarly": "Al confirmar: la llegada pasa a la hora solicitada; cada misión y acción sigue el efecto indicado (nada más); ninguna franja planificada se mueve; se avisa a los agentes cuya misión cambia según sus preferencias; el huésped ve la nueva hora; las demás confirmaciones de horario se marcan «sustituidas».",
       "effectsLate": "Al confirmar: la salida pasa a la hora solicitada; el inicio de la ventana de limpieza se ajusta; una franja ya planificada nunca se mueve; se avisa al agente asignado; el huésped ve la nueva hora.",
       "ack": "Confirmo con conocimiento de causa: la preparación no está garantizada a esa hora (decisión registrada).",
       "ackNeeded": "Marque la casilla para confirmar pese a estos puntos.",
@@ -3331,10 +3357,11 @@
         "stay_changed": "La estancia cambió entretanto: recargue la página para decidir con datos actualizados.",
         "already": "Ya hecho.",
         "conflict": "La solicitud cambió entretanto: la página se ha actualizado.",
-        "no_stay": "Ninguna estancia vinculada a esta solicitud."
+        "no_stay": "Ninguna estancia vinculada a esta solicitud.",
+        "superseded": "Esta confirmación fue sustituida por una decisión posterior: no se ha modificado nada."
       },
       "legacyTitle": "Horarios contradictorios",
-      "legacyText": "Esta solicitud se confirmó para {confirmed}, pero la estancia indica {stay}: la confirmación es anterior a la verificación automática y la estancia no se actualizó. No se ha modificado nada. Decida: aplicar el horario confirmado o retirar la confirmación (se avisa al huésped).",
+      "legacyText": "Esta solicitud está confirmada para {confirmed}, pero la estancia indica {stay} y ninguna confirmación posterior la sustituyó: la promesa al huésped no se cumple. No se modificó nada automáticamente. Decida: aplicar el horario confirmado o retirar la confirmación (se avisa al huésped).",
       "applyLegacy": "Aplicar el horario confirmado a la estancia",
       "withdrawLegacy": "Retirar la confirmación",
       "until": "hasta {date}",
@@ -3347,7 +3374,46 @@
         "unchanged_scheduled": "Efecto: ninguno — franja planificada, nunca se mueve sola (replanificar si hace falta).",
         "unchanged_cannot_fit": "Efecto: ninguno — esta misión no cabe antes de {time}; se deja tal cual y terminará después de la llegada.",
         "blocking": "No cabe antes de {time}: confirmación imposible."
-      }
+      },
+      "state": {
+        "applied": {
+          "early": "Horario aplicable: llegada prevista el {stay} (esta confirmación).",
+          "late": "Horario aplicable: salida prevista el {stay} (esta confirmación)."
+        },
+        "superseded": {
+          "early": "Sustituida: el horario de {confirmed} fue sustituido por una confirmación posterior ({by}). Llegada prevista actualmente el {stay}. No hace falta ninguna acción.",
+          "late": "Sustituida: el horario de {confirmed} fue sustituido por una confirmación posterior ({by}). Salida prevista actualmente el {stay}. No hace falta ninguna acción."
+        },
+        "covered": {
+          "early": "Confirmada para {confirmed}; la estancia ya prevé una llegada más temprana, el {stay}: la promesa se mantiene, no hace falta ninguna acción.",
+          "late": "Confirmada para {confirmed}; la estancia ya prevé una salida más tardía, el {stay}: la promesa se mantiene, no hace falta ninguna acción."
+        },
+        "openLater": "Ver la confirmación posterior"
+      },
+      "noChange": {
+        "same_time": {
+          "early": "La estancia ya prevé la llegada el {stay}: confirmar no cambia ni la estancia ni las misiones.",
+          "late": "La estancia ya prevé la salida el {stay}: confirmar no cambia ni la estancia ni las misiones."
+        },
+        "already_better": {
+          "early": "La estancia ya prevé una llegada más temprana ({stay}): confirmar no cambia ni la estancia ni las misiones; la hora aplicable sigue siendo {stay}.",
+          "late": "La estancia ya prevé una salida más tardía ({stay}): confirmar no cambia ni la estancia ni las misiones; la hora aplicable sigue siendo {stay}."
+        }
+      },
+      "inProgress": "Misión ya iniciada: HALO no sabe si terminará a tiempo.",
+      "actionsTitle": "Acciones imprescindibles abiertas",
+      "actionEffect": {
+        "due_moved": "«{title}»: plazo fijado a la hora actual ({due}) → pasará a {time}. La acción sigue abierta.",
+        "due_after": "«{title}»: plazo {due}, posterior a la hora solicitada. No se modifica: adelantarlo o terminar antes de {time}.",
+        "due_before": "«{title}»: plazo {due}, anterior a la hora solicitada. Sin cambios; sigue abierta.",
+        "no_due": "«{title}»: sin plazo indicado. No se modifica nada; HALO no puede saber si se hará antes de {time}."
+      },
+      "actionsDone": "{n, plural, one {# acción imprescindible ya terminada.} other {# acciones imprescindibles ya terminadas.}}",
+      "incidents": "Problemas abiertos en el alojamiento: {open} incidencia(s), {linen} problema(s) de ropa. Solo se señalan: HALO no sabe si se resolverán antes de la llegada.",
+      "notReady": "Confirmar no marca nada como hecho: el alojamiento solo pasa a «listo» cuando las misiones y acciones están realmente terminadas.",
+      "supersededText": "Esta confirmación ya no es el horario aplicable. Retirarla no cambia la estancia; si la confirmación posterior se anula más tarde, la estancia volverá al horario anterior a esta.",
+      "coveredText": "La estancia se modificó de otra forma, compatible con esta confirmación. Anular retira la confirmación sin cambiar la estancia.",
+      "withdrawSuperseded": "Retirar esta confirmación sustituida"
     }
   },
   "email": {
@@ -3500,6 +3566,18 @@
     "team_low_review": {
       "subject": "Opinión con nota baja — {property}",
       "body": "Ha llegado una opinión con nota de 2/5 o menos (global, servicio o criterio clave) ({property}). Está marcada «Por atender» en Satisfacción: puede anotar una acción interna o abrir un incidente. No se atribuye la culpa a nadie."
+    },
+    "timing_confirmed": {
+      "subject": "{org} — solicitud aceptada: {kind}",
+      "body": "Buenas noticias: su solicitud «{kind}» ha sido aceptada. {which, select, early_checkin {Su llegada está prevista ahora el {time}.} other {Su salida está prevista ahora el {time}.}}"
+    },
+    "timing_cancelled": {
+      "subject": "{org} — horario anulado: {kind}",
+      "body": "La confirmación de su solicitud «{kind}» ha sido anulada. {which, select, early_checkin {Su llegada sigue prevista el {time}.} other {Su salida sigue prevista el {time}.}}"
+    },
+    "timing_updated": {
+      "subject": "{org} — horario de su estancia actualizado",
+      "body": "El horario de su estancia ha sido actualizado. {which, select, early_checkin {Su llegada está prevista ahora el {time}.} other {Su salida está prevista ahora el {time}.}}"
     }
   },
   "guestSpace": {
@@ -3571,12 +3649,20 @@
       "declined": "Rechazada",
       "done": "Realizada",
       "cancelled": "Cancelada",
-      "in_review": "En estudio"
+      "in_review": "En estudio",
+      "superseded": "Sustituida"
     },
     "event": {
       "you": "Su mensaje",
       "received": "Solicitud recibida",
-      "updated": "Solicitud modificada por el equipo"
+      "updated": "Solicitud modificada por el equipo",
+      "team": "Mensaje del equipo",
+      "decision": "Decisión: {status}",
+      "timing": {
+        "superseded": "Horario sustituido por una confirmación posterior: ahora {date}",
+        "applied": "Horario aplicado a su estancia: {date}",
+        "reinstated": "La confirmación posterior fue anulada: horario de la estancia {date}"
+      }
     },
     "linkValid": "Este enlace personal es válido hasta el {until}. No lo comparta.",
     "problem": {
@@ -3747,7 +3833,16 @@
       "mismatchNote": {
         "early_checkin": "Horario en verificación por el equipo: mientras tanto, su llegada sigue prevista el {date}.",
         "late_checkout": "Horario en verificación por el equipo: mientras tanto, su salida sigue prevista el {date}."
-      }
+      },
+      "supersededNote": {
+        "early_checkin": "Llegada prevista actualmente el {date}. El horario de {old} fue sustituido por una confirmación posterior.",
+        "late_checkout": "Salida prevista actualmente el {date}. El horario de {old} fue sustituido por una confirmación posterior."
+      },
+      "coveredNote": {
+        "early_checkin": "Llegada prevista actualmente el {date}, antes del horario confirmado ({old}).",
+        "late_checkout": "Salida prevista actualmente el {date}, después del horario confirmado ({old})."
+      },
+      "current": "Horarios previstos actualmente: llegada el {in}, salida el {out}."
     }
   },
   "demoEntry": {

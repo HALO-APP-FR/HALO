@@ -344,7 +344,7 @@ export function OwnerReviewLink({ ownerId, hasEmail, linked }: { ownerId: string
       </div>
       {del && (
         <p className="text-[13px]" data-testid="owner-review-delivery" data-status={del}>
-          {tj("sent")} · {tj(`delivery.${["sent", "pending", "failed", "not_configured", "skipped"].includes(del) ? del : "failed"}`)}
+          {tj("sent")} · {tj(`delivery.${["sent", "pending", "failed", "not_configured", "skipped"].includes(del === "sending" ? "pending" : del) ? (del === "sending" ? "pending" : del) : "failed"}`)}
         </p>
       )}
       {url && (

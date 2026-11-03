@@ -30,7 +30,7 @@ export default async function ServicePage({ params }: PageProps<"/[locale]/app/s
     .maybeSingle();
   if (!s) notFound();
   const [{ data: events }, { data: outbox }] = await Promise.all([
-    supabase.from("service_events").select("id, kind, status, body, visibility, author_kind, at").eq("organization_id", o).eq("service_id", id).order("id"),
+    supabase.from("service_events").select("id, kind, status, body, visibility, author_kind, at, ref_at").eq("organization_id", o).eq("service_id", id).order("id"),
     supabase.from("notification_outbox").select("id, template, recipient, status, attempts, last_error, created_at, sent_at").eq("organization_id", o).eq("service_id", id).order("created_at", { ascending: false }),
   ]);
   // Arrivée anticipée / départ tardif : contraintes connues calculées par la base (lecture seule)
@@ -53,7 +53,7 @@ export default async function ServicePage({ params }: PageProps<"/[locale]/app/s
   const d = (x: string) => f.dateTime(new Date(x), { dateStyle: "medium", timeStyle: "short", timeZone: tz });
   return (
     <>
-      <PageHeader title={`${tk(s.kind)} · ${ts(s.status)}`} subtitle={`${r?.guest_name ?? t("services.noGuest")} · ${p?.name} · ${d(s.start_at)}${s.people ? ` · ${t("services.people", { n: s.people })}` : ""}`} />
+      <PageHeader title={`${tk(s.kind)} · ${timing && check?.state && ["superseded", "covered", "contradiction"].includes(check.state) ? t(`services.timingState.${check.state}`) : ts(s.status)}`} subtitle={`${r?.guest_name ?? t("services.noGuest")} · ${p?.name} · ${d(s.start_at)}${s.people ? ` · ${t("services.people", { n: s.people })}` : ""}`} />
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
           {s.details && (
@@ -87,7 +87,11 @@ export default async function ServicePage({ params }: PageProps<"/[locale]/app/s
                   </p>
                   <p className="mt-1">
                     {t(`history.kind.${e.kind}`)}
-                    {e.status && e.kind !== "internal_note" ? ` — ${ts(e.status)}` : ""}
+                    {e.kind === "timing"
+                      ? ` — ${t(`history.timing.${["superseded", "applied", "reinstated"].includes(e.status ?? "") ? e.status : "applied"}`, { date: e.ref_at ? d(e.ref_at) : "—" })}`
+                      : e.status && e.kind !== "internal_note"
+                        ? ` — ${ts(e.status)}`
+                        : ""}
                   </p>
                   {e.body && <p className="mt-1 whitespace-pre-wrap">« {e.body} »</p>}
                 </li>

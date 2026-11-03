@@ -1803,7 +1803,8 @@
         "sent": "Sent",
         "failed": "Failed",
         "not_configured": "Not sent: no email provider configured",
-        "skipped": "Not sent (preference)"
+        "skipped": "Not sent",
+        "sending": "Sending"
       },
       "retry": "Retry",
       "template": {
@@ -1841,12 +1842,16 @@
         "booking_update": "Stay request update",
         "review_request": "Review request",
         "team_booking_requested": "Team: stay request",
-        "team_low_review": "Team: low-rated review"
+        "team_low_review": "Team: low-rated review",
+        "timing_confirmed": "Time confirmed",
+        "timing_cancelled": "Time cancelled",
+        "timing_updated": "Stay time updated"
       },
       "testAddress": "Fictitious address (test account): nothing is sent.",
       "skippedReason": "The recipient disabled this email; the event remains visible in HALO.",
       "inviteNotKept": "The link is not kept after a send attempt: send a new invitation from the stay.",
-      "inviteResend": "To retry, use “Send by e-mail” on the stay (new link)."
+      "inviteResend": "To retry, use “Send by e-mail” on the stay (new link).",
+      "skippedSuperseded": "Not sent: a more recent decision about this stay's time was made; only the latest message is sent."
     },
     "services": {
       "title": "Services",
@@ -1864,7 +1869,12 @@
       "unread": "Unread",
       "people": "{n} people",
       "details": "Guest's details",
-      "openStay": "Open the stay"
+      "openStay": "Open the stay",
+      "timingState": {
+        "superseded": "Superseded",
+        "covered": "Confirmed (stay already more favourable)",
+        "contradiction": "Contradictory times"
+      }
     },
     "decide": {
       "title": "Reply to the request",
@@ -1920,7 +1930,13 @@
         "guest_message": "Guest message",
         "team_message": "Team message",
         "internal_note": "Internal note",
-        "updated": "Request changed"
+        "updated": "Request changed",
+        "timing": "Time"
+      },
+      "timing": {
+        "superseded": "replaced by a later confirmation ({date})",
+        "applied": "applied to the stay ({date})",
+        "reinstated": "reinstated after the later confirmation was cancelled (stay: {date})"
       }
     },
     "missions": {
@@ -1966,7 +1982,8 @@
       "riskTitle": "{name} is absent for part of the window",
       "riskStartedTitle": "Mission in progress: {name} has an absence within its window — to check",
       "riskActions": "A risk to check, not a conflict: the mission is still possible outside the absence. Plan a slot outside it to confirm.",
-      "partialFor": "partial absence ({period})"
+      "partialFor": "partial absence ({period})",
+      "basisWindowFromNow": "Window already started: calculated on the remaining time, {window}, with no planned slot. Longest continuous free time outside recorded absences: {free}; planned duration {duration}. Working hours, other missions and travel unknown to HALO: not guaranteed availability."
     },
     "team": {
       "title": "Team",
@@ -2311,8 +2328,10 @@
         "pending": "if the pending request is accepted",
         "closure": "team closure",
         "partial": "absence over part of the window",
-        "started": "mission in progress while the absence has started: to check",
-        "started_upcoming": "mission in progress; absence planned from {date} within its window"
+        "started": "mission in progress, absence started; start time unknown: to check",
+        "started_upcoming": "mission in progress; absence planned from {date}, within its window",
+        "started_during": "mission started on {started}, during an accepted absence: to check",
+        "started_before": "mission started on {started}, before the absence that began on {date}: to check"
       },
       "closureStay": "Stay during a closure: {guest}, {dates}",
       "listTitle": "Upcoming absences and closures",
@@ -2329,7 +2348,9 @@
       },
       "risksTitle": "{count, plural, one {# mission to check} other {# missions to check}}",
       "risksText": "Absence over only part of the window: the mission is still possible outside it. Plan a slot to remove the doubt.",
-      "freeLeft": "calculated free time {duration} (from recorded absences, over 24 h — not guaranteed availability)"
+      "freeLeft": "calculated free time {duration} (from recorded absences, over 24 h — not guaranteed availability)",
+      "freeLeftFromNow": "Longest continuous free time from now until {to}: {duration}. Based only on recorded absences; working hours, other missions and travel not taken into account — not guaranteed availability.",
+      "freeLeftWindow": "Longest continuous free time between {from} and {to} (whole window): {duration}. Based only on recorded absences; working hours, other missions and travel not taken into account — not guaranteed availability."
     },
     "chat": {
       "title": "Team messages",
@@ -3307,13 +3328,18 @@
         "cleaning_not_planned": "The cleaning is assigned but has no slot: nothing guarantees it'll be done before this time.",
         "cleaning_scheduled_after": "The cleaning is scheduled to finish after this time. Its slot won't be moved: it will need rescheduling.",
         "cleaning_scheduled_before": "The post-departure cleaning is scheduled before this time. Its slot won't be moved: it will need rescheduling.",
-        "prep_actions_open": "Required actions remain open with a later due date.",
+        "prep_actions_open": "Essential actions are still open (deadline before the requested time).",
         "mission_cannot_fit": "A linked mission can't be finished before this time (it will be left as is).",
         "mission_scheduled": "A linked mission has a planned slot that won't be moved: reschedule it.",
-        "mission_unassigned": "A linked preparation mission isn't assigned to anyone."
+        "mission_unassigned": "A linked preparation mission isn't assigned to anyone.",
+        "prep_actions_late": "Open essential actions have a deadline at the current time or later: nothing guarantees they'll be done before the requested time.",
+        "prep_actions_no_due": "Open essential actions have no deadline: HALO can't tell whether they'll be done in time.",
+        "mission_in_progress": "A linked mission has already started: HALO doesn't know whether it will finish in time.",
+        "incidents_open": "An incident is open at the property.",
+        "linen_issue_open": "A linen issue is open at the property."
       },
-      "unverified": "Not checked by HALO: linen availability, access and keys, owner rules. To be confirmed by the team.",
-      "effectsEarly": "When confirming: the stay's arrival moves to the requested time; each linked mission follows the effect shown above; action due dates set at the old time follow; no planned slot is moved; assigned agents are notified; the guest sees the new time.",
+      "unverified": "Unknown to HALO: linen stock, access and keys, owner rules, agents' travel. To be confirmed by the team.",
+      "effectsEarly": "When confirming: the stay's arrival moves to the requested time; each mission and action follows the effect shown above (nothing else); no planned slot is moved; assigned agents whose mission changes are notified according to their preferences; the guest sees the new time; other time confirmations for the stay are marked “superseded”.",
       "effectsLate": "When confirming: the stay's departure moves to the requested time; the cleaning window start follows; an already planned slot is never moved; the assigned agent is notified; the guest sees the new time.",
       "ack": "I confirm knowingly: preparation isn't guaranteed at this time (decision recorded).",
       "ackNeeded": "Tick the box to confirm despite these points.",
@@ -3331,10 +3357,11 @@
         "stay_changed": "The stay changed in the meantime: reload the page to decide on up-to-date data.",
         "already": "Already done.",
         "conflict": "The request changed in the meantime: the page has been refreshed.",
-        "no_stay": "No stay linked to this request."
+        "no_stay": "No stay linked to this request.",
+        "superseded": "This confirmation was replaced by a later decision: nothing was changed."
       },
       "legacyTitle": "Contradictory times",
-      "legacyText": "This request was confirmed for {confirmed}, but the stay shows {stay}: the confirmation predates the automatic check and the stay wasn't updated. Nothing has been changed. Decide: apply the confirmed time to the stay, or withdraw the confirmation (the guest is notified).",
+      "legacyText": "This request is confirmed for {confirmed}, but the stay shows {stay} and no later confirmation replaced it: the promise to the guest isn't kept. Nothing was changed automatically. Decide: apply the confirmed time to the stay, or withdraw the confirmation (the guest is notified).",
       "applyLegacy": "Apply the confirmed time to the stay",
       "withdrawLegacy": "Withdraw the confirmation",
       "until": "until {date}",
@@ -3347,7 +3374,46 @@
         "unchanged_scheduled": "Effect: none — planned slot, never moved automatically (reschedule if needed).",
         "unchanged_cannot_fit": "Effect: none — this mission can't fit before {time}; it's left as is and will end after arrival.",
         "blocking": "Can't fit before {time}: confirmation impossible."
-      }
+      },
+      "state": {
+        "applied": {
+          "early": "Applicable time: arrival planned for {stay} (this confirmation).",
+          "late": "Applicable time: departure planned for {stay} (this confirmation)."
+        },
+        "superseded": {
+          "early": "Superseded: the {confirmed} time was replaced by a later confirmation ({by}). Arrival currently planned for {stay}. No action needed.",
+          "late": "Superseded: the {confirmed} time was replaced by a later confirmation ({by}). Departure currently planned for {stay}. No action needed."
+        },
+        "covered": {
+          "early": "Confirmed for {confirmed}; the stay already plans an earlier arrival, on {stay}: the promise still holds, no action needed.",
+          "late": "Confirmed for {confirmed}; the stay already plans a later departure, on {stay}: the promise still holds, no action needed."
+        },
+        "openLater": "See the later confirmation"
+      },
+      "noChange": {
+        "same_time": {
+          "early": "The stay already plans arrival on {stay}: confirming changes neither the stay nor the missions.",
+          "late": "The stay already plans departure on {stay}: confirming changes neither the stay nor the missions."
+        },
+        "already_better": {
+          "early": "The stay already plans an earlier arrival ({stay}): confirming changes neither the stay nor the missions; the applicable time stays {stay}.",
+          "late": "The stay already plans a later departure ({stay}): confirming changes neither the stay nor the missions; the applicable time stays {stay}."
+        }
+      },
+      "inProgress": "Mission already started: HALO doesn't know whether it will finish in time.",
+      "actionsTitle": "Open essential actions",
+      "actionEffect": {
+        "due_moved": "“{title}”: deadline set at the current time ({due}) → it will move to {time}. The action stays open.",
+        "due_after": "“{title}”: deadline {due}, after the requested time. It isn't changed: bring it forward or finish before {time}.",
+        "due_before": "“{title}”: deadline {due}, before the requested time. Unchanged; still open.",
+        "no_due": "“{title}”: no deadline set. Nothing is changed; HALO can't tell whether it will be done before {time}."
+      },
+      "actionsDone": "{n, plural, one {# essential action already done.} other {# essential actions already done.}}",
+      "incidents": "Open issues at the property: {open} incident(s), {linen} linen issue(s). Flagged only: HALO doesn't know whether they'll be fixed before arrival.",
+      "notReady": "Confirming doesn't mark anything as done: the property only becomes “ready” when missions and actions are actually completed.",
+      "supersededText": "This confirmation is no longer the applicable time. Withdrawing it doesn't change the stay; if the later confirmation is cancelled later on, the stay will go back to the time before this one.",
+      "coveredText": "The stay was changed another way, consistent with this confirmation. Cancelling withdraws the confirmation without changing the stay.",
+      "withdrawSuperseded": "Withdraw this superseded confirmation"
     }
   },
   "email": {
@@ -3500,6 +3566,18 @@
     "team_low_review": {
       "subject": "Low-rated review — {property}",
       "body": "A review has arrived with a rating of 2/5 or less (overall, service or key criterion) ({property}). It's marked “To handle” in Satisfaction: you can record an internal action or open an incident there. No one is blamed."
+    },
+    "timing_confirmed": {
+      "subject": "{org} — request accepted: {kind}",
+      "body": "Good news: your “{kind}” request is accepted. {which, select, early_checkin {Your arrival is now planned for {time}.} other {Your departure is now planned for {time}.}}"
+    },
+    "timing_cancelled": {
+      "subject": "{org} — time cancelled: {kind}",
+      "body": "The confirmation of your “{kind}” request is cancelled. {which, select, early_checkin {Your arrival stays planned for {time}.} other {Your departure stays planned for {time}.}}"
+    },
+    "timing_updated": {
+      "subject": "{org} — your stay time was updated",
+      "body": "Your stay time was updated. {which, select, early_checkin {Your arrival is now planned for {time}.} other {Your departure is now planned for {time}.}}"
     }
   },
   "guestSpace": {
@@ -3571,12 +3649,20 @@
       "declined": "Declined",
       "done": "Completed",
       "cancelled": "Cancelled",
-      "in_review": "Being reviewed"
+      "in_review": "Being reviewed",
+      "superseded": "Superseded"
     },
     "event": {
       "you": "Your message",
       "received": "Request received",
-      "updated": "Request changed by the team"
+      "updated": "Request changed by the team",
+      "team": "Message from the team",
+      "decision": "Decision: {status}",
+      "timing": {
+        "superseded": "Time replaced by a later confirmation: now {date}",
+        "applied": "Time applied to your stay: {date}",
+        "reinstated": "The later confirmation was cancelled: stay time {date}"
+      }
     },
     "linkValid": "This personal link is valid until {until}. Don't share it.",
     "problem": {
@@ -3747,7 +3833,16 @@
       "mismatchNote": {
         "early_checkin": "Time being checked by the team: in the meantime, your arrival stays planned for {date}.",
         "late_checkout": "Time being checked by the team: in the meantime, your departure stays planned for {date}."
-      }
+      },
+      "supersededNote": {
+        "early_checkin": "Arrival currently planned for {date}. The {old} time was replaced by a later confirmation.",
+        "late_checkout": "Departure currently planned for {date}. The {old} time was replaced by a later confirmation."
+      },
+      "coveredNote": {
+        "early_checkin": "Arrival currently planned for {date}, earlier than the confirmed time ({old}).",
+        "late_checkout": "Departure currently planned for {date}, later than the confirmed time ({old})."
+      },
+      "current": "Currently planned times: arrival on {in}, departure on {out}."
     }
   },
   "demoEntry": {

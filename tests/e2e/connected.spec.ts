@@ -1062,7 +1062,7 @@ test("18 · missions à valider, messages lus, messagerie interne, itinéraires,
   const { data: skipped } = await admin.from("notification_outbox").select("status, last_error").eq("organization_id", org).eq("template", "agent_task_assigned").eq("status", "skipped");
   expect(skipped?.[0]?.last_error).toBe("disabled_by_preference"); // le journal dit pourquoi
   await m.goto("/fr/app/notifications");
-  await expect(m.getByTestId("outbox-row").filter({ hasText: "Agent : mission attribuée" }).filter({ has: m.getByTestId("outbox-skipped") }).first()).toContainText("Non envoyé (préférence)");
+  await expect(m.getByTestId("outbox-row").filter({ hasText: "Agent : mission attribuée" }).filter({ has: m.getByTestId("outbox-skipped") }).first()).toContainText("Le destinataire a désactivé cet e-mail");
 
   // G. Missions à valider : alerte à l'accueil dès la fin, ouverture directe, disparition après validation
   await admin.from("organizations").update({ validation_task_types: ["turnover", "maintenance"] }).eq("id", org);
@@ -2472,6 +2472,121 @@ test("33 · retest du 2/11 : mission de préparation liée, double clic, modific
   await m.goto("/fr/app");
   await expect(m.getByTestId("home-timingMismatch")).toContainText("Aucun horaire contradictoire");
   for (const c of [m, g]) await c.context().close();
+});
+
+test("35 · brief du 3/11 : 14 h puis 13 h — une seule heure applicable, « remplacée » sans fausse alerte, annulation, régularisation avec message", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `succ ${run}`);
+  const { data: stay } = await admin.from("reservations").select("id, check_in_at, property_id").eq("organization_id", org).eq("guest_name", "Voyageur test").single();
+  const at = (h: number, mi = 0) => {
+    const d = new Date(stay!.check_in_at);
+    d.setHours(h, mi, 0, 0);
+    return d;
+  };
+  // Action indispensable sans échéance : jamais décrite comme « plus tardive »
+  await admin.from("stay_prep_actions").insert({ organization_id: org, reservation_id: stay!.id, title: "Lit bébé (QA)", kind: "task", blocking: true, due_at: null });
+  await m.goto(`/fr/app/stays/${stay!.id}`);
+  await m.getByTestId("link-create").click();
+  const gUrl = (await m.getByTestId("guest-link-url").inputValue()).replace(/^https?:\/\/[^/]+/, "");
+  const g = await newPage(browser);
+  await g.goto(gUrl);
+  await g.waitForLoadState("networkidle");
+  const ask = async (d: Date) => {
+    await g.getByTestId("guest-timing-kind").selectOption("early_checkin");
+    await g.getByTestId("guest-timing-when").fill(local(d));
+    await g.getByTestId("guest-timing-send").click();
+    await expect(g.getByTestId("guest-timing-ok")).toBeVisible();
+    return (await admin.from("service_requests").select("id").eq("organization_id", org).eq("kind", "early_checkin").eq("status", "requested").single()).data!.id as string;
+  };
+  const confirm = async (id: string) => {
+    await m.goto(`/fr/app/services/${id}`);
+    await expect(m.getByTestId("timing-not-ready")).toBeVisible();
+    await m.getByTestId("timing-ack").check();
+    await m.getByTestId("timing-confirm").click();
+    await expect(m.getByTestId("timing-result")).toHaveAttribute("data-status", "applied");
+  };
+  const stayAt = async () => Date.parse((await admin.from("reservations").select("check_in_at").eq("id", stay!.id).single()).data!.check_in_at);
+
+  const sv14 = await ask(at(14));
+  await m.goto(`/fr/app/services/${sv14}`);
+  await expect(m.getByTestId("timing-action").filter({ hasText: "Lit bébé" })).toHaveAttribute("data-effect", "no_due");
+  await expect(m.getByTestId("timing-action").filter({ hasText: "Lit bébé" })).toContainText("aucune échéance renseignée");
+  await confirm(sv14);
+  expect(await stayAt()).toBe(at(14).getTime());
+  const sv12 = await ask(at(13));
+  await confirm(sv12);
+  expect(await stayAt()).toBe(at(13).getTime());
+
+  // Responsable : la 14 h est « remplacée », la 12 h applicable ; aucune alerte de contradiction
+  await m.goto(`/fr/app/services/${sv14}`);
+  await expect(m.getByTestId("timing-state")).toHaveAttribute("data-state", "superseded");
+  await expect(m.getByTestId("timing-state")).toContainText("remplacé par une confirmation ultérieure");
+  await expect(m.getByTestId("timing-legacy")).toHaveCount(0);
+  await m.goto(`/fr/app/services/${sv12}`);
+  await expect(m.getByTestId("timing-state")).toHaveAttribute("data-state", "applied");
+  await m.goto("/fr/app/services");
+  await expect(m.getByTestId("services-closed").getByTestId("service-row-status").filter({ hasText: "Remplacée" })).toHaveCount(1);
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-timingMismatch")).toContainText("Aucun horaire contradictoire");
+  // Voyageur (après rechargement) : une heure applicable, l'ancienne marquée remplacée avec l'heure
+  await g.reload();
+  await expect(g.locator("[data-testid=guest-timing-note][data-state=superseded]")).toContainText("L'horaire de");
+  await expect(g.locator("[data-testid=guest-timing-note][data-state=superseded]")).toContainText("a été remplacé par une confirmation ultérieure");
+  await expect(g.locator("[data-testid=guest-timing-note][data-state=applied]")).toHaveCount(1);
+  await expect(g.getByTestId("guest-service-status").filter({ hasText: "Remplacée" })).toHaveCount(1);
+  await expect(g.getByTestId("guest-current-times")).toContainText("13:00");
+  await expect(g.locator("[data-testid=guest-service-event][data-kind=timing]")).toContainText("Horaire remplacé par une confirmation ultérieure");
+
+  // Annulation de la 12 h : retour à 14 h, la 14 h redevient applicable
+  await m.goto(`/fr/app/services/${sv12}`);
+  await m.getByTestId("timing-cancel").click();
+  await expect(m.getByTestId("timing-result")).toHaveAttribute("data-status", "applied");
+  expect(await stayAt()).toBe(at(14).getTime());
+  await g.reload();
+  await expect(g.locator("[data-testid=guest-timing-note][data-state=applied]")).toHaveCount(1);
+  await expect(g.locator("[data-testid=guest-timing-note][data-state=superseded]")).toHaveCount(0);
+
+  // Vraie contradiction (séjour repoussé hors décision) puis régularisation avec message : libellés fidèles côté voyageur
+  await admin.from("reservations").update({ check_in_at: at(15).toISOString() }).eq("id", stay!.id);
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-timingMismatch")).toContainText("1 horaire confirmé ne correspond pas au séjour");
+  await m.goto(`/fr/app/services/${sv14}`);
+  await expect(m.getByTestId("timing-legacy")).toBeVisible();
+  await m.getByTestId("timing-ack").check();
+  await m.getByTestId("timing-message").fill("Arrivée à 14 h maintenue (QA).");
+  await m.getByTestId("timing-apply-legacy").click();
+  await expect(m.getByTestId("timing-result")).toHaveAttribute("data-status", "applied");
+  expect(await stayAt()).toBe(at(14).getTime());
+  await g.reload();
+  const card = g.getByTestId("guest-service").filter({ has: g.locator("[data-testid=guest-timing-note][data-state=applied]") });
+  await expect(card.locator("[data-testid=guest-service-event][data-kind=team_message]")).toContainText("Message de l'équipe");
+  await expect(card.locator("[data-testid=guest-service-event][data-kind=timing]").last()).toContainText("Horaire appliqué à votre séjour");
+  await expect(card.locator("[data-testid=guest-service-event][data-kind=team_message]")).not.toContainText("Demandée");
+  expect(await g.content()).not.toContain("Confirmation contradictoire appliquée");
+  expect(await g.content()).not.toContain("Confirmé en connaissance de cause :");
+  for (const c of [m, g]) await c.context().close();
+});
+
+test("36 · absences : mission démarrée avant une absence commencée depuis, temps libre calculé à partir de maintenant", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org, agentId } = await testScenario(m, `abs2 ${run}`);
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+  const h = (n: number) => new Date(Date.now() + n * 3_600_000).toISOString();
+  const { data: k, error: e1 } = await admin.from("tasks").insert({ organization_id: org, property_id: prop!.id, type: "maintenance", status: "in_progress", assignee_id: agentId, started_at: h(-24), window_start: h(-30), window_end: h(72), duration_min: 90 }).select("id").single();
+  expect(e1).toBeNull();
+  const { error } = await admin.from("absences").insert({ organization_id: org, scope: "member", member_id: agentId, kind: "leave", starts_at: h(-1), ends_at: h(20), status: "accepted", client_id: crypto.randomUUID() });
+  expect(error).toBeNull();
+  await m.goto("/fr/app/team");
+  const row = m.getByTestId("availability-risk").filter({ has: m.locator(`a[href$="/app/missions/${k!.id}"]`) });
+  await expect(row.getByTestId("availability-risk-kind")).toHaveAttribute("data-kind", "started_before");
+  await expect(row.getByTestId("availability-risk-kind")).toContainText("avant l'absence commencée");
+  await expect(row.getByTestId("availability-free")).toHaveAttribute("data-from-now", "1");
+  await expect(row.getByTestId("availability-free")).toContainText("de maintenant au");
+  await expect(row.getByTestId("availability-free")).toContainText("pas une disponibilité garantie");
+  // Rien n'a été réaffecté ni déplacé
+  const { data: after } = await admin.from("tasks").select("assignee_id, status, window_start").eq("id", k!.id).single();
+  expect([after!.assignee_id, after!.status]).toEqual([agentId, "in_progress"]);
+  await m.close();
 });
 
 test("34 · lieux avant l'ouverture : données transmises au navigateur sans coordonnées, plusieurs localisations", async ({ browser }) => {

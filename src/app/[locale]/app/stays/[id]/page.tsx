@@ -69,6 +69,8 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
   // Responsables d'une action : membres qui voient la préparation (les agents reçoivent une mission à la place)
   const managerIds = (members ?? []).filter((m) => m.role === "owner" || m.role === "manager").map((m) => m.user_id as string);
   const who = (uid: string | null) => (uid ? memberList.find((m) => m.id === uid)?.name ?? "—" : null);
+  const { data: statesRaw } = await supabase.rpc("timing_states", { org: o, reservation: id });
+  const stateOf = new Map(((statesRaw as { service: string; state: string }[] | null) ?? []).map((x) => [x.service, x.state]));
   const answers = (prep?.answers ?? {}) as { adults?: number; children?: number; babies?: number; interests?: string[]; style?: string; services?: string[]; budget?: string; constraints?: string; other?: string; language?: string };
   const openBlocking = (actions ?? []).filter((a) => a.status === "open" && a.blocking).length;
   const invite = (outbox ?? []).find((x) => x.template === "prep_invite");
@@ -268,7 +270,9 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
                   <li key={sv.id}>
                     <Link href={`/app/services/${sv.id}`} className="flex items-center gap-2 py-2.5 text-[15px] hover:underline">
                       <span className="flex-1">{tk(sv.kind)} · {d(sv.start_at)}</span>
-                      <span className="text-[13px] text-muted">{tss(sv.status)}</span>
+                      <span className="text-[13px] text-muted" data-testid="stay-service-status">
+                        {["superseded", "covered", "contradiction"].includes(stateOf.get(sv.id) ?? "") ? t(`services.timingState.${stateOf.get(sv.id)}`) : tss(sv.status)}
+                      </span>
                       {sv.manager_unread && <span className="size-2 rounded-full bg-danger" aria-label={t("services.unread")} />}
                     </Link>
                   </li>

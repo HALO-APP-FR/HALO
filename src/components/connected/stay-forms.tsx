@@ -153,7 +153,7 @@ export function GuestLinkPanel({
         </li>
         <li data-testid="link-invite" data-status={inviteStatus ?? "none"}>
           <span className="text-muted">{t("journey.sent")} · </span>
-          {inviteStatus ? t(`journey.delivery.${["sent", "pending", "failed", "not_configured", "skipped"].includes(inviteStatus) ? inviteStatus : "failed"}`) : t("journey.notSent")}
+          {inviteStatus ? t(`journey.delivery.${["sent", "pending", "failed", "not_configured", "skipped"].includes(inviteStatus === "sending" ? "pending" : inviteStatus) ? (inviteStatus === "sending" ? "pending" : inviteStatus) : "failed"}`) : t("journey.notSent")}
           {invite && !delivery && inviteStatus ? ` (${fmt(invite.created_at)})` : ""}
         </li>
         <li>

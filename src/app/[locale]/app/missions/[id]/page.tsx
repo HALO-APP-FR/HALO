@@ -86,7 +86,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
     const partial: Record<string, string> = {};
     let assigneeLevel: ReturnType<typeof absenceLevel> | null = null;
     for (const m of planning.members) {
-      const lv = absenceLevel(m, slot, planning.absences);
+      const lv = absenceLevel(m, slot, planning.absences, ["accepted"], now);
       if (m.id === full!.assignee_id) assigneeLevel = lv;
       if (lv.level === "none") continue;
       const a = lv.absences[0];
@@ -100,7 +100,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
     const basis = assigneeLevel && assigneeLevel.level !== "none"
       ? full!.scheduled_start
         ? tm("basisScheduled", { slot: periodText(f, full!.scheduled_start, new Date(Date.parse(full!.scheduled_start) + full!.duration_min * 60_000).toISOString()) })
-        : tm("basisWindow", { window: periodText(f, full!.window_start, full!.window_end), free: durationText(assigneeLevel.freeMin ?? 0), duration: durationText(full!.duration_min) })
+        : tm(assigneeLevel.period.fromNow ? "basisWindowFromNow" : "basisWindow", { window: periodText(f, assigneeLevel.period.from, assigneeLevel.period.to), free: durationText(assigneeLevel.freeMin ?? 0), duration: durationText(full!.duration_min) })
       : null;
     // Personnes sans absence connue sur ce créneau, avec leurs autres missions sur la même fenêtre (contrainte connue).
     // Le temps de trajet n'est pas calculé : il n'est jamais promis.

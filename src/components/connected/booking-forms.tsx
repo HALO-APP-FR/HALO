@@ -13,6 +13,8 @@ import { Link } from "@/i18n/navigation";
 import { useRun } from "./use-run";
 
 const DELIVERY = ["sent", "pending", "failed", "not_configured", "skipped"];
+// Réservé par un envoi en cours : affiché « en attente »
+const shown = (s: string) => (s === "sending" ? "pending" : s);
 
 /** Lien affiché une seule fois (jamais conservé en clair par HALO). */
 function OnceLink({ url }: { url: string }) {
@@ -38,7 +40,7 @@ function DeliveryLine({ status }: { status: string | null }) {
   return (
     <p className="mt-2 text-[13px]" data-testid="delivery-status" data-status={status}>
       <span className="text-muted">{t("sent")} · </span>
-      {t(`delivery.${DELIVERY.includes(status) ? status : "failed"}`)}
+      {t(`delivery.${DELIVERY.includes(shown(status)) ? shown(status) : "failed"}`)}
     </p>
   );
 }

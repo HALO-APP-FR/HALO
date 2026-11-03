@@ -65,7 +65,7 @@ export default async function TeamPage({ params }: PageProps<"/[locale]/app/team
       impacts: impactsOf(a.id),
     }));
   // Conflits confirmés (la mission ne peut pas être faite par cette personne) et risques à examiner, séparés
-  const RISK = ["partial", "started", "started_upcoming"];
+  const RISK = ["partial", "started", "started_during", "started_before", "started_upcoming"];
   const conflicts = planning.availability.filter((c) => !RISK.includes(c.kind));
   const risks = planning.availability.filter((c) => RISK.includes(c.kind));
   return (
@@ -145,10 +145,21 @@ export default async function TeamPage({ params }: PageProps<"/[locale]/app/team
                     </Link>
                     <span className="text-[13px] text-muted">
                       {c.memberId ? nameOf(c.memberId) : ta("nobody")} ·{" "}
-                      {c.kind === "started_upcoming" && c.absenceStart
-                        ? ta("conflictKind.started_upcoming", { date: f.dateTime(new Date(c.absenceStart), { dateStyle: "medium", timeStyle: "short" }) })
-                        : ta(`conflictKind.${c.kind}`)}
-                      {c.freeMin != null ? ` · ${ta("freeLeft", { duration: durationText(c.freeMin) })}` : ""}
+                      <span data-testid="availability-risk-kind" data-kind={c.kind}>
+                        {ta(`conflictKind.${c.kind}`, {
+                          date: c.absenceStart ? f.dateTime(new Date(c.absenceStart), { dateStyle: "medium", timeStyle: "short" }) : "—",
+                          started: c.startedAt ? f.dateTime(new Date(c.startedAt), { dateStyle: "medium", timeStyle: "short" }) : "—",
+                        })}
+                      </span>
+                      {c.freeMin != null && c.period ? (
+                        <span className="block" data-testid="availability-free" data-from-now={c.period.fromNow ? "1" : "0"}>
+                          {ta(c.period.fromNow ? "freeLeftFromNow" : "freeLeftWindow", {
+                            duration: durationText(c.freeMin),
+                            to: f.dateTime(new Date(c.period.to), { dateStyle: "medium", timeStyle: "short" }),
+                            from: f.dateTime(new Date(c.period.from), { dateStyle: "medium", timeStyle: "short" }),
+                          })}
+                        </span>
+                      ) : null}
                     </span>
                   </li>
                 ))}

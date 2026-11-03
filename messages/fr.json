@@ -1803,7 +1803,8 @@
         "sent": "Envoyé",
         "failed": "Échec d'envoi",
         "not_configured": "Non envoyé : aucun service d'envoi configuré",
-        "skipped": "Non envoyé (préférence)"
+        "skipped": "Non envoyé",
+        "sending": "Envoi en cours"
       },
       "retry": "Relancer",
       "template": {
@@ -1841,12 +1842,16 @@
         "booking_update": "Réponse à la demande de séjour",
         "review_request": "Demande d'avis",
         "team_booking_requested": "Équipe : demande de séjour",
-        "team_low_review": "Équipe : avis avec note faible"
+        "team_low_review": "Équipe : avis avec note faible",
+        "timing_confirmed": "Horaire confirmé",
+        "timing_cancelled": "Horaire annulé",
+        "timing_updated": "Horaire du séjour mis à jour"
       },
       "testAddress": "Adresse fictive (compte de test) : rien n'est envoyé.",
       "skippedReason": "Le destinataire a désactivé cet e-mail ; l'événement reste visible dans HALO.",
       "inviteNotKept": "Le lien n'est plus conservé après un envoi : envoyez une nouvelle invitation depuis le séjour.",
-      "inviteResend": "Pour réessayer, utilisez « Envoyer par e-mail » sur le séjour (nouveau lien)."
+      "inviteResend": "Pour réessayer, utilisez « Envoyer par e-mail » sur le séjour (nouveau lien).",
+      "skippedSuperseded": "Non envoyé : une décision plus récente sur l'horaire de ce séjour a été prise ; seul le dernier message est envoyé."
     },
     "services": {
       "title": "Prestations",
@@ -1864,7 +1869,12 @@
       "unread": "Non lu",
       "people": "{n} pers.",
       "details": "Précisions du voyageur",
-      "openStay": "Voir le séjour"
+      "openStay": "Voir le séjour",
+      "timingState": {
+        "superseded": "Remplacée",
+        "covered": "Confirmée (séjour déjà plus favorable)",
+        "contradiction": "Horaires contradictoires"
+      }
     },
     "decide": {
       "title": "Répondre à la demande",
@@ -1920,7 +1930,13 @@
         "guest_message": "Message du voyageur",
         "team_message": "Message de l'équipe",
         "internal_note": "Note interne",
-        "updated": "Demande modifiée"
+        "updated": "Demande modifiée",
+        "timing": "Horaire"
+      },
+      "timing": {
+        "superseded": "remplacé par une confirmation ultérieure ({date})",
+        "applied": "appliqué au séjour ({date})",
+        "reinstated": "rétabli après annulation de la confirmation ultérieure (séjour : {date})"
       }
     },
     "missions": {
@@ -1966,7 +1982,8 @@
       "riskTitle": "{name} est absent(e) sur une partie de la fenêtre",
       "riskStartedTitle": "Mission en cours : {name} a une absence pendant sa fenêtre — à vérifier",
       "riskActions": "Risque à examiner, pas un conflit : la mission reste possible en dehors de l'absence. Planifiez un créneau hors absence pour le confirmer.",
-      "partialFor": "absence partielle ({period})"
+      "partialFor": "absence partielle ({period})",
+      "basisWindowFromNow": "Fenêtre déjà commencée : calcul sur le temps restant, {window}, sans horaire planifié. Plus long temps libre continu hors absences enregistrées : {free} ; durée prévue {duration}. Horaires de travail, autres missions et trajets non connus de HALO : ce n'est pas une disponibilité garantie."
     },
     "team": {
       "title": "Équipe",
@@ -2311,8 +2328,10 @@
         "pending": "si la demande en attente est acceptée",
         "closure": "fermeture d'équipe",
         "partial": "absence sur une partie de la fenêtre",
-        "started": "mission en cours alors que l'absence a commencé : à vérifier",
-        "started_upcoming": "mission en cours ; absence prévue à partir du {date} dans sa fenêtre"
+        "started": "mission en cours, absence commencée ; heure de démarrage inconnue : à vérifier",
+        "started_upcoming": "mission en cours ; absence prévue à partir du {date}, dans sa fenêtre",
+        "started_during": "mission démarrée le {started}, pendant une absence acceptée : à vérifier",
+        "started_before": "mission démarrée le {started}, avant l'absence commencée le {date} : à vérifier"
       },
       "closureStay": "Séjour pendant une fermeture : {guest}, {dates}",
       "listTitle": "Absences et fermetures à venir",
@@ -2329,7 +2348,9 @@
       },
       "risksTitle": "{count, plural, one {# mission à examiner} other {# missions à examiner}}",
       "risksText": "Absence sur une partie de la fenêtre seulement : la mission reste possible en dehors. Planifiez un créneau pour lever le doute.",
-      "freeLeft": "temps libre calculé {duration} (d'après les absences enregistrées, sur 24 h — pas une disponibilité garantie)"
+      "freeLeft": "temps libre calculé {duration} (d'après les absences enregistrées, sur 24 h — pas une disponibilité garantie)",
+      "freeLeftFromNow": "Plus long temps libre continu de maintenant au {to} : {duration}. Calcul d'après les seules absences enregistrées ; horaires de travail, autres missions et trajets non pris en compte — pas une disponibilité garantie.",
+      "freeLeftWindow": "Plus long temps libre continu entre le {from} et le {to} (fenêtre entière) : {duration}. Calcul d'après les seules absences enregistrées ; horaires de travail, autres missions et trajets non pris en compte — pas une disponibilité garantie."
     },
     "chat": {
       "title": "Messages d'équipe",
@@ -3307,13 +3328,18 @@
         "cleaning_not_planned": "Le ménage est attribué mais sans créneau : rien ne garantit qu'il sera fait avant cette heure.",
         "cleaning_scheduled_after": "Le ménage est planifié pour finir après cette heure. Son créneau ne sera pas déplacé : il faudra le replanifier.",
         "cleaning_scheduled_before": "Le ménage après le départ est planifié avant cette heure. Son créneau ne sera pas déplacé : il faudra le replanifier.",
-        "prep_actions_open": "Des actions indispensables restent ouvertes avec une échéance plus tardive.",
+        "prep_actions_open": "Des actions indispensables restent ouvertes (échéance avant l'heure demandée).",
         "mission_cannot_fit": "Une mission liée ne peut pas être terminée avant cette heure (elle sera laissée telle quelle).",
         "mission_scheduled": "Une mission liée a un créneau planifié qui ne sera pas déplacé : à replanifier.",
-        "mission_unassigned": "Une mission de préparation liée n'est attribuée à personne."
+        "mission_unassigned": "Une mission de préparation liée n'est attribuée à personne.",
+        "prep_actions_late": "Des actions indispensables ouvertes ont une échéance à l'heure actuelle ou plus tard : rien ne garantit qu'elles seront faites avant l'heure demandée.",
+        "prep_actions_no_due": "Des actions indispensables ouvertes n'ont aucune échéance : HALO ne peut pas dire si elles seront faites à temps.",
+        "mission_in_progress": "Une mission liée est déjà commencée : HALO ne sait pas si elle sera terminée à temps.",
+        "incidents_open": "Un incident est ouvert sur le logement.",
+        "linen_issue_open": "Un problème de linge est ouvert sur le logement."
       },
-      "unverified": "Non vérifié par HALO : disponibilité du linge, accès et clés, règles du propriétaire. À confirmer par l'équipe.",
-      "effectsEarly": "En confirmant : l'arrivée du séjour passe à l'heure demandée ; chaque mission liée suit l'effet indiqué ci-dessus ; les échéances d'actions fixées à l'ancienne heure suivent ; aucun créneau planifié n'est déplacé ; les agents affectés sont prévenus ; le voyageur voit la nouvelle heure.",
+      "unverified": "Non connu de HALO : stock de linge, accès et clés, règles du propriétaire, trajets des agents. À confirmer par l'équipe.",
+      "effectsEarly": "En confirmant : l'arrivée du séjour passe à l'heure demandée ; chaque mission et action suit l'effet indiqué ci-dessus (rien d'autre) ; aucun créneau planifié n'est déplacé ; les agents affectés dont la mission change sont prévenus selon leurs préférences ; le voyageur voit la nouvelle heure ; les autres confirmations d'horaire du séjour sont marquées « remplacées ».",
       "effectsLate": "En confirmant : le départ du séjour passe à l'heure demandée ; le début de fenêtre du ménage suit ; un créneau déjà planifié n'est jamais déplacé ; l'agent affecté est prévenu ; le voyageur voit la nouvelle heure.",
       "ack": "Je confirme en connaissance de cause : la préparation n'est pas garantie à cette heure (décision tracée).",
       "ackNeeded": "Cochez la case pour confirmer malgré ces points.",
@@ -3331,10 +3357,11 @@
         "stay_changed": "Le séjour a été modifié entre-temps : rechargez la page pour décider sur les données à jour.",
         "already": "Déjà fait.",
         "conflict": "La demande a changé entre-temps : la page est actualisée.",
-        "no_stay": "Aucun séjour relié à cette demande."
+        "no_stay": "Aucun séjour relié à cette demande.",
+        "superseded": "Cette confirmation a été remplacée par une décision ultérieure : rien n'a été modifié."
       },
       "legacyTitle": "Horaires contradictoires",
-      "legacyText": "Cette demande a été confirmée pour {confirmed}, mais le séjour indique {stay} : la confirmation date d'avant la vérification automatique et le séjour n'a pas suivi. Rien n'a été modifié. Décidez : appliquer l'horaire confirmé au séjour, ou retirer la confirmation (le voyageur est prévenu).",
+      "legacyText": "Cette demande est confirmée pour {confirmed}, mais le séjour indique {stay} et aucune confirmation ultérieure ne l'a remplacée : la promesse faite au voyageur n'est pas tenue. Rien n'a été modifié automatiquement. Décidez : appliquer l'horaire confirmé au séjour, ou retirer la confirmation (le voyageur est prévenu).",
       "applyLegacy": "Appliquer l'horaire confirmé au séjour",
       "withdrawLegacy": "Retirer la confirmation",
       "until": "jusqu'à {date}",
@@ -3347,7 +3374,46 @@
         "unchanged_scheduled": "Effet : aucun — créneau planifié, jamais déplacé automatiquement (à replanifier si besoin).",
         "unchanged_cannot_fit": "Effet : aucun — cette mission ne tient pas avant {time} ; elle est laissée telle quelle et finira après l'arrivée.",
         "blocking": "Ne tient pas avant {time} : confirmation impossible."
-      }
+      },
+      "state": {
+        "applied": {
+          "early": "Horaire applicable : arrivée prévue le {stay} (cette confirmation).",
+          "late": "Horaire applicable : départ prévu le {stay} (cette confirmation)."
+        },
+        "superseded": {
+          "early": "Remplacée : l'horaire de {confirmed} a été remplacé par une confirmation ultérieure ({by}). Arrivée actuellement prévue le {stay}. Aucune action n'est nécessaire.",
+          "late": "Remplacée : l'horaire de {confirmed} a été remplacé par une confirmation ultérieure ({by}). Départ actuellement prévu le {stay}. Aucune action n'est nécessaire."
+        },
+        "covered": {
+          "early": "Confirmée pour {confirmed} ; le séjour prévoit déjà une arrivée plus tôt, le {stay} : la promesse reste tenue, aucune action n'est nécessaire.",
+          "late": "Confirmée pour {confirmed} ; le séjour prévoit déjà un départ plus tard, le {stay} : la promesse reste tenue, aucune action n'est nécessaire."
+        },
+        "openLater": "Voir la confirmation ultérieure"
+      },
+      "noChange": {
+        "same_time": {
+          "early": "Le séjour prévoit déjà une arrivée le {stay} : confirmer ne modifie ni le séjour ni les missions.",
+          "late": "Le séjour prévoit déjà un départ le {stay} : confirmer ne modifie ni le séjour ni les missions."
+        },
+        "already_better": {
+          "early": "Le séjour prévoit déjà une arrivée plus tôt ({stay}) : confirmer ne modifie ni le séjour ni les missions ; l'heure applicable reste {stay}.",
+          "late": "Le séjour prévoit déjà un départ plus tard ({stay}) : confirmer ne modifie ni le séjour ni les missions ; l'heure applicable reste {stay}."
+        }
+      },
+      "inProgress": "Mission déjà commencée : HALO ne sait pas si elle sera terminée à temps.",
+      "actionsTitle": "Actions indispensables ouvertes",
+      "actionEffect": {
+        "due_moved": "« {title} » : échéance fixée à l'heure actuelle ({due}) → elle passera à {time}. L'action reste ouverte.",
+        "due_after": "« {title} » : échéance {due}, après l'heure demandée. Elle n'est pas modifiée : à avancer ou à terminer avant {time}.",
+        "due_before": "« {title} » : échéance {due}, avant l'heure demandée. Non modifiée ; elle reste ouverte.",
+        "no_due": "« {title} » : aucune échéance renseignée. Rien n'est modifié ; HALO ne peut pas dire si elle sera faite avant {time}."
+      },
+      "actionsDone": "{n, plural, one {# action indispensable déjà terminée.} other {# actions indispensables déjà terminées.}}",
+      "incidents": "Problèmes ouverts sur le logement : {open} incident(s), {linen} problème(s) de linge. Signalés seulement : HALO ne sait pas s'ils seront réglés avant l'arrivée.",
+      "notReady": "Confirmer ne marque rien comme fait : le logement ne devient « prêt » que lorsque les missions et actions sont réellement terminées.",
+      "supersededText": "Cette confirmation n'est plus l'horaire applicable. La retirer ne modifie pas le séjour ; si la confirmation ultérieure est annulée plus tard, le séjour reviendra à l'horaire d'avant celle-ci.",
+      "coveredText": "Le séjour a été modifié autrement, dans un sens qui respecte cette confirmation. Annuler retire la confirmation sans modifier le séjour.",
+      "withdrawSuperseded": "Retirer cette confirmation remplacée"
     }
   },
   "email": {
@@ -3500,6 +3566,18 @@
     "team_low_review": {
       "subject": "Avis avec une note faible — {property}",
       "body": "Un avis vient d'arriver avec une note de 2/5 ou moins (note globale, service ou critère clé) ({property}). Il est marqué « À traiter » dans Satisfaction : vous pouvez y noter une action interne ou ouvrir un incident. Aucune faute n'est attribuée à une personne."
+    },
+    "timing_confirmed": {
+      "subject": "{org} — demande acceptée : {kind}",
+      "body": "Bonne nouvelle : votre demande « {kind} » est acceptée. {which, select, early_checkin {Votre arrivée est désormais prévue le {time}.} other {Votre départ est désormais prévu le {time}.}}"
+    },
+    "timing_cancelled": {
+      "subject": "{org} — horaire annulé : {kind}",
+      "body": "La confirmation de votre demande « {kind} » est annulée. {which, select, early_checkin {Votre arrivée reste prévue le {time}.} other {Votre départ reste prévu le {time}.}}"
+    },
+    "timing_updated": {
+      "subject": "{org} — horaire de votre séjour mis à jour",
+      "body": "L'horaire de votre séjour a été mis à jour. {which, select, early_checkin {Votre arrivée est désormais prévue le {time}.} other {Votre départ est désormais prévu le {time}.}}"
     }
   },
   "guestSpace": {
@@ -3571,12 +3649,20 @@
       "declined": "Refusée",
       "done": "Réalisée",
       "cancelled": "Annulée",
-      "in_review": "En cours d'étude"
+      "in_review": "En cours d'étude",
+      "superseded": "Remplacée"
     },
     "event": {
       "you": "Votre message",
       "received": "Demande reçue",
-      "updated": "Demande modifiée par l'équipe"
+      "updated": "Demande modifiée par l'équipe",
+      "team": "Message de l'équipe",
+      "decision": "Décision : {status}",
+      "timing": {
+        "superseded": "Horaire remplacé par une confirmation ultérieure : désormais {date}",
+        "applied": "Horaire appliqué à votre séjour : {date}",
+        "reinstated": "La confirmation ultérieure a été annulée : horaire du séjour {date}"
+      }
     },
     "linkValid": "Ce lien personnel est valable jusqu'au {until}. Ne le partagez pas.",
     "problem": {
@@ -3747,7 +3833,16 @@
       "mismatchNote": {
         "early_checkin": "Horaire en cours de vérification par l'équipe : en attendant, votre arrivée reste prévue le {date}.",
         "late_checkout": "Horaire en cours de vérification par l'équipe : en attendant, votre départ reste prévu le {date}."
-      }
+      },
+      "supersededNote": {
+        "early_checkin": "Arrivée actuellement prévue le {date}. L'horaire de {old} a été remplacé par une confirmation ultérieure.",
+        "late_checkout": "Départ actuellement prévu le {date}. L'horaire de {old} a été remplacé par une confirmation ultérieure."
+      },
+      "coveredNote": {
+        "early_checkin": "Arrivée actuellement prévue le {date}, plus tôt que l'horaire confirmé ({old}).",
+        "late_checkout": "Départ actuellement prévu le {date}, plus tard que l'horaire confirmé ({old})."
+      },
+      "current": "Horaires actuellement prévus : arrivée le {in}, départ le {out}."
     }
   },
   "demoEntry": {

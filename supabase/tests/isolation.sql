@@ -1436,8 +1436,8 @@ insert into t_tok values ('g16', t.keep('a_manager', format('select public.creat
 select t.is('arrivée anticipée 14 h : demande enregistrée', t.keep(null, format('select public.guest_request_service(%L, ''early_checkin'', ''2027-10-10 14:00+00'', 2, null)', (select v from t_tok where k = 'g16')))::jsonb ->> 'status', 'ok');
 insert into t.ids select 'SV16', (select id from public.service_requests where reservation_id = t.id('R16') and kind = 'early_checkin');
 select t.err('arrivée anticipée : la décision générique ne peut pas confirmer', t.q('a_manager', format('select public.decide_service(%L, %L, ''confirmed'')', t.id('A'), t.id('SV16'))), '22023');
-select t.is('contraintes : ménage non attribué + action indispensable ouverte, aucun blocage dur', t.q('a_manager', format('select (public.timing_check(%L, %L) -> ''risks'')::text || ''/'' || (public.timing_check(%L, %L) -> ''blocking'')::text', t.id('A'), t.id('SV16'), t.id('A'), t.id('SV16'))), '["cleaning_unassigned", "prep_actions_open"]/[]');
-select t.is('contraintes : points non vérifiés listés', t.q('a_manager', format('select (public.timing_check(%L, %L) -> ''unverified'')::text', t.id('A'), t.id('SV16'))), '["linen", "access", "owner_rules"]');
+select t.is('contraintes : ménage non attribué + action indispensable ouverte, aucun blocage dur', t.q('a_manager', format('select (public.timing_check(%L, %L) -> ''risks'')::text || ''/'' || (public.timing_check(%L, %L) -> ''blocking'')::text', t.id('A'), t.id('SV16'), t.id('A'), t.id('SV16'))), '["cleaning_unassigned", "prep_actions_late"]/[]');
+select t.is('contraintes : points non vérifiés listés', t.q('a_manager', format('select (public.timing_check(%L, %L) -> ''unverified'')::text', t.id('A'), t.id('SV16'))), '["linen_stock", "access", "owner_rules", "travel"]');
 select t.is('confirmation sans décision explicite : refusée, séjour inchangé', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''confirm'') ->> ''status''', t.id('A'), t.id('SV16'))) || '/' || (select to_char(check_in_at at time zone 'UTC', 'HH24:MI') from public.reservations where id = t.id('R16')), 'risks/16:00');
 select t.is('séjour modifié depuis l''affichage : décision refusée', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''confirm'', true, ''2027-10-10 17:00+00'') ->> ''status''', t.id('A'), t.id('SV16'))), 'stay_changed');
 select t.err('un agent ne décide pas', t.q('a_agent', format('select public.timing_decide(%L, %L, ''confirm'', true)', t.id('A'), t.id('SV16'))), '42501');
@@ -1449,7 +1449,7 @@ select t.is('cohérence : séjour 14 h, échéance du ménage 14 h, action 14 h,
   (select to_char(due_at at time zone 'UTC', 'HH24:MI') from public.stay_prep_actions where id = t.id('ACT16')) || '/' ||
   (select status from public.service_requests where id = t.id('SV16')), '14:00/14:00/14:00/confirmed');
 select t.check('historique : changement d''heure tracé', '', exists (select 1 from public.stay_prep_events where reservation_id = t.id('R16') and kind = 'stay_time_changed'));
-select t.check('historique : risques acceptés notés (interne)', '', exists (select 1 from public.service_events where service_id = t.id('SV16') and visibility = 'internal' and body like 'Confirmé en connaissance de cause%prep_actions_open%'));
+select t.check('historique : risques acceptés notés (interne)', '', exists (select 1 from public.service_events where service_id = t.id('SV16') and visibility = 'internal' and body like 'Confirmé en connaissance de cause%prep_actions_late%'));
 select t.is('voyageur : son espace affiche l''arrivée à 14 h', t.q(null, format('select coalesce(public.get_guest_stay(%L) ->> ''status'', ''-'') || ''/'' || coalesce(to_char((public.get_guest_stay(%L) #>> ''{stay,check_in_at}'')::timestamptz at time zone ''UTC'', ''HH24:MI''), ''-'')', (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'))), 'prep/14:00');
 select t.is('confirmer deux fois : sans effet', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''confirm'', true) ->> ''status''', t.id('A'), t.id('SV16'))), 'already');
 select t.err('modifier l''heure d''une demande confirmée hors décision : refusé', t.dml('a_manager', format('update public.service_requests set start_at = ''2027-10-10 13:00+00'' where id = %L', t.id('SV16'))), '22023');
@@ -1464,7 +1464,7 @@ select t.is('arrivée à 12 h : séjour inchangé', (select to_char(check_in_at 
 update public.tasks set assignee_id = t.id('a_agent'), status = 'assigned', scheduled_start = '2027-10-10 15:00+00' where id = t.id('T16');
 update public.service_requests set status = 'declined' where reservation_id = t.id('R16') and kind = 'early_checkin' and status = 'requested';
 select t.is('arrivée à 14 h (2) : demande enregistrée', t.keep(null, format('select public.guest_request_service(%L, ''early_checkin'', ''2027-10-10 14:00+00'', 2, null)', (select v from t_tok where k = 'g16')))::jsonb ->> 'status', 'ok');
-select t.is('ménage planifié après 14 h : risque signalé', t.q('a_manager', format('select (public.timing_check(%L, (select id from public.service_requests where reservation_id = %L and kind = ''early_checkin'' and status = ''requested'')) -> ''risks'')::text', t.id('A'), t.id('R16'))), '["mission_scheduled", "prep_actions_open"]');
+select t.is('ménage planifié après 14 h : risque signalé', t.q('a_manager', format('select (public.timing_check(%L, (select id from public.service_requests where reservation_id = %L and kind = ''early_checkin'' and status = ''requested'')) -> ''risks'')::text', t.id('A'), t.id('R16'))), '["mission_scheduled", "prep_actions_late"]');
 select t.is('confirmé : l''horaire planifié du ménage n''est pas déplacé', t.keep('a_manager', format('select public.timing_decide(%L, (select id from public.service_requests where reservation_id = %L and kind = ''early_checkin'' and status = ''requested''), ''confirm'', true) ->> ''status''', t.id('A'), t.id('R16'))) || '/' || (select to_char(scheduled_start at time zone 'UTC', 'HH24:MI') from public.tasks where id = t.id('T16')), 'applied/15:00');
 select t.check('agent informé du changement d''échéance', '', exists (select 1 from public.notification_outbox where organization_id = t.id('A') and template = 'agent_task_changed' and payload ->> 'path' = '/app/missions/' || t.id('T16')));
 
@@ -1519,7 +1519,7 @@ select t.is('2/11 : effets prévus par mission (ménage échéance, préparation
   t.q('a_manager', format('select string_agg((e ->> ''type'') || '':'' || (e ->> ''effect''), '','' order by e ->> ''type'') from jsonb_array_elements(public.timing_check(%L, %L) -> ''tasks'') e', t.id('A'), t.id('SV17'))),
   'check_in:shift,other:unchanged_cannot_fit,turnover:deadline');
 select t.is('2/11 : risques listés, aucun blocage', t.q('a_manager', format('select (public.timing_check(%L, %L) -> ''risks'')::text || ''/'' || (public.timing_check(%L, %L) -> ''blocking'')::text', t.id('A'), t.id('SV17'), t.id('A'), t.id('SV17'))),
-  '["mission_cannot_fit", "cleaning_unassigned", "mission_unassigned", "prep_actions_open"]/[]');
+  '["mission_cannot_fit", "cleaning_unassigned", "mission_unassigned", "prep_actions_late"]/[]');
 select t.is('2/11 : confirmation avec accord — plus d''erreur invalid_window', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''confirm'', true, ''2027-11-20 16:00+00'') ->> ''status''', t.id('A'), t.id('SV17'))), 'applied');
 select t.is('2/11 : séjour 13 h, ménage avant 13 h, préparation inchangée, accueil 12:30-15:00, action 13 h',
   (select to_char(check_in_at at time zone 'UTC', 'HH24:MI') from public.reservations where id = t.id('R17')) || '/' ||
@@ -1554,7 +1554,7 @@ select t.is('résolution : appliquer l''ancienne confirmation (accord explicite)
 select t.is('résolution : séjour à 14 h, plus d''incohérence, décision tracée',
   (select to_char(check_in_at at time zone 'UTC', 'HH24:MI') from public.reservations where id = t.id('R17L')) || '/' ||
   t.q('a_manager', format('select count(*) from jsonb_array_elements(public.timing_inconsistencies(%L)) e where e ->> ''service'' = %L', t.id('A'), t.id('SV17L'))) || '/' ||
-  (select count(*)::text from public.service_events where service_id = t.id('SV17L') and body like 'Ancienne confirmation appliquée%'), '14:00/0/1');
+  (select count(*)::text from public.service_events where service_id = t.id('SV17L') and body like 'Confirmation contradictoire appliquée%'), '14:00/0/1');
 
 -- Lieux avant ouverture : aucune suggestion automatique, aucune coordonnée transmise (deux localisations)
 insert into public.property_places (organization_id, property_id, source, external_id, category, name, latitude, longitude) values
@@ -1572,6 +1572,214 @@ select t.check('avant ouverture : aucune coordonnée ni distance exacte dans les
   and (public.guest_places((select v from t_tok where k = 'g17')) #>> '{property,lat}') is null);
 select t.check('avant ouverture : les coordonnées du logement n''apparaissent nulle part', '',
   position('43.6045' in public.guest_places((select v from t_tok where k = 'g17'))::text) = 0 and position('1.444' in public.guest_places((select v from t_tok where k = 'g17'))::text) = 0);
+
+-- =====================================================================
+-- 18. Horaires confirmés successivement, effets détaillés, historique voyageur, e-mails, lieux (migration 18)
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['P18', 'R18P', 'R18', 'T18C', 'A18D', 'A18N', 'A18F', 'A18X', 'R18B', 'R18N', 'P18R', 'R18R', 'P18X', 'R18X', 'R18Z',
+  'PL18H', 'PL18F', 'PL18U', 'PL18R1', 'PL18R2', 'PL18X']) k;
+insert into public.properties (id, organization_id, name, latitude, longitude, timezone) values (t.id('P18'), t.id('A'), 'Logement 18 (dense)', 48.8530, 2.3499, 'Europe/Paris');
+insert into public.guest_guides (organization_id, property_id, enabled) values (t.id('A'), t.id('P18'), true);
+insert into public.reservations (id, organization_id, property_id, guest_name, guest_email, check_in_at, check_out_at) values
+  (t.id('R18P'), t.id('A'), t.id('P18'), 'Sortant 18', null, '2028-01-07 15:00+00', '2028-01-10 09:00+00'),
+  (t.id('R18'), t.id('A'), t.id('P18'), 'QA Guest 18', 'qa18@test.invalid', '2028-01-10 15:00+00', '2028-01-13 09:00+00');
+insert into public.tasks (id, organization_id, property_id, type, status, reservation_id, next_reservation_id, window_start, window_end, duration_min) values
+  (t.id('T18C'), t.id('A'), t.id('P18'), 'turnover', 'unassigned', t.id('R18P'), t.id('R18'), '2028-01-10 09:00+00', '2028-01-10 15:00+00', 90);
+-- Actions indispensables : échéance = arrivée actuelle, sans échéance, plus tardive, déjà terminée
+insert into public.stay_prep_actions (id, organization_id, reservation_id, title, kind, blocking, due_at, status) values
+  (t.id('A18D'), t.id('A'), t.id('R18'), 'Fleurs', 'task', true, '2028-01-10 15:00+00', 'open'),
+  (t.id('A18N'), t.id('A'), t.id('R18'), 'Lit bébé', 'task', true, null, 'open'),
+  (t.id('A18F'), t.id('A'), t.id('R18'), 'Champagne', 'task', true, '2028-01-10 17:00+00', 'open'),
+  (t.id('A18X'), t.id('A'), t.id('R18'), 'Clés', 'task', true, '2028-01-09 12:00+00', 'done');
+insert into public.incidents (organization_id, property_id, source, category, description, status) values (t.id('A'), t.id('P18'), 'manager', 'linen', 'Draps manquants (fictif)', 'open');
+insert into t_tok values ('g18', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R18'))));
+create function t.in18(k text default 'R18') returns text language sql as $$ select to_char(check_in_at at time zone 'UTC', 'HH24:MI') from public.reservations where id = t.id(k) $$;
+create function t.ask18(k text, at text) returns uuid language plpgsql as $$
+declare res jsonb := t.keep(null, format('select public.guest_request_service(%L, ''early_checkin'', %L, 2, null)', (select v from t_tok where t_tok.k = 'g18'), at))::jsonb;
+begin
+  return (select id from public.service_requests where reservation_id = t.id(k) and kind = 'early_checkin' and start_at = at::timestamptz order by created_at desc limit 1);
+end $$;
+create function t.dec18(svc uuid, act text, ack boolean default true, expected text default null, msg text default null, who text default 'a_manager') returns text language sql as $$
+  select t.keep(who, format('select public.timing_decide(%L, %L, %L, %L, %L, %L) ->> ''status''', t.id('A'), svc, act, ack, expected, msg))
+$$;
+create function t.st18(svc uuid) returns text language sql as $$
+  select t.q('a_manager', format('select e ->> ''state'' from jsonb_array_elements(public.timing_states(%L)) e where e ->> ''service'' = %L', t.id('A'), svc))
+$$;
+create function t.alert18() returns text language sql as $$
+  select t.q('a_manager', format('select count(*) from jsonb_array_elements(public.timing_inconsistencies(%L)) e where e ->> ''reservation'' in (%L, %L)', t.id('A'), t.id('R18'), t.id('R18B')))
+$$;
+create function t.guest18(svc uuid) returns jsonb language sql as $$
+  select e from jsonb_array_elements(public.get_guest_stay((select v from t_tok where k = 'g18')) -> 'services') e where e ->> 'id' = svc::text
+$$;
+
+-- (1) Effets détaillés avant décision : actions selon leur échéance réelle, incidents, inconnues
+insert into t.ids values ('S18A', t.ask18('R18', '2028-01-10 14:00+00'));
+select t.is('effets : action à l''heure actuelle avancée, sans échéance signalée telle quelle, plus tardive laissée',
+  t.q('a_manager', format('select string_agg((a ->> ''title'') || '':'' || (a ->> ''effect''), '','' order by a ->> ''title'') from jsonb_array_elements(public.timing_check(%L, %L) -> ''actions'') a', t.id('A'), t.id('S18A'))),
+  'Champagne:due_after,Fleurs:due_moved,Lit bébé:no_due');
+select t.is('effets : action déjà terminée comptée à part, linge ouvert signalé',
+  t.q('a_manager', format('select (public.timing_check(%L, %L) ->> ''done_actions'') || ''/'' || (public.timing_check(%L, %L) #>> ''{incidents,linen}'')', t.id('A'), t.id('S18A'), t.id('A'), t.id('S18A'))), '1/1');
+select t.is('effets : risques nommés selon la donnée réelle (pas d''« échéance plus tardive » sans date)',
+  t.q('a_manager', format('select (public.timing_check(%L, %L) -> ''risks'')::text', t.id('A'), t.id('S18A'))),
+  '["cleaning_unassigned", "prep_actions_late", "prep_actions_no_due", "linen_issue_open"]');
+select t.is('décision 14 h sans accord : refusée', t.dec18(t.id('S18A'), 'confirm', false), 'risks');
+select t.is('décision 14 h avec accord : appliquée', t.dec18(t.id('S18A'), 'confirm', true, '2028-01-10 15:00+00'), 'applied');
+select t.is('après 14 h : séjour 14 h ; Fleurs 14 h ; Lit bébé sans échéance ; Champagne 17 h inchangé ; tout reste ouvert',
+  t.in18() || '/' || (select to_char(due_at at time zone 'UTC', 'HH24:MI') from public.stay_prep_actions where id = t.id('A18D')) || '/' ||
+  coalesce((select due_at::text from public.stay_prep_actions where id = t.id('A18N')), 'aucune') || '/' ||
+  (select to_char(due_at at time zone 'UTC', 'HH24:MI') from public.stay_prep_actions where id = t.id('A18F')) || '/' ||
+  (select count(*)::text from public.stay_prep_actions where reservation_id = t.id('R18') and status = 'open'), '14:00/14:00/aucune/17:00/3');
+select t.is('confirmer en connaissance de cause ne rend pas le logement « prêt »',
+  coalesce((select prep_status from public.stay_preparations where reservation_id = t.id('R18')), 'to_prepare') || '/' || (select status::text from public.tasks where id = t.id('T18C')), 'to_prepare/unassigned');
+select t.is('état 14 h : horaire applicable', t.st18(t.id('S18A')), 'applied');
+
+-- (2) Nouvelle demande 12 h confirmée : une seule heure applicable, la précédente « remplacée » (pas une anomalie)
+insert into t.ids values ('S18B', t.ask18('R18', '2028-01-10 12:00+00'));
+select t.is('12 h : appliquée', t.dec18(t.id('S18B'), 'confirm', true, '2028-01-10 14:00+00'), 'applied');
+select t.is('12 h : séjour 12 h, ménage avant 12 h', t.in18() || '/' || (select to_char(window_end at time zone 'UTC', 'HH24:MI') from public.tasks where id = t.id('T18C')), '12:00/12:00');
+select t.is('12 h : la confirmation 14 h est « remplacée », la 12 h applicable', t.st18(t.id('S18A')) || '/' || t.st18(t.id('S18B')), 'superseded/applied');
+select t.is('12 h : aucune fausse alerte « horaires contradictoires »', t.alert18(), '0');
+select t.is('12 h : vérification de la 14 h — pas de contradiction, remplacée par 12 h',
+  t.q('a_manager', format('select (public.timing_check(%L, %L) ->> ''legacy_mismatch'') || ''/'' || to_char((public.timing_check(%L, %L) ->> ''superseded_by_at'')::timestamptz at time zone ''UTC'', ''HH24:MI'')', t.id('A'), t.id('S18A'), t.id('A'), t.id('S18A'))), 'false/12:00');
+select t.is('voyageur : 14 h « remplacée » par 12 h, 12 h applicable',
+  (t.guest18(t.id('S18A')) ->> 'timing_state') || '/' || to_char((t.guest18(t.id('S18A')) ->> 'superseded_by_at')::timestamptz at time zone 'UTC', 'HH24:MI') || '/' || (t.guest18(t.id('S18B')) ->> 'timing_state'), 'superseded/12:00/applied');
+select t.is('voyageur : historique de la 14 h — événement d''horaire « remplacé » avec l''heure, pas une demande',
+  (select string_agg((e ->> 'kind') || ':' || coalesce(e ->> 'status', '-'), ',') from jsonb_array_elements(t.guest18(t.id('S18A')) -> 'events') e), 'created:requested,status:confirmed,timing:superseded');
+select t.is('appliquer une confirmation remplacée : refusé, séjour inchangé', t.dec18(t.id('S18A'), 'apply_legacy') || '/' || t.in18(), 'superseded/12:00');
+select t.is('double envoi de la même décision : sans effet', t.dec18(t.id('S18B'), 'confirm'), 'already');
+
+-- (3) Annulation de la 12 h : retour à 14 h, la 14 h redevient l'horaire applicable (tracé)
+select t.is('annulation 12 h : appliquée', t.dec18(t.id('S18B'), 'cancel'), 'applied');
+select t.is('annulation 12 h : séjour, ménage et action reviennent à 14 h', t.in18() || '/' || (select to_char(window_end at time zone 'UTC', 'HH24:MI') from public.tasks where id = t.id('T18C')) || '/' || (select to_char(due_at at time zone 'UTC', 'HH24:MI') from public.stay_prep_actions where id = t.id('A18D')), '14:00/14:00/14:00');
+select t.is('annulation 12 h : 14 h applicable de nouveau, 12 h annulée', t.st18(t.id('S18A')) || '/' || t.st18(t.id('S18B')), 'applied/cancelled');
+select t.check('annulation 12 h : événement voyageur « rétabli » sur la 14 h', '', exists (select 1 from public.service_events where service_id = t.id('S18A') and kind = 'timing' and status = 'reinstated' and visibility = 'guest' and ref_at = '2028-01-10 14:00+00'));
+
+-- (4) Retirer une confirmation remplacée : la chaîne reste juste (l'annulation suivante revient à l'heure d'avant)
+insert into t.ids values ('S18C', t.ask18('R18', '2028-01-10 11:30+00'));
+select t.is('11 h 30 : appliquée', t.dec18(t.id('S18C'), 'confirm', true), 'applied');
+select t.is('retirer la 14 h remplacée : séjour inchangé (11 h 30)', t.dec18(t.id('S18A'), 'cancel') || '/' || t.in18(), 'applied/11:30');
+select t.is('chaîne : annuler la 11 h 30 revient à 15 h (horaire d''avant la 14 h retirée)', t.dec18(t.id('S18C'), 'cancel') || '/' || t.in18(), 'applied/15:00');
+
+-- (5) Séjour modifié indépendamment après une confirmation : vraie contradiction ; annulation sans écraser le changement
+insert into t.ids values ('S18D', t.ask18('R18', '2028-01-10 13:00+00'));
+select t.is('13 h : appliquée', t.dec18(t.id('S18D'), 'confirm', true), 'applied');
+update public.reservations set check_in_at = '2028-01-10 15:30+00' where id = t.id('R18');
+select t.is('séjour repoussé à 15 h 30 hors décision : contradiction signalée (1 alerte)', t.st18(t.id('S18D')) || '/' || t.alert18(), 'contradiction/1');
+select t.is('annuler la 13 h : séjour laissé à 15 h 30 (changement plus récent non écrasé), plus d''alerte', t.dec18(t.id('S18D'), 'cancel') || '/' || t.in18() || '/' || t.alert18(), 'applied/15:30/0');
+-- Séjour avancé hors décision : promesse tenue (« couverte »), pas d'alerte
+insert into t.ids values ('S18E', t.ask18('R18', '2028-01-10 14:30+00'));
+select t.is('14 h 30 : appliquée', t.dec18(t.id('S18E'), 'confirm', true), 'applied');
+update public.reservations set check_in_at = '2028-01-10 13:30+00' where id = t.id('R18');
+select t.is('séjour avancé à 13 h 30 hors décision : « couverte », aucune alerte', t.st18(t.id('S18E')) || '/' || t.alert18(), 'covered/0');
+select t.is('voyageur : note « couverte »', t.guest18(t.id('S18E')) ->> 'timing_state', 'covered');
+
+-- (6) Deux demandes en attente pour le même séjour
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values (t.id('R18B'), t.id('A'), t.id('P18'), 'QA 18 B', '2028-02-10 15:00+00', '2028-02-12 09:00+00');
+insert into public.service_requests (id, organization_id, property_id, reservation_id, kind, start_at, status, source) values
+  (gen_random_uuid(), t.id('A'), t.id('P18'), t.id('R18B'), 'early_checkin', '2028-02-10 12:00+00', 'requested', 'guest'),
+  (gen_random_uuid(), t.id('A'), t.id('P18'), t.id('R18B'), 'early_checkin', '2028-02-10 13:00+00', 'requested', 'guest');
+insert into t.ids select 'S18F', id from public.service_requests where reservation_id = t.id('R18B') and start_at = '2028-02-10 12:00+00';
+insert into t.ids select 'S18G', id from public.service_requests where reservation_id = t.id('R18B') and start_at = '2028-02-10 13:00+00';
+select t.is('deux en attente : 12 h confirmée', t.dec18(t.id('S18F'), 'confirm', true, '2028-02-10 15:00+00'), 'applied');
+select t.is('deux en attente : la 13 h ne change rien (séjour déjà plus tôt)',
+  t.q('a_manager', format('select (public.timing_check(%L, %L) ->> ''change'') || ''/'' || (public.timing_check(%L, %L) ->> ''no_change'')', t.id('A'), t.id('S18G'), t.id('A'), t.id('S18G'))), 'false/already_better');
+select t.is('deux en attente : 13 h confirmée avec l''ancienne heure attendue (15 h) — refusée, séjour modifié', t.dec18(t.id('S18G'), 'confirm', true, '2028-02-10 15:00+00'), 'stay_changed');
+select t.is('deux en attente : 13 h confirmée sur données à jour — séjour reste 12 h, 13 h « couverte »', t.dec18(t.id('S18G'), 'confirm', true, '2028-02-10 12:00+00') || '/' || t.in18('R18B') || '/' || t.st18(t.id('S18G')), 'applied/12:00/covered');
+
+-- (7) Droits et isolation
+select t.is('états : un agent ne voit rien', t.q('a_agent', format('select jsonb_array_length(public.timing_states(%L))', t.id('A'))), '0');
+select t.is('états : une autre organisation ne voit rien', t.q('b_manager', format('select jsonb_array_length(public.timing_states(%L))', t.id('A'))), '0');
+select t.err('décision : agent refusé', t.q('a_agent', format('select public.timing_decide(%L, %L, ''cancel'')', t.id('A'), t.id('S18F'))), '42501');
+select t.err('décision : autre organisation refusée', t.q('b_manager', format('select public.timing_decide(%L, %L, ''cancel'')', t.id('A'), t.id('S18F'))), '42501');
+select t.err('décision : autre organisation avec son propre identifiant d''organisation — demande introuvable', t.q('b_manager', format('select public.timing_decide(%L, %L, ''cancel'')', t.id('B'), t.id('S18F'))), 'P0002');
+select t.deny('remplacement : impossible à écrire directement', t.dml('a_manager', format('update public.service_requests set superseded_by = %L where id = %L', t.id('S18F'), t.id('S18G'))));
+select t.deny('horaire appliqué : impossible à écrire directement', t.dml('a_manager', format('update public.service_requests set timing_applied_at = now() where id = %L', t.id('S18G'))));
+select t.err('création avec remplacement préétabli : refusée', t.dml('a_manager', format('insert into public.service_requests (organization_id, property_id, reservation_id, kind, start_at, status, source, superseded_by) values (%L, %L, %L, ''early_checkin'', ''2028-02-10 11:00+00'', ''requested'', ''manager'', %L)', t.id('A'), t.id('P18'), t.id('R18B'), t.id('S18F'))), '22023');
+
+-- (8) Historique voyageur : libellés fidèles, notes internes jamais transmises
+update public.reservations set check_in_at = '2028-02-10 14:00+00' where id = t.id('R18B');
+select t.is('séjour B repoussé hors décision : deux vraies contradictions', t.alert18(), '2');
+insert into t_tok values ('g18bb', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R18B'))));
+select t.is('régularisation avec message : appliquée', t.dec18(t.id('S18F'), 'apply_legacy', true, null, 'Votre arrivée à 12 h est bien confirmée.'), 'applied');
+select t.is('régularisation : séjour 12 h, la 13 h remplacée, plus aucune alerte', t.in18('R18B') || '/' || t.st18(t.id('S18G')) || '/' || t.alert18(), '12:00/superseded/0');
+select t.is('voyageur : régularisation = information d''horaire + message de l''équipe (jamais « demandée »)',
+  (select string_agg((e ->> 'kind') || ':' || coalesce(e ->> 'status', '-'), ',') from jsonb_array_elements((select e from jsonb_array_elements(public.get_guest_stay((select v from t_tok where k = 'g18bb')) -> 'services') e where e ->> 'id' = t.id('S18F')::text) -> 'events') e),
+  'status:confirmed,timing:applied,team_message:-');
+select t.check('voyageur : aucune note interne dans les données transmises', '',
+  position('connaissance de cause' in public.get_guest_stay((select v from t_tok where k = 'g18'))::text) = 0
+  and position('Confirmation contradictoire' in public.get_guest_stay((select v from t_tok where k = 'g18bb'))::text) = 0
+  and position('internal' in public.get_guest_stay((select v from t_tok where k = 'g18bb'))::text) = 0);
+
+-- (9) E-mails d'horaire : heure applicable incluse, message obsolète jamais envoyé, un seul destinataire
+insert into public.reservations (id, organization_id, property_id, guest_name, guest_email, check_in_at, check_out_at) values
+  (t.id('R18N'), t.id('A'), t.id('P18'), 'QA 18 N', 'qa18n@example.test', '2028-03-10 15:00+00', '2028-03-12 09:00+00');
+insert into public.service_requests (organization_id, property_id, reservation_id, kind, start_at, status, source) values (t.id('A'), t.id('P18'), t.id('R18N'), 'early_checkin', '2028-03-10 13:00+00', 'requested', 'guest');
+insert into t.ids select 'S18N', id from public.service_requests where reservation_id = t.id('R18N');
+select t.is('e-mail : confirmation 13 h', t.dec18(t.id('S18N'), 'confirm', true), 'applied');
+select t.is('e-mail : « horaire confirmé » en attente avec l''heure applicable (13 h, fuseau du logement)',
+  (select template || '/' || status || '/' || to_char((payload ->> 'stay_at')::timestamptz at time zone 'UTC', 'HH24:MI') || '/' || (payload ->> 'tz') from public.notification_outbox where service_id = t.id('S18N') order by created_at desc limit 1), 'timing_confirmed/pending/13:00/Europe/Paris');
+select t.is('e-mail : annulation', t.dec18(t.id('S18N'), 'cancel'), 'applied');
+select t.is('e-mail : la confirmation devenue obsolète n''est pas envoyée, l''annulation porte l''heure rétablie (15 h)',
+  (select string_agg(template || ':' || status || ':' || coalesce(last_error, '-') || ':' || to_char((payload ->> 'stay_at')::timestamptz at time zone 'UTC', 'HH24:MI'), ',' order by template desc) from public.notification_outbox where service_id = t.id('S18N')),
+  'timing_confirmed:skipped:superseded_by_newer_decision:13:00,timing_cancelled:pending:-:15:00');
+select t.is('e-mail : voyageur seul destinataire des e-mails d''horaire, aucun e-mail générique en double, e-mails d''équipe aux seuls responsables de A',
+  (select count(distinct recipient) filter (where template like 'timing\_%')::text || '/' || count(*) filter (where template like 'service\_%')::text || '/' || count(*) filter (where template like 'team\_%' and recipient not in (select u.email from public.memberships m join auth.users u on u.id = m.user_id where m.organization_id = t.id('A') and m.role in ('owner', 'manager')))::text from public.notification_outbox where service_id = t.id('S18N')), '1/0/0');
+select t.err('envoi : la réservation d''e-mails est interdite aux comptes', t.q('a_manager', 'select count(*) from public.outbox_claim(null, 1)'), '42501');
+select t.is('envoi : un e-mail réservé une fois ne l''est pas une seconde fois (pas de doublon)',
+  (select count(*)::text from public.outbox_claim(t.id('A'), 50) c where c.service_id = t.id('S18N')) || '/' || (select count(*)::text from public.outbox_claim(t.id('A'), 50) c where c.service_id = t.id('S18N')), '1/0');
+update public.notification_outbox set status = 'failed', last_error = 'test' where service_id = t.id('S18N') and status = 'sending';
+select t.check('relance par un responsable : acceptée', '', t.keep('a_manager', format('select public.retry_notification(%L, (select id from public.notification_outbox where service_id = %L and status = ''failed'' and template like ''timing_%%''))::text', t.id('A'), t.id('S18N'))) not like 'ERR%');
+select t.is('relance : l''e-mail redevient « en attente », une seule fois', (select count(*)::text from public.notification_outbox where service_id = t.id('S18N') and status = 'pending'), '1');
+
+-- (10) Lieux et recommandations avant l'ouverture : zone dense, lieu sur le logement, sans coordonnées, rurale, sans position
+insert into public.property_places (id, organization_id, property_id, source, category, name, latitude, longitude, address) values
+  (t.id('PL18H'), t.id('A'), t.id('P18'), 'manager', 'activities', 'Musée au pied de l''immeuble', 48.8531, 2.3500, '1 place Fictive, Paris'),
+  (t.id('PL18F'), t.id('A'), t.id('P18'), 'owner', 'food', 'Bistrot du propriétaire', 48.8640, 2.3499, '20 rue Fictive, Paris'),
+  (t.id('PL18U'), t.id('A'), t.id('P18'), 'manager', 'food', 'Boulangerie (sans coordonnées)', null, null, '3 rue Fictive, Paris');
+insert into public.stay_guest_items (organization_id, reservation_id, kind, place_id, title, published_at) values
+  (t.id('A'), t.id('R18'), 'recommendation', t.id('PL18H'), 'Le musée en bas', now()),
+  (t.id('A'), t.id('R18'), 'recommendation', t.id('PL18F'), 'Le bistrot', now());
+select t.is('dense : lieu sur le logement retenu, lieu sans coordonnées listé sans adresse, lieu à 1,2 km avec adresse et tranche',
+  t.q(null, format('select (public.guest_places(%L) ->> ''near_hidden'') || ''|'' || (select string_agg((e ->> ''name'') || '':'' || coalesce(e ->> ''address'', ''-'') || '':'' || coalesce(e ->> ''distance_band'', ''-''), '','' order by e ->> ''name'') from jsonb_array_elements(public.guest_places(%L) -> ''places'') e)', (select v from t_tok where k = 'g18'), (select v from t_tok where k = 'g18'))),
+  '1|Bistrot du propriétaire:20 rue Fictive, Paris:2,Boulangerie (sans coordonnées):-:-');
+select t.is('recommandations publiées avant ouverture : ni coordonnées, ni adresse du lieu au pied du logement',
+  (select string_agg(coalesce(e #>> '{place,address}', '-') || ':' || coalesce(e #>> '{place,lat}', '-'), ',' order by e ->> 'title') from jsonb_array_elements(public.get_guest_stay((select v from t_tok where k = 'g18')) -> 'prepared') e),
+  '20 rue Fictive, Paris:-,-:-');
+select t.check('avant ouverture : les coordonnées du logement n''apparaissent dans aucune donnée transmise', '',
+  position('48.853' in public.guest_places((select v from t_tok where k = 'g18'))::text) = 0 and position('2.349' in public.guest_places((select v from t_tok where k = 'g18'))::text) = 0
+  and position('48.853' in public.get_guest_stay((select v from t_tok where k = 'g18'))::text) = 0 and position('2.35' in public.get_guest_stay((select v from t_tok where k = 'g18'))::text) = 0);
+-- Zone rurale : lieu à 2,5 km (tranche 3), lieu à 5 km exclu
+insert into public.properties (id, organization_id, name, latitude, longitude) values (t.id('P18R'), t.id('A'), 'Ferme 18', 45.9000, 6.1000);
+insert into public.guest_guides (organization_id, property_id, enabled) values (t.id('A'), t.id('P18R'), true);
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values (t.id('R18R'), t.id('A'), t.id('P18R'), 'Rural 18', '2028-04-10 15:00+00', '2028-04-12 09:00+00');
+insert into public.property_places (id, organization_id, property_id, source, category, name, latitude, longitude, address) values
+  (t.id('PL18R1'), t.id('A'), t.id('P18R'), 'manager', 'food', 'Auberge à 2,5 km', 45.9225, 6.1000, 'Le Bourg'),
+  (t.id('PL18R2'), t.id('A'), t.id('P18R'), 'manager', 'food', 'Ville à 5 km', 45.9450, 6.1000, 'Centre');
+insert into t_tok values ('g18r', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R18R'))));
+select t.is('rural : seul le lieu à 2,5 km (tranche 3), sans coordonnées', t.q(null, format('select string_agg((e ->> ''name'') || '':'' || (e ->> ''distance_band'') || '':'' || coalesce(e ->> ''lat'', ''-''), '','') from jsonb_array_elements(public.guest_places(%L) -> ''places'') e', (select v from t_tok where k = 'g18r'))), 'Auberge à 2,5 km:3:-');
+-- Logement sans coordonnées : lieux listés sans adresse ni distance
+insert into public.properties (id, organization_id, name) values (t.id('P18X'), t.id('A'), 'Sans position 18');
+insert into public.guest_guides (organization_id, property_id, enabled) values (t.id('A'), t.id('P18X'), true);
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values (t.id('R18X'), t.id('A'), t.id('P18X'), 'Sans position', '2028-05-10 15:00+00', '2028-05-12 09:00+00');
+insert into public.property_places (id, organization_id, property_id, source, category, name, latitude, longitude, address) values (t.id('PL18X'), t.id('A'), t.id('P18X'), 'manager', 'food', 'Café', 45.0, 5.0, '9 rue Fictive');
+insert into t_tok values ('g18x', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R18X'))));
+select t.is('logement sans coordonnées : lieu listé sans adresse ni distance', t.q(null, format('select (e ->> ''name'') || '':'' || coalesce(e ->> ''address'', ''-'') || '':'' || coalesce(e ->> ''distance_band'', ''-'') from jsonb_array_elements(public.guest_places(%L) -> ''places'') e', (select v from t_tok where k = 'g18x'))), 'Café:-:-');
+
+-- (11) Liens voyageur : ouverture suit l'horaire, remplacement, révocation, séjour annulé
+select t.is('ouverture des informations pratiques : 72 h avant l''arrivée applicable (13 h 30)', (select to_char(valid_from at time zone 'UTC', 'YYYY-MM-DD HH24:MI') from public.guest_links where reservation_id = t.id('R18') and revoked_at is null), '2028-01-07 13:30');
+insert into t_tok values ('g18b', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R18'))));
+select t.is('nouveau lien : l''ancien devient indisponible, le nouveau fonctionne', t.q(null, format('select (public.get_guest_stay(%L) ->> ''status'') || ''/'' || (public.get_guest_stay(%L) ->> ''status'') || ''/'' || (public.guest_places(%L) ->> ''status'')', (select v from t_tok where k = 'g18'), (select v from t_tok where k = 'g18b'), (select v from t_tok where k = 'g18'))), 'unavailable/prep/unavailable');
+update public.guest_links set revoked_at = now(), revoke_reason = 'manual' where reservation_id = t.id('R18') and revoked_at is null;
+select t.is('lien révoqué : indisponible (séjour et lieux)', t.q(null, format('select (public.get_guest_stay(%L) ->> ''status'') || ''/'' || (public.guest_places(%L) ->> ''status'')', (select v from t_tok where k = 'g18b'), (select v from t_tok where k = 'g18b'))), 'unavailable/unavailable');
+update public.reservations set status = 'cancelled' where id = t.id('R18R');
+select t.is('séjour annulé : lien indisponible', t.q(null, format('select public.get_guest_stay(%L) ->> ''status''', (select v from t_tok where k = 'g18r'))), 'unavailable');
+-- Pendant le séjour : adresses, coordonnées et distances exactes visibles
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values (t.id('R18Z'), t.id('A'), t.id('P18X'), 'En cours 18', now() - interval '1 day', now() + interval '1 day');
+insert into t_tok values ('g18z', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R18Z'))));
+select t.is('après ouverture : adresse et coordonnées du lieu visibles', t.q(null, format('select (public.guest_places(%L) #>> ''{places,0,address}'') || ''/'' || (public.guest_places(%L) #>> ''{places,0,lat}'')', (select v from t_tok where k = 'g18z'), (select v from t_tok where k = 'g18z'))), '9 rue Fictive/45');
+update public.reservations set check_out_at = now() - interval '1 hour', check_in_at = now() - interval '2 days' where id = t.id('R18Z');
+select t.is('séjour terminé (lien expiré) : indisponible', t.q(null, format('select public.get_guest_stay(%L) ->> ''status''', (select v from t_tok where k = 'g18z'))), 'unavailable');
+
 
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);

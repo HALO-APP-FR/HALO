@@ -9,7 +9,7 @@ export interface OutboxItem {
   id: string;
   template: string;
   recipient: string;
-  status: "pending" | "sent" | "failed" | "not_configured" | "skipped";
+  status: "pending" | "sending" | "sent" | "failed" | "not_configured" | "skipped";
   attempts: number;
   last_error: string | null;
   created_at: string;
@@ -27,7 +27,7 @@ export function OutboxList({ items }: { items: OutboxItem[] }) {
   // Même fuseau que le chat et les historiques (celui de l'organisation), jamais celui du navigateur
   const fmt = (d: string) => f.dateTime(new Date(d), { dateStyle: "short", timeStyle: "short" });
   if (!items.length) return <p className="text-[14px] text-muted">{t("empty")}</p>;
-  const tone = { sent: "text-success", pending: "text-muted", failed: "text-danger", not_configured: "text-warning", skipped: "text-muted" } as const;
+  const tone = { sent: "text-success", pending: "text-muted", sending: "text-muted", failed: "text-danger", not_configured: "text-warning", skipped: "text-muted" } as const;
   return (
     <div>
       <ul className="divide-y divide-line">
@@ -48,7 +48,7 @@ export function OutboxList({ items }: { items: OutboxItem[] }) {
             )}
             {o.status === "skipped" && (
               <span className="w-full text-[12px] text-muted" data-testid="outbox-skipped">
-                {t("skippedReason")}
+                {o.last_error === "superseded_by_newer_decision" ? t("skippedSuperseded") : t("skippedReason")}
               </span>
             )}
             {o.status === "failed" && o.last_error && (

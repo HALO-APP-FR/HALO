@@ -474,7 +474,7 @@ export function VipPanel({
           <p className="mt-1 whitespace-pre-wrap">« {request.guest_message} »</p>
           <p className="mt-1 text-[12px] text-muted" data-testid="vip-sent-delivery">
             {t("visibleInSpace")}
-            {delivery ? ` · ${t(`delivery.${["sent", "pending", "failed", "not_configured"].includes(delivery.status) ? delivery.status : "failed"}`)} (${fmt(delivery.at)})` : ` · ${t("delivery.none")}`}
+            {delivery ? ` · ${t(`delivery.${["sent", "pending", "failed", "not_configured"].includes(delivery.status === "sending" ? "pending" : delivery.status) ? (delivery.status === "sending" ? "pending" : delivery.status) : "failed"}`)} (${fmt(delivery.at)})` : ` · ${t("delivery.none")}`}
           </p>
         </div>
       )}

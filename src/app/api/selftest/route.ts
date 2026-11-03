@@ -293,6 +293,18 @@ export async function GET(request: NextRequest) {
       const { data: dec, error: de2 } = await a1.rpc("timing_decide", { org: orgA, service: svId, act: "confirm", ack: true, expected_at: day(15) });
       const st = (dec as { status?: string } | null)?.status;
       check("timing_decide_with_prep_mission", !de2 && (st === "applied" || st === "not_feasible"), de2 ? `${de2.code}:${de2.message}` : `${st}`);
+      // 10. Horaires successifs (migration 18) : une seconde confirmation remplace la première, sans fausse alerte
+      if (st === "applied") {
+        const { data: sv2 } = await guest.rpc("guest_request_service", { token: tT as string, s_kind: "early_checkin", s_start_at: day(11), s_people: 1, s_details: null });
+        const sv2Id = (sv2 as { id?: string } | null)?.id;
+        const { data: dec2, error: de3 } = await a1.rpc("timing_decide", { org: orgA, service: sv2Id, act: "confirm", ack: true, expected_at: day(12) });
+        const { data: states, error: se } = await a1.rpc("timing_states", { org: orgA, reservation: rT!.id });
+        const stOf = (id?: string) => ((states as { service: string; state: string }[] | null) ?? []).find((x) => x.service === id)?.state;
+        const { data: inc } = await a1.rpc("timing_inconsistencies", { org: orgA });
+        const falseAlert = ((inc as { reservation: string }[] | null) ?? []).some((x) => x.reservation === rT!.id);
+        check("timing_successive_superseded", !de3 && !se && (dec2 as { status?: string } | null)?.status === "applied" && stOf(svId) === "superseded" && stOf(sv2Id) === "applied" && !falseAlert,
+          de3 ? `${de3.code}:${de3.message}` : se ? `${se.code}:${se.message}` : `${(dec2 as { status?: string } | null)?.status} ${stOf(svId)}/${stOf(sv2Id)} alerte:${falseAlert}`);
+      }
     }
     const { data: bReviews } = await b.from("reviews").select("id").eq("organization_id", orgA);
     check("other_org_cannot_read_reviews", (bReviews ?? []).length === 0);
