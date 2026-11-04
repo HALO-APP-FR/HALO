@@ -1481,7 +1481,11 @@
         "toValidate": "{mission} · {property} · abgeschlossen {date}",
         "incident": "{property}: {text} ({date})",
         "incidentUrgent": "Dringend · {property}: {text} ({date})"
-      }
+      },
+      "cleaningLine": "Reinigung: {status} · {who}",
+      "nobody": "niemand zugewiesen",
+      "whyNotReady": "Noch nicht „bereit“: die Reinigung ist noch nicht freigegeben.",
+      "testEmails": "{count, plural, =0 {Keine E-Mail an eine Testadresse} one {# E-Mail an eine Testadresse (.invalid), absichtlich nicht gesendet} other {# E-Mails an Testadressen (.invalid), absichtlich nicht gesendet}}"
     },
     "onb": {
       "progress": "Schritt {n} von {total}",
@@ -1761,6 +1765,15 @@
         "due": "Aktion fällig",
         "vip": "VIP-Anfrage",
         "clear": "Alle Aufenthalte anzeigen"
+      },
+      "relation": {
+        "between": "Nach der Abreise dieses Aufenthalts ({out}), vor der nächsten Anreise ({next}, {guest}).",
+        "self": "Einsatz mit diesem Aufenthalt verknüpft.",
+        "afterNoNext": "Nach der Abreise dieses Aufenthalts ({out}); kein nächster Aufenthalt in HALO bekannt.",
+        "before": "Vor der Anreise dieses Aufenthalts ({in}), nach der vorherigen Abreise ({prev}, {guest}).",
+        "beforeNoPrev": "Vor der Anreise dieses Aufenthalts ({in}); kein vorheriger Aufenthalt in HALO bekannt.",
+        "auto": "Fenster automatisch berechnet.",
+        "manual": "Fenster von der Leitung festgelegt (nicht neu berechnet)."
       }
     },
     "link": {
@@ -1837,7 +1850,8 @@
         "failed": "Fehlgeschlagen",
         "not_configured": "Nicht gesendet: kein E-Mail-Dienst eingerichtet",
         "skipped": "Nicht gesendet",
-        "sending": "Wird gesendet"
+        "sending": "Wird gesendet",
+        "test": "Nicht gesendet: Testadresse"
       },
       "retry": "Erneut senden",
       "template": {
@@ -2098,7 +2112,9 @@
       "commentOptional": "Abschlusskommentar (optional)",
       "commentSave": "Kommentar speichern",
       "commentSaved": "Kommentar gespeichert.",
-      "commentUnsaved": "Kommentar noch nicht gespeichert."
+      "commentUnsaved": "Kommentar noch nicht gespeichert.",
+      "correctionItems": "Neu zu erbringende Nachweise: {items}",
+      "correctionNextInProgress": "Korrektur läuft: korrigieren, bei Bedarf Kommentar oder Foto hinzufügen und auf „Abschließen“ tippen, um sie an die Leitung zurückzusenden."
     },
     "testAccount": {
       "title": "Vorproduktion: Testkonto ohne E-Mail",
@@ -2409,7 +2425,9 @@
       "risksText": "Abwesenheit nur in einem Teil des Fensters: Der Einsatz bleibt außerhalb möglich. Planen Sie einen Termin, um sicherzugehen.",
       "freeLeft": "berechnete freie Zeit {duration} (laut erfassten Abwesenheiten, über 24 Std. — keine garantierte Verfügbarkeit)",
       "freeLeftFromNow": "Längste zusammenhängende freie Zeit von jetzt bis {to}: {duration}. Nur nach erfassten Abwesenheiten; Arbeitszeiten, andere Einsätze und Anfahrten nicht berücksichtigt — keine garantierte Verfügbarkeit.",
-      "freeLeftWindow": "Längste zusammenhängende freie Zeit zwischen {from} und {to} (ganzes Fenster): {duration}. Nur nach erfassten Abwesenheiten; Arbeitszeiten, andere Einsätze und Anfahrten nicht berücksichtigt — keine garantierte Verfügbarkeit."
+      "freeLeftWindow": "Längste zusammenhängende freie Zeit zwischen {from} und {to} (ganzes Fenster): {duration}. Nur nach erfassten Abwesenheiten; Arbeitszeiten, andere Einsätze und Anfahrten nicht berücksichtigt — keine garantierte Verfügbarkeit.",
+      "summaryDays": "{same, select, yes {Wird gespeichert: {from}, ganztägig.} other {Wird gespeichert: vom {from} bis einschließlich {to}, ganztägig.}}",
+      "summaryHours": "Wird gespeichert: vom {from} bis {to}."
     },
     "chat": {
       "title": "Teamnachrichten",

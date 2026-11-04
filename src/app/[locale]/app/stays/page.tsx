@@ -21,7 +21,7 @@ export default async function StaysPage({ params, searchParams }: PageProps<"/[l
   const in24 = isoFromNow(24 * 3_600_000);
   const [{ data: stays, error }, { data: props }, { data: unread }, { data: review }, { data: due }, { data: vip }] = await Promise.all([
     supabase.from("reservations").select("id, guest_name, check_in_at, check_out_at, status, properties(name, timezone)").eq("organization_id", org!.id).gte("check_out_at", since).order("check_in_at").limit(200),
-    supabase.from("properties").select("id, name").eq("organization_id", org!.id).is("archived_at", null).order("name"),
+    supabase.from("properties").select("id, name, timezone").eq("organization_id", org!.id).is("archived_at", null).order("name"),
     supabase.from("stay_messages").select("reservation_id").eq("organization_id", org!.id).eq("author_kind", "guest").is("read_by_team_at", null),
     supabase.from("stay_preparations").select("reservation_id").eq("organization_id", org!.id).eq("needs_review", true),
     supabase.from("stay_prep_actions").select("reservation_id").eq("organization_id", org!.id).eq("status", "open").lte("due_at", in24),

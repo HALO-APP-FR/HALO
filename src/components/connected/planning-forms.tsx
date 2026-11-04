@@ -10,7 +10,7 @@ import { Link } from "@/i18n/navigation";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useRun } from "./use-run";
-import { periodText } from "@/lib/connected/format";
+import { fromLocalInput, localInputIn, periodText } from "@/lib/connected/format";
 
 const TYPES = ["turnover", "maintenance", "linen_delivery", "linen_pickup", "inspection", "check_in", "check_out", "other"] as const;
 const POSITIONS = ["housekeeper", "inspector", "maintenance", "laundry", "concierge", "driver", "chef", "other"] as const;
@@ -127,37 +127,37 @@ export function TaskRuleSettings({ initial }: { initial: TaskTypeRule[] }) {
 }
 
 /** Correction du créneau d'une mission par le responsable : fenêtre et durée séparées, motif tracé. */
-export function WindowEditor({ taskId, start, end, durationMin }: { taskId: string; start: string; end: string; durationMin: number }) {
+export function WindowEditor({ taskId, start, end, durationMin, timeZone }: { taskId: string; start: string; end: string; durationMin: number; timeZone?: string }) {
   const t = useTranslations("connected.window");
   const { pending, error, run } = useRun();
   const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ start: localInput(start), end: localInput(end), duration: durationMin, reason: "" });
+  const [f, setF] = useState({ start: localInputIn(new Date(start), timeZone), end: localInputIn(new Date(end), timeZone), duration: durationMin, reason: "" });
   if (!open)
     return (
       <Button size="sm" variant="outline" onClick={() => setOpen(true)} data-testid="window-edit">
         {t("edit")}
       </Button>
     );
-  const fits = new Date(f.end).getTime() >= new Date(f.start).getTime() + f.duration * 60_000;
+  const fits = fromLocalInput(f.end, timeZone).getTime() >= fromLocalInput(f.start, timeZone).getTime() + f.duration * 60_000;
   return (
     <Card className="space-y-3 p-4" data-testid="window-editor">
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t("start")} htmlFor="w-start">
-          <Input id="w-start" type="datetime-local" value={f.start} onChange={(e) => setF({ ...f, start: e.target.value })} data-testid="window-start" />
+          <Input id="w-start" type="datetime-local" value={f.start} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, start: val })); }} data-testid="window-start" />
         </Field>
         <Field label={t("end")} htmlFor="w-end">
-          <Input id="w-end" type="datetime-local" value={f.end} onChange={(e) => setF({ ...f, end: e.target.value })} data-testid="window-end" />
+          <Input id="w-end" type="datetime-local" value={f.end} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, end: val })); }} data-testid="window-end" />
         </Field>
         <Field label={t("duration")} htmlFor="w-dur" hint={t("durationHint")}>
           <Input id="w-dur" type="number" min={5} max={1440} step={5} value={f.duration} onChange={(e) => setF({ ...f, duration: Number(e.target.value) })} data-testid="window-duration" />
         </Field>
         <Field label={t("reason")} htmlFor="w-reason">
-          <Input id="w-reason" value={f.reason} maxLength={300} onChange={(e) => setF({ ...f, reason: e.target.value })} data-testid="window-reason" />
+          <Input id="w-reason" value={f.reason} maxLength={300} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, reason: val })); }} data-testid="window-reason" />
         </Field>
       </div>
       {!fits && <p className="text-[13px] text-danger" role="alert">{t("tooShort")}</p>}
       <div className="flex gap-2">
-        <Button size="sm" onClick={() => run(() => setTaskWindow(taskId, new Date(f.start).toISOString(), new Date(f.end).toISOString(), f.duration, f.reason), () => setOpen(false))} disabled={pending || !fits} data-testid="window-save">
+        <Button size="sm" onClick={() => run(() => setTaskWindow(taskId, fromLocalInput(f.start, timeZone).toISOString(), fromLocalInput(f.end, timeZone).toISOString(), f.duration, f.reason), () => setOpen(false))} disabled={pending || !fits} data-testid="window-save">
           {t("save")}
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
@@ -208,7 +208,7 @@ export function ProfileForm({ name, phone }: { name: string; phone: string }) {
  * Responsable : pour une personne ou toute l'équipe (acceptée d'office).
  * Agent : pour lui-même, en attente de décision.
  */
-export function AbsenceForm({ manager, members, selfId }: { manager: boolean; members: { id: string; name: string }[]; selfId: string }) {
+export function AbsenceForm({ manager, members, selfId, timeZone = "Europe/Paris" }: { manager: boolean; members: { id: string; name: string }[]; selfId: string; timeZone?: string }) {
   const t = useTranslations("connected.absences");
   const tp = useTranslations("position");
   const { pending, error, run } = useRun();
@@ -221,12 +221,15 @@ export function AbsenceForm({ manager, members, selfId }: { manager: boolean; me
     allDay: true,
     from: today(),
     to: today(),
-    start: localInput(new Date().toISOString()),
-    end: localInput(new Date(Date.now() + 3 * 3_600_000).toISOString()),
+    start: localInputIn(new Date(), timeZone),
+    end: localInputIn(new Date(Date.now() + 3 * 3_600_000), timeZone),
     unplanned: false,
     reason: "",
   }));
   const team = f.who === "team";
+  const fd = useFormatter();
+  // Jour civil tel que saisi (AAAA-MM-JJ), affiché sans conversion de fuseau
+  const fmtDay = (d: string) => (/^\d{4}-\d{2}-\d{2}$/.test(d) ? fd.dateTime(new Date(`${d}T12:00:00Z`), { dateStyle: "full", timeZone: "UTC" }) : "—");
   const period = () => {
     if (f.allDay) {
       const s = new Date(`${f.from}T00:00`);
@@ -234,7 +237,7 @@ export function AbsenceForm({ manager, members, selfId }: { manager: boolean; me
       e.setDate(e.getDate() + 1); // jusqu'à la fin du dernier jour, heure locale
       return { s, e };
     }
-    return { s: new Date(f.start), e: new Date(f.end) };
+    return { s: fromLocalInput(f.start, timeZone), e: fromLocalInput(f.end, timeZone) };
   };
   const { s, e } = period();
   const valid = !Number.isNaN(s.getTime()) && !Number.isNaN(e.getTime()) && e > s;
@@ -246,19 +249,29 @@ export function AbsenceForm({ manager, members, selfId }: { manager: boolean; me
         className="mt-4 grid gap-4 sm:grid-cols-2"
         onSubmit={(ev) => {
           ev.preventDefault();
+          // La date AFFICHÉE fait foi : relue dans le formulaire au moment de l'envoi (jamais une valeur d'état périmée)
+          const el = ev.currentTarget.elements;
+          const read = (name: string, fallback: string) => (el.namedItem(name) as HTMLInputElement | null)?.value ?? fallback;
+          const g = { ...f, from: read("ab-from", f.from), to: read("ab-to", f.to), start: read("ab-start", f.start), end: read("ab-end", f.end) };
+          const sAt = g.allDay ? new Date(`${g.from}T00:00`) : fromLocalInput(g.start, timeZone);
+          const eAt = g.allDay ? (() => { const d = new Date(`${g.to}T00:00`); d.setDate(d.getDate() + 1); return d; })() : fromLocalInput(g.end, timeZone);
+          if (Number.isNaN(sAt.getTime()) || Number.isNaN(eAt.getTime()) || eAt <= sAt) {
+            setF(g);
+            return;
+          }
           run(
             () =>
               saveAbsence({
                 clientId,
                 scope: team ? "team" : "member",
-                memberId: team ? null : f.who,
-                kind: team ? "closure" : f.kind,
-                startsAt: s.toISOString(),
-                endsAt: e.toISOString(),
-                unplanned: f.unplanned,
-                reason: f.reason,
-                teamPosition: team ? f.position || null : null,
-                allDay: f.allDay ? { from: f.from, to: f.to } : undefined,
+                memberId: team ? null : g.who,
+                kind: team ? "closure" : g.kind,
+                startsAt: sAt.toISOString(),
+                endsAt: eAt.toISOString(),
+                unplanned: g.unplanned,
+                reason: g.reason,
+                teamPosition: team ? g.position || null : null,
+                allDay: g.allDay ? { from: g.from, to: g.to } : undefined,
               }),
             (d) => {
               setDone(d.status);
@@ -270,7 +283,7 @@ export function AbsenceForm({ manager, members, selfId }: { manager: boolean; me
       >
         {manager && (
           <Field label={t("who")} htmlFor="ab-who">
-            <Select id="ab-who" value={f.who} onChange={(ev) => setF({ ...f, who: ev.target.value })} data-testid="absence-who">
+            <Select id="ab-who" value={f.who} onChange={(ev) => { const val = ev.target.value; setF((prev) => ({ ...prev, who: val })); }} data-testid="absence-who">
               {members.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name || t("noName")}
@@ -282,7 +295,7 @@ export function AbsenceForm({ manager, members, selfId }: { manager: boolean; me
         )}
         {team ? (
           <Field label={t("position")} htmlFor="ab-pos" hint={t("positionHint")}>
-            <Select id="ab-pos" value={f.position} onChange={(ev) => setF({ ...f, position: ev.target.value })}>
+            <Select id="ab-pos" value={f.position} onChange={(ev) => { const val = ev.target.value; setF((prev) => ({ ...prev, position: val })); }}>
               <option value="">{t("allPositions")}</option>
               {POSITIONS.map((p) => (
                 <option key={p} value={p}>
@@ -306,19 +319,19 @@ export function AbsenceForm({ manager, members, selfId }: { manager: boolean; me
         {f.allDay ? (
           <>
             <Field label={t("from")} htmlFor="ab-from">
-              <Input id="ab-from" type="date" value={f.from} onChange={(ev) => setF({ ...f, from: ev.target.value, to: ev.target.value > f.to ? ev.target.value : f.to })} data-testid="absence-from" />
+              <Input id="ab-from" name="ab-from" type="date" value={f.from} onChange={(ev) => { const val = ev.target.value; setF((prev) => ({ ...prev, from: val, to: val > prev.to ? val : prev.to })); }} data-testid="absence-from" />
             </Field>
             <Field label={t("to")} htmlFor="ab-to">
-              <Input id="ab-to" type="date" value={f.to} min={f.from} onChange={(ev) => setF({ ...f, to: ev.target.value })} data-testid="absence-to" />
+              <Input id="ab-to" name="ab-to" type="date" value={f.to} min={f.from} onChange={(ev) => { const val = ev.target.value; setF((prev) => ({ ...prev, to: val })); }} data-testid="absence-to" />
             </Field>
           </>
         ) : (
           <>
             <Field label={t("start")} htmlFor="ab-start">
-              <Input id="ab-start" type="datetime-local" value={f.start} onChange={(ev) => setF({ ...f, start: ev.target.value })} data-testid="absence-start" />
+              <Input id="ab-start" name="ab-start" type="datetime-local" value={f.start} onChange={(ev) => { const val = ev.target.value; setF((prev) => ({ ...prev, start: val })); }} data-testid="absence-start" />
             </Field>
             <Field label={t("end")} htmlFor="ab-end">
-              <Input id="ab-end" type="datetime-local" value={f.end} onChange={(ev) => setF({ ...f, end: ev.target.value })} data-testid="absence-end" />
+              <Input id="ab-end" name="ab-end" type="datetime-local" value={f.end} onChange={(ev) => { const val = ev.target.value; setF((prev) => ({ ...prev, end: val })); }} data-testid="absence-end" />
             </Field>
           </>
         )}
@@ -327,13 +340,20 @@ export function AbsenceForm({ manager, members, selfId }: { manager: boolean; me
           {t("unplanned")}
         </label>
         <Field label={t("reason")} htmlFor="ab-reason" hint={t("reasonHint")} className="sm:col-span-2">
-          <Input id="ab-reason" value={f.reason} maxLength={200} onChange={(ev) => setF({ ...f, reason: ev.target.value })} data-testid="absence-reason" />
+          <Input id="ab-reason" value={f.reason} maxLength={200} onChange={(ev) => { const val = ev.target.value; setF((prev) => ({ ...prev, reason: val })); }} data-testid="absence-reason" />
         </Field>
         <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
           <Button type="submit" disabled={pending || !valid} data-testid="absence-save">
             {manager ? t("save") : t("request")}
           </Button>
-          {!valid && <span className="text-[13px] text-danger">{t("invalidPeriod")}</span>}
+          {!valid && <span className="text-[13px] text-danger" role="alert" data-testid="absence-invalid">{t("invalidPeriod")}</span>}
+          {valid && (
+            <span className="basis-full text-[13px] text-muted" data-testid="absence-summary">
+              {f.allDay
+                ? t("summaryDays", { from: fmtDay(f.from), to: fmtDay(f.to), same: f.from === f.to ? "yes" : "no" })
+                : t("summaryHours", { from: fd.dateTime(s, { dateStyle: "full", timeStyle: "short", timeZone }), to: fd.dateTime(e, { dateStyle: "full", timeStyle: "short", timeZone }) })}
+            </span>
+          )}
           {done && (
             <span className="text-[14px] text-success" role="status" data-testid="absence-saved">
               {done === "pending" ? t("savedPending") : t("savedAccepted")}

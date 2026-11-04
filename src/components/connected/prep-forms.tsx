@@ -182,7 +182,7 @@ export function PrepActions({
         }}
       >
         <Field label={t("newAction")} htmlFor="pa-title" className="sm:col-span-2">
-          <Input id="pa-title" value={n.title} maxLength={200} onChange={(e) => setN({ ...n, title: e.target.value })} placeholder={t("newActionPlaceholder")} data-testid="prep-action-title" />
+          <Input id="pa-title" value={n.title} maxLength={200} onChange={(e) => { const val = e.target.value; setN((prev) => ({ ...prev, title: val })); }} placeholder={t("newActionPlaceholder")} data-testid="prep-action-title" />
         </Field>
         <Field label={t("kindLabel")} htmlFor="pa-kind">
           <Select id="pa-kind" value={n.kind} onChange={(e) => setN({ ...n, kind: e.target.value as PrepActionInput["kind"] })}>
@@ -194,7 +194,7 @@ export function PrepActions({
           </Select>
         </Field>
         <Field label={t("owner")} htmlFor="pa-owner">
-          <Select id="pa-owner" value={n.assignee} onChange={(e) => setN({ ...n, assignee: e.target.value })} data-testid="prep-action-owner">
+          <Select id="pa-owner" value={n.assignee} onChange={(e) => { const val = e.target.value; setN((prev) => ({ ...prev, assignee: val })); }} data-testid="prep-action-owner">
             <option value="">{t("unassigned")}</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
@@ -204,7 +204,7 @@ export function PrepActions({
           </Select>
         </Field>
         <Field label={t("due")} htmlFor="pa-due" hint={t("localTimeHint")}>
-          <Input id="pa-due" type="datetime-local" value={n.due} onChange={(e) => setN({ ...n, due: e.target.value })} data-testid="prep-action-due" />
+          <Input id="pa-due" type="datetime-local" value={n.due} onChange={(e) => { const val = e.target.value; setN((prev) => ({ ...prev, due: val })); }} data-testid="prep-action-due" />
         </Field>
         <label className="flex min-h-11 items-center gap-2 self-end text-[14px]">
           <input type="checkbox" className="size-4" checked={n.blocking} onChange={(e) => setN({ ...n, blocking: e.target.checked })} data-testid="prep-action-blocking" />
@@ -236,7 +236,7 @@ function ServiceFromAction({ reservationId, actionId, kinds, timeZone, title, on
       data-testid="prep-service-form"
     >
       <Field label={t("serviceKind")} htmlFor={`ps-k-${actionId}`}>
-        <Select id={`ps-k-${actionId}`} value={v.kind} onChange={(e) => setV({ ...v, kind: e.target.value })}>
+        <Select id={`ps-k-${actionId}`} value={v.kind} onChange={(e) => { const val = e.target.value; setV((prev) => ({ ...prev, kind: val })); }}>
           {kinds.map((k) => (
             <option key={k} value={k}>
               {tk(k)}
@@ -245,13 +245,13 @@ function ServiceFromAction({ reservationId, actionId, kinds, timeZone, title, on
         </Select>
       </Field>
       <Field label={t("serviceWhen")} htmlFor={`ps-w-${actionId}`} hint={t("localTimeHint")}>
-        <Input id={`ps-w-${actionId}`} type="datetime-local" value={v.when} onChange={(e) => setV({ ...v, when: e.target.value })} required />
+        <Input id={`ps-w-${actionId}`} type="datetime-local" value={v.when} onChange={(e) => { const val = e.target.value; setV((prev) => ({ ...prev, when: val })); }} required />
       </Field>
       <Field label={t("servicePeople")} htmlFor={`ps-p-${actionId}`}>
         <Input id={`ps-p-${actionId}`} type="number" min={1} max={100} value={v.people} onChange={(e) => setV({ ...v, people: Number(e.target.value) })} />
       </Field>
       <Field label={t("serviceDetails")} htmlFor={`ps-d-${actionId}`}>
-        <Input id={`ps-d-${actionId}`} value={v.details} maxLength={2000} onChange={(e) => setV({ ...v, details: e.target.value })} />
+        <Input id={`ps-d-${actionId}`} value={v.details} maxLength={2000} onChange={(e) => { const val = e.target.value; setV((prev) => ({ ...prev, details: val })); }} />
       </Field>
       <p className="text-[13px] text-muted sm:col-span-2">{t("serviceHint")}</p>
       <div className="flex gap-2 sm:col-span-2">
@@ -282,16 +282,16 @@ function TaskFromAction({ reservationId, actionId, timeZone, title, checkIn, onD
       data-testid="prep-task-form"
     >
       <Field label={t("taskTitle")} htmlFor={`pt-t-${actionId}`} className="sm:col-span-2">
-        <Input id={`pt-t-${actionId}`} value={v.title} maxLength={200} onChange={(e) => setV({ ...v, title: e.target.value })} />
+        <Input id={`pt-t-${actionId}`} value={v.title} maxLength={200} onChange={(e) => { const val = e.target.value; setV((prev) => ({ ...prev, title: val })); }} />
       </Field>
       <Field label={t("taskNotes")} htmlFor={`pt-n-${actionId}`} hint={t("taskNotesHint")} className="sm:col-span-2">
-        <Textarea id={`pt-n-${actionId}`} value={v.notes} maxLength={4000} onChange={(e) => setV({ ...v, notes: e.target.value })} data-testid="prep-task-notes" />
+        <Textarea id={`pt-n-${actionId}`} value={v.notes} maxLength={4000} onChange={(e) => { const val = e.target.value; setV((prev) => ({ ...prev, notes: val })); }} data-testid="prep-task-notes" />
       </Field>
       <Field label={t("taskFrom")} htmlFor={`pt-s-${actionId}`} hint={t("localTimeHint")}>
-        <Input id={`pt-s-${actionId}`} type="datetime-local" value={v.start} onChange={(e) => setV({ ...v, start: e.target.value })} required />
+        <Input id={`pt-s-${actionId}`} type="datetime-local" value={v.start} onChange={(e) => { const val = e.target.value; setV((prev) => ({ ...prev, start: val })); }} required />
       </Field>
       <Field label={t("taskTo")} htmlFor={`pt-e-${actionId}`}>
-        <Input id={`pt-e-${actionId}`} type="datetime-local" value={v.end} onChange={(e) => setV({ ...v, end: e.target.value })} required />
+        <Input id={`pt-e-${actionId}`} type="datetime-local" value={v.end} onChange={(e) => { const val = e.target.value; setV((prev) => ({ ...prev, end: val })); }} required />
       </Field>
       <Field label={t("taskDuration")} htmlFor={`pt-d-${actionId}`}>
         <Input id={`pt-d-${actionId}`} type="number" min={5} max={1440} value={v.duration} onChange={(e) => setV({ ...v, duration: Number(e.target.value) })} />
@@ -386,13 +386,13 @@ export function GuestItems({ reservationId, items, places, timeZone }: { reserva
           </Select>
         </Field>
         <Field label={t("itemTitle")} htmlFor="gi-title" className="sm:col-span-2">
-          <Input id="gi-title" value={v.title} maxLength={160} onChange={(e) => setV({ ...v, title: e.target.value })} data-testid="prep-item-title" />
+          <Input id="gi-title" value={v.title} maxLength={160} onChange={(e) => { const val = e.target.value; setV((prev) => ({ ...prev, title: val })); }} data-testid="prep-item-title" />
         </Field>
         <Field label={t("itemBody")} htmlFor="gi-body" className="sm:col-span-2">
-          <Textarea id="gi-body" value={v.body} maxLength={1000} onChange={(e) => setV({ ...v, body: e.target.value })} data-testid="prep-item-body" />
+          <Textarea id="gi-body" value={v.body} maxLength={1000} onChange={(e) => { const val = e.target.value; setV((prev) => ({ ...prev, body: val })); }} data-testid="prep-item-body" />
         </Field>
         <Field label={t("itemUrl")} htmlFor="gi-url">
-          <Input id="gi-url" type="url" value={v.url} maxLength={300} onChange={(e) => setV({ ...v, url: e.target.value })} placeholder="https://" />
+          <Input id="gi-url" type="url" value={v.url} maxLength={300} onChange={(e) => { const val = e.target.value; setV((prev) => ({ ...prev, url: val })); }} placeholder="https://" />
         </Field>
         <label className="flex min-h-11 items-center gap-2 self-end text-[14px]">
           <input type="checkbox" className="size-4" checked={v.publish} onChange={(e) => setV({ ...v, publish: e.target.checked })} data-testid="prep-item-publish" />

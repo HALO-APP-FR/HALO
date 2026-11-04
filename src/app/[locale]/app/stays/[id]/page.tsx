@@ -40,7 +40,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
     supabase.from("guest_links").select("id, valid_from, valid_until, revoked_at, revoke_reason, last_opened_at, created_at").eq("organization_id", o).eq("reservation_id", id).order("created_at", { ascending: false }),
     supabase.from("stay_messages").select("id, author_kind, body, created_at, read_by_guest_at, read_by_team_at").eq("organization_id", o).eq("reservation_id", id).order("created_at"),
     supabase.from("service_requests").select("id, kind, start_at, status, manager_unread").eq("organization_id", o).eq("reservation_id", id).order("created_at", { ascending: false }),
-    supabase.from("tasks").select("id, type, status, window_start, window_end, duration_min, scheduled_start").eq("organization_id", o).or(`reservation_id.eq.${id},next_reservation_id.eq.${id}`).neq("status", "cancelled").order("window_start"),
+    supabase.from("tasks").select("id, type, status, window_start, window_end, duration_min, scheduled_start, reservation_id, next_reservation_id, is_auto_generated").eq("organization_id", o).or(`reservation_id.eq.${id},next_reservation_id.eq.${id}`).neq("status", "cancelled").order("window_start"),
     supabase.from("notification_outbox").select("id, template, recipient, status, attempts, last_error, created_at, sent_at").eq("organization_id", o).eq("reservation_id", id).order("created_at", { ascending: false }),
     supabase.from("properties").select("*").eq("organization_id", o).eq("id", s.property_id).single(),
     supabase.from("reservations").select("*").eq("organization_id", o).eq("property_id", s.property_id).eq("status", "confirmed"),
@@ -71,6 +71,30 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
   const who = (uid: string | null) => (uid ? memberList.find((m) => m.id === uid)?.name ?? "—" : null);
   const { data: statesRaw } = await supabase.rpc("timing_states", { org: o, reservation: id });
   const stateOf = new Map(((statesRaw as { service: string; state: string }[] | null) ?? []).map((x) => [x.service, x.state]));
+  // Missions entre deux séjours : d'où vient l'échéance (départ de ce séjour, arrivée suivante) — données réelles seulement
+  const otherIds = Array.from(new Set((tasks ?? []).flatMap((k) => [k.reservation_id, k.next_reservation_id]).filter((x): x is string => Boolean(x) && x !== id)));
+  const { data: others } = otherIds.length
+    ? await supabase.from("reservations").select("id, guest_name, check_in_at, check_out_at, status").eq("organization_id", o).in("id", otherIds)
+    : { data: [] as { id: string; guest_name: string | null; check_in_at: string; check_out_at: string; status: string }[] };
+  const otherOf = new Map((others ?? []).map((r) => [r.id as string, r]));
+  const dayAt = (x: string) => f.dateTime(new Date(x), { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", ...(p?.timezone ? { timeZone: p.timezone } : {}) });
+  const relation = (k: { reservation_id: string | null; next_reservation_id: string | null; is_auto_generated: boolean }) => {
+    const nextR = k.next_reservation_id && k.next_reservation_id !== id ? otherOf.get(k.next_reservation_id) : null;
+    const prevR = k.reservation_id && k.reservation_id !== id ? otherOf.get(k.reservation_id) : null;
+    const base =
+      k.reservation_id === id
+        ? nextR
+          ? t("stays.relation.between", { out: dayAt(s.check_out_at as string), next: dayAt(nextR.check_in_at as string), guest: (nextR.guest_name as string | null) || "—" })
+          : k.next_reservation_id === id
+            ? t("stays.relation.self")
+            : t("stays.relation.afterNoNext", { out: dayAt(s.check_out_at as string) })
+        : k.next_reservation_id === id
+          ? prevR
+            ? t("stays.relation.before", { in: dayAt(s.check_in_at as string), prev: dayAt(prevR.check_out_at as string), guest: (prevR.guest_name as string | null) || "—" })
+            : t("stays.relation.beforeNoPrev", { in: dayAt(s.check_in_at as string) })
+          : "";
+    return `${base}${k.is_auto_generated ? ` ${t("stays.relation.auto")}` : ` ${t("stays.relation.manual")}`}`;
+  };
   const answers = (prep?.answers ?? {}) as { adults?: number; children?: number; babies?: number; interests?: string[]; style?: string; services?: string[]; budget?: string; constraints?: string; other?: string; language?: string };
   const openBlocking = (actions ?? []).filter((a) => a.status === "open" && a.blocking).length;
   const invite = (outbox ?? []).find((x) => x.template === "prep_invite");
@@ -290,6 +314,9 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
                   </Link>{" "}
                   — <span className="text-muted">{tts(k.status)}</span>
                   <MissionTiming task={k} timeZone={p?.timezone ?? undefined} compact />
+                  {k.type !== "check_in" && k.type !== "check_out" && (
+                    <span className="block text-[13px] text-muted" data-testid="stay-mission-relation">{relation(k)}</span>
+                  )}
                 </li>
               ))}
               {(tasks ?? []).length === 0 && <li className="text-muted">{t("stays.noMissions")}</li>}

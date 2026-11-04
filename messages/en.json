@@ -1481,7 +1481,11 @@
         "toValidate": "{mission} · {property} · finished {date}",
         "incident": "{property}: {text} ({date})",
         "incidentUrgent": "Urgent · {property}: {text} ({date})"
-      }
+      },
+      "cleaningLine": "Cleaning: {status} · {who}",
+      "nobody": "nobody assigned",
+      "whyNotReady": "Not “ready” yet: the cleaning hasn't been approved by a manager.",
+      "testEmails": "{count, plural, =0 {No email to a test address} one {# email to a test address (.invalid), intentionally not sent} other {# emails to test addresses (.invalid), intentionally not sent}}"
     },
     "onb": {
       "progress": "Step {n} of {total}",
@@ -1761,6 +1765,15 @@
         "due": "Action due",
         "vip": "VIP request",
         "clear": "Show all stays"
+      },
+      "relation": {
+        "between": "After this stay's departure ({out}), before the next arrival ({next}, {guest}).",
+        "self": "Mission linked to this stay.",
+        "afterNoNext": "After this stay's departure ({out}); no next stay known in HALO.",
+        "before": "Before this stay's arrival ({in}), after the previous departure ({prev}, {guest}).",
+        "beforeNoPrev": "Before this stay's arrival ({in}); no previous stay known in HALO.",
+        "auto": "Window calculated automatically.",
+        "manual": "Window set by a manager (not recalculated)."
       }
     },
     "link": {
@@ -1837,7 +1850,8 @@
         "failed": "Failed",
         "not_configured": "Not sent: no email provider configured",
         "skipped": "Not sent",
-        "sending": "Sending"
+        "sending": "Sending",
+        "test": "Not sent: test address"
       },
       "retry": "Retry",
       "template": {
@@ -2098,7 +2112,9 @@
       "commentOptional": "End-of-mission comment (optional)",
       "commentSave": "Save the comment",
       "commentSaved": "Comment saved.",
-      "commentUnsaved": "Comment not saved yet."
+      "commentUnsaved": "Comment not saved yet.",
+      "correctionItems": "Proof to redo: {items}",
+      "correctionNextInProgress": "Correction in progress: fix it, add a comment or photo if needed, then tap “Finish” to send it back to the manager."
     },
     "testAccount": {
       "title": "Pre-production: test account without email",
@@ -2409,7 +2425,9 @@
       "risksText": "Absence over only part of the window: the mission is still possible outside it. Plan a slot to remove the doubt.",
       "freeLeft": "calculated free time {duration} (from recorded absences, over 24 h — not guaranteed availability)",
       "freeLeftFromNow": "Longest continuous free time from now until {to}: {duration}. Based only on recorded absences; working hours, other missions and travel not taken into account — not guaranteed availability.",
-      "freeLeftWindow": "Longest continuous free time between {from} and {to} (whole window): {duration}. Based only on recorded absences; working hours, other missions and travel not taken into account — not guaranteed availability."
+      "freeLeftWindow": "Longest continuous free time between {from} and {to} (whole window): {duration}. Based only on recorded absences; working hours, other missions and travel not taken into account — not guaranteed availability.",
+      "summaryDays": "{same, select, yes {Will be saved: {from}, whole day.} other {Will be saved: from {from} to {to} inclusive, whole days.}}",
+      "summaryHours": "Will be saved: from {from} to {to}."
     },
     "chat": {
       "title": "Team messages",

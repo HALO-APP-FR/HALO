@@ -61,10 +61,10 @@ export function BookingRequestForm({ token, defaults, busy, capacity, minDate }:
       }}
     >
       <Field label={t("form.checkIn")} htmlFor="bk-in">
-        <Input id="bk-in" type="date" min={minDate} value={f.checkIn} onChange={(e) => setF({ ...f, checkIn: e.target.value })} required data-testid="bk-in" />
+        <Input id="bk-in" type="date" min={minDate} value={f.checkIn} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, checkIn: val })); }} required data-testid="bk-in" />
       </Field>
       <Field label={t("form.checkOut")} htmlFor="bk-out">
-        <Input id="bk-out" type="date" min={f.checkIn || minDate} value={f.checkOut} onChange={(e) => setF({ ...f, checkOut: e.target.value })} required data-testid="bk-out" />
+        <Input id="bk-out" type="date" min={f.checkIn || minDate} value={f.checkOut} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, checkOut: val })); }} required data-testid="bk-out" />
       </Field>
       {overlaps && (
         <p className="rounded-md bg-warning-soft p-2 text-[13px] sm:col-span-2" role="status" data-testid="bk-overlap">
@@ -84,16 +84,16 @@ export function BookingRequestForm({ token, defaults, busy, capacity, minDate }:
       </div>
       {over && <p className="text-[13px] text-warning sm:col-span-2">{t("form.overCapacity", { capacity: capacity ?? 0 })}</p>}
       <Field label={t("form.name")} htmlFor="bk-name">
-        <Input id="bk-name" value={f.name} maxLength={120} onChange={(e) => setF({ ...f, name: e.target.value })} required autoComplete="name" />
+        <Input id="bk-name" value={f.name} maxLength={120} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, name: val })); }} required autoComplete="name" />
       </Field>
       <Field label={t("form.email")} htmlFor="bk-email" hint={t("form.emailHint")}>
-        <Input id="bk-email" type="email" value={f.email} maxLength={254} onChange={(e) => setF({ ...f, email: e.target.value })} required autoComplete="email" data-testid="bk-email" />
+        <Input id="bk-email" type="email" value={f.email} maxLength={254} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, email: val })); }} required autoComplete="email" data-testid="bk-email" />
       </Field>
       <Field label={t("form.phone")} htmlFor="bk-phone">
-        <Input id="bk-phone" type="tel" value={f.phone} maxLength={40} onChange={(e) => setF({ ...f, phone: e.target.value })} autoComplete="tel" />
+        <Input id="bk-phone" type="tel" value={f.phone} maxLength={40} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, phone: val })); }} autoComplete="tel" />
       </Field>
       <Field label={t("form.message")} htmlFor="bk-msg" className="sm:col-span-2">
-        <Textarea id="bk-msg" value={f.message} maxLength={2000} onChange={(e) => setF({ ...f, message: e.target.value })} placeholder={t("form.messagePlaceholder")} />
+        <Textarea id="bk-msg" value={f.message} maxLength={2000} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, message: val })); }} placeholder={t("form.messagePlaceholder")} />
       </Field>
       <p className="rounded-md border border-line bg-subtle p-3 text-[13px] sm:col-span-2 dark:bg-surface-hover" data-testid="bk-not-confirmed">
         {t("form.notConfirmed")}

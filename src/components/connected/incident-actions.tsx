@@ -7,11 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useRun } from "./use-run";
-
-const local = (d: Date) => {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-};
+import { fromLocalInput, localInputIn } from "@/lib/connected/format";
 
 export function IncidentActions({
   id,
@@ -20,6 +16,7 @@ export function IncidentActions({
   guestHasEmail,
   hasIntervention,
   members,
+  timeZone,
 }: {
   id: string;
   status: string;
@@ -27,6 +24,8 @@ export function IncidentActions({
   guestHasEmail: boolean;
   hasIntervention: boolean;
   members: { id: string; name: string }[];
+  /** Fuseau du logement : la plage saisie est une heure locale du logement */
+  timeZone?: string;
 }) {
   const t = useTranslations("connected.incidents");
   const { pending, error, run } = useRun();
@@ -36,7 +35,7 @@ export function IncidentActions({
   const [plan, setPlan] = useState(false);
   const [iv, setIv] = useState(() => {
     const start = new Date(Math.ceil(Date.now() / 900_000) * 900_000);
-    return { assignee: "", start: local(start), end: local(new Date(start.getTime() + 4 * 3_600_000)), duration: 60 };
+    return { assignee: "", start: localInputIn(start, timeZone), end: localInputIn(new Date(start.getTime() + 4 * 3_600_000), timeZone), duration: 60 };
   });
   if (status === "resolved") return null;
   return (
@@ -61,11 +60,11 @@ export function IncidentActions({
           className="grid gap-3 sm:grid-cols-2"
           onSubmit={(e) => {
             e.preventDefault();
-            run(() => createIntervention(id, iv.assignee || null, new Date(iv.start).toISOString(), new Date(iv.end).toISOString(), iv.duration), () => setPlan(false));
+            run(() => createIntervention(id, iv.assignee || null, fromLocalInput(iv.start, timeZone).toISOString(), fromLocalInput(iv.end, timeZone).toISOString(), iv.duration), () => setPlan(false));
           }}
         >
           <Field label={t("planAssignee")} htmlFor={`iva-${id}`} className="sm:col-span-2">
-            <Select id={`iva-${id}`} value={iv.assignee} onChange={(e) => setIv({ ...iv, assignee: e.target.value })} data-testid="incident-plan-assignee">
+            <Select id={`iva-${id}`} value={iv.assignee} onChange={(e) => { const val = e.target.value; setIv((prev) => ({ ...prev, assignee: val })); }} data-testid="incident-plan-assignee">
               <option value="">{t("planNobody")}</option>
               {members.map((m) => (
                 <option key={m.id} value={m.id}>
@@ -75,10 +74,10 @@ export function IncidentActions({
             </Select>
           </Field>
           <Field label={t("planFrom")} htmlFor={`ivs-${id}`}>
-            <Input id={`ivs-${id}`} type="datetime-local" value={iv.start} onChange={(e) => setIv({ ...iv, start: e.target.value })} />
+            <Input id={`ivs-${id}`} type="datetime-local" value={iv.start} onChange={(e) => { const val = e.target.value; setIv((prev) => ({ ...prev, start: val })); }} />
           </Field>
           <Field label={t("planTo")} htmlFor={`ive-${id}`}>
-            <Input id={`ive-${id}`} type="datetime-local" value={iv.end} onChange={(e) => setIv({ ...iv, end: e.target.value })} />
+            <Input id={`ive-${id}`} type="datetime-local" value={iv.end} onChange={(e) => { const val = e.target.value; setIv((prev) => ({ ...prev, end: val })); }} />
           </Field>
           <Field label={t("planDuration")} htmlFor={`ivd-${id}`}>
             <Input id={`ivd-${id}`} type="number" min={5} max={1440} value={iv.duration} onChange={(e) => setIv({ ...iv, duration: Number(e.target.value) })} />

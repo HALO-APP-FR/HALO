@@ -23,6 +23,7 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired, plannin
   const tc = await getTranslations("connected.home");
   const ti = await getTranslations("connected.incidents.category");
   const tk = await getTranslations("serviceKind");
+  const tts = await getTranslations("taskStatus");
   const from = new Date(now.getTime() - 12 * 3_600_000).toISOString();
   const to = new Date(now.getTime() + 48 * 3_600_000).toISOString();
   const { data: stays } = await supabase
@@ -118,9 +119,23 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired, plannin
                 <span className="block text-[15px] font-medium">
                   {row.stay.guestName || "—"} · {propName.get(row.stay.id)} · {row.minutesLeft >= 0 ? t("inTime", { time: dur(row.minutesLeft) }) : t("passed", { time: dur(row.minutesLeft) })}
                 </span>
-                {!b && row.pending.length > 0 && (
+                {/* Où en est la préparation : ménage (statut réel, qui), étapes encore à faire */}
+                {row.cleaning && (
+                  <span className="block text-[13px] text-muted" data-testid="arrival-cleaning" data-status={row.cleaning.status}>
+                    {tc("cleaningLine", {
+                      status: tts(row.cleaning.status),
+                      who: row.cleaning.assigneeId ? (nameOf.get(row.cleaning.assigneeId) ?? "—") : tc("nobody"),
+                    })}
+                  </span>
+                )}
+                {row.pending.length > 0 && (
                   <span className="block text-[13px] text-muted" data-testid="arrival-pending">
                     {tc("pending", { steps: row.pending.map((p) => t(`step.${p}`)).join(", ") })}
+                  </span>
+                )}
+                {!b && row.state === "preparing" && (
+                  <span className="block text-[13px] text-muted" data-testid="arrival-why-not-ready">
+                    {tc("whyNotReady")}
                   </span>
                 )}
                 {b && (
@@ -152,7 +167,12 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired, plannin
                   {t(`action.${b.action.kind}`)}
                   <ArrowRight className="size-4 rtl:-scale-x-100" />
                 </Link>
-              ) : null}
+              ) : (
+                <Link href={`/app/stays/${row.stay.id}`} className="inline-flex items-center gap-1 text-[14px] font-medium text-accent-text hover:underline" data-testid="arrival-open-stay">
+                  {t("action.open_stay")}
+                  <ArrowRight className="size-4 rtl:-scale-x-100" />
+                </Link>
+              )}
             </div>
           );
         })}

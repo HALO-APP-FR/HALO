@@ -1481,7 +1481,11 @@
         "toValidate": "{mission} · {property} · terminata il {date}",
         "incident": "{property}: {text} ({date})",
         "incidentUrgent": "Urgente · {property}: {text} ({date})"
-      }
+      },
+      "cleaningLine": "Pulizia: {status} · {who}",
+      "nobody": "nessuno assegnato",
+      "whyNotReady": "Non ancora «pronta»: la pulizia non è stata convalidata da un responsabile.",
+      "testEmails": "{count, plural, =0 {Nessuna e-mail verso un indirizzo di test} one {# e-mail verso un indirizzo di test (.invalid), non inviata di proposito} other {# e-mail verso indirizzi di test (.invalid), non inviate di proposito}}"
     },
     "onb": {
       "progress": "Passo {n} di {total}",
@@ -1761,6 +1765,15 @@
         "due": "Azione in scadenza",
         "vip": "Richiesta VIP",
         "clear": "Vedi tutti i soggiorni"
+      },
+      "relation": {
+        "between": "Dopo la partenza di questo soggiorno ({out}), prima dell'arrivo successivo ({next}, {guest}).",
+        "self": "Missione collegata a questo soggiorno.",
+        "afterNoNext": "Dopo la partenza di questo soggiorno ({out}); nessun soggiorno successivo noto in HALO.",
+        "before": "Prima dell'arrivo di questo soggiorno ({in}), dopo la partenza precedente ({prev}, {guest}).",
+        "beforeNoPrev": "Prima dell'arrivo di questo soggiorno ({in}); nessun soggiorno precedente noto in HALO.",
+        "auto": "Fascia calcolata automaticamente.",
+        "manual": "Fascia fissata da un responsabile (non ricalcolata)."
       }
     },
     "link": {
@@ -1837,7 +1850,8 @@
         "failed": "Invio non riuscito",
         "not_configured": "Non inviata: nessun servizio configurato",
         "skipped": "Non inviato",
-        "sending": "Invio in corso"
+        "sending": "Invio in corso",
+        "test": "Non inviato: indirizzo di test"
       },
       "retry": "Riprova",
       "template": {
@@ -2098,7 +2112,9 @@
       "commentOptional": "Commento di fine missione (facoltativo)",
       "commentSave": "Salva il commento",
       "commentSaved": "Commento salvato.",
-      "commentUnsaved": "Commento non ancora salvato."
+      "commentUnsaved": "Commento non ancora salvato.",
+      "correctionItems": "Prove da rifare: {items}",
+      "correctionNextInProgress": "Correzione in corso: correggi, aggiungi se serve un commento o una foto, poi premi «Termina» per rinviarla al responsabile."
     },
     "testAccount": {
       "title": "Preproduzione: account di test senza e-mail",
@@ -2409,7 +2425,9 @@
       "risksText": "Assenza solo su parte della finestra: la missione resta possibile fuori. Pianifica una fascia per togliere il dubbio.",
       "freeLeft": "tempo libero calcolato {duration} (in base alle assenze registrate, su 24 h — non è una disponibilità garantita)",
       "freeLeftFromNow": "Tempo libero continuo più lungo da ora fino al {to}: {duration}. Solo in base alle assenze registrate; orari di lavoro, altre missioni e spostamenti non considerati — non è una disponibilità garantita.",
-      "freeLeftWindow": "Tempo libero continuo più lungo tra il {from} e il {to} (finestra intera): {duration}. Solo in base alle assenze registrate; orari di lavoro, altre missioni e spostamenti non considerati — non è una disponibilità garantita."
+      "freeLeftWindow": "Tempo libero continuo più lungo tra il {from} e il {to} (finestra intera): {duration}. Solo in base alle assenze registrate; orari di lavoro, altre missioni e spostamenti non considerati — non è una disponibilità garantita.",
+      "summaryDays": "{same, select, yes {Sarà registrata: {from}, giornata intera.} other {Sarà registrata: dal {from} al {to} incluso, giornate intere.}}",
+      "summaryHours": "Sarà registrata: dal {from} al {to}."
     },
     "chat": {
       "title": "Messaggi del team",

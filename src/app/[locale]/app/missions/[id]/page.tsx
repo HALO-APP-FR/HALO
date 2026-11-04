@@ -64,7 +64,8 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
   const requirements = (reqRaw as { checklist: { required: boolean; total: number; done: number }; photos_missing: number; comment: { required: boolean; present: boolean } } | null) ?? null;
   const startRule = ((ruleRaw as { start_rule?: string } | null)?.start_rule ?? "recommended") as "firm" | "recommended";
   const notYetOpen = Date.parse(task.window_start) > nowDate().getTime();
-  const windowEdited = (events ?? []).some((e: { kind: string }) => e.kind === "window_changed");
+  // Plage modifiée PAR UNE PERSONNE (un recalcul automatique n'a pas d'auteur et n'en fait pas une plage « manuelle »)
+  const windowEdited = (events ?? []).some((e: { kind: string; actor_id: string | null }) => e.kind === "window_changed" && Boolean(e.actor_id));
   const needsValidation = ((orgRow?.validation_task_types as string[] | undefined) ?? []).includes(task.type);
   const ti = await getTranslations("connected.incidents");
   const th = await getTranslations("connected.missionHistory");
@@ -174,6 +175,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
             unavailable={Object.keys(reasons)}
             reasons={reasons}
             partial={partial}
+            timeZone={p?.timezone ?? undefined}
           />
           <CancelTaskButton taskId={task.id} />
         </div>
@@ -186,6 +188,10 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
     items: [...r.checklist_items].sort((a, b) => a.sort - b.sort).map((i) => ({ id: i.id, label: i.label, photoRequired: i.photo_required })),
   }));
   const mine = task.assignee_id === user!.id;
+  // Dernière demande de correction (date) et points désignés : ceux dont la preuve a été écartée par le responsable
+  const lastCorrection = (events ?? []).find((e: { kind: string }) => e.kind === "correction_requested") as { at: string } | undefined;
+  const oldItemIds = new Set(oldPhotos.map((x) => x.itemId).filter(Boolean));
+  const redoItems = checklist.flatMap((r) => r.items.filter((i) => oldItemIds.has(i.id)).map((i) => `${r.name} — ${i.label}`));
   let assigneeName: string | null = null;
   if (manager && task.assignee_id) {
     const { data: prof } = await supabase.from("profiles").select("full_name").eq("id", task.assignee_id).maybeSingle();
@@ -200,6 +206,22 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
         title={task.title ? `${task.title} · ${p?.name ?? ""}` : `${tt(task.type)} · ${p?.name ?? ""}`}
         subtitle={task.title ? `${tt(task.type)} · ${tts(task.status)}` : tts(task.status)}
       />
+      {/* Correction demandée : en haut de la fiche, tant qu'elle n'a pas été renvoyée */}
+      {mine && (task.status === "to_redo" || task.status === "in_progress") && task.correction_reason && (
+        <div className="mb-4 rounded-xl border border-warning bg-warning-soft p-4 text-[15px]" role="status" data-testid="correction-banner" data-status={task.status}>
+          <p className="font-semibold">
+            {t("correctionTitle")}
+            {lastCorrection && (
+              <span className="ms-1 font-normal text-muted" data-testid="correction-at">
+                · {f.dateTime(new Date(lastCorrection.at), { dateStyle: "medium", timeStyle: "short", ...(p?.timezone ? { timeZone: p.timezone } : {}) })}
+              </span>
+            )}
+          </p>
+          <p className="whitespace-pre-wrap" data-testid="correction-reason-shown">{task.correction_reason}</p>
+          {redoItems.length > 0 && <p className="mt-1 text-[14px]" data-testid="correction-items-shown">{t("correctionItems", { items: redoItems.join(", ") })}</p>}
+          <p className="mt-1 text-[14px] text-muted">{t(task.status === "to_redo" ? "correctionNext" : "correctionNextInProgress")}</p>
+        </div>
+      )}
       {/* Deux informations distinctes : la fenêtre pendant laquelle la mission doit être faite, et la durée de travail estimée */}
       <div className="-mt-2 mb-4 flex flex-wrap items-start gap-x-6 gap-y-2 text-[15px]" data-testid="mission-timing">
         <div className="basis-full">
@@ -221,7 +243,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
         </p>
         {manager && !["done", "validated", "cancelled"].includes(task.status) && (
           <div className="basis-full">
-            <WindowEditor taskId={task.id} start={task.window_start} end={task.window_end} durationMin={task.duration_min} />
+            <WindowEditor taskId={task.id} start={task.window_start} end={task.window_end} durationMin={task.duration_min} timeZone={p?.timezone ?? undefined} />
             {windowEdited && <p className="mt-1 text-[13px] text-muted" data-testid="mission-window-edited">{t("manualWindow")}</p>}
             {startRule === "firm" && ["unassigned", "assigned"].includes(task.status) && !task.early_start_allowed_at && notYetOpen && (
               <EarlyStartForm taskId={task.id} />
@@ -283,6 +305,8 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
         comment={(report?.comment as string | null) ?? null}
         timeZone={p?.timezone ?? undefined}
         mine={mine}
+        correctionAt={lastCorrection ? f.dateTime(new Date(lastCorrection.at), { dateStyle: "medium", timeStyle: "short", ...(p?.timezone ? { timeZone: p.timezone } : {}) }) : null}
+        redoItems={redoItems}
       />
       {(manager || mine) && (events ?? []).length > 0 && (
         <Card className="mt-4 p-5" data-testid="mission-history">

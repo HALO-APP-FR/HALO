@@ -2693,6 +2693,109 @@ test("37 · brief du 4/11 : linge préparé puis réalisé, règles de démarrag
   for (const c of [m, agent]) await c.context().close();
 });
 
+test("38 · brief du 4/11 (P0 dates) : la date affichée est celle enregistrée — saisie, valeur posée par un outil, changement d'heure", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `dat ${run}`);
+  const cases: [string, string, string, "fill" | "tool"][] = [
+    ["2027-11-05", "2027-11-05", "vendredi 5 novembre 2027", "tool"],
+    ["2027-03-28", "2027-03-28", "dimanche 28 mars 2027", "fill"],
+    ["2027-12-31", "2028-01-01", "31 déc. 2027 → 1 janv. 2028", "tool"],
+  ];
+  for (const [d1, d2, label, how] of cases) {
+    await m.goto("/fr/app/team");
+    await m.waitForLoadState("networkidle");
+    if (how === "fill") {
+      await m.getByTestId("absence-from").fill(d1);
+      await m.getByTestId("absence-to").fill(d2);
+    } else {
+      // Valeur posée directement dans le champ (comme un outil de test automatisé ou une saisie automatique)
+      await m.evaluate(([a, b]) => {
+        for (const [id, v] of [["ab-from", a], ["ab-to", b]]) {
+          const el = document.getElementById(id) as HTMLInputElement;
+          el.value = v;
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+          el.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      }, [d1, d2]);
+    }
+    const tag = `QA date ${d1} ${run}`;
+    await m.getByTestId("absence-reason").fill(tag);
+    await expect(m.getByTestId("absence-from")).toHaveValue(d1);
+    await expect(m.getByTestId("absence-summary")).toContainText(d1 === d2 ? label : "inclus");
+    await m.getByTestId("absence-save").click();
+    await expect(m.getByTestId("absence-saved")).toBeVisible();
+    await m.reload();
+    await expect(m.locator("li", { hasText: tag }).first()).toContainText(label);
+    const { data: a } = await admin.from("absences").select("starts_at, ends_at").eq("organization_id", org).eq("reason", tag).single();
+    const paris = (x: string) => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(x));
+    expect(paris(a!.starts_at)).toBe(`${d1} 00:00`);
+    const end = new Date(Date.UTC(Number(d2.slice(0, 4)), Number(d2.slice(5, 7)) - 1, Number(d2.slice(8, 10)) + 1)).toISOString().slice(0, 10);
+    expect(paris(a!.ends_at)).toBe(`${end} 00:00`);
+  }
+  // Plage invalide signalée avant l'enregistrement
+  await m.goto("/fr/app/team");
+  await m.getByTestId("absence-allday").uncheck();
+  await m.getByTestId("absence-start").fill("2027-11-05T14:00");
+  await m.getByTestId("absence-end").fill("2027-11-05T10:00");
+  await expect(m.getByTestId("absence-invalid")).toBeVisible();
+  await expect(m.getByTestId("absence-save")).toBeDisabled();
+  await m.close();
+});
+
+test("39 · correction visible jusqu'au renvoi (deux corrections, rechargement), état d'arrivée expliqué, mission entre deux séjours", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org, agentId } = await testScenario(m, `cor ${run}`);
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+  await admin.from("organizations").update({ validation_task_types: ["turnover", "maintenance"] }).eq("id", org);
+  const h = (n: number) => new Date(Date.now() + n * 3_600_000).toISOString();
+  const { data: k } = await admin.from("tasks").insert({ organization_id: org, property_id: prop!.id, type: "maintenance", title: "Robinet (QA fictif)", status: "assigned", assignee_id: agentId, window_start: h(-1), window_end: h(30), duration_min: 30 }).select("id").single();
+  const agent = await newPage(browser);
+  await agent.goto("/fr/auth/sign-in");
+  await agent.getByLabel("Nom du compte de test").fill(`cor-${run}-agent`);
+  await agent.getByTestId("test-account-submit").click();
+  await agent.waitForURL(/\/fr\/app/);
+  await agent.goto(`/fr/app/missions/${k!.id}`);
+  await agent.getByTestId("mission-start").click();
+  await agent.getByTestId("mission-finish").click();
+  await expect(agent.getByTestId("mission-sent")).toBeVisible();
+  for (const [i, reason] of ["Joint encore humide (fictif)", "Photo du joint demandée (fictif)"].entries()) {
+    await m.goto(`/fr/app/missions/${k!.id}`);
+    await m.getByTestId("correction-reason").fill(reason);
+    await m.getByTestId("mission-correction").click();
+    await expect(m.locator("[data-testid=history-event][data-kind=correction_requested]")).toHaveCount(i + 1);
+    await agent.goto(`/fr/app/missions/${k!.id}`);
+    await expect(agent.getByTestId("correction-banner")).toHaveAttribute("data-status", "to_redo");
+    await expect(agent.getByTestId("correction-reason-shown")).toHaveText(reason);
+    await expect(agent.getByTestId("correction-at")).toBeVisible();
+    await agent.getByTestId("mission-start").click();
+    // Après reprise (et après rechargement) : la correction reste en évidence jusqu'au renvoi
+    await expect(agent.getByTestId("correction-banner")).toHaveAttribute("data-status", "in_progress");
+    await agent.reload();
+    await expect(agent.getByTestId("correction-reason-shown")).toHaveText(reason);
+    // Commentaire facultatif : renvoi possible sans commentaire
+    await agent.getByTestId("mission-finish").click();
+    await expect(agent.getByTestId("mission-sent")).toContainText("Correction envoyée au responsable");
+    await expect(agent.getByTestId("correction-banner")).toHaveCount(0);
+  }
+  await m.goto(`/fr/app/missions/${k!.id}`);
+  await m.getByTestId("mission-validate").click();
+  await expect(m.locator("[data-testid=history-event][data-kind=validated]")).toBeVisible();
+  await agent.reload();
+  await expect(agent.getByTestId("mission-validated")).toBeVisible();
+  await expect(agent.locator("[data-testid=history-event][data-kind=correction_requested]")).toHaveCount(2);
+  await expect(agent.locator("[data-testid=history-event][data-kind=resubmitted]")).toHaveCount(2);
+
+  // Accueil : l'arrivée dit où en est le ménage, et pourquoi elle n'est pas prête
+  await m.goto("/fr/app");
+  const row = m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" });
+  await expect(row.getByTestId("arrival-cleaning")).toContainText("Ménage :");
+  // Fiche séjour : la mission dit entre quels séjours elle se place
+  const { data: stay } = await admin.from("reservations").select("id").eq("organization_id", org).eq("guest_name", "Voyageur test").single();
+  await m.goto(`/fr/app/stays/${stay!.id}`);
+  await expect(m.getByTestId("stay-mission-relation").first()).toContainText(/Avant l'arrivée de ce séjour|Après le départ de ce séjour/);
+  for (const c of [m, agent]) await c.context().close();
+});
+
 test("34 · lieux avant l'ouverture : données transmises au navigateur sans coordonnées, plusieurs localisations", async ({ browser }) => {
   const m = await newPage(browser);
   const { org } = await testScenario(m, `loc2 ${run}`);

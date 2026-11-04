@@ -123,6 +123,7 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
                   arrival={nextArrival(k) ? f.dateTime(new Date(nextArrival(k)!), { dateStyle: "medium", timeStyle: "short" }) : null}
                   unavailable={Object.keys(away(k))}
                   reasons={away(k)}
+                  timeZone={p?.timezone ?? undefined}
                 />
               ) : (
                 <TaskStepButtons taskId={k.id} status={k.status} timeZone={p?.timezone ?? undefined} />

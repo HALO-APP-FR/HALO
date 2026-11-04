@@ -162,7 +162,7 @@ export function ReviewFollow({ id, status, note, hasIncident, canIncident }: { i
       }}
     >
       <Field label={t("followStatus")} htmlFor={`fs-${id}`}>
-        <Select id={`fs-${id}`} value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })} data-testid="review-follow-status">
+        <Select id={`fs-${id}`} value={f.status} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, status: val })); }} data-testid="review-follow-status">
           {["to_handle", "handled", "new"].map((s) => (
             <option key={s} value={s}>
               {t(`followState.${s}`)}
@@ -171,7 +171,7 @@ export function ReviewFollow({ id, status, note, hasIncident, canIncident }: { i
         </Select>
       </Field>
       <Field label={t("followNote")} htmlFor={`fn-${id}`} hint={t("followNoteHint")}>
-        <Textarea id={`fn-${id}`} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} maxLength={2000} />
+        <Textarea id={`fn-${id}`} value={f.note} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, note: val })); }} maxLength={2000} />
       </Field>
       {!hasIncident && canIncident && (
         <label className="flex items-start gap-2 text-[14px]">
@@ -229,13 +229,13 @@ export function ImportedReviewForm({ properties }: { properties: { id: string; n
         </Select>
       </Field>
       <Field label={t("importedFrom")} htmlFor="ir-from" hint={t("importedFromHint")}>
-        <Input id="ir-from" value={f.from} maxLength={80} onChange={(e) => setF({ ...f, from: e.target.value })} required data-testid="imported-from" />
+        <Input id="ir-from" value={f.from} maxLength={80} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, from: val })); }} required data-testid="imported-from" />
       </Field>
       <Field label={t("importedDate")} htmlFor="ir-date">
-        <Input id="ir-date" type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} required data-testid="imported-date" />
+        <Input id="ir-date" type="date" value={f.date} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, date: val })); }} required data-testid="imported-date" />
       </Field>
       <Field label={t("property")} htmlFor="ir-prop" className="sm:col-span-2">
-        <Select id="ir-prop" value={f.propertyId} onChange={(e) => setF({ ...f, propertyId: e.target.value })}>
+        <Select id="ir-prop" value={f.propertyId} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, propertyId: val })); }}>
           <option value="">{t("noProperty")}</option>
           {properties.map((p) => (
             <option key={p.id} value={p.id}>
@@ -245,7 +245,7 @@ export function ImportedReviewForm({ properties }: { properties: { id: string; n
         </Select>
       </Field>
       <Field label={t("comment")} htmlFor="ir-comment" className="sm:col-span-2">
-        <Textarea id="ir-comment" value={f.comment} maxLength={2000} onChange={(e) => setF({ ...f, comment: e.target.value })} />
+        <Textarea id="ir-comment" value={f.comment} maxLength={2000} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, comment: val })); }} />
       </Field>
       <div className="flex gap-2 sm:col-span-2">
         <Button type="submit" size="sm" disabled={pending} data-testid="imported-save">
@@ -281,13 +281,13 @@ export function OwnerForm({ owner, properties }: { owner: { id: string; name: st
       data-testid="owner-form"
     >
       <Field label={t("name")} htmlFor={`on-${owner?.id ?? "new"}`}>
-        <Input id={`on-${owner?.id ?? "new"}`} value={f.name} maxLength={120} onChange={(e) => setF({ ...f, name: e.target.value })} required data-testid="owner-name" />
+        <Input id={`on-${owner?.id ?? "new"}`} value={f.name} maxLength={120} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, name: val })); }} required data-testid="owner-name" />
       </Field>
       <Field label={t("email")} htmlFor={`oe-${owner?.id ?? "new"}`} hint={t("emailHint")}>
-        <Input id={`oe-${owner?.id ?? "new"}`} type="email" value={f.email} maxLength={254} onChange={(e) => setF({ ...f, email: e.target.value })} data-testid="owner-email" />
+        <Input id={`oe-${owner?.id ?? "new"}`} type="email" value={f.email} maxLength={254} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, email: val })); }} data-testid="owner-email" />
       </Field>
       <Field label={t("phone")} htmlFor={`op-${owner?.id ?? "new"}`}>
-        <Input id={`op-${owner?.id ?? "new"}`} value={f.phone} maxLength={40} onChange={(e) => setF({ ...f, phone: e.target.value })} />
+        <Input id={`op-${owner?.id ?? "new"}`} value={f.phone} maxLength={40} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, phone: val })); }} />
       </Field>
       <fieldset className="sm:col-span-2">
         <legend className="text-[13px] font-medium text-muted">{t("properties")}</legend>
@@ -398,16 +398,16 @@ export function ShowcaseEditor({ initial, candidates }: { initial: ShowcaseState
           <Input id="sc-slug" value={f.slug} pattern="[a-z0-9][a-z0-9-]{1,48}[a-z0-9]" onChange={(e) => setF({ ...f, slug: e.target.value.toLowerCase() })} required data-testid="showcase-slug" />
         </Field>
         <Field label={t("titleField")} htmlFor="sc-title">
-          <Input id="sc-title" value={f.title} maxLength={120} onChange={(e) => setF({ ...f, title: e.target.value })} required data-testid="showcase-title" />
+          <Input id="sc-title" value={f.title} maxLength={120} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, title: val })); }} required data-testid="showcase-title" />
         </Field>
         <Field label={t("intro")} htmlFor="sc-intro" className="sm:col-span-2">
-          <Textarea id="sc-intro" value={f.intro} maxLength={2000} onChange={(e) => setF({ ...f, intro: e.target.value })} />
+          <Textarea id="sc-intro" value={f.intro} maxLength={2000} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, intro: val })); }} />
         </Field>
         <Field label={t("services")} htmlFor="sc-services">
-          <Textarea id="sc-services" value={f.services} maxLength={1000} onChange={(e) => setF({ ...f, services: e.target.value })} />
+          <Textarea id="sc-services" value={f.services} maxLength={1000} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, services: val })); }} />
         </Field>
         <Field label={t("contact")} htmlFor="sc-contact" hint={t("contactHint")}>
-          <Textarea id="sc-contact" value={f.contact} maxLength={300} onChange={(e) => setF({ ...f, contact: e.target.value })} />
+          <Textarea id="sc-contact" value={f.contact} maxLength={300} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, contact: val })); }} />
         </Field>
         <Field label={t("period")} htmlFor="sc-months">
           <Select id="sc-months" value={f.months} onChange={(e) => setF({ ...f, months: Number(e.target.value) })}>

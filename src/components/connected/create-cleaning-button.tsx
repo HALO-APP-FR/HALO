@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Link } from "@/i18n/navigation";
+import { fromLocalInput, localInputIn } from "@/lib/connected/format";
 import { useRun } from "./use-run";
 
 export function CreateCleaningButton({ stayId, label }: { stayId: string; label: string }) {
@@ -21,12 +22,6 @@ export function CreateCleaningButton({ stayId, label }: { stayId: string; label:
     </span>
   );
 }
-
-/** Saisie au format de l'heure locale du navigateur (champ datetime-local) */
-const local = (d: Date) => {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-};
 
 /**
  * Livraison de linge : fiche courte préremplie, vérifiée par le responsable avant création.
@@ -55,8 +50,8 @@ export function PlanLinenForm({
   const { pending, error, run } = useRun();
   const [open, setOpen] = useState(false);
   const arrival = new Date(checkInAt);
-  const [start, setStart] = useState(() => local(new Date(Math.max(Date.now(), arrival.getTime() - 24 * 3_600_000))));
-  const [end, setEnd] = useState(() => local(arrival));
+  const [start, setStart] = useState(() => localInputIn(new Date(Math.max(Date.now(), arrival.getTime() - 24 * 3_600_000)), timeZone));
+  const [end, setEnd] = useState(() => localInputIn(arrival, timeZone));
   const [duration, setDuration] = useState(20);
   const [assignee, setAssignee] = useState("");
   const [note, setNote] = useState("");
@@ -116,7 +111,7 @@ export function PlanLinenForm({
             sending.current = true;
             run(
               () =>
-                planLinenDelivery(stayId, { start: new Date(start).toISOString(), end: new Date(end).toISOString(), durationMin: duration, assigneeId: assignee || null, note }).finally(() => {
+                planLinenDelivery(stayId, { start: fromLocalInput(start, timeZone).toISOString(), end: fromLocalInput(end, timeZone).toISOString(), durationMin: duration, assigneeId: assignee || null, note }).finally(() => {
                   sending.current = false;
                 }),
               (d) => setDone(d),

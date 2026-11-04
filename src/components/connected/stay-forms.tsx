@@ -10,10 +10,11 @@ import { Card } from "@/components/ui/card";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useRun } from "./use-run";
+import { fromLocalInput } from "@/lib/connected/format";
 
 const LOCALES = ["fr", "en", "es", "pt", "it", "de"] as const;
 
-export function StayCreateForm({ properties }: { properties: { id: string; name: string }[] }) {
+export function StayCreateForm({ properties }: { properties: { id: string; name: string; timezone?: string | null }[] }) {
   const t = useTranslations("connected.stays");
   const router = useRouter();
   const { pending, error, run } = useRun();
@@ -36,15 +37,16 @@ export function StayCreateForm({ properties }: { properties: { id: string; name:
                 adults: f.adults,
                 children: f.children,
                 babies: f.babies,
-                check_in_at: new Date(f.in).toISOString(),
-                check_out_at: new Date(f.out).toISOString(),
+                // Heures saisies = heures locales du logement choisi (pas celles de l'appareil)
+                check_in_at: fromLocalInput(f.in, properties.find((p) => p.id === f.property_id)?.timezone ?? undefined).toISOString(),
+                check_out_at: fromLocalInput(f.out, properties.find((p) => p.id === f.property_id)?.timezone ?? undefined).toISOString(),
               }),
             (d) => router.push(`/app/stays/${d.id}`),
           );
         }}
       >
         <Field label={t("property")} htmlFor="st-p" className="sm:col-span-2">
-          <Select id="st-p" value={f.property_id} onChange={(e) => setF({ ...f, property_id: e.target.value })}>
+          <Select id="st-p" value={f.property_id} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, property_id: val })); }}>
             {properties.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -53,22 +55,22 @@ export function StayCreateForm({ properties }: { properties: { id: string; name:
           </Select>
         </Field>
         <Field label={t("guestName")} htmlFor="st-n">
-          <Input id="st-n" value={f.guest_name} onChange={(e) => setF({ ...f, guest_name: e.target.value })} />
+          <Input id="st-n" value={f.guest_name} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, guest_name: val })); }} />
         </Field>
         <Field label={t("guestEmail")} htmlFor="st-e" hint={t("guestEmailHint")}>
-          <Input id="st-e" type="email" value={f.guest_email} onChange={(e) => setF({ ...f, guest_email: e.target.value })} />
+          <Input id="st-e" type="email" value={f.guest_email} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, guest_email: val })); }} />
         </Field>
         <Field label={t("checkIn")} htmlFor="st-in">
-          <Input id="st-in" type="datetime-local" value={f.in} onChange={(e) => setF({ ...f, in: e.target.value })} required />
+          <Input id="st-in" type="datetime-local" value={f.in} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, in: val })); }} required />
         </Field>
         <Field label={t("checkOut")} htmlFor="st-out">
-          <Input id="st-out" type="datetime-local" value={f.out} onChange={(e) => setF({ ...f, out: e.target.value })} required />
+          <Input id="st-out" type="datetime-local" value={f.out} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, out: val })); }} required />
         </Field>
         <Field label={t("adults")} htmlFor="st-a">
           <Input id="st-a" type="number" min={0} max={100} value={f.adults} onChange={(e) => setF({ ...f, adults: Number(e.target.value) })} />
         </Field>
         <Field label={t("guestLocale")} htmlFor="st-l">
-          <Select id="st-l" value={f.guest_locale} onChange={(e) => setF({ ...f, guest_locale: e.target.value })}>
+          <Select id="st-l" value={f.guest_locale} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, guest_locale: val })); }}>
             {LOCALES.map((l) => (
               <option key={l} value={l}>
                 {l.toUpperCase()}

@@ -24,7 +24,7 @@ export default async function IncidentsPage({ params }: PageProps<"/[locale]/app
   }));
   const { data, error } = await supabase
     .from("incidents")
-    .select("id, source, category, description, urgent, status, created_at, taken_at, resolved_at, resolution, guest_message, manager_unread, task_id, reservation_id, follow_up_task_id, properties(name), reservations(guest_name, guest_email), tasks!incidents_organization_id_task_id_fkey(type), follow:tasks!incidents_follow_up_fk(status)")
+    .select("id, source, category, description, urgent, status, created_at, taken_at, resolved_at, resolution, guest_message, manager_unread, task_id, reservation_id, follow_up_task_id, properties(name, timezone), reservations(guest_name, guest_email), tasks!incidents_organization_id_task_id_fkey(type), follow:tasks!incidents_follow_up_fk(status)")
     .eq("organization_id", org!.id)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -95,7 +95,7 @@ export default async function IncidentsPage({ params }: PageProps<"/[locale]/app
                   </Link>
                 )}
               </div>
-              <IncidentActions id={i.id} status={i.status} fromGuest={i.source === "guest"} guestHasEmail={Boolean(r?.guest_email)} hasIntervention={Boolean(i.follow_up_task_id)} members={people} />
+              <IncidentActions id={i.id} status={i.status} fromGuest={i.source === "guest"} guestHasEmail={Boolean(r?.guest_email)} hasIntervention={Boolean(i.follow_up_task_id)} members={people} timeZone={(one(i.properties) as { timezone?: string } | null)?.timezone ?? undefined} />
             </Card>
           );
         })}

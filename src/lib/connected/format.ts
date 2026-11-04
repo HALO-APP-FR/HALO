@@ -93,3 +93,18 @@ export function nextDay(date: string): string {
   const [y, m, d] = date.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
 }
+
+/**
+ * Champs « date et heure » (datetime-local) : la saisie est une heure LOCALE DU LOGEMENT (ou de l'organisation),
+ * jamais celle de l'appareil. Sans fuseau connu, on retombe sur l'heure de l'appareil.
+ */
+export function localInputIn(d: Date, timeZone?: string): string {
+  if (!timeZone) {
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  }
+  return new Intl.DateTimeFormat("sv-SE", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d).replace(" ", "T");
+}
+export function fromLocalInput(value: string, timeZone?: string): Date {
+  return timeZone ? zonedTime(value, timeZone) : new Date(value);
+}

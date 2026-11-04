@@ -7,11 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useRun } from "./use-run";
-
-const local = (d: Date) => {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-};
+import { fromLocalInput, localInputIn } from "@/lib/connected/format";
 
 export function AssignSelect({
   taskId,
@@ -24,6 +20,7 @@ export function AssignSelect({
   unavailable = [],
   reasons = {},
   partial = {},
+  timeZone,
 }: {
   taskId: string;
   current: string | null;
@@ -31,6 +28,8 @@ export function AssignSelect({
   disabled?: boolean;
   /** La mission ne peut plus être faite dans sa fenêtre : affectation seulement avec une nouvelle fin confirmée. */
   outOfWindow?: boolean;
+  /** Fuseau du logement (nouvelle fin saisie en heure locale du logement) */
+  timeZone?: string;
   durationMin?: number;
   arrival?: string | null;
   /** Personnes absentes sur ce créneau (absence acceptée ou fermeture) : non proposées. La base refuse aussi. */
@@ -43,7 +42,7 @@ export function AssignSelect({
   const t = useTranslations("connected.missions");
   const { pending, error, run } = useRun();
   const [pendingMember, setPendingMember] = useState<string | null>(null);
-  const [end, setEnd] = useState(() => local(new Date(Math.ceil((Date.now() + (durationMin + 30) * 60_000) / 900_000) * 900_000)));
+  const [end, setEnd] = useState(() => localInputIn(new Date(Math.ceil((Date.now() + (durationMin + 30) * 60_000) / 900_000) * 900_000), timeZone));
   return (
     <div className="min-w-44">
       <Select
@@ -82,7 +81,7 @@ export function AssignSelect({
           </label>
           <Input id={`end-${taskId}`} type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} className="mt-1" />
           <div className="mt-2 flex gap-2">
-            <Button size="sm" variant="danger" onClick={() => run(() => assignTask(taskId, pendingMember, new Date(end).toISOString()), () => setPendingMember(null))} disabled={pending} data-testid="out-of-window-confirm">
+            <Button size="sm" variant="danger" onClick={() => run(() => assignTask(taskId, pendingMember, fromLocalInput(end, timeZone).toISOString()), () => setPendingMember(null))} disabled={pending} data-testid="out-of-window-confirm">
               {t("confirmOutOfWindow")}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setPendingMember(null)}>

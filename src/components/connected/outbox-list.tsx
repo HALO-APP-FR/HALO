@@ -37,7 +37,12 @@ export function OutboxList({ items }: { items: OutboxItem[] }) {
               {t(`template.${o.template}`)} · <span className="text-muted">{o.recipient}</span>
               <span className="block text-[12px] text-faint">{fmt(o.created_at)}{o.attempts > 1 ? ` · ${t("attempts", { n: o.attempts })}` : ""}</span>
             </span>
-            <span className={`font-medium ${tone[o.status]}`}>{t(`status.${o.status}`)}</span>
+            {/* Adresse de test (.invalid) : jamais envoyée, volontairement — distinguée d'un vrai échec de distribution */}
+            {o.last_error === "undeliverable_test_address" ? (
+              <span className="font-medium text-muted" data-testid="outbox-test-address">{t("status.test")}</span>
+            ) : (
+              <span className={`font-medium ${tone[o.status]}`}>{t(`status.${o.status}`)}</span>
+            )}
             {(o.status === "failed" || o.status === "not_configured") && o.last_error !== "undeliverable_test_address" && !LINK.includes(o.template) && (
               <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => retryNotification(o.id))} data-testid="outbox-retry">
                 {t("retry")}

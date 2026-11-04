@@ -59,6 +59,10 @@ export function MissionReport(props: {
   timeZone?: string;
   /** Vue de l'agent affecté (bandeaux d'état : envoyée, validée) */
   mine?: boolean;
+  /** Date de la dernière demande de correction (déjà formatée) */
+  correctionAt?: string | null;
+  /** Points de checklist désignés par le responsable (preuve à refaire) — seulement s'ils sont connus */
+  redoItems?: string[];
 }) {
   const t = useTranslations("connected.mission");
   const te = useTranslations("connected.errors");
@@ -139,17 +143,6 @@ export function MissionReport(props: {
   return (
     <div className="space-y-4">
       <input ref={input} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void onFile(e.target.files?.[0])} data-testid="photo-input" />
-      {props.status === "to_redo" && props.correctionReason && (
-        <p className="flex gap-2 rounded-xl border border-warning bg-warning-soft p-4 text-[15px]" role="status">
-          <CircleAlert className="mt-0.5 size-5 shrink-0 text-warning" />
-          <span>
-            <span className="block font-semibold">{t("correctionTitle")}</span>
-            <span data-testid="correction-reason-shown">{props.correctionReason}</span>
-            <span className="mt-1 block text-[14px] text-muted">{t("correctionNext")}</span>
-          </span>
-        </p>
-      )}
-
       {props.mine && props.status === "done" && (
         <p className="flex gap-2 rounded-xl border border-line bg-subtle p-4 text-[15px] dark:bg-surface-hover" role="status" data-testid="mission-sent">
           <Check className="mt-0.5 size-5 shrink-0 text-success" />

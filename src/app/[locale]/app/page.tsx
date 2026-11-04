@@ -24,7 +24,7 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     supabase.from("service_requests").select("id", { count: "exact", head: true }).eq("organization_id", org.id).or("manager_unread.eq.true,status.eq.requested"),
     supabase.from("stay_messages").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("author_kind", "guest").is("read_by_team_at", null),
     // E-mails voyageurs non remis (échec ou aucun fournisseur) ; les e-mails d'équipe sont comptés à part, les « non envoyés par préférence » jamais
-    supabase.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org.id).in("status", ["failed", "not_configured"]).not("template", "like", "team_%").not("template", "like", "agent_%").not("template", "like", "chat_%"),
+    supabase.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org.id).in("status", ["failed", "not_configured"]).or("last_error.is.null,last_error.neq.undeliverable_test_address").not("template", "like", "team_%").not("template", "like", "agent_%").not("template", "like", "chat_%"),
     supabase.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "confirmed").gte("check_in_at", now.toISOString()).lte("check_in_at", in7),
     supabase.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "unassigned").gte("window_end", now.toISOString()),
     supabase.from("incidents").select("id", { count: "exact", head: true }).eq("organization_id", org.id).neq("status", "resolved"),
@@ -34,8 +34,10 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     unreadThreads(supabase, org.id),
   ]);
   const in24 = new Date(now.getTime() + 24 * 3_600_000).toISOString();
-  const [teamOutbox, prepReview, prepDue, vipPending, bookings, lowGuest, lowOwner] = await Promise.all([
-    supabase.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org.id).in("status", ["failed", "not_configured"]).or("template.like.team_%,template.like.agent_%,template.like.chat_%"),
+  const [teamOutbox, testOutbox, prepReview, prepDue, vipPending, bookings, lowGuest, lowOwner] = await Promise.all([
+    supabase.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org.id).in("status", ["failed", "not_configured"]).or("last_error.is.null,last_error.neq.undeliverable_test_address").or("template.like.team_%,template.like.agent_%,template.like.chat_%"),
+    // Préproduction : e-mails vers des adresses de test (.invalid), jamais envoyés — comptés à part, pas comme des échecs
+    supabase.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("last_error", "undeliverable_test_address"),
     // Questionnaires envoyés ou modifiés par un voyageur, pas encore examinés
     supabase.from("stay_preparations").select("reservation_id", { count: "exact", head: true }).eq("organization_id", org.id).eq("needs_review", true),
     // Actions de préparation ouvertes à échéance dans les 24 h (ou dépassée)
@@ -77,8 +79,9 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     { key: "emails", n: outbox.count ?? 0, href: "/app/notifications?audience=guest", icon: MailWarning, danger: false },
     { key: "teamEmails", n: teamOutbox.count ?? 0, href: "/app/notifications?audience=team", icon: MailWarning, danger: false },
     { key: "stays7", n: stays.count ?? 0, href: "/app/stays", icon: CalendarDays, danger: false },
+    { key: "testEmails", n: testOutbox.count ?? 0, href: "/app/notifications", icon: MailWarning, danger: false },
   ] as const;
-  const alertOf = { toValidate: "unassigned_missions", chats: "unread_messages", schedule: "unassigned_missions", availability: "unassigned_missions", availabilityRisks: "unassigned_missions", absenceRequests: "unassigned_missions", incidents: "pending_services", services: "pending_services", messages: "unread_messages", unassigned: "unassigned_missions", emails: "failed_emails", teamEmails: "failed_emails", prepReview: "pending_services", prepDue: "pending_services", vipRequests: "pending_services", timingMismatch: "pending_services", bookings: "pending_services", lowReviewsGuest: "pending_services", lowReviewsOwner: "pending_services", stays7: "upcoming_stays" } as const;
+  const alertOf = { toValidate: "unassigned_missions", chats: "unread_messages", schedule: "unassigned_missions", availability: "unassigned_missions", availabilityRisks: "unassigned_missions", absenceRequests: "unassigned_missions", incidents: "pending_services", services: "pending_services", messages: "unread_messages", unassigned: "unassigned_missions", emails: "failed_emails", teamEmails: "failed_emails", prepReview: "pending_services", prepDue: "pending_services", vipRequests: "pending_services", timingMismatch: "pending_services", bookings: "pending_services", lowReviewsGuest: "pending_services", lowReviewsOwner: "pending_services", stays7: "upcoming_stays", testEmails: "failed_emails" } as const;
   // Alertes choisies à l'onboarding ; les demandes et messages voyageurs restent toujours visibles
   const always = ["toValidate", "chats", "services", "prepReview", "prepDue", "vipRequests", "timingMismatch", "bookings", "lowReviewsGuest", "lowReviewsOwner", "messages", "incidents", "schedule", "availability", "availabilityRisks", "absenceRequests"];
   const rows = allRows.filter((r) => !enabled || always.includes(r.key) || enabled.includes(alertOf[r.key]));

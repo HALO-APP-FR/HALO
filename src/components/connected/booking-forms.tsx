@@ -351,29 +351,29 @@ export function BookingDecision({
           {knownConflict && <p className="rounded-md bg-warning-soft p-2 text-[13px]">{t("conflictHint")}</p>}
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label={t("offerIn")} htmlFor="o-in" hint={t("altHint")}>
-              <Input id="o-in" type="date" value={o.altIn} onChange={(e) => setO({ ...o, altIn: e.target.value })} required />
+              <Input id="o-in" type="date" value={o.altIn} onChange={(e) => { const val = e.target.value; setO((prev) => ({ ...prev, altIn: val })); }} required />
             </Field>
             <Field label={t("offerOut")} htmlFor="o-out">
-              <Input id="o-out" type="date" value={o.altOut} onChange={(e) => setO({ ...o, altOut: e.target.value })} required />
+              <Input id="o-out" type="date" value={o.altOut} onChange={(e) => { const val = e.target.value; setO((prev) => ({ ...prev, altOut: val })); }} required />
             </Field>
             <Field label={t("price")} htmlFor="o-price">
-              <Input id="o-price" inputMode="decimal" value={o.price} onChange={(e) => setO({ ...o, price: e.target.value })} required data-testid="offer-price" />
+              <Input id="o-price" inputMode="decimal" value={o.price} onChange={(e) => { const val = e.target.value; setO((prev) => ({ ...prev, price: val })); }} required data-testid="offer-price" />
             </Field>
             <Field label={t("fees")} htmlFor="o-fees">
-              <Input id="o-fees" inputMode="decimal" value={o.fees} onChange={(e) => setO({ ...o, fees: e.target.value })} data-testid="offer-fees" />
+              <Input id="o-fees" inputMode="decimal" value={o.fees} onChange={(e) => { const val = e.target.value; setO((prev) => ({ ...prev, fees: val })); }} data-testid="offer-fees" />
             </Field>
             <Field label={t("currency")} htmlFor="o-cur">
               <Input id="o-cur" value={o.currency} maxLength={3} onChange={(e) => setO({ ...o, currency: e.target.value.toUpperCase() })} />
             </Field>
             <Field label={t("validUntil")} htmlFor="o-valid">
-              <Input id="o-valid" type="date" value={o.validUntil} onChange={(e) => setO({ ...o, validUntil: e.target.value })} />
+              <Input id="o-valid" type="date" value={o.validUntil} onChange={(e) => { const val = e.target.value; setO((prev) => ({ ...prev, validUntil: val })); }} />
             </Field>
           </div>
           <p className="text-[15px] font-semibold" data-testid="offer-total">
             {t("total")} : {Number.isFinite(total) ? `${total.toFixed(2)} ${o.currency}` : "—"}
           </p>
           <Field label={t("conditions")} htmlFor="o-cond" hint={t("conditionsHint")}>
-            <Textarea id="o-cond" value={o.conditions} onChange={(e) => setO({ ...o, conditions: e.target.value })} required maxLength={2000} data-testid="offer-conditions" />
+            <Textarea id="o-cond" value={o.conditions} onChange={(e) => { const val = e.target.value; setO((prev) => ({ ...prev, conditions: val })); }} required maxLength={2000} data-testid="offer-conditions" />
           </Field>
           <Field label={t("messageToGuest")} htmlFor="o-msg">
             <Textarea id="o-msg" value={msg} onChange={(e) => setMsg(e.target.value)} maxLength={2000} />

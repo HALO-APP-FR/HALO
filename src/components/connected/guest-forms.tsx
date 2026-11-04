@@ -51,7 +51,7 @@ export function GuestRequestForm({ token, kinds, minDate, timeZone, variant = "s
       data-testid={timing ? "guest-timing-form" : undefined}
     >
       <Field label={timing ? t("timing.kind") : t("request.kind")} htmlFor={id("kind")} className="sm:col-span-2">
-        <Select id={id("kind")} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })} data-testid={tid("kind")}>
+        <Select id={id("kind")} value={f.kind} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, kind: val })); }} data-testid={tid("kind")}>
           {kinds.map((k) => (
             <option key={k} value={k}>
               {tk(k)}
@@ -60,7 +60,7 @@ export function GuestRequestForm({ token, kinds, minDate, timeZone, variant = "s
         </Select>
       </Field>
       <Field label={timing ? t("timing.when") : t("request.when")} htmlFor={id("when")}>
-        <Input id={id("when")} type="datetime-local" aria-describedby={`${id("when")}-tz`} min={minDate} value={f.when} onChange={(e) => setF({ ...f, when: e.target.value })} required data-testid={tid("when")} />
+        <Input id={id("when")} type="datetime-local" aria-describedby={`${id("when")}-tz`} min={minDate} value={f.when} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, when: val })); }} required data-testid={tid("when")} />
         <p id={`${id("when")}-tz`} className="mt-1 text-[12px] text-muted">{t("request.localTime")}</p>
       </Field>
       {!timing && (
@@ -69,7 +69,7 @@ export function GuestRequestForm({ token, kinds, minDate, timeZone, variant = "s
         </Field>
       )}
       <Field label={timing ? t("timing.details") : t("request.details")} htmlFor={id("details")} className="sm:col-span-2">
-        <Textarea id={id("details")} value={f.details} onChange={(e) => setF({ ...f, details: e.target.value })} maxLength={2000} placeholder={timing ? t("timing.detailsPlaceholder") : t("request.detailsPlaceholder")} />
+        <Textarea id={id("details")} value={f.details} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, details: val })); }} maxLength={2000} placeholder={timing ? t("timing.detailsPlaceholder") : t("request.detailsPlaceholder")} />
       </Field>
       <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
         {error && <p role="alert" className="text-[14px] text-danger">{error}</p>}
@@ -146,7 +146,7 @@ export function GuestProblemForm({ token }: { token: string }) {
       }}
     >
       <Field label={t("problem.category")} htmlFor="gp-cat">
-        <Select id="gp-cat" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
+        <Select id="gp-cat" value={f.category} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, category: val })); }}>
           {PROBLEM_CATEGORIES.map((c) => (
             <option key={c} value={c}>
               {tc(c)}
@@ -155,7 +155,7 @@ export function GuestProblemForm({ token }: { token: string }) {
         </Select>
       </Field>
       <Field label={t("problem.description")} htmlFor="gp-desc">
-        <Textarea id="gp-desc" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} maxLength={2000} data-testid="guest-problem-description" />
+        <Textarea id="gp-desc" value={f.description} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, description: val })); }} maxLength={2000} data-testid="guest-problem-description" />
       </Field>
       <label className="flex items-center gap-2 text-[15px]">
         <input type="checkbox" checked={f.urgent} onChange={(e) => setF({ ...f, urgent: e.target.checked })} />
@@ -287,12 +287,12 @@ export function GuestPrepForm({
       )}
       {on("constraints") && (
         <Field label={`${t("constraints")} (${t("optional")})`} htmlFor="prep-constraints" hint={t("constraintsHint")}>
-          <Textarea id="prep-constraints" value={a.constraints ?? ""} maxLength={1000} disabled={!editable} onChange={(e) => setA({ ...a, constraints: e.target.value })} />
+          <Textarea id="prep-constraints" value={a.constraints ?? ""} maxLength={1000} disabled={!editable} onChange={(e) => { const val = e.target.value; setA((prev) => ({ ...prev, constraints: val })); }} />
         </Field>
       )}
       {on("other") && (
         <Field label={`${t("other")} (${t("optional")})`} htmlFor="prep-other">
-          <Textarea id="prep-other" value={a.other ?? ""} maxLength={1000} disabled={!editable} onChange={(e) => setA({ ...a, other: e.target.value })} data-testid="prep-other" />
+          <Textarea id="prep-other" value={a.other ?? ""} maxLength={1000} disabled={!editable} onChange={(e) => { const val = e.target.value; setA((prev) => ({ ...prev, other: val })); }} data-testid="prep-other" />
         </Field>
       )}
       {on("language") && (

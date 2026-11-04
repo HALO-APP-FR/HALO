@@ -46,7 +46,7 @@ export function TestAccountForm({ next }: { next?: string }) {
       <Button
         type="button"
         variant="secondary"
-        className="mt-2 w-full"
+        className="mt-2 h-auto min-h-9 w-full whitespace-normal py-2 text-center"
         disabled={pending || !name.trim()}
         data-testid="test-scenario-submit"
         onClick={() =>
