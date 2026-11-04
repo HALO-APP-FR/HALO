@@ -134,5 +134,17 @@ n1=$(grep -E '^[0-9]+$' /tmp/claim1_$$ | head -1); rm -f /tmp/claim1_$$
 check "les deux envois se répartissent les e-mails sans chevauchement (4 + 2)" "$n1+$n2" "4+2"
 n=$(psql "$T" -qAt -c "select count(*) from public.notification_outbox where organization_id = '$ORG' and template = 'timing_confirmed' and status = 'pending'")
 check "aucun e-mail laissé en attente ni réservé deux fois" "$n" "0"
+echo "7. Deux responsables planifient le linge du même séjour en même temps :"
+psql "$T" -qAt -v ON_ERROR_STOP=1 >/dev/null <<SQL
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at)
+values ('88888888-8888-8888-8888-888888888888', '$ORG', '$PROP', 'Linge', '2030-06-10 16:00+00', '2030-06-12 11:00+00');
+SQL
+( psql "$T" -qAt -c "$(as_mgr $MGR) begin; select public.plan_linen_delivery('$ORG', '88888888-8888-8888-8888-888888888888', '2030-06-10 10:00+00', '2030-06-10 16:00+00', 20); select pg_sleep(1.5); commit;" >/dev/null 2>&1 ) &
+sleep 0.4
+out=$(psql "$T" -qAt -c "$(as_mgr $MGR2) select public.plan_linen_delivery('$ORG', '88888888-8888-8888-8888-888888888888', '2030-06-10 10:00+00', '2030-06-10 16:00+00', 20) ->> 'status';" 2>&1 | tail -1)
+wait
+check "la seconde demande retrouve la mission existante" "$out" "exists"
+n=$(psql "$T" -qAt -c "select count(*) from public.tasks where next_reservation_id = '88888888-8888-8888-8888-888888888888' and type = 'linen_delivery'")
+check "une seule livraison de linge" "$n" "1"
 echo "Bilan : $pass réussi(s), $fail échec(s)"
 [ "$fail" = "0" ]

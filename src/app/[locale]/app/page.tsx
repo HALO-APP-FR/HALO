@@ -1,4 +1,4 @@
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
 import { ArrowRight, ClipboardList, Crown, ClipboardCheck, MessagesSquare, CalendarClock, CalendarDays, CalendarX2, ConciergeBell, MailWarning, MessageSquare, Settings2, TriangleAlert, UserRoundX, CalendarPlus, Star } from "lucide-react";
 import { Link, redirect } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
@@ -82,6 +82,37 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
   // Alertes choisies à l'onboarding ; les demandes et messages voyageurs restent toujours visibles
   const always = ["toValidate", "chats", "services", "prepReview", "prepDue", "vipRequests", "timingMismatch", "bookings", "lowReviewsGuest", "lowReviewsOwner", "messages", "incidents", "schedule", "availability", "availabilityRisks", "absenceRequests"];
   const rows = allRows.filter((r) => !enabled || always.includes(r.key) || enabled.includes(alertOf[r.key]));
+  // Hiérarchie de l'accueil : ce qui demande une décision d'abord (ordre d'urgence), puis les informations,
+  // et les catégories sans élément regroupées dans une zone repliable (toujours accessibles)
+  const ORDER = ["incidents", "timingMismatch", "schedule", "availability", "toValidate", "services", "bookings", "absenceRequests", "prepDue", "prepReview", "vipRequests", "chats", "messages", "unassigned", "lowReviewsGuest", "lowReviewsOwner"];
+  const active = rows.filter((r) => r.n > 0 && r.danger).sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
+  const info = rows.filter((r) => r.n > 0 && !r.danger);
+  const calm = rows.filter((r) => r.n === 0);
+  // Détail des éléments les plus fréquents : missions à valider et incidents urgents (logement, mission, échéance)
+  const [{ data: doneList }, { data: urgentList }] = await Promise.all([
+    (toValidate.count ?? 0) > 0
+      ? supabase.from("tasks").select("id, type, title, completed_at, properties(name)").eq("organization_id", org.id).eq("status", "done").order("completed_at").limit(3)
+      : Promise.resolve({ data: [] as never[] }),
+    (incidents.count ?? 0) > 0
+      ? supabase.from("incidents").select("id, description, urgent, created_at, properties(name)").eq("organization_id", org.id).neq("status", "resolved").order("urgent", { ascending: false }).order("created_at").limit(3)
+      : Promise.resolve({ data: [] as never[] }),
+  ]);
+  const tt = await getTranslations("taskType");
+  const pname = (x: unknown) => ((Array.isArray(x) ? x[0] : x) as { name: string } | null)?.name ?? "";
+  const fmt = await getFormatter();
+  const when = (x: string) => fmt.dateTime(new Date(x), { dateStyle: "short", timeStyle: "short" });
+  const details: Record<string, { id: string; text: string; href: string }[]> = {
+    toValidate: (doneList ?? []).map((k: { id: string; type: string; title: string | null; completed_at: string | null; properties: unknown }) => ({
+      id: k.id,
+      text: t("home.detail.toValidate", { mission: k.title || tt(k.type), property: pname(k.properties), date: k.completed_at ? when(k.completed_at) : "—" }),
+      href: `/app/missions/${k.id}`,
+    })),
+    incidents: (urgentList ?? []).map((i: { id: string; description: string; urgent: boolean; created_at: string; properties: unknown }) => ({
+      id: i.id,
+      text: t(i.urgent ? "home.detail.incidentUrgent" : "home.detail.incident", { text: i.description.length > 70 ? `${i.description.slice(0, 70)}…` : i.description, property: pname(i.properties), date: when(i.created_at) }),
+      href: "/app/incidents",
+    })),
+  };
 
   return (
     <>
@@ -96,22 +127,75 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
           <ArrowRight className="size-5 text-accent-text rtl:-scale-x-100" />
         </Link>
       )}
-      <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">{t("home.arrivalsTitle")}</h2>
-      <div className="mb-6">
+      <section className="mb-6" data-testid="home-now">
+        <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">{t("home.nowTitle")}</h2>
+        {active.length === 0 ? (
+          <Card className="p-4 text-[15px] text-muted" data-testid="home-now-empty">{t("home.nowEmpty")}</Card>
+        ) : (
+          <Card className="divide-y divide-line">
+            {active.map(({ key, n, href, icon: Icon }) => (
+              <div key={key} className="px-4 py-3.5 md:px-5" data-testid={`home-${key}`} data-active="1">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-md bg-danger-soft text-danger">
+                    <Icon className="size-[18px]" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] font-medium">{t(`home.${key}`, { count: n })}</span>
+                    {t.has(`home.why.${key}`) && <span className="block text-[13px] text-muted">{t(`home.why.${key}`)}</span>}
+                    {(details[key] ?? []).length > 0 && (
+                      <ul className="mt-1 space-y-0.5 text-[13px]" data-testid="home-details">
+                        {details[key].map((d) => (
+                          <li key={d.id}>
+                            <Link href={d.href} className="text-fg hover:underline">{d.text}</Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </span>
+                  <Link href={href} className="inline-flex shrink-0 items-center gap-1 text-[14px] font-medium text-accent-text hover:underline" data-testid={`home-cta-${key}`}>
+                    {t.has(`home.cta.${key}`) ? t(`home.cta.${key}`) : t("home.cta.open")}
+                    <ArrowRight className="size-4 rtl:-scale-x-100" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </Card>
+        )}
+      </section>
+
+      <section className="mb-6">
+        <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">{t("home.arrivalsTitle")}</h2>
         <ArrivalsNow supabase={supabase} orgId={org.id} now={now} linenRequired={linenRequired} planning={planning} />
-      </div>
-      <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">{t("home.queueTitle")}</h2>
-      <Card className="divide-y divide-line">
-        {rows.map(({ key, n, href, icon: Icon, danger }) => (
-          <Link key={key} href={href} className="flex items-center gap-3 px-4 py-3.5 hover:bg-surface-hover md:px-5" data-testid={`home-${key}`}>
-            <span className={`grid size-9 place-items-center rounded-md ${n && danger ? "bg-danger-soft text-danger" : "bg-subtle text-muted dark:bg-surface-hover"}`}>
-              <Icon className="size-[18px]" />
-            </span>
-            <span className="flex-1 text-[15px]">{t(`home.${key}`, { count: n })}</span>
-            <ArrowRight className="size-4 text-faint rtl:-scale-x-100" />
-          </Link>
-        ))}
-      </Card>
+      </section>
+
+      {info.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-muted">{t("home.infoTitle")}</h2>
+          <Card className="divide-y divide-line">
+            {info.map(({ key, n, href, icon: Icon }) => (
+              <Link key={key} href={href} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-hover md:px-5" data-testid={`home-${key}`}>
+                <Icon className="size-[18px] text-muted" />
+                <span className="flex-1 text-[15px]">{t(`home.${key}`, { count: n })}</span>
+                <ArrowRight className="size-4 text-faint rtl:-scale-x-100" />
+              </Link>
+            ))}
+          </Card>
+        </section>
+      )}
+
+      <details className="group rounded-xl border border-line bg-surface" data-testid="home-calm">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-[14px] text-muted md:px-5">
+          <span className="flex-1">{t("home.calmTitle", { count: calm.length })}</span>
+          <ArrowRight className="size-4 transition-transform group-open:rotate-90" />
+        </summary>
+        <div className="divide-y divide-line border-t border-line">
+          {calm.map(({ key, n, href }) => (
+            <Link key={key} href={href} className="flex items-center gap-3 px-4 py-2.5 text-[14px] text-muted hover:bg-surface-hover md:px-5" data-testid={`home-${key}`}>
+              <span className="flex-1">{t(`home.${key}`, { count: n })}</span>
+            </Link>
+          ))}
+        </div>
+      </details>
     </>
   );
 }

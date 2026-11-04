@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
-import { cancelAbsence, decideAbsence, saveAbsence, setTaskWindow, setValidationTypes, updateMyProfile } from "@/lib/connected/actions";
+import { cancelAbsence, decideAbsence, saveAbsence, setTaskTypeRule, setTaskWindow, setValidationTypes, updateMyProfile } from "@/lib/connected/actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Select } from "@/components/ui/field";
@@ -69,6 +69,59 @@ export function ValidationSettings({ initial }: { initial: string[] }) {
         {saved && !dirty && <span className="text-[14px] text-success" role="status">{t("saved")}</span>}
         {error && <span role="alert" className="text-[14px] text-danger">{error}</span>}
       </div>
+    </Card>
+  );
+}
+
+export type TaskTypeRule = { type: string; startRule: "firm" | "recommended"; checklistRequired: boolean; commentRequired: boolean };
+
+/** Règles par type de mission : démarrage avant la plage, checklist et commentaire exigés pour terminer (appliqué par la base). */
+export function TaskRuleSettings({ initial }: { initial: TaskTypeRule[] }) {
+  const t = useTranslations("connected.taskRules");
+  const tt = useTranslations("taskType");
+  const { pending, error, run } = useRun();
+  const [rules, setRules] = useState(initial);
+  const [saved, setSaved] = useState<string | null>(null);
+  const update = (type: string, patch: Partial<TaskTypeRule>) => {
+    const next = rules.map((r) => (r.type === type ? { ...r, ...patch } : r));
+    setRules(next);
+    const r = next.find((x) => x.type === type)!;
+    run(() => setTaskTypeRule(type, r), () => setSaved(type));
+  };
+  return (
+    <Card className="p-5" data-testid="task-rules">
+      <h2 className="text-[17px] font-semibold">{t("title")}</h2>
+      <p className="mt-1 text-[14px] text-muted">{t("text")}</p>
+      <ul className="mt-4 divide-y divide-line">
+        {rules.map((r) => (
+          <li key={r.type} className="space-y-2 py-3" data-testid={`rule-${r.type}`}>
+            <p className="text-[15px] font-medium">
+              {tt(r.type)} {saved === r.type && <span className="ms-2 text-[13px] font-normal text-success">{t("saved")}</span>}
+            </p>
+            <div className="flex flex-wrap gap-x-5 gap-y-2 text-[14px]">
+              <label className="flex items-center gap-2">
+                <span className="text-muted">{t("start")}</span>
+                <Select value={r.startRule} disabled={pending} onChange={(e) => update(r.type, { startRule: e.target.value as "firm" | "recommended" })} data-testid={`rule-${r.type}-start`}>
+                  <option value="firm">{t("firm")}</option>
+                  <option value="recommended">{t("recommended")}</option>
+                </Select>
+              </label>
+              {(r.type === "turnover" || r.type === "inspection") && (
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={r.checklistRequired} disabled={pending} onChange={(e) => update(r.type, { checklistRequired: e.target.checked })} data-testid={`rule-${r.type}-checklist`} />
+                  {t("checklist")}
+                </label>
+              )}
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={r.commentRequired} disabled={pending} onChange={(e) => update(r.type, { commentRequired: e.target.checked })} data-testid={`rule-${r.type}-comment`} />
+                {t("comment")}
+              </label>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-[13px] text-muted">{t("photosNote")}</p>
+      {error && <p role="alert" className="mt-2 text-[14px] text-danger">{error}</p>}
     </Card>
   );
 }

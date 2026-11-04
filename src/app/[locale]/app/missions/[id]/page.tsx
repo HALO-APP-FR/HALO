@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/halo/page-header";
 import { MissionReport, type ReportRoom } from "@/components/connected/mission-report";
 import { ReportIncident } from "@/components/connected/report-incident";
 import { WindowEditor } from "@/components/connected/planning-forms";
-import { AssignSelect, CancelTaskButton } from "@/components/connected/mission-controls";
+import { AssignSelect, CancelTaskButton, EarlyStartForm } from "@/components/connected/mission-controls";
 import { loadPlanning } from "@/lib/connected/planning";
 import { absenceLevel } from "@/lib/engine/availability";
 import { infeasibility } from "@/lib/engine/conflicts";
@@ -36,7 +36,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
   // La base ne renvoie la mission qu'à un manager ou à son agent assigné
   const { data: task } = await supabase
     .from("tasks")
-    .select("id, type, title, status, window_start, window_end, duration_min, scheduled_start, is_auto_generated, assignee_id, correction_reason, notes, property_id, properties(name, address_line, postal_code, city, country_code, latitude, longitude, timezone, instructions)")
+    .select("id, type, title, status, window_start, window_end, duration_min, scheduled_start, is_auto_generated, assignee_id, correction_reason, notes, property_id, early_start_allowed_at, early_start_reason, completed_at, validated_at, properties(name, address_line, postal_code, city, country_code, latitude, longitude, timezone, instructions)")
     .eq("organization_id", o)
     .eq("id", id)
     .maybeSingle();
@@ -46,15 +46,25 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
     withChecklist
       ? supabase.from("checklist_rooms").select("id, name, sort, checklist_items(id, label, photo_required, sort)").eq("organization_id", o).eq("property_id", task.property_id).order("sort")
       : Promise.resolve({ data: [] as never[] }),
-    supabase.from("task_reports").select("checked").eq("organization_id", o).eq("task_id", id).maybeSingle(),
+    supabase.from("task_reports").select("checked, comment").eq("organization_id", o).eq("task_id", id).maybeSingle(),
     supabase.from("files").select("id, path, checklist_item_id, created_at, superseded_at").eq("organization_id", o).eq("task_id", id).order("created_at"),
     supabase.from("incidents").select("id, category, status, description").eq("organization_id", o).eq("task_id", id).order("created_at", { ascending: false }),
     // Réglage réellement appliqué par la base à la fin de la mission
     supabase.from("organizations").select("validation_task_types").eq("id", o).single(),
     // Intervention : l'incident d'origine et son état (sa résolution reste une décision du responsable)
     manager ? supabase.from("incidents").select("id, status, description").eq("organization_id", o).eq("follow_up_task_id", id).maybeSingle() : Promise.resolve({ data: null }),
-    manager ? supabase.from("task_events").select("id, kind, at, note, actor_id").eq("organization_id", o).eq("task_id", id).order("at", { ascending: false }).limit(30) : Promise.resolve({ data: [] as never[] }),
+    // Historique : lisible par le responsable ET par l'agent affecté (la base le limite à ses missions)
+    supabase.from("task_events").select("id, kind, at, note, actor_id").eq("organization_id", o).eq("task_id", id).order("at", { ascending: false }).limit(40),
   ]);
+  // Règle et exigences réellement appliquées par la base (démarrage, fin)
+  const [{ data: reqRaw }, { data: ruleRaw }] = await Promise.all([
+    supabase.rpc("task_requirements", { org: o, task: id }),
+    supabase.rpc("task_rule", { org: o, t: task.type }),
+  ]);
+  const requirements = (reqRaw as { checklist: { required: boolean; total: number; done: number }; photos_missing: number; comment: { required: boolean; present: boolean } } | null) ?? null;
+  const startRule = ((ruleRaw as { start_rule?: string } | null)?.start_rule ?? "recommended") as "firm" | "recommended";
+  const notYetOpen = Date.parse(task.window_start) > nowDate().getTime();
+  const windowEdited = (events ?? []).some((e: { kind: string }) => e.kind === "window_changed");
   const needsValidation = ((orgRow?.validation_task_types as string[] | undefined) ?? []).includes(task.type);
   const ti = await getTranslations("connected.incidents");
   const th = await getTranslations("connected.missionHistory");
@@ -193,7 +203,14 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
       {/* Deux informations distinctes : la fenêtre pendant laquelle la mission doit être faite, et la durée de travail estimée */}
       <div className="-mt-2 mb-4 flex flex-wrap items-start gap-x-6 gap-y-2 text-[15px]" data-testid="mission-timing">
         <div className="basis-full">
-          <MissionTiming task={task} timeZone={p?.timezone ?? undefined} assignee={manager ? (assigneeName ?? null) : undefined} />
+          <MissionTiming
+            task={task}
+            timeZone={p?.timezone ?? undefined}
+            assignee={manager ? (assigneeName ?? null) : undefined}
+            startRule={startRule}
+            source={windowEdited ? "edited" : task.is_auto_generated ? "auto" : "created"}
+            derogation={task.early_start_allowed_at ? (task.early_start_reason as string | null) ?? "" : null}
+          />
           {zoneLabel(p?.timezone, new Date(task.window_start)) && (
             <span className="mt-1 block text-[12px] text-muted" data-testid="mission-zone">{tm("localTime", { zone: zoneLabel(p?.timezone, new Date(task.window_start))! })}</span>
           )}
@@ -205,7 +222,10 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
         {manager && !["done", "validated", "cancelled"].includes(task.status) && (
           <div className="basis-full">
             <WindowEditor taskId={task.id} start={task.window_start} end={task.window_end} durationMin={task.duration_min} />
-            {!task.is_auto_generated && <p className="mt-1 text-[13px] text-muted">{t("manualWindow")}</p>}
+            {windowEdited && <p className="mt-1 text-[13px] text-muted" data-testid="mission-window-edited">{t("manualWindow")}</p>}
+            {startRule === "firm" && ["unassigned", "assigned"].includes(task.status) && !task.early_start_allowed_at && notYetOpen && (
+              <EarlyStartForm taskId={task.id} />
+            )}
           </div>
         )}
       </div>
@@ -259,12 +279,16 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
         canFinish={mine && task.status === "in_progress"}
         canReview={manager && task.status === "done"}
         canReopen={manager && (task.status === "done" || task.status === "validated")}
+        requirements={requirements}
+        comment={(report?.comment as string | null) ?? null}
+        timeZone={p?.timezone ?? undefined}
+        mine={mine}
       />
-      {manager && (events ?? []).length > 0 && (
+      {(manager || mine) && (events ?? []).length > 0 && (
         <Card className="mt-4 p-5" data-testid="mission-history">
           <h2 className="text-[17px] font-semibold">{th("title")}</h2>
           <ul className="mt-2 space-y-1.5 text-[14px] text-muted">
-            {(events ?? []).map((e: { id: number; kind: string; at: string; note: string | null }) => {
+            {(events ?? []).map((e: { id: number; kind: string; at: string; note: string | null; actor_id: string | null }) => {
               let extra = "";
               if (e.kind === "window_changed" && e.note) {
                 try {
@@ -273,10 +297,12 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
                 } catch {
                   extra = "";
                 }
-              } else if (e.kind === "correction_requested" && e.note) extra = ` — « ${e.note} »`;
+              } else if ((e.kind === "correction_requested" || e.kind === "early_start_allowed") && e.note) extra = ` — « ${e.note} »`;
+              // Auteur : l'agent affecté, un responsable, ou le système (synchronisation)
+              const who = !e.actor_id ? th("bySystem") : e.actor_id === user!.id ? th("byYou") : e.actor_id === task.assignee_id ? th("byAgent", { name: assigneeName ?? th("agent") }) : th("byManager");
               return (
-                <li key={e.id}>
-                  <span className="text-fg">{f.dateTime(new Date(e.at), { dateStyle: "short", timeStyle: "short" })}</span> · {th(`kind.${e.kind}`)}
+                <li key={e.id} data-testid="history-event" data-kind={e.kind}>
+                  <span className="text-fg">{f.dateTime(new Date(e.at), { dateStyle: "short", timeStyle: "short", ...(p?.timezone ? { timeZone: p.timezone } : {}) })}</span> · {th(`kind.${e.kind}`)} · {who}
                   {extra}
                 </li>
               );

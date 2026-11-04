@@ -1414,7 +1414,8 @@
       "slug_taken": "Este endereço de montra já está em uso: escolha outro.",
       "no_property": "Esta avaliação não está ligada a nenhum alojamento: não é possível criar um incidente.",
       "use_timing_decision": "Um horário de chegada ou saída confirma-se ou cancela-se com a decisão dedicada, que verifica a preparação.",
-      "timing_window": "Uma missão ligada não podia acompanhar este novo horário. Nada foi alterado; recarregue a página para ver o efeito previsto em cada missão."
+      "timing_window": "Uma missão ligada não podia acompanhar este novo horário. Nada foi alterado; recarregue a página para ver o efeito previsto em cada missão.",
+      "missing_requirements": "Faltam provas exigidas (checklist, fotos ou comentário): peça uma correção em vez de validar."
     },
     "home": {
       "subtitle": "O que precisa da sua atenção.",
@@ -1448,7 +1449,39 @@
       "lowReviewsOwner": "{count, plural, =0 {Nenhuma avaliação de proprietário por tratar} one {# avaliação de proprietário por tratar} other {# avaliações de proprietários por tratar}}",
       "moreCauses": "+ {count} outra(s) causa(s)",
       "availabilityRisks": "{count, plural, =0 {Nenhuma missão a examinar (ausência parcial)} one {# missão a examinar (ausência parcial)} other {# missões a examinar (ausência parcial)}}",
-      "timingMismatch": "{count, plural, =0 {Nenhum horário contraditório} one {# horário confirmado não corresponde à estadia} other {# horários confirmados não correspondem às estadias}}"
+      "timingMismatch": "{count, plural, =0 {Nenhum horário contraditório} one {# horário confirmado não corresponde à estadia} other {# horários confirmados não correspondem às estadias}}",
+      "nowTitle": "A tratar agora",
+      "nowEmpty": "Nenhum pedido, validação, incidente ou ausência a aguardar decisão. As chegadas a acompanhar estão logo abaixo.",
+      "infoTitle": "A acompanhar",
+      "calmTitle": "{count, plural, one {Sob controlo: # categoria sem elementos} other {Sob controlo: # categorias sem elementos}}",
+      "why": {
+        "incidents": "Um problema assinalado num alojamento aguarda tratamento.",
+        "timingMismatch": "Um horário prometido ao hóspede não corresponde à estadia.",
+        "schedule": "Uma limpeza não cabe entre duas estadias.",
+        "availability": "Uma ausência impede uma missão prevista.",
+        "toValidate": "Há agentes que terminaram: valide ou peça uma correção.",
+        "services": "Um hóspede aguarda resposta.",
+        "bookings": "Um pedido de estadia aguarda resposta.",
+        "absenceRequests": "Um membro da equipa aguarda a sua decisão.",
+        "unassigned": "Ninguém está previsto para estas missões."
+      },
+      "cta": {
+        "incidents": "Tratar",
+        "timingMismatch": "Decidir",
+        "schedule": "Replanear",
+        "availability": "Reorganizar",
+        "toValidate": "Validar",
+        "services": "Responder",
+        "bookings": "Responder",
+        "absenceRequests": "Decidir",
+        "unassigned": "Atribuir",
+        "open": "Abrir"
+      },
+      "detail": {
+        "toValidate": "{mission} · {property} · terminada a {date}",
+        "incident": "{property}: {text} ({date})",
+        "incidentUrgent": "Urgente · {property}: {text} ({date})"
+      }
     },
     "onb": {
       "progress": "Passo {n} de {total}",
@@ -1845,7 +1878,8 @@
         "team_low_review": "Equipa: avaliação com nota baixa",
         "timing_confirmed": "Horário confirmado",
         "timing_cancelled": "Horário anulado",
-        "timing_updated": "Horário da estadia atualizado"
+        "timing_updated": "Horário da estadia atualizado",
+        "agent_task_validated": "Agente: missão validada"
       },
       "testAddress": "Endereço fictício (conta de teste): nada é enviado.",
       "skippedReason": "O destinatário desativou este e-mail; o evento continua visível no HALO.",
@@ -2044,10 +2078,27 @@
       "closing": "No fim",
       "needsValidation": "Validação por um responsável",
       "autoValidated": "Fecho direto (definição)",
-      "manualWindow": "Horário definido manualmente: já não é recalculado automaticamente.",
+      "manualWindow": "Janela alterada por um responsável: já não é recalculada automaticamente.",
       "sourceIncident": "Intervenção ligada ao incidente",
       "incidentResolved": "incidente resolvido",
-      "incidentStillOpen": "a sua resolução cabe a um responsável"
+      "incidentStillOpen": "a sua resolução cabe a um responsável",
+      "correctionNext": "Corrija o que é pedido e toque em «Terminar»: a missão volta ao responsável.",
+      "sentTitle": "Enviada ao responsável",
+      "resentTitle": "Correção enviada ao responsável",
+      "sentText": "Vai validar ou pedir uma correção; será avisado segundo as suas preferências.",
+      "validatedTitle": "Missão validada pelo responsável.",
+      "reqTitle": "Para terminar",
+      "reqChecklist": "Checklist: {done} / {total} marcadas",
+      "reqPhotos": "{count, plural, one {falta # foto obrigatória} other {faltam # fotos obrigatórias}}",
+      "reqComment": "Comentário de fim de missão",
+      "required": "obrigatório",
+      "optional": "opcional",
+      "reqNone": "Nenhuma prova exigida para este tipo de missão.",
+      "commentRequired": "Comentário de fim de missão (obrigatório)",
+      "commentOptional": "Comentário de fim de missão (opcional)",
+      "commentSave": "Guardar o comentário",
+      "commentSaved": "Comentário guardado.",
+      "commentUnsaved": "Comentário ainda não guardado."
     },
     "testAccount": {
       "title": "Pré-produção: conta de teste sem e-mail",
@@ -2260,8 +2311,16 @@
         "correction_requested": "Correção pedida",
         "cancelled": "Cancelada",
         "status_changed": "Estado alterado",
-        "window_changed": "Horário alterado"
-      }
+        "window_changed": "Horário alterado",
+        "early_start_allowed": "Início antecipado autorizado",
+        "started_early": "Iniciada antes do início recomendado",
+        "resubmitted": "Correção reenviada, a validar"
+      },
+      "bySystem": "automático",
+      "byYou": "você",
+      "byAgent": "{name}",
+      "agent": "agente",
+      "byManager": "um responsável"
     },
     "schedule": {
       "title": "{count, plural, one {# limpeza impossível de planear} other {# limpezas impossíveis de planear}}",
@@ -2428,7 +2487,8 @@
         "team_prep_updated": "Respostas de preparação alteradas",
         "team_vip_requested": "Pedido de receção personalizada (VIP)",
         "team_booking_requested": "Pedido de estadia de um antigo hóspede",
-        "team_low_review": "Avaliação com nota baixa"
+        "team_low_review": "Avaliação com nota baixa",
+        "agent_task_validated": "A minha missão foi validada"
       },
       "pageTitle": "Preferências",
       "pageSubtitle": "As suas definições pessoais: não mudam nada para os outros membros.",
@@ -3292,9 +3352,19 @@
       "durationLabel": "Duração prevista do trabalho",
       "estimate": "estimativa",
       "slotLabel": "Horário planeado",
-      "noSlotLong": "Sem horário atribuído: a intervenção faz-se no intervalo acima.",
+      "noSlotLong": "Sem horário planeado: a intervenção faz-se em qualquer momento da janela.",
       "assigneeLabel": "Atribuição",
-      "unassigned": "Não atribuída"
+      "unassigned": "Não atribuída",
+      "fromFirmLabel": "Intervenção autorizada a partir de",
+      "fromRecommendedLabel": "Início recomendado a partir de",
+      "firmHint": "Restrição firme: impossível começar antes (salvo exceção de um responsável).",
+      "recommendedHint": "Recomendação: começar mais cedo continua possível, após confirmação.",
+      "derogation": "Início antecipado autorizado por um responsável: «{reason}»",
+      "source": {
+        "auto": "Janela calculada automaticamente a partir das estadias.",
+        "created": "Janela escolhida na criação da missão.",
+        "edited": "Janela alterada por um responsável (já não é recalculada)."
+      }
     },
     "timingDecision": {
       "title": {
@@ -3348,7 +3418,7 @@
       "noteHint": "Visível apenas pela equipa.",
       "confirm": "Confirmar o horário",
       "otherDecisions": "Para pedir um esclarecimento ou recusar, use a decisão abaixo.",
-      "confirmedText": "Horário confirmado: a estadia mostra a nova hora. Cancelar repõe o horário anterior se a estadia não tiver mudado.",
+      "confirmedText": "Horário confirmado: a estadia mostra a nova hora. Anular restabelece o horário anterior se a estadia não mudou e a hora não passou; caso contrário, o HALO pergunta.",
       "cancel": "Cancelar este horário",
       "result": {
         "applied": "Decisão registada.",
@@ -3413,7 +3483,64 @@
       "notReady": "Confirmar não marca nada como feito: o alojamento só fica «pronto» quando as missões e ações estão realmente concluídas.",
       "supersededText": "Esta confirmação já não é o horário aplicável. Retirá-la não altera a estadia; se a confirmação posterior for anulada mais tarde, a estadia volta ao horário anterior a esta.",
       "coveredText": "A estadia foi alterada de outra forma, compatível com esta confirmação. Anular retira a confirmação sem alterar a estadia.",
-      "withdrawSuperseded": "Retirar esta confirmação substituída"
+      "withdrawSuperseded": "Retirar esta confirmação substituída",
+      "restoreUnsafeTitle": "A hora confirmada já passou",
+      "restoreUnsafeText": "Restabelecer automaticamente o horário anterior já não é seguro (o hóspede pode já estar lá). Pode retirar a confirmação sem alterar a estadia e ajustá-la depois se necessário.",
+      "withdrawOnly": "Retirar sem alterar a estadia"
+    },
+    "taskStep": {
+      "start": "Começar",
+      "resume": "Retomar a missão",
+      "finish": "Terminar",
+      "tooEarlyTitle": "Não antes de {date}",
+      "tooEarlyText": "Esta missão não pode começar mais cedo (o alojamento ainda não está livre). Volte a essa hora ou peça uma exceção ao seu responsável.",
+      "earlyTitle": "Início recomendado: {date}",
+      "earlyText": "Pode começar mais cedo se for possível no local. Este início antecipado fica registado no histórico.",
+      "earlyGo": "Começar agora",
+      "earlyWait": "Cancelar",
+      "missingTitle": "Ainda não terminada: falta",
+      "missing": {
+        "checklist": "itens da checklist",
+        "photos": "fotos obrigatórias",
+        "comment": "o comentário de fim de missão"
+      },
+      "missingKept": "O que já introduziu é guardado; a missão continua em curso.",
+      "missingOpen": "Completar na ficha da missão",
+      "sentForReview": "Enviada ao responsável para validação.",
+      "allowOpen": "Autorizar um início antecipado",
+      "allowText": "O agente poderá começar antes do início da janela. Indique o motivo (fica no histórico).",
+      "allowReason": "Motivo (ex. hóspede saiu mais cedo)",
+      "allowConfirm": "Autorizar"
+    },
+    "linenPlan": {
+      "title": "Entrega de roupa · {property} · {guest}",
+      "deadline": "Entregar antes da chegada do hóspede: {date}.",
+      "startLabel": "Início recomendado",
+      "startHint": "Recomendação, não uma restrição.",
+      "endLabel": "Prazo",
+      "endHint": "No máximo a hora de chegada.",
+      "durationLabel": "Duração estimada (min)",
+      "durationHint": "Estimativa do trabalho.",
+      "assigneeLabel": "Agente",
+      "later": "Atribuir mais tarde",
+      "noteLabel": "Instruções (opcional)",
+      "unknown": "Desconhecido para o HALO: quantidades e stock de roupa, acesso ao alojamento. Verificar antes de confirmar.",
+      "confirm": "Criar a entrega",
+      "cancel": "Cancelar",
+      "created": "Entrega criada.",
+      "existed": "Já existe uma entrega de roupa para esta estadia: nada foi duplicado.",
+      "open": "Abrir a missão"
+    },
+    "taskRules": {
+      "title": "Regras por tipo de missão",
+      "text": "Aplicadas pelo servidor, em qualquer ecrã: início antes da janela, provas exigidas para terminar.",
+      "start": "Antes da janela:",
+      "firm": "proibido (exceção do responsável)",
+      "recommended": "possível após confirmação",
+      "checklist": "Checklist completa exigida",
+      "comment": "Comentário exigido",
+      "photosNote": "As fotos obrigatórias definem-se item a item na checklist de cada alojamento.",
+      "saved": "Guardado"
     }
   },
   "email": {
@@ -3578,6 +3705,10 @@
     "timing_updated": {
       "subject": "{org} — horário da sua estadia atualizado",
       "body": "O horário da sua estadia foi atualizado. {which, select, early_checkin {A sua chegada está agora prevista para {time}.} other {A sua saída está agora prevista para {time}.}}"
+    },
+    "agent_task_validated": {
+      "subject": "Missão validada — {property}",
+      "body": "A sua missão «{kind}» em {property} foi validada."
     }
   },
   "guestSpace": {

@@ -4,7 +4,8 @@ import { useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Camera, Check, CircleAlert, Loader2 } from "lucide-react";
 import { useRouter } from "@/i18n/navigation";
-import { agentTaskAction, beginTaskPhoto, requestCorrection, saveTaskReport, validateTask } from "@/lib/connected/actions";
+import { beginTaskPhoto, requestCorrection, saveTaskReport, setTaskComment, validateTask } from "@/lib/connected/actions";
+import { TaskStepButtons } from "./task-step";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -52,6 +53,12 @@ export function MissionReport(props: {
   canFinish: boolean;
   canReview: boolean;
   canReopen: boolean;
+  /** Exigences calculées par la base (public.task_requirements) : ce qui sera réellement exigé pour terminer */
+  requirements?: { checklist: { required: boolean; total: number; done: number }; photos_missing: number; comment: { required: boolean; present: boolean } } | null;
+  comment?: string | null;
+  timeZone?: string;
+  /** Vue de l'agent affecté (bandeaux d'état : envoyée, validée) */
+  mine?: boolean;
 }) {
   const t = useTranslations("connected.mission");
   const te = useTranslations("connected.errors");
@@ -61,6 +68,8 @@ export function MissionReport(props: {
   const [saving, startSave] = useTransition();
   const [uploading, setUploading] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  const [comment, setComment] = useState(props.comment ?? "");
+  const [commentSaved, setCommentSaved] = useState(Boolean(props.comment));
   // Points à refaire : par défaut, ceux qui exigent une photo (une nouvelle preuve sera exigée)
   const [redo, setRedo] = useState<string[]>(() => props.checklist.flatMap((r) => r.items).filter((i) => i.photoRequired).map((i) => i.id));
   const fileFor = useRef<{ itemId: string | null; roomId: string | null }>({ itemId: null, roomId: null });
@@ -135,17 +144,51 @@ export function MissionReport(props: {
           <CircleAlert className="mt-0.5 size-5 shrink-0 text-warning" />
           <span>
             <span className="block font-semibold">{t("correctionTitle")}</span>
-            {props.correctionReason}
+            <span data-testid="correction-reason-shown">{props.correctionReason}</span>
+            <span className="mt-1 block text-[14px] text-muted">{t("correctionNext")}</span>
           </span>
         </p>
       )}
 
-      {props.canStart && (
-        <Button size="xl" onClick={() => run(() => agentTaskAction(props.taskId, "start"))} disabled={pending} data-testid="mission-start">
-          {t("start")}
-        </Button>
+      {props.mine && props.status === "done" && (
+        <p className="flex gap-2 rounded-xl border border-line bg-subtle p-4 text-[15px] dark:bg-surface-hover" role="status" data-testid="mission-sent">
+          <Check className="mt-0.5 size-5 shrink-0 text-success" />
+          <span>
+            <span className="block font-semibold">{t(props.correctionReason ? "resentTitle" : "sentTitle")}</span>
+            {t("sentText")}
+          </span>
+        </p>
+      )}
+      {props.mine && props.status === "validated" && (
+        <p className="flex gap-2 rounded-xl border border-success bg-success-soft p-4 text-[15px]" role="status" data-testid="mission-validated">
+          <Check className="mt-0.5 size-5 shrink-0 text-success" />
+          <span className="font-semibold">{t("validatedTitle")}</span>
+        </p>
       )}
 
+      {props.canStart && <TaskStepButtons taskId={props.taskId} status={props.status} timeZone={props.timeZone} variant="page" />}
+
+      {props.requirements && (props.canEdit || props.canFinish) && (
+        <Card className="p-4 text-[14px]" data-testid="mission-requirements">
+          <h2 className="text-[15px] font-semibold">{t("reqTitle")}</h2>
+          <ul className="mt-1.5 space-y-1">
+            {props.requirements.checklist.total > 0 && (
+              <li data-testid="req-checklist-line" data-required={props.requirements.checklist.required ? "1" : "0"}>
+                {t("reqChecklist", { done: checked.filter((id) => props.checklist.some((r) => r.items.some((i) => i.id === id))).length, total: props.requirements.checklist.total })} ·{" "}
+                <span className="text-muted">{props.requirements.checklist.required ? t("required") : t("optional")}</span>
+              </li>
+            )}
+            {missing.length > 0 && <li>{t("reqPhotos", { count: missing.length })}</li>}
+            <li data-testid="req-comment-line" data-required={props.requirements.comment.required ? "1" : "0"}>
+              {t("reqComment")} · <span className="text-muted">{props.requirements.comment.required ? t("required") : t("optional")}</span>
+            </li>
+            {props.requirements.checklist.total === 0 && missing.length === 0 && !props.requirements.comment.required && <li className="text-muted">{t("reqNone")}</li>}
+          </ul>
+        </Card>
+      )}
+
+      {props.checklist.length > 0 && <span id="req-checklist" />}
+      {props.checklist.length > 0 && <span id="req-photos" />}
       {props.checklist.map((room) => (
         <Card key={room.id} className="p-4" data-testid="checklist-room">
           <h2 className="text-[17px] font-semibold">{room.name}</h2>
@@ -216,6 +259,32 @@ export function MissionReport(props: {
         </p>
       )}
 
+      {(props.canEdit || comment) && (
+        <Card className="space-y-2 p-4" id="req-comment">
+          <Field label={props.requirements?.comment.required ? t("commentRequired") : t("commentOptional")} htmlFor="task-comment">
+            <Textarea
+              id="task-comment"
+              value={comment}
+              disabled={!props.canEdit}
+              onChange={(e) => {
+                setComment(e.target.value);
+                setCommentSaved(false);
+              }}
+              maxLength={2000}
+              data-testid="task-comment"
+            />
+          </Field>
+          {props.canEdit && (
+            <div className="flex items-center gap-3">
+              <Button size="sm" variant="outline" disabled={pending || commentSaved} onClick={() => run(() => setTaskComment(props.taskId, comment), () => setCommentSaved(true))} data-testid="task-comment-save">
+                {t("commentSave")}
+              </Button>
+              {commentSaved && comment.trim() && <span className="text-[13px] text-success" data-testid="task-comment-saved">{t("commentSaved")}</span>}
+            </div>
+          )}
+        </Card>
+      )}
+
       {props.canFinish && (
         <div className="space-y-2">
           {missing.length > 0 && (
@@ -223,9 +292,8 @@ export function MissionReport(props: {
               {t("missing", { count: missing.length })}
             </p>
           )}
-          <Button size="xl" onClick={() => run(() => agentTaskAction(props.taskId, "finish"))} disabled={pending || missing.length > 0 || Boolean(uploading)} data-testid="mission-finish">
-            {t("finish")}
-          </Button>
+          {!commentSaved && comment.trim() && <p className="text-[13px] text-warning">{t("commentUnsaved")}</p>}
+          <TaskStepButtons taskId={props.taskId} status={props.status} timeZone={props.timeZone} variant="page" />
         </div>
       )}
 

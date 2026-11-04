@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { agentTaskAction, assignTask, cancelTask } from "@/lib/connected/actions";
+import { allowEarlyStart, assignTask, cancelTask } from "@/lib/connected/actions";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -96,26 +96,6 @@ export function AssignSelect({
   );
 }
 
-export function AgentActions({ taskId, status }: { taskId: string; status: string }) {
-  const t = useTranslations("connected.missions");
-  const { pending, error, run } = useRun();
-  return (
-    <div className="flex flex-col items-end gap-1">
-      {(status === "assigned" || status === "to_redo") && (
-        <Button size="sm" onClick={() => run(() => agentTaskAction(taskId, "start"))} disabled={pending} data-testid="task-start">
-          {t("start")}
-        </Button>
-      )}
-      {status === "in_progress" && (
-        <Button size="sm" onClick={() => run(() => agentTaskAction(taskId, "finish"))} disabled={pending} data-testid="task-finish">
-          {t("finish")}
-        </Button>
-      )}
-      {error && <p role="alert" className="max-w-56 text-end text-[13px] text-danger">{error}</p>}
-    </div>
-  );
-}
-
 /** Annulation d'une mission par un responsable : confirmation explicite, l'agent affecté est prévenu. */
 export function CancelTaskButton({ taskId }: { taskId: string }) {
   const t = useTranslations("connected.missions");
@@ -139,6 +119,35 @@ export function CancelTaskButton({ taskId }: { taskId: string }) {
         </>
       )}
       {error && <p role="alert" className="basis-full text-[13px] text-danger">{error}</p>}
+    </div>
+  );
+}
+
+/** Dérogation de démarrage anticipé (règle ferme) : décision d'un responsable, motif obligatoire, tracée. */
+export function EarlyStartForm({ taskId }: { taskId: string }) {
+  const t = useTranslations("connected.taskStep");
+  const { pending, error, run } = useRun();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  if (!open)
+    return (
+      <Button size="sm" variant="ghost" className="mt-1" onClick={() => setOpen(true)} data-testid="early-allow-open">
+        {t("allowOpen")}
+      </Button>
+    );
+  return (
+    <div className="mt-2 max-w-md space-y-2 rounded-md border border-line p-3 text-[14px]" data-testid="early-allow">
+      <p>{t("allowText")}</p>
+      <Input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} placeholder={t("allowReason")} aria-label={t("allowReason")} data-testid="early-allow-reason" />
+      <div className="flex gap-2">
+        <Button size="sm" onClick={() => run(() => allowEarlyStart(taskId, reason))} disabled={pending || !reason.trim()} data-testid="early-allow-confirm">
+          {t("allowConfirm")}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+          {t("earlyWait")}
+        </Button>
+      </div>
+      {error && <p role="alert" className="text-[13px] text-danger">{error}</p>}
     </div>
   );
 }

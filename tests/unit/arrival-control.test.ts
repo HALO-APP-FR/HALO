@@ -85,7 +85,11 @@ describe("étapes complémentaires (environnement connecté) : linge, maintenanc
     expect(runS([clean("a", { status: "validated" })], false)[0].state).toBe("ready");
   });
   it("linge livré + ménage validé = prête ; linge prévu pas encore livré = en préparation, sans alerte", () => {
-    expect(runS([clean("a", { status: "validated" }), step("a", "linen_delivery", { status: "done" })])[0].state).toBe("ready");
+    expect(runS([clean("a", { status: "validated" }), step("a", "linen_delivery", { status: "validated" })])[0].state).toBe("ready");
+    // Brief du 4/11 : livraison terminée mais en attente de validation = pas encore « prête »
+    expect(runS([clean("a", { status: "validated" }), step("a", "linen_delivery", { status: "done" })])[0]).toMatchObject({ state: "watch", blockers: [{ kind: "step_review", detail: "linen" }] });
+    // En cours : encore à faire, sans alerte
+    expect(runS([clean("a", { status: "validated" }), step("a", "linen_delivery", { status: "in_progress" })])[0]).toMatchObject({ state: "preparing", pending: ["linen"] });
     const [p] = runS([clean("a", { status: "validated" }), step("a", "linen_delivery")]);
     expect(p).toMatchObject({ state: "preparing", blockers: [], pending: ["linen"] });
   });

@@ -2,7 +2,8 @@ import { getFormatter, getTranslations, setRequestLocale } from "next-intl/serve
 import { Link, redirect } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/halo/page-header";
-import { AgentActions, AssignSelect } from "@/components/connected/mission-controls";
+import { AssignSelect } from "@/components/connected/mission-controls";
+import { TaskStepButtons } from "@/components/connected/task-step";
 import { MissionTiming } from "@/components/connected/mission-timing";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { isoFromNow, nowDate } from "@/lib/connected/time";
@@ -124,7 +125,7 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
                   reasons={away(k)}
                 />
               ) : (
-                <AgentActions taskId={k.id} status={k.status} />
+                <TaskStepButtons taskId={k.id} status={k.status} timeZone={p?.timezone ?? undefined} />
               )}
             </div>
           );

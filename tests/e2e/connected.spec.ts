@@ -392,6 +392,18 @@ test("8 · cloisonnement : autre organisation, autre séjour, agent", async ({ p
   await expect(agent).toHaveURL(/\/fr\/app\/missions$/);
   await agent.goto("/fr/app/services");
   await expect(agent).toHaveURL(/\/fr\/app\/missions$/);
+  // Ménage avant le départ du voyageur précédent : refus expliqué (règle ferme, appliquée par la base)
+  await agent.getByTestId("task-start").click();
+  await expect(agent.getByTestId("task-too-early")).toContainText("Pas avant le");
+  await expect(agent.getByTestId("mission-row")).toContainText("À faire");
+  // Dérogation du responsable (motif obligatoire, tracé), puis démarrage
+  await turnover.getByTestId("mission-link").click();
+  await pa.getByTestId("early-allow-open").click();
+  await pa.getByTestId("early-allow-reason").fill("Voyageur précédent parti plus tôt (test fictif)");
+  await pa.getByTestId("early-allow-confirm").click();
+  await expect(pa.getByTestId("mission-derogation")).toContainText("Voyageur précédent parti plus tôt");
+  await expect(pa.locator("[data-testid=history-event][data-kind=early_start_allowed]")).toContainText("vous — « Voyageur précédent parti plus tôt");
+  await agent.reload();
   await agent.getByTestId("task-start").click();
   await expect(agent.getByTestId("mission-row")).toContainText("En cours");
   await agent.context().close();
@@ -497,8 +509,12 @@ test("12 · compte rendu agent : checklist, photos réelles, correction puis val
   await expect(agent.getByTestId("checklist-room").first()).toBeVisible();
   // Terminer est impossible tant que les photos obligatoires manquent
   await expect(agent.getByTestId("missing-photos")).toBeVisible();
-  await expect(agent.getByTestId("mission-finish")).toBeDisabled();
+  // Terminer quand même : la base refuse, explique ce qui manque, rien n'est perdu
   await agent.getByTestId("checklist-item").first().locator("button").first().click();
+  await agent.getByTestId("mission-finish").click();
+  await expect(agent.locator("[data-testid=task-missing] [data-missing=photos]")).toBeVisible();
+  await expect(agent.getByTestId("task-missing")).toContainText("Ce que vous avez déjà saisi est conservé");
+  await expect(agent.getByTestId("checklist-item").first().locator("button").first()).toHaveAttribute("aria-pressed", "true");
   const buttons = agent.getByTestId("photo-add");
   const n = await buttons.count();
   expect(n).toBeGreaterThan(0);
@@ -510,7 +526,7 @@ test("12 · compte rendu agent : checklist, photos réelles, correction puis val
   }
   await expect(agent.getByTestId("missing-photos")).toHaveCount(0);
   await agent.getByTestId("mission-finish").click();
-  await expect(agent.getByText(/Terminée, à valider/)).toBeVisible();
+  await expect(agent.getByText("Terminée, à valider", { exact: true })).toBeVisible();
   const missionUrl = agent.url();
 
   // Manager : voit les preuves, demande une correction
@@ -520,15 +536,16 @@ test("12 · compte rendu agent : checklist, photos réelles, correction puis val
   await expect(m.getByTestId("mission-photo")).toHaveCount(n);
   await m.getByTestId("correction-reason").fill("Refaire la salle de bain");
   await m.getByTestId("mission-correction").click();
-  await expect(m.getByText(/Correction demandée/).first()).toBeVisible();
+  await expect(m.getByText("Correction demandée", { exact: true }).first()).toBeVisible();
 
   // Agent : voit le motif, reprend et termine ; le manager valide
   await agent.reload();
-  await expect(agent.getByText("Refaire la salle de bain")).toBeVisible();
+  await expect(agent.getByTestId("correction-reason-shown")).toContainText("Refaire la salle de bain");
   await agent.getByTestId("mission-start").click();
   // Les anciennes photos ne comptent plus : nouvelle preuve exigée, l'ancienne reste visible en historique
   await expect(agent.getByTestId("missing-photos")).toBeVisible();
-  await expect(agent.getByTestId("mission-finish")).toBeDisabled();
+  await agent.getByTestId("mission-finish").click();
+  await expect(agent.locator("[data-testid=task-missing] [data-missing=photos]")).toBeVisible();
   await expect(agent.getByTestId("old-photos").first()).toBeVisible();
   for (let i = 0; i < n; i++) {
     const chooser = agent.waitForEvent("filechooser");
@@ -538,10 +555,16 @@ test("12 · compte rendu agent : checklist, photos réelles, correction puis val
   }
   await expect(agent.getByTestId("missing-photos")).toHaveCount(0);
   await agent.getByTestId("mission-finish").click();
-  await expect(agent.getByText(/Terminée, à valider/)).toBeVisible();
+  await expect(agent.getByText("Terminée, à valider", { exact: true })).toBeVisible();
+  // L'agent sait que sa correction est partie ; l'historique dit « correction renvoyée »
+  await expect(agent.getByTestId("mission-sent")).toContainText("Correction envoyée au responsable");
+  await expect(agent.locator("[data-testid=history-event][data-kind=resubmitted]")).toBeVisible();
+  await expect(agent.locator("[data-testid=history-event][data-kind=correction_requested]")).toContainText("Refaire la salle de bain");
   await m.reload();
   await m.getByTestId("mission-validate").click();
   await expect(m.getByText(/Validée/).first()).toBeVisible();
+  await agent.reload();
+  await expect(agent.getByTestId("mission-validated")).toBeVisible();
 
   // Un autre manager (autre organisation) ne peut pas ouvrir la mission ni ses photos
   const other = await newPage(browser);
@@ -647,8 +670,16 @@ test("15 · linge (blanchisserie) et maintenance comptent dans « logement prêt
   await m.goto("/fr/app");
   const row = m.getByTestId("arrival-row").filter({ hasText: "Alex Martin" });
   await expect(row).toContainText("Linge : rien de prévu avant l'arrivée");
+  // Fiche préremplie vérifiée avant création : échéance = arrivée, début conseillé, inconnues signalées
   await row.getByTestId("plan-linen").click();
-  await expect(row).toContainText("Linge : personne n'est assigné");
+  await expect(row.getByTestId("linen-deadline")).toContainText("À livrer avant l'arrivée du voyageur");
+  await expect(row.getByTestId("linen-unknown")).toContainText("Non connu de HALO");
+  await expect(row.getByTestId("linen-assignee")).toHaveValue("");
+  await row.getByTestId("linen-confirm").dblclick();
+  await expect(m.getByTestId("arrival-row").filter({ hasText: "Alex Martin" })).toContainText("Linge : personne n'est assigné");
+  // Double clic : une seule livraison
+  const { data: stayA } = await admin.from("reservations").select("id").eq("guest_name", "Alex Martin").order("created_at", { ascending: false }).limit(1).single();
+  expect((await admin.from("tasks").select("id", { count: "exact", head: true }).eq("next_reservation_id", stayA!.id).eq("type", "linen_delivery")).count).toBe(1);
 
   // Un dégât signalé → intervention de maintenance planifiée, reliée à l'arrivée, visible par l'agent
   const agent = await newPage(browser);
@@ -1014,7 +1045,7 @@ test("18 · missions à valider, messages lus, messagerie interne, itinéraires,
 
   await m.goto("/fr/app");
   await expect(m.getByTestId("home-chats")).toContainText("1 conversation d'équipe non lue");
-  await m.getByTestId("home-chats").click();
+  await m.getByTestId("home-cta-chats").click();
   await m.getByTestId("chat-row").first().click();
   await expect(m.getByTestId("chat-message").filter({ hasText: "Bien reçu" })).toContainText("Nouveau");
   await expect(m.getByTestId("chat-message").filter({ hasText: "local poubelles" }).getByTestId("chat-read-state")).toHaveText(" · lu");
@@ -1072,7 +1103,7 @@ test("18 · missions à valider, messages lus, messagerie interne, itinéraires,
   await expect(agent.getByTestId("mission-finish")).toHaveCount(0);
   await m.goto("/fr/app");
   await expect(m.getByTestId("home-toValidate")).toContainText("1 mission à valider");
-  await m.getByTestId("home-toValidate").click();
+  await m.getByTestId("home-cta-toValidate").click();
   await expect(m).toHaveURL(/\/fr\/app\/missions\?status=done$/);
   await expect(m.getByTestId("mission-row")).toHaveCount(1);
   await expect(m.getByTestId("mission-row")).toContainText("Maintenance");
@@ -1313,7 +1344,7 @@ test("20 · préparation avant l'arrivée et demande VIP : lien, questionnaire, 
   // 4. Responsable : alerte utile et réponses lisibles
   await m.goto("/fr/app");
   await expect(m.getByTestId("home-prepReview")).toContainText("1 questionnaire voyageur à examiner");
-  await m.getByTestId("home-prepReview").click();
+  await m.getByTestId("home-cta-prepReview").click();
   await expect(m.getByTestId("stays-filter")).toBeVisible();
   await expect(m.getByTestId("stay-row")).toHaveCount(1);
   await m.goto(`/fr/app/stays/${stayId}`);
@@ -2109,7 +2140,7 @@ test("28 · scénario de référence : absence, arrivée menacée, réaffectatio
   await expect(m.getByTestId("mission-from")).toBeVisible();
   await expect(m.getByTestId("mission-duration")).toContainText("1 h 30");
   await expect(m.getByTestId("mission-duration")).toContainText("estimation");
-  await expect(m.getByTestId("mission-slot")).toContainText("Aucun créneau attribué");
+  await expect(m.getByTestId("mission-slot")).toContainText("Pas d'horaire planifié");
   await expect(m.getByTestId("mission-absence-conflict")).toBeVisible();
   await expect(m.getByTestId("mission-suggestions")).toContainText("Temps de trajet");
   await expect(m.getByTestId("mission-suggestion")).toHaveCount(1); // le responsable, seul membre sans absence
@@ -2215,7 +2246,7 @@ test("29 · avis à traiter : voyageur et propriétaire séparés, compteurs, é
   await m.goto("/fr/app");
   await expect(m.getByTestId("home-lowReviewsOwner")).toContainText("1 avis propriétaire à traiter");
   await expect(m.getByTestId("home-lowReviewsGuest")).toContainText("Aucun avis voyageur à traiter");
-  await m.getByTestId("home-lowReviewsOwner").click();
+  await m.getByTestId("home-cta-lowReviewsOwner").click();
   await expect(m).toHaveURL(/kind=owner&filter=to_handle/);
   await expect(m.getByTestId("review-row")).toHaveCount(1);
 
@@ -2234,7 +2265,7 @@ test("29 · avis à traiter : voyageur et propriétaire séparés, compteurs, é
   await m.goto("/fr/app");
   await expect(m.getByTestId("home-lowReviewsGuest")).toContainText("1 avis voyageur à traiter");
   await expect(m.getByTestId("home-lowReviewsOwner")).toContainText("1 avis propriétaire à traiter");
-  await m.getByTestId("home-lowReviewsGuest").click();
+  await m.getByTestId("home-cta-lowReviewsGuest").click();
   const row = m.getByTestId("review-row");
   await expect(row).toHaveCount(1);
   await expect(row.getByTestId("review-low-reason")).toContainText("Propreté");
@@ -2463,7 +2494,7 @@ test("33 · retest du 2/11 : mission de préparation liée, double clic, modific
   await expect(m.getByTestId("home-timingMismatch")).toContainText("1 horaire confirmé ne correspond pas au séjour");
   await g.reload();
   await expect(g.locator("[data-testid=guest-service][data-status=confirmed]").getByTestId("guest-timing-note")).toContainText("Horaire en cours de vérification");
-  await m.getByTestId("home-timingMismatch").click();
+  await m.getByTestId("home-cta-timingMismatch").click();
   await expect(m.getByTestId("timing-legacy")).toContainText("Horaires contradictoires");
   await m.getByTestId("timing-ack").check();
   await m.getByTestId("timing-apply-legacy").click();
@@ -2587,6 +2618,79 @@ test("36 · absences : mission démarrée avant une absence commencée depuis, t
   const { data: after } = await admin.from("tasks").select("assignee_id, status, window_start").eq("id", k!.id).single();
   expect([after!.assignee_id, after!.status]).toEqual([agentId, "in_progress"]);
   await m.close();
+});
+
+test("37 · brief du 4/11 : linge préparé puis réalisé, règles de démarrage et exigences depuis la liste, correction, accueil orienté décisions", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org, agentId } = await testScenario(m, `lin ${run}`);
+  const { data: stay } = await admin.from("reservations").select("id").eq("organization_id", org).eq("guest_name", "Voyageur test").single();
+  await admin.from("organizations").update({ validation_task_types: ["turnover", "linen_delivery"] }).eq("id", org);
+  // Règle de l'organisation : commentaire exigé pour la livraison de linge (réglage, appliqué par la base)
+  await m.goto("/fr/app/settings");
+  await m.getByTestId("rule-linen_delivery-comment").check();
+  await expect(m.getByTestId("rule-linen_delivery")).toContainText("Enregistré");
+
+  // Accueil : la décision d'abord ; linge absent → fiche préremplie → création attribuée
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-now")).toBeVisible();
+  await expect(m.getByTestId("home-calm")).toBeVisible();
+  const row = m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" });
+  await expect(row).toContainText("Linge : rien de prévu avant l'arrivée");
+  await row.getByTestId("plan-linen").click();
+  await row.getByTestId("linen-assignee").selectOption(agentId);
+  await row.getByTestId("linen-confirm").click();
+  await expect(m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" })).not.toContainText("Linge : rien de prévu");
+  const { data: lin } = await admin.from("tasks").select("id, status, assignee_id").eq("next_reservation_id", stay!.id).eq("type", "linen_delivery").single();
+  expect([lin!.status, lin!.assignee_id]).toEqual(["assigned", agentId]);
+
+  // Agent, depuis la LISTE : démarrage conseillé (confirmation si en avance), fin refusée tant que le commentaire manque
+  const agent = await newPage(browser);
+  await agent.goto("/fr/auth/sign-in");
+  await agent.getByLabel("Nom du compte de test").fill(`lin-${run}-agent`);
+  await agent.getByTestId("test-account-submit").click();
+  await agent.waitForURL(/\/fr\/app/);
+  await agent.goto("/fr/app/missions");
+  const lrow = agent.getByTestId("mission-row").filter({ has: agent.locator(`a[href$="/app/missions/${lin!.id}"]`) });
+  await lrow.getByTestId("task-start").click();
+  const early = lrow.getByTestId("task-early-confirm");
+  if (await early.isVisible().catch(() => false)) await lrow.getByTestId("task-early-go").click();
+  await expect(lrow).toContainText("En cours");
+  await lrow.getByTestId("task-finish").click();
+  await expect(lrow.locator("[data-testid=task-missing] [data-missing=comment]")).toBeVisible();
+  expect((await admin.from("tasks").select("status").eq("id", lin!.id).single()).data!.status).toBe("in_progress");
+  // Même règle depuis la fiche : on complète puis on termine
+  await lrow.getByTestId("task-missing-open").click();
+  await agent.getByTestId("task-comment").fill("Linge livré, 2 jeux (fictif)");
+  await agent.getByTestId("task-comment-save").click();
+  await expect(agent.getByTestId("task-comment-saved")).toBeVisible();
+  await agent.getByTestId("mission-finish").click();
+  await expect(agent.getByTestId("mission-sent")).toContainText("Envoyée au responsable");
+
+  // Accueil : linge terminé mais pas encore validé → jamais « prêt » ; mission à valider détaillée
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" }).getByTestId("arrival-causes")).toContainText("Linge");
+  await expect(m.getByTestId("home-toValidate")).toHaveAttribute("data-active", "1");
+  await expect(m.getByTestId("home-toValidate").getByTestId("home-details")).toContainText("Livraison linge · Appartement test · terminée le");
+  // Correction puis validation
+  await m.goto(`/fr/app/missions/${lin!.id}`);
+  await m.getByTestId("correction-reason").fill("Ajouter les serviettes (fictif)");
+  await m.getByTestId("mission-correction").click();
+  await agent.reload();
+  await expect(agent.getByTestId("correction-reason-shown")).toContainText("Ajouter les serviettes");
+  await agent.getByTestId("mission-start").click();
+  await agent.getByTestId("mission-finish").click();
+  await expect(agent.getByTestId("mission-sent")).toContainText("Correction envoyée au responsable");
+  await m.reload();
+  await m.getByTestId("mission-validate").click();
+  await expect(m.locator("[data-testid=history-event][data-kind=validated]")).toBeVisible();
+  await agent.reload();
+  await expect(agent.getByTestId("mission-validated")).toBeVisible();
+  // Notification créée pour l'agent (adresse fictive : jamais comptée « envoyée »)
+  const { data: note } = await admin.from("notification_outbox").select("status, last_error").eq("organization_id", org).eq("template", "agent_task_validated").single();
+  expect([note!.status, note!.last_error]).toEqual(["failed", "undeliverable_test_address"]);
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" })).not.toContainText("Linge");
+  for (const c of [m, agent]) await c.context().close();
 });
 
 test("34 · lieux avant l'ouverture : données transmises au navigateur sans coordonnées, plusieurs localisations", async ({ browser }) => {

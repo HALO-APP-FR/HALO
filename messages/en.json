@@ -1414,7 +1414,8 @@
       "slug_taken": "This showcase address is already taken: choose another.",
       "no_property": "This review isn't linked to a property: an incident can't be created.",
       "use_timing_decision": "An arrival or departure time is confirmed or cancelled with the dedicated decision, which checks preparation.",
-      "timing_window": "A linked mission couldn't follow this new time. Nothing was changed; reload the page to see the planned effect on each mission."
+      "timing_window": "A linked mission couldn't follow this new time. Nothing was changed; reload the page to see the planned effect on each mission.",
+      "missing_requirements": "Required proof is missing (checklist, photos or comment): ask for a correction instead of approving."
     },
     "home": {
       "subtitle": "What needs your attention.",
@@ -1448,7 +1449,39 @@
       "lowReviewsOwner": "{count, plural, =0 {No owner review to handle} one {# owner review to handle} other {# owner reviews to handle}}",
       "moreCauses": "+ {count} more cause(s)",
       "availabilityRisks": "{count, plural, =0 {No mission to check (partial absence)} one {# mission to check (partial absence)} other {# missions to check (partial absence)}}",
-      "timingMismatch": "{count, plural, =0 {No contradictory time} one {# confirmed time doesn't match the stay} other {# confirmed times don't match their stays}}"
+      "timingMismatch": "{count, plural, =0 {No contradictory time} one {# confirmed time doesn't match the stay} other {# confirmed times don't match their stays}}",
+      "nowTitle": "To handle now",
+      "nowEmpty": "No request, approval, incident or absence waiting for a decision. Arrivals to watch are just below.",
+      "infoTitle": "To keep an eye on",
+      "calmTitle": "{count, plural, one {Under control: # category with nothing} other {Under control: # categories with nothing}}",
+      "why": {
+        "incidents": "A reported problem at a property is waiting to be handled.",
+        "timingMismatch": "A time promised to the guest doesn't match the stay.",
+        "schedule": "A cleaning doesn't fit between two stays.",
+        "availability": "An absence prevents a planned mission.",
+        "toValidate": "Agents have finished: approve or ask for a correction.",
+        "services": "A guest is waiting for an answer.",
+        "bookings": "A stay request is waiting for an answer.",
+        "absenceRequests": "A team member is waiting for your decision.",
+        "unassigned": "Nobody is planned for these missions."
+      },
+      "cta": {
+        "incidents": "Handle",
+        "timingMismatch": "Decide",
+        "schedule": "Reschedule",
+        "availability": "Reorganize",
+        "toValidate": "Review",
+        "services": "Reply",
+        "bookings": "Reply",
+        "absenceRequests": "Decide",
+        "unassigned": "Assign",
+        "open": "Open"
+      },
+      "detail": {
+        "toValidate": "{mission} · {property} · finished {date}",
+        "incident": "{property}: {text} ({date})",
+        "incidentUrgent": "Urgent · {property}: {text} ({date})"
+      }
     },
     "onb": {
       "progress": "Step {n} of {total}",
@@ -1845,7 +1878,8 @@
         "team_low_review": "Team: low-rated review",
         "timing_confirmed": "Time confirmed",
         "timing_cancelled": "Time cancelled",
-        "timing_updated": "Stay time updated"
+        "timing_updated": "Stay time updated",
+        "agent_task_validated": "Agent: mission approved"
       },
       "testAddress": "Fictitious address (test account): nothing is sent.",
       "skippedReason": "The recipient disabled this email; the event remains visible in HALO.",
@@ -2044,10 +2078,27 @@
       "closing": "When finished",
       "needsValidation": "Validated by a manager",
       "autoValidated": "Closes directly (setting)",
-      "manualWindow": "Time slot set by hand: it is no longer recalculated automatically.",
+      "manualWindow": "Window changed by a manager: it's no longer recalculated automatically.",
       "sourceIncident": "Intervention linked to the incident",
       "incidentResolved": "incident resolved",
-      "incidentStillOpen": "its resolution is still for a manager to decide"
+      "incidentStillOpen": "its resolution is still for a manager to decide",
+      "correctionNext": "Fix what's requested, then tap “Finish”: the mission goes back to the manager.",
+      "sentTitle": "Sent to the manager",
+      "resentTitle": "Correction sent to the manager",
+      "sentText": "They'll approve it or ask for a correction; you'll be notified according to your preferences.",
+      "validatedTitle": "Mission approved by the manager.",
+      "reqTitle": "To finish",
+      "reqChecklist": "Checklist: {done} / {total} ticked",
+      "reqPhotos": "{count, plural, one {# required photo missing} other {# required photos missing}}",
+      "reqComment": "End-of-mission comment",
+      "required": "required",
+      "optional": "optional",
+      "reqNone": "No proof required for this mission type.",
+      "commentRequired": "End-of-mission comment (required)",
+      "commentOptional": "End-of-mission comment (optional)",
+      "commentSave": "Save the comment",
+      "commentSaved": "Comment saved.",
+      "commentUnsaved": "Comment not saved yet."
     },
     "testAccount": {
       "title": "Pre-production: test account without email",
@@ -2260,8 +2311,16 @@
         "correction_requested": "Correction requested",
         "cancelled": "Cancelled",
         "status_changed": "Status changed",
-        "window_changed": "Time slot changed"
-      }
+        "window_changed": "Time slot changed",
+        "early_start_allowed": "Early start allowed",
+        "started_early": "Started before the recommended time",
+        "resubmitted": "Correction sent back, to approve"
+      },
+      "bySystem": "automatic",
+      "byYou": "you",
+      "byAgent": "{name}",
+      "agent": "agent",
+      "byManager": "a manager"
     },
     "schedule": {
       "title": "{count, plural, one {# cleaning cannot be scheduled} other {# cleanings cannot be scheduled}}",
@@ -2428,7 +2487,8 @@
         "team_prep_updated": "Preparation answers changed",
         "team_vip_requested": "Personalised welcome request (VIP)",
         "team_booking_requested": "Stay request from a past guest",
-        "team_low_review": "Review with a low rating"
+        "team_low_review": "Review with a low rating",
+        "agent_task_validated": "My mission is approved"
       },
       "pageTitle": "Preferences",
       "pageSubtitle": "Your personal settings: they change nothing for other members.",
@@ -3292,9 +3352,19 @@
       "durationLabel": "Planned work time",
       "estimate": "estimate",
       "slotLabel": "Planned slot",
-      "noSlotLong": "No slot assigned: the job happens within the range above.",
+      "noSlotLong": "No planned time: the work can be done at any point in the window.",
       "assigneeLabel": "Assignment",
-      "unassigned": "Unassigned"
+      "unassigned": "Unassigned",
+      "fromFirmLabel": "Work allowed from",
+      "fromRecommendedLabel": "Recommended start from",
+      "firmHint": "Firm constraint: can't start before (unless a manager allows it).",
+      "recommendedHint": "Recommendation: starting earlier is still possible, after confirmation.",
+      "derogation": "Early start allowed by a manager: “{reason}”",
+      "source": {
+        "auto": "Window calculated automatically from the stays.",
+        "created": "Window chosen when the mission was created.",
+        "edited": "Window changed by a manager (no longer recalculated)."
+      }
     },
     "timingDecision": {
       "title": {
@@ -3348,7 +3418,7 @@
       "noteHint": "Visible to the team only.",
       "confirm": "Confirm the time",
       "otherDecisions": "To ask for details or decline, use the decision below.",
-      "confirmedText": "Time confirmed: the stay shows the new time. Cancelling restores the previous time if the stay hasn't changed since.",
+      "confirmedText": "Time confirmed: the stay shows the new time. Cancelling restores the previous time if the stay hasn't changed since and the time hasn't passed; otherwise HALO asks you what to do.",
       "cancel": "Cancel this time",
       "result": {
         "applied": "Decision saved.",
@@ -3413,7 +3483,64 @@
       "notReady": "Confirming doesn't mark anything as done: the property only becomes “ready” when missions and actions are actually completed.",
       "supersededText": "This confirmation is no longer the applicable time. Withdrawing it doesn't change the stay; if the later confirmation is cancelled later on, the stay will go back to the time before this one.",
       "coveredText": "The stay was changed another way, consistent with this confirmation. Cancelling withdraws the confirmation without changing the stay.",
-      "withdrawSuperseded": "Withdraw this superseded confirmation"
+      "withdrawSuperseded": "Withdraw this superseded confirmation",
+      "restoreUnsafeTitle": "The confirmed time has already passed",
+      "restoreUnsafeText": "Automatically restoring the previous time is no longer safe (the guest may already be there). You can withdraw the confirmation without changing the stay, then adjust the stay yourself if needed.",
+      "withdrawOnly": "Withdraw without changing the stay"
+    },
+    "taskStep": {
+      "start": "Start",
+      "resume": "Resume the mission",
+      "finish": "Finish",
+      "tooEarlyTitle": "Not before {date}",
+      "tooEarlyText": "This mission can't start earlier (the property isn't free yet). Come back at that time, or ask your manager for an exception.",
+      "earlyTitle": "Recommended start: {date}",
+      "earlyText": "You can start earlier if it's possible on site. This early start will be recorded in the history.",
+      "earlyGo": "Start now",
+      "earlyWait": "Cancel",
+      "missingTitle": "Not finished yet: missing",
+      "missing": {
+        "checklist": "checklist items",
+        "photos": "required photos",
+        "comment": "the end-of-mission comment"
+      },
+      "missingKept": "What you've already entered is kept; the mission stays in progress.",
+      "missingOpen": "Complete it in the mission page",
+      "sentForReview": "Sent to the manager for approval.",
+      "allowOpen": "Allow an early start",
+      "allowText": "The agent will be able to start before the window opens. Say why (the reason is kept in the history).",
+      "allowReason": "Reason (e.g. guest left early)",
+      "allowConfirm": "Allow"
+    },
+    "linenPlan": {
+      "title": "Linen delivery · {property} · {guest}",
+      "deadline": "To deliver before the guest arrives: {date}.",
+      "startLabel": "Recommended start",
+      "startHint": "A recommendation, not a constraint.",
+      "endLabel": "Deadline",
+      "endHint": "No later than the arrival time.",
+      "durationLabel": "Estimated duration (min)",
+      "durationHint": "Work estimate.",
+      "assigneeLabel": "Agent",
+      "later": "Assign later",
+      "noteLabel": "Instructions (optional)",
+      "unknown": "Unknown to HALO: linen quantities and stock, access to the property. Check before confirming.",
+      "confirm": "Create the delivery",
+      "cancel": "Cancel",
+      "created": "Delivery created.",
+      "existed": "A linen delivery already exists for this stay: nothing was duplicated.",
+      "open": "Open the mission"
+    },
+    "taskRules": {
+      "title": "Rules by mission type",
+      "text": "Enforced by the server, whatever screen is used: starting before the window, proof required to finish.",
+      "start": "Before the window:",
+      "firm": "not allowed (manager exception)",
+      "recommended": "possible after confirmation",
+      "checklist": "Full checklist required",
+      "comment": "Comment required",
+      "photosNote": "Required photos are set item by item in each property's checklist.",
+      "saved": "Saved"
     }
   },
   "email": {
@@ -3578,6 +3705,10 @@
     "timing_updated": {
       "subject": "{org} — your stay time was updated",
       "body": "Your stay time was updated. {which, select, early_checkin {Your arrival is now planned for {time}.} other {Your departure is now planned for {time}.}}"
+    },
+    "agent_task_validated": {
+      "subject": "Mission approved — {property}",
+      "body": "Your “{kind}” mission at {property} was approved."
     }
   },
   "guestSpace": {

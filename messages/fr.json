@@ -1414,7 +1414,8 @@
       "slug_taken": "Cette adresse de vitrine est déjà utilisée : choisissez-en une autre.",
       "no_property": "Cet avis n'est relié à aucun logement : impossible de créer un incident.",
       "use_timing_decision": "Un horaire d'arrivée ou de départ se confirme ou s'annule avec la décision dédiée, qui vérifie la préparation.",
-      "timing_window": "Une mission liée ne pouvait pas suivre ce nouvel horaire. Rien n'a été modifié ; rechargez la page pour voir l'effet prévu sur chaque mission."
+      "timing_window": "Une mission liée ne pouvait pas suivre ce nouvel horaire. Rien n'a été modifié ; rechargez la page pour voir l'effet prévu sur chaque mission.",
+      "missing_requirements": "Des preuves exigées manquent (checklist, photos ou commentaire) : demandez une correction plutôt que de valider."
     },
     "home": {
       "subtitle": "Ce qui demande votre attention.",
@@ -1448,7 +1449,39 @@
       "lowReviewsOwner": "{count, plural, =0 {Aucun avis propriétaire à traiter} one {# avis propriétaire à traiter} other {# avis propriétaires à traiter}}",
       "moreCauses": "+ {count} autre(s) cause(s)",
       "availabilityRisks": "{count, plural, =0 {Aucune mission à examiner (absence partielle)} one {# mission à examiner (absence partielle)} other {# missions à examiner (absence partielle)}}",
-      "timingMismatch": "{count, plural, =0 {Aucun horaire contradictoire} one {# horaire confirmé ne correspond pas au séjour} other {# horaires confirmés ne correspondent pas aux séjours}}"
+      "timingMismatch": "{count, plural, =0 {Aucun horaire contradictoire} one {# horaire confirmé ne correspond pas au séjour} other {# horaires confirmés ne correspondent pas aux séjours}}",
+      "nowTitle": "À traiter maintenant",
+      "nowEmpty": "Aucune demande, validation, incident ou absence en attente de décision. Les arrivées à surveiller sont juste en dessous.",
+      "infoTitle": "À surveiller",
+      "calmTitle": "{count, plural, one {Sous contrôle : # catégorie sans élément} other {Sous contrôle : # catégories sans élément}}",
+      "why": {
+        "incidents": "Un problème signalé sur un logement attend une prise en charge.",
+        "timingMismatch": "Un horaire promis au voyageur n'est pas celui du séjour.",
+        "schedule": "Un ménage ne tient pas entre deux séjours.",
+        "availability": "Une absence empêche une mission prévue.",
+        "toValidate": "Des agents ont terminé : validez ou demandez une correction.",
+        "services": "Un voyageur attend une réponse.",
+        "bookings": "Une demande de séjour attend une réponse.",
+        "absenceRequests": "Un membre de l'équipe attend votre décision.",
+        "unassigned": "Personne n'est prévu pour ces missions."
+      },
+      "cta": {
+        "incidents": "Traiter",
+        "timingMismatch": "Décider",
+        "schedule": "Replanifier",
+        "availability": "Réorganiser",
+        "toValidate": "Valider",
+        "services": "Répondre",
+        "bookings": "Répondre",
+        "absenceRequests": "Décider",
+        "unassigned": "Attribuer",
+        "open": "Ouvrir"
+      },
+      "detail": {
+        "toValidate": "{mission} · {property} · terminée le {date}",
+        "incident": "{property} : {text} ({date})",
+        "incidentUrgent": "Urgent · {property} : {text} ({date})"
+      }
     },
     "onb": {
       "progress": "Étape {n} sur {total}",
@@ -1845,7 +1878,8 @@
         "team_low_review": "Équipe : avis avec note faible",
         "timing_confirmed": "Horaire confirmé",
         "timing_cancelled": "Horaire annulé",
-        "timing_updated": "Horaire du séjour mis à jour"
+        "timing_updated": "Horaire du séjour mis à jour",
+        "agent_task_validated": "Agent : mission validée"
       },
       "testAddress": "Adresse fictive (compte de test) : rien n'est envoyé.",
       "skippedReason": "Le destinataire a désactivé cet e-mail ; l'événement reste visible dans HALO.",
@@ -2044,10 +2078,27 @@
       "closing": "À la fin",
       "needsValidation": "Validation par un responsable",
       "autoValidated": "Clôture directe (réglage)",
-      "manualWindow": "Créneau fixé à la main : il n'est plus recalculé automatiquement.",
+      "manualWindow": "Plage modifiée par un responsable : elle n'est plus recalculée automatiquement.",
       "sourceIncident": "Intervention liée à l'incident",
       "incidentResolved": "incident résolu",
-      "incidentStillOpen": "sa résolution reste à décider par un responsable"
+      "incidentStillOpen": "sa résolution reste à décider par un responsable",
+      "correctionNext": "Corrigez ce qui est demandé, puis appuyez sur « Terminer » : la mission repart au responsable.",
+      "sentTitle": "Envoyée au responsable",
+      "resentTitle": "Correction envoyée au responsable",
+      "sentText": "Il va valider ou demander une correction ; vous serez prévenu selon vos préférences.",
+      "validatedTitle": "Mission validée par le responsable.",
+      "reqTitle": "Pour terminer",
+      "reqChecklist": "Checklist : {done} / {total} cochées",
+      "reqPhotos": "{count, plural, one {# photo obligatoire manquante} other {# photos obligatoires manquantes}}",
+      "reqComment": "Commentaire de fin de mission",
+      "required": "obligatoire",
+      "optional": "facultatif",
+      "reqNone": "Aucune preuve exigée pour ce type de mission.",
+      "commentRequired": "Commentaire de fin de mission (obligatoire)",
+      "commentOptional": "Commentaire de fin de mission (facultatif)",
+      "commentSave": "Enregistrer le commentaire",
+      "commentSaved": "Commentaire enregistré.",
+      "commentUnsaved": "Commentaire pas encore enregistré."
     },
     "testAccount": {
       "title": "Préproduction : compte de test sans e-mail",
@@ -2260,8 +2311,16 @@
         "correction_requested": "Correction demandée",
         "cancelled": "Annulée",
         "status_changed": "Statut modifié",
-        "window_changed": "Créneau modifié"
-      }
+        "window_changed": "Créneau modifié",
+        "early_start_allowed": "Démarrage anticipé autorisé",
+        "started_early": "Démarrée avant le début conseillé",
+        "resubmitted": "Correction renvoyée, à valider"
+      },
+      "bySystem": "automatique",
+      "byYou": "vous",
+      "byAgent": "{name}",
+      "agent": "agent",
+      "byManager": "un responsable"
     },
     "schedule": {
       "title": "{count, plural, one {# ménage impossible à planifier} other {# ménages impossibles à planifier}}",
@@ -2428,7 +2487,8 @@
         "team_prep_updated": "Réponses de préparation modifiées",
         "team_vip_requested": "Demande d'accueil personnalisé (VIP)",
         "team_booking_requested": "Demande de séjour d'un ancien voyageur",
-        "team_low_review": "Avis avec une note faible"
+        "team_low_review": "Avis avec une note faible",
+        "agent_task_validated": "Ma mission est validée"
       },
       "pageTitle": "Préférences",
       "pageSubtitle": "Vos réglages personnels : ils ne changent rien pour les autres membres.",
@@ -3292,9 +3352,19 @@
       "durationLabel": "Durée prévue du travail",
       "estimate": "estimation",
       "slotLabel": "Créneau planifié",
-      "noSlotLong": "Aucun créneau attribué : l'intervention se fait dans la plage ci-dessus.",
+      "noSlotLong": "Pas d'horaire planifié : l'intervention se fait à tout moment de la plage.",
       "assigneeLabel": "Affectation",
-      "unassigned": "Non attribuée"
+      "unassigned": "Non attribuée",
+      "fromFirmLabel": "Intervention autorisée à partir du",
+      "fromRecommendedLabel": "Début conseillé à partir du",
+      "firmHint": "Contrainte ferme : impossible de démarrer avant (sauf dérogation d'un responsable).",
+      "recommendedHint": "Recommandation : démarrer plus tôt reste possible, après confirmation.",
+      "derogation": "Démarrage anticipé autorisé par un responsable : « {reason} »",
+      "source": {
+        "auto": "Plage calculée automatiquement d'après les séjours.",
+        "created": "Plage choisie à la création de la mission.",
+        "edited": "Plage modifiée par un responsable (plus recalculée automatiquement)."
+      }
     },
     "timingDecision": {
       "title": {
@@ -3348,7 +3418,7 @@
       "noteHint": "Visible par l'équipe uniquement.",
       "confirm": "Confirmer l'horaire",
       "otherDecisions": "Pour demander une précision ou refuser, utilisez la décision ci-dessous.",
-      "confirmedText": "Horaire confirmé : le séjour affiche la nouvelle heure. Annuler rétablit l'horaire précédent si le séjour n'a pas été modifié depuis.",
+      "confirmedText": "Horaire confirmé : le séjour affiche la nouvelle heure. Annuler rétablit l'horaire précédent si le séjour n'a pas été modifié depuis et si l'heure n'est pas passée ; sinon HALO vous demande quoi faire.",
       "cancel": "Annuler cet horaire",
       "result": {
         "applied": "Décision enregistrée.",
@@ -3413,7 +3483,64 @@
       "notReady": "Confirmer ne marque rien comme fait : le logement ne devient « prêt » que lorsque les missions et actions sont réellement terminées.",
       "supersededText": "Cette confirmation n'est plus l'horaire applicable. La retirer ne modifie pas le séjour ; si la confirmation ultérieure est annulée plus tard, le séjour reviendra à l'horaire d'avant celle-ci.",
       "coveredText": "Le séjour a été modifié autrement, dans un sens qui respecte cette confirmation. Annuler retire la confirmation sans modifier le séjour.",
-      "withdrawSuperseded": "Retirer cette confirmation remplacée"
+      "withdrawSuperseded": "Retirer cette confirmation remplacée",
+      "restoreUnsafeTitle": "L'heure confirmée est déjà passée",
+      "restoreUnsafeText": "Rétablir automatiquement l'horaire précédent n'est plus sûr (le voyageur est peut-être déjà là). Vous pouvez retirer la confirmation sans modifier le séjour, puis ajuster le séjour vous-même si besoin.",
+      "withdrawOnly": "Retirer la confirmation sans modifier le séjour"
+    },
+    "taskStep": {
+      "start": "Démarrer",
+      "resume": "Reprendre la mission",
+      "finish": "Terminer",
+      "tooEarlyTitle": "Pas avant le {date}",
+      "tooEarlyText": "Cette mission ne peut pas commencer plus tôt (le logement n'est pas encore libre). Revenez à cette heure, ou demandez une dérogation à votre responsable.",
+      "earlyTitle": "Début conseillé : {date}",
+      "earlyText": "Vous pouvez commencer plus tôt si c'est possible sur place. Ce démarrage anticipé sera noté dans l'historique.",
+      "earlyGo": "Commencer maintenant",
+      "earlyWait": "Annuler",
+      "missingTitle": "Pas encore terminée : il manque",
+      "missing": {
+        "checklist": "des cases de la checklist",
+        "photos": "des photos obligatoires",
+        "comment": "le commentaire de fin de mission"
+      },
+      "missingKept": "Ce que vous avez déjà saisi est conservé ; la mission reste en cours.",
+      "missingOpen": "Compléter dans la fiche de la mission",
+      "sentForReview": "Envoyée au responsable pour validation.",
+      "allowOpen": "Autoriser un démarrage anticipé",
+      "allowText": "L'agent pourra commencer avant le début de la plage. Indiquez pourquoi (le motif est conservé dans l'historique).",
+      "allowReason": "Motif (ex. voyageur parti plus tôt)",
+      "allowConfirm": "Autoriser"
+    },
+    "linenPlan": {
+      "title": "Livraison de linge · {property} · {guest}",
+      "deadline": "À livrer avant l'arrivée du voyageur : {date}.",
+      "startLabel": "Début conseillé",
+      "startHint": "Recommandation, pas une contrainte.",
+      "endLabel": "Échéance",
+      "endHint": "Au plus tard l'heure d'arrivée.",
+      "durationLabel": "Durée estimée (min)",
+      "durationHint": "Estimation du travail.",
+      "assigneeLabel": "Agent",
+      "later": "Attribuer plus tard",
+      "noteLabel": "Consignes (facultatif)",
+      "unknown": "Non connu de HALO : quantités et stock de linge disponibles, accès au logement. À vérifier avant de confirmer.",
+      "confirm": "Créer la livraison",
+      "cancel": "Annuler",
+      "created": "Livraison créée.",
+      "existed": "Une livraison de linge existe déjà pour ce séjour : rien n'a été créé en double.",
+      "open": "Ouvrir la mission"
+    },
+    "taskRules": {
+      "title": "Règles par type de mission",
+      "text": "Appliquées par le serveur, quel que soit l'écran utilisé : démarrage avant la plage, preuves exigées pour terminer.",
+      "start": "Avant la plage :",
+      "firm": "interdit (dérogation par un responsable)",
+      "recommended": "possible après confirmation",
+      "checklist": "Checklist complète exigée",
+      "comment": "Commentaire exigé",
+      "photosNote": "Les photos obligatoires se règlent point par point dans la checklist de chaque logement.",
+      "saved": "Enregistré"
     }
   },
   "email": {
@@ -3578,6 +3705,10 @@
     "timing_updated": {
       "subject": "{org} — horaire de votre séjour mis à jour",
       "body": "L'horaire de votre séjour a été mis à jour. {which, select, early_checkin {Votre arrivée est désormais prévue le {time}.} other {Votre départ est désormais prévu le {time}.}}"
+    },
+    "agent_task_validated": {
+      "subject": "Mission validée — {property}",
+      "body": "Votre mission « {kind} » dans {property} a été validée."
     }
   },
   "guestSpace": {

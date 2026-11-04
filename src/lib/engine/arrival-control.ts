@@ -179,7 +179,9 @@ export function arrivalControl(input: ArrivalInput): ArrivalRow[] {
             continue;
           }
           for (const x of list) {
-            if (x.status === "validated" || (x.status === "done" && step !== "inspection")) continue;
+            // « Terminée » = en attente de validation (la fin sans validation passe directement à « validée ») :
+            // l'étape n'est pas considérée comme faite tant qu'un responsable ne l'a pas validée
+            if (x.status === "validated") continue;
             if (x.status === "done") {
               blockers.push({ kind: "step_review", severity: "watch", responsible: { kind: "manager" }, action: { kind: "review", taskId: x.id }, detail: step });
             } else if (new Date(x.windowEnd).getTime() < now.getTime()) {

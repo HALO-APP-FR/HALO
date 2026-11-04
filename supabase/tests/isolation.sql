@@ -477,12 +477,12 @@ select t.is('règle : manager de A la change', t.dml('a_manager', format('update
 
 -- 3.3 Cycle complet avec photo obligatoire, correction et validation
 select t.is('cycle : démarrer', t.keep('a_agent2', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC1'))), 'applied');
-select t.is('cycle : soumission refusée sans la photo obligatoire', t.keep('a_agent2', format('select public.finish_task(%L, %L, %L)', t.id('A'), t.id('TC1'), '22222222-2222-2222-2222-222222222222')), 'missing_photos');
+select t.is('cycle : soumission refusée sans la photo obligatoire', t.keep('a_agent2', format('select public.finish_task(%L, %L, %L)', t.id('A'), t.id('TC1'), '22222222-2222-2222-2222-222222222222')), 'missing:photos');
 select t.is('cycle : la mission reste en cours', (select status::text from public.tasks where id = t.id('TC1')), 'in_progress');
 select t.is('cycle : le refus n''est pas mémorisé (l''action pourra être rejouée)', (select count(*)::text from public.task_actions where id = '22222222-2222-2222-2222-222222222222'), '0');
 select t.check('cycle : photo du point obligatoire réservée',
   t.keep('a_agent2', format('select public.begin_upload(%L, ''task_photo'', ''image/jpeg'', 900, %L, null, %L)', t.id('A'), t.id('TC1'), t.id('itemA2'))), true);
-select t.is('cycle : réservée mais pas envoyée = toujours refusée', t.q('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC1'))), 'missing_photos');
+select t.is('cycle : réservée mais pas envoyée = toujours refusée', t.q('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC1'))), 'missing:photos');
 select t.is('cycle : envoi réel du fichier par l''agent',
   t.exec('a_agent2', format('insert into storage.objects (bucket_id, name) select ''org-files'', path from public.files where task_id = %L and checklist_item_id = %L', t.id('TC1'), t.id('itemA2')), true, true), '1');
 select t.is('cycle : même action rejouée, cette fois acceptée', t.keep('a_agent2', format('select public.finish_task(%L, %L, %L)', t.id('A'), t.id('TC1'), '22222222-2222-2222-2222-222222222222')), 'applied');
@@ -501,10 +501,10 @@ select t.is('cycle : l''agent reprend', t.keep('a_agent2', format('select public
 select t.is('cycle : il resoumet', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC1'))), 'applied');
 select t.is('cycle : le manager valide', t.keep('a_manager', format('select public.validate_task(%L, %L)', t.id('A'), t.id('TC1'))), 'applied');
 select t.is('cycle : validée par le manager', (select status || ' / ' || (validated_by = t.id('a_manager'))::text from public.tasks where id = t.id('TC1')), 'validated / true');
-select t.is('cycle : valider deux fois = conflit sans effet', t.q('a_manager', format('select public.validate_task(%L, %L)', t.id('A'), t.id('TC1'))), 'conflict:validated');
+select t.is('cycle : valider deux fois = sans effet (déjà validée)', t.q('a_manager', format('select public.validate_task(%L, %L)', t.id('A'), t.id('TC1'))), 'already');
 select t.is('historique : toutes les étapes, dans l''ordre',
   (select string_agg(kind, ',' order by id) from public.task_events where task_id = t.id('TC1')),
-  'created,started,submitted,correction_requested,started,submitted,validated');
+  'created,started,submitted,correction_requested,started,resubmitted,validated');
 select t.is('historique : auteur de chaque étape',
   (select string_agg(case actor_id when t.id('a_agent2') then 'agent' when t.id('a_manager') then 'manager' else 'système' end, ',' order by id) from public.task_events where task_id = t.id('TC1')),
   'système,agent,agent,manager,agent,agent,manager');
@@ -528,7 +528,7 @@ insert into t.ids values ('TC3', gen_random_uuid());
 insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, window_start, window_end, duration_min) values
   (t.id('TC3'), t.id('A'), t.id('PA2'), 'turnover', 'assigned', t.id('a_agent2'), now() - interval '1 hour', now() + interval '3 hours', 60);
 update public.tasks set status = 'done' where id = t.id('TC3');  -- mission arrivée « terminée » sans preuve (ex. ancienne donnée)
-select t.is('preuves : validation refusée sans la photo exigée', t.q('a_manager', format('select public.validate_task(%L, %L)', t.id('A'), t.id('TC3'))), 'missing_photos');
+select t.is('preuves : validation refusée sans la photo exigée', t.q('a_manager', format('select public.validate_task(%L, %L)', t.id('A'), t.id('TC3'))), 'missing:photos');
 select t.is('preuves : la mission reste à valider', (select status::text from public.tasks where id = t.id('TC3')), 'done');
 select t.is('preuves : une correction reste possible', t.q('a_manager', format('select public.request_correction(%L, %L, ''Photo de la douche manquante'')', t.id('A'), t.id('TC3'))), 'applied');
 
@@ -550,7 +550,7 @@ select t.is('correction ciblée : l''ancienne photo ne compte plus', (select pub
 select t.is('correction ciblée : l''ancienne photo est gardée en historique', (select count(*)::text || '/' || count(superseded_at)::text from public.files where task_id = t.id('TC4')), '1/1');
 select t.is('correction ciblée : le point est décoché', (select checked::text from public.task_reports where task_id = t.id('TC4')), '[]');
 select t.is('correction ciblée : reprise', t.keep('a_agent2', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC4'))), 'applied');
-select t.is('correction ciblée : terminer refusé sans nouvelle photo', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC4'))), 'missing_photos');
+select t.is('correction ciblée : terminer refusé sans nouvelle photo', t.keep('a_agent2', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('TC4'))), 'missing:photos');
 insert into public.files (organization_id, kind, task_id, property_id, checklist_item_id, room_id, path, mime, size_bytes, created_by)
 values (t.id('A'), 'task_photo', t.id('TC4'), t.id('PA3'), t.id('itemA3'), t.id('roomA3'), t.id('A') || '/task/' || t.id('TC4') || '/new.jpg', 'image/jpeg', 10, t.id('a_agent2'));
 insert into storage.objects (bucket_id, name, owner) values ('org-files', t.id('A') || '/task/' || t.id('TC4') || '/new.jpg', t.id('a_agent2'));
@@ -1779,6 +1779,101 @@ insert into t_tok values ('g18z', t.keep('a_manager', format('select public.crea
 select t.is('après ouverture : adresse et coordonnées du lieu visibles', t.q(null, format('select (public.guest_places(%L) #>> ''{places,0,address}'') || ''/'' || (public.guest_places(%L) #>> ''{places,0,lat}'')', (select v from t_tok where k = 'g18z'), (select v from t_tok where k = 'g18z'))), '9 rue Fictive/45');
 update public.reservations set check_out_at = now() - interval '1 hour', check_in_at = now() - interval '2 days' where id = t.id('R18Z');
 select t.is('séjour terminé (lien expiré) : indisponible', t.q(null, format('select public.get_guest_stay(%L) ->> ''status''', (select v from t_tok where k = 'g18z'))), 'unavailable');
+
+
+-- =====================================================================
+-- 19. Règles de mission : démarrage anticipé, exigences de fin, correction, linge, rétablissement d'horaire (migration 19)
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['P19', 'R19', 'T19C', 'T19L', 'T19O', 'T19K', 'CR19', 'CI19a', 'CI19b', 'R19T', 'SV19', 'R19B']) k;
+insert into public.properties (id, organization_id, name, timezone) values (t.id('P19'), t.id('A'), 'Logement 19', 'Europe/Paris');
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values
+  (t.id('R19'), t.id('A'), t.id('P19'), 'QA 19', now() + interval '3 days', now() + interval '5 days');
+insert into public.checklist_rooms (id, organization_id, property_id, name) values (t.id('CR19'), t.id('A'), t.id('P19'), 'Séjour');
+insert into public.checklist_items (id, organization_id, room_id, label) values (t.id('CI19a'), t.id('A'), t.id('CR19'), 'Sol'), (t.id('CI19b'), t.id('A'), t.id('CR19'), 'Vitres');
+-- Ménage (règle ferme), livraison de linge (conseillée), autre mission (fenêtre déjà ouverte), contrôle (checklist)
+insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, next_reservation_id, window_start, window_end, duration_min) values
+  (t.id('T19C'), t.id('A'), t.id('P19'), 'turnover', 'assigned', t.id('a_agent'), t.id('R19'), now() + interval '1 day', now() + interval '3 days', 90),
+  (t.id('T19L'), t.id('A'), t.id('P19'), 'linen_delivery', 'assigned', t.id('a_agent'), t.id('R19'), now() + interval '1 day', now() + interval '3 days', 20),
+  (t.id('T19O'), t.id('A'), t.id('P19'), 'other', 'assigned', t.id('a_agent'), null, now() - interval '1 hour', now() + interval '1 day', 30),
+  (t.id('T19K'), t.id('A'), t.id('P19'), 'inspection', 'assigned', t.id('a_agent'), t.id('R19'), now() - interval '1 hour', now() + interval '2 days', 30);
+
+-- (1) Démarrage : règle appliquée par la base, quel que soit le bouton
+select t.is('règle par défaut : ménage ferme, linge conseillé', t.q('a_agent', format('select (public.task_rule(%L, ''turnover'') ->> ''start_rule'') || ''/'' || (public.task_rule(%L, ''linen_delivery'') ->> ''start_rule'')', t.id('A'), t.id('A'))), 'firm/recommended');
+select t.check('ménage avant la plage : refusé avec l''heure à partir de laquelle démarrer', '', t.keep('a_agent', format('select public.start_task(%L, %L, ''19000000-0000-0000-0000-000000000001'')', t.id('A'), t.id('T19C'))) like 'too_early:%');
+select t.is('ménage refusé : mission toujours « attribuée », geste non enregistré (rejouable à l''heure)', (select status::text from public.tasks where id = t.id('T19C')) || '/' || (select count(*)::text from public.task_actions where id = '19000000-0000-0000-0000-000000000001'), 'assigned/0');
+select t.check('ménage : même refus même en confirmant le démarrage anticipé (contrainte ferme)', '', t.keep('a_agent', format('select public.start_task(%L, %L, gen_random_uuid(), null, true)', t.id('A'), t.id('T19C'))) like 'too_early:%');
+select t.err('dérogation : un agent ne peut pas l''accorder', t.q('a_agent', format('select public.allow_early_start(%L, %L, ''je suis là'')', t.id('A'), t.id('T19C'))), '42501');
+select t.err('dérogation : motif obligatoire', t.q('a_manager', format('select public.allow_early_start(%L, %L, ''  '')', t.id('A'), t.id('T19C'))), '22023');
+select t.err('dérogation : autre organisation refusée', t.q('b_manager', format('select public.allow_early_start(%L, %L, ''x'')', t.id('A'), t.id('T19C'))), '42501');
+select t.is('dérogation : accordée par le responsable avec motif', t.keep('a_manager', format('select public.allow_early_start(%L, %L, ''Voyageur précédent parti plus tôt (fictif)'')', t.id('A'), t.id('T19C'))), 'applied');
+select t.is('dérogation : tracée dans l''historique avec le motif', (select note from public.task_events where task_id = t.id('T19C') and kind = 'early_start_allowed'), 'Voyageur précédent parti plus tôt (fictif)');
+select t.is('dérogation : l''agent peut démarrer', t.keep('a_agent', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T19C'))), 'applied');
+select t.check('linge avant l''heure conseillée : confirmation demandée', '', t.keep('a_agent', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T19L'))) like 'early_confirm:%');
+select t.is('linge : démarrage anticipé confirmé', t.keep('a_agent', format('select public.start_task(%L, %L, gen_random_uuid(), null, true)', t.id('A'), t.id('T19L'))), 'applied');
+select t.is('linge : tracé « démarrée en avance »', (select count(*)::text from public.task_events where task_id = t.id('T19L') and kind = 'started_early'), '1');
+select t.is('plage déjà ouverte : démarrage direct', t.keep('a_agent', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T19O'))), 'applied');
+select t.err('démarrage : autre agent refusé', t.q('a_agent2', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T19K'))), '42501');
+select t.err('démarrage : autre organisation refusée', t.q('b_agent', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T19K'))), '42501');
+-- Règle de l'organisation : linge rendu ferme
+select t.deny('règles : un agent ne les modifie pas', t.dml('a_agent', format('insert into public.task_type_rules (organization_id, type, start_rule) values (%L, ''maintenance'', ''firm'')', t.id('A'))));
+select t.is('règles : le responsable les modifie', t.dml('a_manager', format('insert into public.task_type_rules (organization_id, type, start_rule, checklist_required, comment_required) values (%L, ''inspection'', ''recommended'', true, true)', t.id('A'))), '1');
+insert into public.task_type_rules (organization_id, type, start_rule, checklist_required, comment_required) values (t.id('A'), 'inspection', 'recommended', true, true);
+select t.is('règles : invisibles pour une autre organisation', t.q('b_manager', format('select count(*) from public.task_type_rules where organization_id = %L', t.id('A'))), '0');
+
+-- (2) Fin : exigences appliquées par la base
+select t.is('fin sans exigence (autre mission) : acceptée', t.keep('a_agent', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T19O'))), 'applied');
+select t.is('contrôle : démarré', t.keep('a_agent', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T19K'))), 'applied');
+select t.is('checklist et commentaire obligatoires manquants : fin refusée, liste précise', t.keep('a_agent', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T19K'))), 'missing:checklist,comment');
+select t.is('fin refusée : la mission reste en cours', (select status::text from public.tasks where id = t.id('T19K')), 'in_progress');
+insert into public.task_reports (organization_id, task_id, checked) values (t.id('A'), t.id('T19K'), jsonb_build_array(t.id('CI19a')::text));
+select t.is('exigences (agent) : 1 case sur 2, commentaire absent', t.q('a_agent', format('select (public.task_requirements(%L, %L) #>> ''{checklist,done}'') || ''/'' || (public.task_requirements(%L, %L) #>> ''{checklist,total}'') || ''/'' || (public.task_requirements(%L, %L) ->> ''missing'')', t.id('A'), t.id('T19K'), t.id('A'), t.id('T19K'), t.id('A'), t.id('T19K'))), '1/2/["checklist", "comment"]');
+select t.err('exigences : invisibles pour un autre agent', t.q('a_agent2', format('select public.task_requirements(%L, %L)', t.id('A'), t.id('T19K'))), '42501');
+select t.is('commentaire enregistré par l''agent', t.keep('a_agent', format('select public.set_task_comment(%L, %L, ''RAS, fictif'')', t.id('A'), t.id('T19K'))), 'applied');
+select t.is('commentaire : la saisie précédente (case cochée) est conservée', (select checked::text from public.task_reports where task_id = t.id('T19K')), jsonb_build_array(t.id('CI19a')::text)::text);
+select t.is('checklist encore incomplète : refus', t.keep('a_agent', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T19K'))), 'missing:checklist');
+update public.task_reports set checked = jsonb_build_array(t.id('CI19a')::text, t.id('CI19b')::text) where task_id = t.id('T19K');
+select t.is('toutes les exigences remplies : fin acceptée', t.keep('a_agent', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T19K'))), 'applied');
+select t.err('commentaire : impossible sur la mission d''un autre', t.q('a_agent2', format('select public.set_task_comment(%L, %L, ''x'')', t.id('A'), t.id('T19K'))), '42501');
+
+-- (3) Boucle de correction : renvoi tracé, agent prévenu de la validation finale
+update public.organizations set validation_task_types = array['linen_delivery']::public.task_type[] where id = t.id('A');
+select t.is('linge terminé', t.keep('a_agent', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T19L'))), 'applied');
+select t.is('linge : à valider (pas « prêt »)', (select status::text from public.tasks where id = t.id('T19L')), 'done');
+select t.is('correction demandée avec motif', t.keep('a_manager', format('select public.request_correction(%L, %L, ''Il manque un jeu de serviettes (fictif)'')', t.id('A'), t.id('T19L'))), 'applied');
+select t.is('agent : voit le statut et le motif', t.q('a_agent', format('select status || ''/'' || correction_reason from public.tasks where id = %L', t.id('T19L'))), 'to_redo/Il manque un jeu de serviettes (fictif)');
+select t.is('reprise : jamais bloquée par la plage', t.keep('a_agent', format('select public.start_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T19L'))), 'applied');
+select t.is('correction renvoyée', t.keep('a_agent', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T19L'))), 'applied');
+select t.is('correction renvoyée : motif conservé pour le responsable', (select status::text || '/' || correction_reason from public.tasks where id = t.id('T19L')), 'done/Il manque un jeu de serviettes (fictif)');
+select t.is('historique : « correction renvoyée », lisible par l''agent', t.q('a_agent', format('select string_agg(kind, '','' order by id) from public.task_events where task_id = %L and kind in (''started_early'', ''submitted'', ''correction_requested'', ''resubmitted'')', t.id('T19L'))), 'started_early,submitted,correction_requested,resubmitted');
+select t.is('validation finale', t.keep('a_manager', format('select public.validate_task(%L, %L)', t.id('A'), t.id('T19L'))), 'applied');
+select t.is('double validation : sans effet', t.keep('a_manager', format('select public.validate_task(%L, %L)', t.id('A'), t.id('T19L'))), 'already');
+select t.is('agent prévenu de la validation (une seule fois)', (select count(*)::text from public.notification_outbox where organization_id = t.id('A') and template = 'agent_task_validated' and payload ->> 'path' = '/app/missions/' || t.id('T19L')), '1');
+
+-- (4) Livraison de linge préparée : une seule mission, même en relançant
+select t.err('linge : un agent ne planifie pas', t.q('a_agent', format('select public.plan_linen_delivery(%L, %L, now(), now() + interval ''1 day'', 20)', t.id('A'), t.id('R19'))), '42501');
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values (t.id('R19B'), t.id('A'), t.id('P19'), 'QA 19 B', now() + interval '10 days', now() + interval '12 days');
+select t.err('linge : échéance après l''arrivée refusée', t.q('a_manager', format('select public.plan_linen_delivery(%L, %L, now(), now() + interval ''11 days'', 20)', t.id('A'), t.id('R19B'))), '22023');
+select t.is('linge : créée', t.keep('a_manager', format('select public.plan_linen_delivery(%L, %L, now() + interval ''9 days'', now() + interval ''9 days 12 hours'', 20, %L) ->> ''status''', t.id('A'), t.id('R19B'), t.id('a_agent'))), 'created');
+select t.is('linge : relancer ne crée pas de doublon', t.keep('a_manager', format('select public.plan_linen_delivery(%L, %L, now() + interval ''9 days'', now() + interval ''9 days 12 hours'', 20) ->> ''status''', t.id('A'), t.id('R19B'))), 'exists');
+select t.is('linge : une seule mission, attribuée', (select count(*)::text || '/' || min(status::text) from public.tasks where next_reservation_id = t.id('R19B') and type = 'linen_delivery'), '1/assigned');
+select t.err('linge : autre organisation refusée', t.q('b_manager', format('select public.plan_linen_delivery(%L, %L, now(), now() + interval ''1 day'', 20)', t.id('A'), t.id('R19B'))), '42501');
+
+-- (5) Rétablissement d'horaire : refusé sans décision explicite une fois l'heure passée
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values (t.id('R19T'), t.id('A'), t.id('P19'), 'QA 19 T', now() + interval '2 hours', now() + interval '3 days');
+insert into public.service_requests (id, organization_id, property_id, reservation_id, kind, start_at, status, source) values (t.id('SV19'), t.id('A'), t.id('P19'), t.id('R19T'), 'early_checkin', now() - interval '30 minutes', 'requested', 'guest');
+select t.is('arrivée anticipée déjà passée : confirmée', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''confirm'', true) ->> ''status''', t.id('A'), t.id('SV19'))), 'applied');
+select t.is('annulation après l''heure : rétablissement non garanti, décision demandée', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''cancel'') ->> ''status''', t.id('A'), t.id('SV19'))), 'restore_unsafe');
+select t.is('annulation confirmée : confirmation retirée sans rétablir', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''cancel'', true) ->> ''restored''', t.id('A'), t.id('SV19'))), 'false');
+select t.is('annulation confirmée : demande annulée, séjour non modifié', (select status from public.service_requests where id = t.id('SV19')) || '/' || ((select check_in_at from public.reservations where id = t.id('R19T')) < now())::text, 'cancelled/true');
+
+-- (6) Liens voyageur : deux séjours, deux liens indépendants
+insert into public.guest_guides (organization_id, property_id, enabled) values (t.id('A'), t.id('P19'), true);
+insert into t_tok values ('g19a', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R19'))));
+insert into t_tok values ('g19b', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R19B'))));
+select t.is('deux liens : chacun ne voit que son séjour', t.q(null, format('select (public.get_guest_stay(%L) #>> ''{stay,guest_name}'') || ''/'' || (public.get_guest_stay(%L) #>> ''{stay,guest_name}'')', (select v from t_tok where k = 'g19a'), (select v from t_tok where k = 'g19b'))), 'QA 19/QA 19 B');
+update public.guest_links set revoked_at = now(), revoke_reason = 'manual' where reservation_id = t.id('R19') and revoked_at is null;
+select t.is('révocation du lien A : le lien B reste valable', t.q(null, format('select (public.get_guest_stay(%L) ->> ''status'') || ''/'' || (public.get_guest_stay(%L) ->> ''status'')', (select v from t_tok where k = 'g19a'), (select v from t_tok where k = 'g19b'))), 'unavailable/prep');
+select t.is('lien voyageur : jamais d''accès direct aux tables', t.q(null, 'select count(*) from public.tasks'), 'ERR:42501:permission denied for table tasks');
 
 
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade

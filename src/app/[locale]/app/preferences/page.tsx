@@ -31,6 +31,7 @@ const AGENT_EVENTS: [string, PrefRow["critical"], string][] = [
   ["agent_task_assigned", null, "missions"],
   ["agent_task_changed", null, "missions"],
   ["agent_correction_requested", null, "missions"],
+  ["agent_task_validated", null, "missions"],
   ["agent_absence_decided", null, "profile"],
   ["chat_message", "urgent_only", "messages"],
 ];

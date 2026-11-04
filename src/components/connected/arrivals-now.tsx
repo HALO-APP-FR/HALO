@@ -6,7 +6,7 @@ import { arrivalControl, arrivalCounts, type ArrivalRow } from "@/lib/engine/arr
 import { toReservation, toTask, type Row } from "@/lib/connected/mappers";
 import type { Alert, ServiceRequest } from "@/lib/domain/types";
 import type { supabaseServer } from "@/lib/supabase/server";
-import { CreateCleaningButton } from "./create-cleaning-button";
+import { CreateCleaningButton, PlanLinenForm } from "./create-cleaning-button";
 import { cn } from "@/lib/utils";
 import { blockingAbsences } from "@/lib/engine/availability";
 import type { PlanningAlerts } from "@/lib/connected/planning";
@@ -27,7 +27,7 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired, plannin
   const to = new Date(now.getTime() + 48 * 3_600_000).toISOString();
   const { data: stays } = await supabase
     .from("reservations")
-    .select("*, properties(name)")
+    .select("*, properties(name, timezone)")
     .eq("organization_id", orgId)
     .eq("status", "confirmed")
     .gte("check_in_at", from)
@@ -40,7 +40,7 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired, plannin
     supabase.from("tasks").select("*").eq("organization_id", orgId).in("next_reservation_id", ids),
     supabase.from("incidents").select("id, property_id, reservation_id, task_id, source, category, description, urgent, status, taken_by, created_at").eq("organization_id", orgId).in("property_id", props).neq("status", "resolved"),
     supabase.from("service_requests").select("id, property_id, reservation_id, kind, start_at, status, source, created_at").eq("organization_id", orgId).in("reservation_id", ids).in("status", ["requested", "info_requested", "in_review"]),
-    supabase.from("memberships").select("user_id, profiles(full_name)").eq("organization_id", orgId),
+    supabase.from("memberships").select("user_id, role, is_active, profiles(full_name)").eq("organization_id", orgId),
     supabase.from("stay_prep_actions").select("reservation_id, title, assignee_id, due_at").eq("organization_id", orgId).in("reservation_id", ids).eq("status", "open").eq("blocking", true),
   ]);
   const alerts: Alert[] = (incidents ?? []).map((i) => ({
@@ -69,6 +69,7 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired, plannin
   });
   const counts = arrivalCounts(rows);
   const nameOf = new Map((members ?? []).map((m: { user_id: string; profiles: unknown }) => [m.user_id, ((Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as { full_name: string } | null)?.full_name || "—"]));
+  const tzOf = new Map(stays.map((s) => [s.id as string, ((Array.isArray(s.properties) ? s.properties[0] : s.properties) as { timezone?: string | null } | null)?.timezone ?? undefined]));
   const propName = new Map(stays.map((s) => [s.id as string, ((Array.isArray(s.properties) ? s.properties[0] : s.properties) as { name: string } | null)?.name ?? ""]));
   const dur = (min: number) => {
     const m = Math.abs(min);
@@ -77,7 +78,7 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired, plannin
   const href = (row: ArrivalRow) => {
     const a = row.blockers[0]?.action;
     if (!a) return `/app/stays/${row.stay.id}`;
-    if (a.kind === "assign" || a.kind === "open_task" || a.kind === "review") return a.kind === "assign" ? "/app/missions" : `/app/missions/${a.taskId}`;
+    if (a.kind === "assign" || a.kind === "open_task" || a.kind === "review") return `/app/missions/${a.taskId}`;
     if (a.kind === "open_incident") return "/app/incidents";
     if (a.kind === "open_service") return `/app/services/${a.serviceId}`;
     return `/app/stays/${row.stay.id}`;
@@ -99,7 +100,7 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired, plannin
   return (
     <div>
       <p className="mb-3 flex flex-wrap gap-2 text-[13px]" data-testid="arrival-counts">
-        {(["blocked", "watch", "preparing", "ready"] as const).map((k) => (
+        {(["blocked", "watch", "preparing", "ready"] as const).filter((k) => counts[k] > 0).map((k) => (
           <span key={k} className={cn("rounded-full px-2.5 py-1 font-semibold", tone[k])}>
             {t(`state.${k}`)} · {counts[k]}
           </span>
@@ -111,9 +112,9 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired, plannin
           const b = row.blockers[0];
           const who = b?.responsible.kind === "member" ? t("responsible", { name: nameOf.get(b.responsible.id) ?? "—" }) : b?.responsible.kind === "manager" ? t("responsible", { name: tc("you") }) : b ? t("responsible", { name: t("responsibleNobody") }) : null;
           return (
-            <div key={row.stay.id} className="flex flex-wrap items-center gap-3 px-4 py-3.5" data-testid="arrival-row" data-state={row.state}>
-              <span className={cn("rounded-full px-2 py-0.5 text-[12px] font-semibold", tone[row.state])}>{t(`state.${row.state}`)}</span>
-              <span className="min-w-0 flex-1">
+            <div key={row.stay.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3.5" data-testid="arrival-row" data-state={row.state}>
+              <span className="min-w-[14rem] flex-1">
+                <span className={cn("mb-1 inline-block rounded-full px-2 py-0.5 text-[12px] font-semibold", tone[row.state])}>{t(`state.${row.state}`)}</span>
                 <span className="block text-[15px] font-medium">
                   {row.stay.guestName || "—"} · {propName.get(row.stay.id)} · {row.minutesLeft >= 0 ? t("inTime", { time: dur(row.minutesLeft) }) : t("passed", { time: dur(row.minutesLeft) })}
                 </span>
@@ -137,7 +138,15 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired, plannin
               {b?.action.kind === "create_cleaning" ? (
                 <CreateCleaningButton stayId={row.stay.id} label={t("action.create_cleaning")} />
               ) : b?.action.kind === "create_linen" ? (
-                <CreateCleaningButton stayId={row.stay.id} label={t("action.create_linen")} kind="linen" />
+                <PlanLinenForm
+                  stayId={row.stay.id}
+                  label={t("action.create_linen")}
+                  checkInAt={row.stay.checkInAt}
+                  propertyName={propName.get(row.stay.id) ?? ""}
+                  guestName={row.stay.guestName ?? ""}
+                  members={(members ?? []).filter((m: { is_active?: boolean }) => m.is_active !== false).map((m: { user_id: string }) => ({ id: m.user_id, name: nameOf.get(m.user_id) ?? "—" }))}
+                  timeZone={tzOf.get(row.stay.id)}
+                />
               ) : b ? (
                 <Link href={href(row)} className="inline-flex items-center gap-1 text-[14px] font-medium text-accent-text hover:underline" data-testid="arrival-action">
                   {t(`action.${b.action.kind}`)}

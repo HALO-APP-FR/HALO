@@ -353,3 +353,26 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 **Retour arrière** : restaurer les fonctions de la migration 17 (`timing_apply`, `timing_check`, `timing_decide`, `timing_inconsistencies`, `get_guest_stay` de la migration 13, `guest_places`, `service_timing_guard`, `guest_links_follow_stay` de la migration 12), supprimer `timing_state`, `timing_states`, `timing_email*`, `outbox_claim`, `guest_place_address_ok` ; les colonnes ajoutées peuvent rester.
 
 **Tests** : isolation 2027/0 (section 18), concurrence 11/11 (deux responsables sur deux demandes du même séjour, deux envois simultanés), unitaires 163, e2e 54/54 (35 horaires successifs, 36 absences), auto-test local 60/62 (2 échecs = fournisseur de lieux non joignable en local).
+
+## Règles de mission, linge préparé, correction complète, accueil par décisions (migration 19 : `20261114000001_regles_missions_linge_correction.sql`)
+
+**Problèmes reproduits (test du 4/11)** : une livraison de linge affichée « possible à partir du 4/11 16 h » a pu être démarrée et terminée le 3/11 — `start_task` ne contrôlait aucune plage (l'écran non plus) ; « possible à partir du » de la livraison venait d'un calcul arbitraire (arrivée − 24 h), présenté comme une limite. La fin ne contrôlait que les photos obligatoires (ménage, contrôle) ; aucune checklist ni commentaire exigible. « Planifier la livraison » créait directement la mission. « Créneau fixé à la main » s'affichait pour toute mission créée manuellement (critère `is_auto_generated`), sans modification réelle. Une livraison terminée en attente de validation comptait comme faite dans « logement prêt ».
+
+**Règle de démarrage (par type, réglable dans Réglages → Règles par type de mission)** :
+- *ferme* (par défaut : ménage après départ, départ accompagné, reprise du linge — le logement doit être libéré) : démarrage refusé par la base avant le début de la plage, quel que soit le bouton (liste, fiche, appel direct), avec l'heure à partir de laquelle démarrer ; dérogation possible par un responsable (motif obligatoire, historique) ;
+- *conseillé* (par défaut : accueil, contrôle, livraison de linge, maintenance, autre) : démarrer plus tôt demande une confirmation de l'agent, tracée « démarrée avant le début conseillé » ;
+- la reprise après correction n'est jamais bloquée ; l'heure de référence est celle du serveur.
+
+**Exigences de fin (`task_requirements`, même calcul pour l'écran et la base)** : photos obligatoires (par point de checklist, inchangé), checklist complète si exigée (ménage, contrôle), commentaire si exigé. Refus `missing:<liste>` : rien n'est perdu, la mission reste en cours, l'écran dit ce qui manque et y mène. La validation par un responsable applique les mêmes exigences. Par défaut checklist et commentaire **ne sont pas exigés** (comportement antérieur conservé) : à activer par type.
+
+**Boucle de correction** : motif conservé jusqu'à la validation, événement « correction renvoyée », bandeau agent « correction envoyée au responsable », historique visible de l'agent avec l'auteur (vous / agent / un responsable / automatique), double validation sans effet, agent prévenu de la validation (`agent_task_validated`, selon ses préférences).
+
+**Linge** : fiche courte préremplie (échéance = arrivée, début conseillé = recommandation, durée estimée, agent ou « attribuer plus tard », inconnues : quantités, stock, accès) ; `plan_linen_delivery` sous verrou : jamais deux livraisons pour un séjour (double clic, deux responsables). Accueil : absence → « rien de prévu » ; non attribuée → « personne n'est assigné » (lien vers la mission) ; attribuée/en cours → « encore à faire » ; terminée non validée → « à valider » (jamais prête) ; validée → plus rien ; annulée → de nouveau « rien de prévu ».
+
+**Horaires voyageurs** : annuler une confirmation dont l'heure est passée ne rétablit plus l'horaire précédent automatiquement (`restore_unsafe`) ; le responsable peut retirer la confirmation sans toucher au séjour.
+
+**Accueil** : « À traiter maintenant » (éléments actifs par urgence, avec explication, détail des missions à valider et incidents, action directe), arrivées des 48 h, « À surveiller », catégories vides regroupées dans « Sous contrôle » (repliable).
+
+**Tests** : isolation 2090/0 (section 19), concurrence 13/13, unitaires 163, e2e 55/55 (8 dérogation, 12 correction, 15 linge, 37 parcours linge complet), auto-test local 62/64 (2 = fournisseur de lieux non joignable en local).
+
+**Retour arrière** : restaurer `start_task` (4 paramètres), `finish_task`, `validate_task`, `log_task_change` (migration 9), `timing_decide` (migration 18) ; supprimer `task_type_rules`, `task_rule`, `task_requirements`, `allow_early_start`, `set_task_comment`, `plan_linen_delivery`, `timing_restore_allowed`, le déclencheur `tasks_notify_validated` ; les colonnes ajoutées peuvent rester.

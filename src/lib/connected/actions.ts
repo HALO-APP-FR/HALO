@@ -289,16 +289,82 @@ export async function assignTask(taskId: string, memberId: string | null, newWin
 }
 
 // ---------- Agent : ses missions uniquement (fonctions contrôlées par la base) ----------
+/**
+ * Démarrer / terminer une mission. La base applique les règles du type de mission (démarrage anticipé,
+ * exigences de fin) quel que soit le bouton utilisé ; le résultat réel est renvoyé tel quel :
+ *  - applied / already ;
+ *  - too_early (+ at) : contrainte ferme, démarrage impossible avant « at » ;
+ *  - early_confirm (+ at) : début conseillé à « at », démarrage anticipé possible après confirmation ;
+ *  - missing (+ missing) : exigences manquantes (checklist, photos, commentaire), rien n'est perdu ;
+ *  - conflict (+ current) : la mission a changé d'état entre-temps.
+ */
+export type TaskStep =
+  | { status: "applied" | "already"; taskStatus: string }
+  | { status: "too_early" | "early_confirm"; at: string }
+  | { status: "missing"; missing: string[] }
+  | { status: "conflict"; current: string }
+  | { status: "error"; error: string };
+export async function taskStep(taskId: string, kind: "start" | "finish", earlyAck = false): Promise<TaskStep> {
+  const ctx = await getContext();
+  if (!ctx.user || !ctx.org) return { status: "error", error: "not_signed_in" };
+  const args = { org: ctx.org.id, task: taskId, action_id: randomUUID(), client_at: new Date().toISOString() };
+  const { data, error: e } = kind === "start" ? await ctx.supabase.rpc("start_task", { ...args, early_ack: earlyAck }) : await ctx.supabase.rpc("finish_task", args);
+  if (e) return { status: "error", error: errCode(e) };
+  const r = String(data);
+  if (r.startsWith("too_early:") || r.startsWith("early_confirm:")) {
+    const [k, ...rest] = r.split(":");
+    return { status: k as "too_early" | "early_confirm", at: rest.join(":") };
+  }
+  if (r.startsWith("missing:")) return { status: "missing", missing: r.slice(8).split(",").filter(Boolean) };
+  if (r.startsWith("conflict:")) return { status: "conflict", current: r.slice(9) };
+  if (r !== "applied" && r !== "already") return { status: "error", error: "server" };
+  const { data: t } = await ctx.supabase.from("tasks").select("status").eq("organization_id", ctx.org.id).eq("id", taskId).maybeSingle();
+  await processOutbox(ctx.org.id);
+  revalidatePath("/", "layout");
+  return { status: r, taskStatus: (t?.status as string) ?? "" };
+}
+
+/** Compatibilité : ancien point d'entrée (mêmes règles côté base). */
 export async function agentTaskAction(taskId: string, kind: "start" | "finish"): Promise<Result<{ result: string }>> {
+  const r = await taskStep(taskId, kind);
+  if (r.status === "applied" || r.status === "already") return { ok: true, data: { result: r.status } };
+  return fail(r.status === "error" ? r.error : r.status === "missing" ? "missing_requirements" : r.status);
+}
+
+/** Commentaire de fin de mission (agent affecté). */
+export async function setTaskComment(taskId: string, body: string): Promise<Result> {
   const ctx = await getContext();
   if (!ctx.user || !ctx.org) return fail("not_signed_in");
-  const fn = kind === "start" ? "start_task" : "finish_task";
-  const { data, error: e } = await ctx.supabase.rpc(fn, { org: ctx.org.id, task: taskId, action_id: randomUUID(), client_at: new Date().toISOString() });
+  const { data, error: e } = await ctx.supabase.rpc("set_task_comment", { org: ctx.org.id, task: taskId, body: body.slice(0, 2000) });
   if (e) return fail(errCode(e));
-  const result = data as string;
-  if (result !== "applied" && result !== "already") return fail(result);
+  if (data !== "applied") return fail(String(data));
   revalidatePath("/", "layout");
-  return { ok: true, data: { result } };
+  return { ok: true, data: undefined };
+}
+
+/** Dérogation : un responsable autorise un démarrage avant la plage (motif obligatoire, tracé). */
+export async function allowEarlyStart(taskId: string, reason: string): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.rpc("allow_early_start", { org: ctx.org!.id, task: taskId, reason });
+  if (e) return fail(e.message?.includes("reason_required") ? "reason_required" : errCode(e));
+  if (data !== "applied" && data !== "already") return fail(String(data));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+/** Règles par type de mission (démarrage, checklist, commentaire) : réglage de l'organisation. */
+export async function setTaskTypeRule(type: string, rule: { startRule: "firm" | "recommended"; checklistRequired: boolean; commentRequired: boolean }): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  if (!KNOWN_TYPES.includes(type)) return fail("invalid");
+  const { error: e } = await ctx.supabase.from("task_type_rules").upsert({
+    organization_id: ctx.org!.id, type, start_rule: rule.startRule, checklist_required: rule.checklistRequired, comment_required: rule.commentRequired,
+    updated_at: new Date().toISOString(), updated_by: ctx.user!.id,
+  });
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
 }
 
 // ---------- Lien voyageur ----------
@@ -453,7 +519,10 @@ export async function validateTask(taskId: string): Promise<Result> {
   if (error) return fail(error);
   const { data, error: e } = await ctx.supabase.rpc("validate_task", { org: ctx.org!.id, task: taskId });
   if (e) return fail(errCode(e));
+  if (data === "already") return { ok: true, data: undefined };
+  if (String(data).startsWith("missing")) return fail("missing_requirements");
   if (data !== "applied") return fail(String(data));
+  await processOutbox(ctx.org!.id);
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
@@ -555,35 +624,22 @@ export async function createIntervention(incidentId: string, assigneeId: string 
   return { ok: true, data: { id: data as string } };
 }
 
-/** Livraison de linge avant une arrivée (organisations avec blanchisserie) : planifiée explicitement. */
-export async function planLinenDelivery(stayId: string): Promise<Result<{ id: string }>> {
+/**
+ * Livraison de linge avant une arrivée : le responsable vérifie la fiche préremplie (échéance, début conseillé,
+ * durée, agent ou « plus tard ») puis confirme. La base ne crée jamais deux livraisons pour le même séjour.
+ */
+export async function planLinenDelivery(stayId: string, input: { start: string; end: string; durationMin: number; assigneeId: string | null; note: string }): Promise<Result<{ id: string; existed: boolean }>> {
   const { ctx, error } = await manager();
   if (error) return fail(error);
-  const o = ctx.org!.id;
-  const { data: r } = await ctx.supabase.from("reservations").select("id, property_id, check_in_at").eq("organization_id", o).eq("id", stayId).maybeSingle();
-  if (!r) return fail("not_found");
-  const checkIn = new Date(r.check_in_at).getTime();
-  const start = Math.max(Date.now(), checkIn - 24 * 3_600_000);
-  if (start >= checkIn) return fail("too_late");
-  const { data, error: e } = await ctx.supabase
-    .from("tasks")
-    .insert({
-      organization_id: o,
-      property_id: r.property_id,
-      next_reservation_id: r.id,
-      type: "linen_delivery",
-      is_auto_generated: false,
-      window_start: new Date(start).toISOString(),
-      window_end: new Date(checkIn).toISOString(),
-      duration_min: Math.min(20, Math.max(5, Math.floor((checkIn - start) / 60_000))),
-    })
-    .select("id")
-    .single();
-  if (e) return fail(errCode(e));
+  const { data, error: e } = await ctx.supabase.rpc("plan_linen_delivery", {
+    org: ctx.org!.id, reservation: stayId, w_start: input.start, w_end: input.end, duration: input.durationMin, assignee: input.assigneeId, note: input.note || null,
+  });
+  if (e) return fail(dbCode(e, ["invalid_window", "assignee_unavailable"]));
+  const res = data as { status: string; id: string };
+  await processOutbox(ctx.org!.id);
   revalidatePath("/", "layout");
-  return { ok: true, data: { id: data.id as string } };
+  return { ok: true, data: { id: res.id, existed: res.status === "exists" } };
 }
-
 
 // ---------- Réglages : validation par type de mission ----------
 const KNOWN_TYPES = ["turnover", "check_in", "check_out", "inspection", "linen_delivery", "linen_pickup", "maintenance", "other"];

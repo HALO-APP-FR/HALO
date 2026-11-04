@@ -1414,7 +1414,8 @@
       "slug_taken": "Diese Schaufenster-Adresse ist bereits vergeben: Wählen Sie eine andere.",
       "no_property": "Diese Bewertung ist keiner Unterkunft zugeordnet: Kein Vorfall möglich.",
       "use_timing_decision": "Eine An- oder Abreisezeit wird mit der eigenen Entscheidung bestätigt oder storniert, die die Vorbereitung prüft.",
-      "timing_window": "Ein verknüpfter Einsatz konnte der neuen Uhrzeit nicht folgen. Nichts wurde geändert; laden Sie die Seite neu, um die geplante Wirkung je Einsatz zu sehen."
+      "timing_window": "Ein verknüpfter Einsatz konnte der neuen Uhrzeit nicht folgen. Nichts wurde geändert; laden Sie die Seite neu, um die geplante Wirkung je Einsatz zu sehen.",
+      "missing_requirements": "Erforderliche Nachweise fehlen (Checkliste, Fotos oder Kommentar): Korrektur anfordern statt freigeben."
     },
     "home": {
       "subtitle": "Was Ihre Aufmerksamkeit braucht.",
@@ -1448,7 +1449,39 @@
       "lowReviewsOwner": "{count, plural, =0 {Keine Eigentümerbewertung zu bearbeiten} one {# Eigentümerbewertung zu bearbeiten} other {# Eigentümerbewertungen zu bearbeiten}}",
       "moreCauses": "+ {count} weitere Ursache(n)",
       "availabilityRisks": "{count, plural, =0 {Kein Einsatz zu prüfen (teilweise Abwesenheit)} one {# Einsatz zu prüfen (teilweise Abwesenheit)} other {# Einsätze zu prüfen (teilweise Abwesenheit)}}",
-      "timingMismatch": "{count, plural, =0 {Keine widersprüchliche Uhrzeit} one {# bestätigte Uhrzeit passt nicht zum Aufenthalt} other {# bestätigte Uhrzeiten passen nicht zu den Aufenthalten}}"
+      "timingMismatch": "{count, plural, =0 {Keine widersprüchliche Uhrzeit} one {# bestätigte Uhrzeit passt nicht zum Aufenthalt} other {# bestätigte Uhrzeiten passen nicht zu den Aufenthalten}}",
+      "nowTitle": "Jetzt zu erledigen",
+      "nowEmpty": "Keine Anfrage, Freigabe, kein Vorfall und keine Abwesenheit wartet auf eine Entscheidung. Die zu beobachtenden Anreisen stehen direkt darunter.",
+      "infoTitle": "Im Blick behalten",
+      "calmTitle": "{count, plural, one {Unter Kontrolle: # Kategorie ohne Eintrag} other {Unter Kontrolle: # Kategorien ohne Eintrag}}",
+      "why": {
+        "incidents": "Ein gemeldetes Problem in einer Unterkunft wartet auf Bearbeitung.",
+        "timingMismatch": "Eine dem Gast zugesagte Uhrzeit passt nicht zum Aufenthalt.",
+        "schedule": "Eine Reinigung passt nicht zwischen zwei Aufenthalte.",
+        "availability": "Eine Abwesenheit verhindert einen geplanten Einsatz.",
+        "toValidate": "Mitarbeiter sind fertig: freigeben oder Korrektur anfordern.",
+        "services": "Ein Gast wartet auf eine Antwort.",
+        "bookings": "Eine Aufenthaltsanfrage wartet auf Antwort.",
+        "absenceRequests": "Ein Teammitglied wartet auf Ihre Entscheidung.",
+        "unassigned": "Für diese Einsätze ist niemand eingeplant."
+      },
+      "cta": {
+        "incidents": "Bearbeiten",
+        "timingMismatch": "Entscheiden",
+        "schedule": "Neu planen",
+        "availability": "Umplanen",
+        "toValidate": "Prüfen",
+        "services": "Antworten",
+        "bookings": "Antworten",
+        "absenceRequests": "Entscheiden",
+        "unassigned": "Zuweisen",
+        "open": "Öffnen"
+      },
+      "detail": {
+        "toValidate": "{mission} · {property} · abgeschlossen {date}",
+        "incident": "{property}: {text} ({date})",
+        "incidentUrgent": "Dringend · {property}: {text} ({date})"
+      }
     },
     "onb": {
       "progress": "Schritt {n} von {total}",
@@ -1845,7 +1878,8 @@
         "team_low_review": "Team: Bewertung mit niedriger Note",
         "timing_confirmed": "Uhrzeit bestätigt",
         "timing_cancelled": "Uhrzeit storniert",
-        "timing_updated": "Uhrzeit des Aufenthalts aktualisiert"
+        "timing_updated": "Uhrzeit des Aufenthalts aktualisiert",
+        "agent_task_validated": "Mitarbeiter: Einsatz freigegeben"
       },
       "testAddress": "Fiktive Adresse (Testkonto): Es wird nichts gesendet.",
       "skippedReason": "Der Empfänger hat diese E-Mail deaktiviert; das Ereignis bleibt in HALO sichtbar.",
@@ -2044,10 +2078,27 @@
       "closing": "Am Ende",
       "needsValidation": "Freigabe durch eine verantwortliche Person",
       "autoValidated": "Direkter Abschluss (Einstellung)",
-      "manualWindow": "Manuell festgelegtes Zeitfenster: wird nicht mehr automatisch neu berechnet.",
+      "manualWindow": "Fenster von der Leitung geändert: wird nicht mehr automatisch neu berechnet.",
       "sourceIncident": "Einsatz zum Vorfall",
       "incidentResolved": "Vorfall gelöst",
-      "incidentStillOpen": "über die Lösung entscheidet eine verantwortliche Person"
+      "incidentStillOpen": "über die Lösung entscheidet eine verantwortliche Person",
+      "correctionNext": "Korrigieren Sie das Gewünschte und tippen Sie auf „Abschließen“: der Einsatz geht zurück an die Leitung.",
+      "sentTitle": "An die Leitung gesendet",
+      "resentTitle": "Korrektur an die Leitung gesendet",
+      "sentText": "Sie wird freigeben oder eine Korrektur anfordern; Sie werden gemäß Ihren Einstellungen informiert.",
+      "validatedTitle": "Einsatz von der Leitung freigegeben.",
+      "reqTitle": "Zum Abschließen",
+      "reqChecklist": "Checkliste: {done} / {total} abgehakt",
+      "reqPhotos": "{count, plural, one {# Pflichtfoto fehlt} other {# Pflichtfotos fehlen}}",
+      "reqComment": "Abschlusskommentar",
+      "required": "Pflicht",
+      "optional": "optional",
+      "reqNone": "Für diesen Einsatztyp ist kein Nachweis erforderlich.",
+      "commentRequired": "Abschlusskommentar (Pflicht)",
+      "commentOptional": "Abschlusskommentar (optional)",
+      "commentSave": "Kommentar speichern",
+      "commentSaved": "Kommentar gespeichert.",
+      "commentUnsaved": "Kommentar noch nicht gespeichert."
     },
     "testAccount": {
       "title": "Vorproduktion: Testkonto ohne E-Mail",
@@ -2260,8 +2311,16 @@
         "correction_requested": "Korrektur angefordert",
         "cancelled": "Storniert",
         "status_changed": "Status geändert",
-        "window_changed": "Zeitfenster geändert"
-      }
+        "window_changed": "Zeitfenster geändert",
+        "early_start_allowed": "Früher Beginn erlaubt",
+        "started_early": "Vor dem empfohlenen Beginn gestartet",
+        "resubmitted": "Korrektur zurückgesendet, freizugeben"
+      },
+      "bySystem": "automatisch",
+      "byYou": "Sie",
+      "byAgent": "{name}",
+      "agent": "Mitarbeiter",
+      "byManager": "Leitung"
     },
     "schedule": {
       "title": "{count, plural, one {# Reinigung nicht planbar} other {# Reinigungen nicht planbar}}",
@@ -2428,7 +2487,8 @@
         "team_prep_updated": "Vorbereitungsantworten geändert",
         "team_vip_requested": "Anfrage für persönlichen Empfang (VIP)",
         "team_booking_requested": "Aufenthaltsanfrage eines früheren Gastes",
-        "team_low_review": "Bewertung mit niedriger Note"
+        "team_low_review": "Bewertung mit niedriger Note",
+        "agent_task_validated": "Mein Einsatz ist freigegeben"
       },
       "pageTitle": "Einstellungen",
       "pageSubtitle": "Ihre persönlichen Einstellungen: Sie ändern nichts für andere Mitglieder.",
@@ -3292,9 +3352,19 @@
       "durationLabel": "Geplante Arbeitszeit",
       "estimate": "Schätzung",
       "slotLabel": "Geplanter Termin",
-      "noSlotLong": "Kein Termin vergeben: Der Einsatz erfolgt im obigen Zeitraum.",
+      "noSlotLong": "Keine geplante Uhrzeit: Einsatz jederzeit im Fenster.",
       "assigneeLabel": "Zuweisung",
-      "unassigned": "Nicht zugewiesen"
+      "unassigned": "Nicht zugewiesen",
+      "fromFirmLabel": "Einsatz erlaubt ab",
+      "fromRecommendedLabel": "Empfohlener Beginn ab",
+      "firmHint": "Feste Vorgabe: kein früherer Beginn (außer mit Ausnahme der Leitung).",
+      "recommendedHint": "Empfehlung: früher beginnen bleibt nach Bestätigung möglich.",
+      "derogation": "Früher Beginn von der Leitung erlaubt: „{reason}“",
+      "source": {
+        "auto": "Fenster automatisch aus den Aufenthalten berechnet.",
+        "created": "Fenster bei der Erstellung gewählt.",
+        "edited": "Fenster von der Leitung geändert (nicht mehr neu berechnet)."
+      }
     },
     "timingDecision": {
       "title": {
@@ -3348,7 +3418,7 @@
       "noteHint": "Nur für das Team sichtbar.",
       "confirm": "Uhrzeit bestätigen",
       "otherDecisions": "Für Rückfragen oder Ablehnung nutzen Sie die Entscheidung unten.",
-      "confirmedText": "Uhrzeit bestätigt: Der Aufenthalt zeigt die neue Uhrzeit. Stornieren stellt die vorherige wieder her, falls der Aufenthalt unverändert ist.",
+      "confirmedText": "Uhrzeit bestätigt: der Aufenthalt zeigt die neue Uhrzeit. Stornieren stellt die vorherige wieder her, wenn sich nichts geändert hat und die Uhrzeit nicht vorbei ist; sonst fragt HALO nach.",
       "cancel": "Diese Uhrzeit stornieren",
       "result": {
         "applied": "Entscheidung gespeichert.",
@@ -3413,7 +3483,64 @@
       "notReady": "Bestätigen markiert nichts als erledigt: Die Unterkunft ist erst „bereit“, wenn Einsätze und Aufgaben wirklich erledigt sind.",
       "supersededText": "Diese Bestätigung ist nicht mehr die geltende Uhrzeit. Zurückziehen ändert den Aufenthalt nicht; wird die spätere Bestätigung storniert, gilt wieder die Uhrzeit vor dieser.",
       "coveredText": "Der Aufenthalt wurde anderweitig geändert, im Einklang mit dieser Bestätigung. Stornieren zieht die Bestätigung zurück, ohne den Aufenthalt zu ändern.",
-      "withdrawSuperseded": "Diese ersetzte Bestätigung zurückziehen"
+      "withdrawSuperseded": "Diese ersetzte Bestätigung zurückziehen",
+      "restoreUnsafeTitle": "Die bestätigte Uhrzeit ist bereits vorbei",
+      "restoreUnsafeText": "Die vorherige Uhrzeit automatisch wiederherzustellen ist nicht mehr sicher (der Gast ist evtl. schon da). Sie können die Bestätigung zurückziehen, ohne den Aufenthalt zu ändern, und ihn bei Bedarf selbst anpassen.",
+      "withdrawOnly": "Zurückziehen, ohne den Aufenthalt zu ändern"
+    },
+    "taskStep": {
+      "start": "Starten",
+      "resume": "Einsatz wieder aufnehmen",
+      "finish": "Abschließen",
+      "tooEarlyTitle": "Nicht vor {date}",
+      "tooEarlyText": "Dieser Einsatz kann nicht früher beginnen (die Unterkunft ist noch nicht frei). Kommen Sie dann zurück oder bitten Sie Ihre Leitung um eine Ausnahme.",
+      "earlyTitle": "Empfohlener Beginn: {date}",
+      "earlyText": "Sie können früher beginnen, wenn es vor Ort möglich ist. Der frühe Beginn wird im Verlauf vermerkt.",
+      "earlyGo": "Jetzt beginnen",
+      "earlyWait": "Abbrechen",
+      "missingTitle": "Noch nicht abgeschlossen: es fehlt",
+      "missing": {
+        "checklist": "Punkte der Checkliste",
+        "photos": "Pflichtfotos",
+        "comment": "der Abschlusskommentar"
+      },
+      "missingKept": "Bereits Erfasstes bleibt erhalten; der Einsatz läuft weiter.",
+      "missingOpen": "Auf der Einsatzseite ergänzen",
+      "sentForReview": "Zur Freigabe an die Leitung gesendet.",
+      "allowOpen": "Frühen Beginn erlauben",
+      "allowText": "Der Mitarbeiter kann vor Fensterbeginn starten. Geben Sie den Grund an (er bleibt im Verlauf).",
+      "allowReason": "Grund (z. B. Gast früher abgereist)",
+      "allowConfirm": "Erlauben"
+    },
+    "linenPlan": {
+      "title": "Wäschelieferung · {property} · {guest}",
+      "deadline": "Vor Anreise des Gastes zu liefern: {date}.",
+      "startLabel": "Empfohlener Beginn",
+      "startHint": "Empfehlung, keine Vorgabe.",
+      "endLabel": "Frist",
+      "endHint": "Spätestens zur Anreise.",
+      "durationLabel": "Geschätzte Dauer (Min.)",
+      "durationHint": "Schätzung.",
+      "assigneeLabel": "Mitarbeiter",
+      "later": "Später zuweisen",
+      "noteLabel": "Hinweise (optional)",
+      "unknown": "HALO unbekannt: Wäschemengen und -bestand, Zugang zur Unterkunft. Vor dem Bestätigen prüfen.",
+      "confirm": "Lieferung anlegen",
+      "cancel": "Abbrechen",
+      "created": "Lieferung angelegt.",
+      "existed": "Für diesen Aufenthalt gibt es bereits eine Wäschelieferung: nichts wurde doppelt angelegt.",
+      "open": "Einsatz öffnen"
+    },
+    "taskRules": {
+      "title": "Regeln je Einsatztyp",
+      "text": "Vom Server durchgesetzt, egal auf welcher Seite: Beginn vor dem Fenster, Nachweise zum Abschließen.",
+      "start": "Vor dem Fenster:",
+      "firm": "nicht erlaubt (Ausnahme durch Leitung)",
+      "recommended": "nach Bestätigung möglich",
+      "checklist": "Vollständige Checkliste erforderlich",
+      "comment": "Kommentar erforderlich",
+      "photosNote": "Pflichtfotos werden Punkt für Punkt in der Checkliste jeder Unterkunft festgelegt.",
+      "saved": "Gespeichert"
     }
   },
   "email": {
@@ -3578,6 +3705,10 @@
     "timing_updated": {
       "subject": "{org} — Uhrzeit Ihres Aufenthalts aktualisiert",
       "body": "Die Uhrzeit Ihres Aufenthalts wurde aktualisiert. {which, select, early_checkin {Ihre Anreise ist jetzt für {time} geplant.} other {Ihre Abreise ist jetzt für {time} geplant.}}"
+    },
+    "agent_task_validated": {
+      "subject": "Einsatz freigegeben — {property}",
+      "body": "Ihr Einsatz „{kind}“ in {property} wurde freigegeben."
     }
   },
   "guestSpace": {

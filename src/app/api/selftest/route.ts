@@ -125,13 +125,14 @@ export async function GET(request: NextRequest) {
     const agentId = (await ag.auth.getUser()).data.user!.id;
     const { data: task, error: tke } = await a1
       .from("tasks")
-      .insert({ organization_id: orgA, property_id: pA!.id, type: "turnover", status: "assigned", assignee_id: agentId, window_start: inAt, window_end: outAt, duration_min: 60 })
+      // Plage déjà ouverte : le ménage peut démarrer (règle ferme, migration 19)
+      .insert({ organization_id: orgA, property_id: pA!.id, type: "turnover", status: "assigned", assignee_id: agentId, window_start: new Date(Date.now() - 3_600_000).toISOString(), window_end: outAt, duration_min: 60 })
       .select("id")
       .single();
     check("manager_assigns_mission", !tke && Boolean(task), tke?.message);
     await ag.rpc("start_task", { org: orgA, task: task!.id, action_id: crypto.randomUUID(), client_at: new Date().toISOString() });
     const { data: early } = await ag.rpc("finish_task", { org: orgA, task: task!.id, action_id: crypto.randomUUID(), client_at: new Date().toISOString() });
-    check("finish_refused_without_required_photo", early === "missing_photos", String(early));
+    check("finish_refused_without_required_photo", early === "missing_photos" || early === "missing:photos", String(early));
     const { data: path } = await ag.rpc("begin_upload", { org: orgA, f_kind: "task_photo", f_mime: "image/jpeg", f_size: 4, task: task!.id, item: item!.id, room: room!.id });
     const { error: upErr } = await ag.storage.from("org-files").upload(path as string, new Blob([new Uint8Array([255, 216, 255, 217])], { type: "image/jpeg" }), { contentType: "image/jpeg" });
     if (!upErr) stored.push(path as string);
@@ -158,6 +159,17 @@ export async function GET(request: NextRequest) {
     check("agent_cannot_validate_own_mission", Boolean(selfVal));
     const { data: val } = await a1.rpc("validate_task", { org: orgA, task: mt!.id });
     check("manager_validates_mission", val === "applied", String(val));
+    // 4d. Règles de mission (migration 19) : ménage impossible avant sa plage, même par appel direct ;
+    //     livraison de linge avant l'heure conseillée = confirmation demandée
+    {
+      const { data: ft } = await a1.from("tasks").insert({ organization_id: orgA, property_id: pA!.id, type: "turnover", status: "assigned", assignee_id: agentId, window_start: inAt, window_end: outAt, duration_min: 60 }).select("id").single();
+      const { data: st1, error: se1 } = await ag.rpc("start_task", { org: orgA, task: ft!.id, action_id: crypto.randomUUID(), client_at: new Date().toISOString(), early_ack: true });
+      const { data: ftRow } = await a1.from("tasks").select("status").eq("id", ft!.id).single();
+      check("firm_start_refused_before_window", !se1 && String(st1).startsWith("too_early:") && ftRow?.status === "assigned", se1 ? `${se1.code}:${se1.message}` : `${st1} ${ftRow?.status}`);
+      const { data: lt } = await a1.from("tasks").insert({ organization_id: orgA, property_id: pA!.id, type: "linen_delivery", status: "assigned", assignee_id: agentId, window_start: inAt, window_end: outAt, duration_min: 20 }).select("id").single();
+      const { data: st2, error: se2 } = await ag.rpc("start_task", { org: orgA, task: lt!.id, action_id: crypto.randomUUID(), client_at: new Date().toISOString() });
+      check("recommended_start_needs_confirmation", !se2 && String(st2).startsWith("early_confirm:"), se2 ? `${se2.code}:${se2.message}` : String(st2));
+    }
     const { error: shortErr } = await a1.from("tasks").insert({ organization_id: orgA, property_id: pA!.id, type: "turnover", window_start: soon(60), window_end: soon(61), duration_min: 90 });
     check("window_shorter_than_duration_refused", Boolean(shortErr));
     const { data: ab, error: abe } = await a1.rpc("save_absence", { org: orgA, client: crypto.randomUUID(), a_scope: "member", a_member: agentId, a_kind: "leave", a_start: soon(0), a_end: soon(300) });

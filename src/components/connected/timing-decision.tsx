@@ -56,11 +56,11 @@ export function TimingDecision({
   const hasRisks = c.risks.length > 0;
   const blocked = c.blocking.length > 0;
   const k = c.cleaning;
-  const go = (act: "confirm" | "cancel" | "apply_legacy") => {
+  const go = (act: "confirm" | "cancel" | "apply_legacy", force = false) => {
     if (sending.current) return;
     sending.current = true;
     run(
-      () => decideTiming(serviceId, act, { ack, expectedAt: act === "cancel" ? null : c.current_at, message, note }).finally(() => (sending.current = false)),
+      () => decideTiming(serviceId, act, { ack: ack || force, expectedAt: act === "cancel" ? null : c.current_at, message, note }).finally(() => (sending.current = false)),
       (d) => setResult(d),
     );
   };
@@ -230,7 +230,16 @@ export function TimingDecision({
           </Button>
         </div>
       )}
-      {result && result.status !== "applied" && (
+      {result?.status === "restore_unsafe" && (
+        <div role="alert" className="rounded-md border border-warning bg-warning-soft p-3 text-[14px]" data-testid="timing-restore-unsafe">
+          <p className="font-semibold">{t("restoreUnsafeTitle")}</p>
+          <p className="mt-1">{t("restoreUnsafeText")}</p>
+          <Button size="sm" variant="outline" className="mt-2" disabled={pending} onClick={() => go("cancel", true)} data-testid="timing-withdraw-only">
+            {t("withdrawOnly")}
+          </Button>
+        </div>
+      )}
+      {result && result.status !== "applied" && result.status !== "restore_unsafe" && (
         <p role="alert" className="text-[14px] text-danger" data-testid="timing-result" data-status={result.status}>
           {t(`result.${["risks", "not_feasible", "stay_changed", "already", "conflict", "no_stay", "superseded"].includes(result.status) ? result.status : "conflict"}`)}
         </p>
