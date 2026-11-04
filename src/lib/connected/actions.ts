@@ -308,7 +308,9 @@ export async function taskStep(taskId: string, kind: "start" | "finish", earlyAc
   const ctx = await getContext();
   if (!ctx.user || !ctx.org) return { status: "error", error: "not_signed_in" };
   const args = { org: ctx.org.id, task: taskId, action_id: randomUUID(), client_at: new Date().toISOString() };
-  const { data, error: e } = kind === "start" ? await ctx.supabase.rpc("start_task", { ...args, early_ack: earlyAck }) : await ctx.supabase.rpc("finish_task", args);
+  let { data, error: e } = kind === "start" ? await ctx.supabase.rpc("start_task", { ...args, early_ack: earlyAck }) : await ctx.supabase.rpc("finish_task", args);
+  // Base pas encore migrée (migration 19 non appliquée) : ancienne signature, sans règle de démarrage
+  if (e?.code === "PGRST202" && kind === "start") ({ data, error: e } = await ctx.supabase.rpc("start_task", args));
   if (e) return { status: "error", error: errCode(e) };
   const r = String(data);
   if (r.startsWith("too_early:") || r.startsWith("early_confirm:")) {
