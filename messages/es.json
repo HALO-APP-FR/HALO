@@ -1776,6 +1776,14 @@
         "incidents": "Incidencias abiertas",
         "noIncident": "Ninguna incidencia abierta.",
         "urgent": "Urgente"
+      },
+      "sections": {
+        "guide": "Guía del huésped",
+        "guideSummary": "{count, plural, =0 {Ninguna sección rellenada} one {# sección rellenada} other {# secciones rellenadas}}",
+        "sources": "Calendarios",
+        "sourcesSummary": "{count, plural, =0 {Ningún calendario vinculado} one {# calendario vinculado} other {# calendarios vinculados}}",
+        "places": "Alrededores y recomendaciones",
+        "placesSummary": "{count, plural, =0 {Ningún lugar visible para el huésped} one {# lugar visible para el huésped} other {# lugares visibles para el huésped}}"
       }
     },
     "guide": {
@@ -2472,7 +2480,7 @@
       "noneMine": "Ninguna ausencia declarada.",
       "absentNow": "Ausente ahora",
       "conflictsTitle": "{count, plural, one {# misión por reorganizar} other {# misiones por reorganizar}}",
-      "conflictsText": "Conflictos confirmados: estas misiones no las puede hacer la persona asignada (franja durante la ausencia o tiempo libre menor que la duración). HALO nunca las reasigna solo.",
+      "conflictsText": "Conflictos confirmados: por una ausencia ACEPTADA o un cierre, estas misiones no pueden ser realizadas por la persona asignada (horario durante la ausencia, o tiempo libre restante inferior a la duración prevista). HALO nunca las reasigna solo.",
       "nobody": "Nadie asignado",
       "conflictKind": {
         "accepted": "ausencia aceptada",
@@ -2503,7 +2511,9 @@
       "freeLeftFromNow": "Tiempo libre continuo más largo desde ahora hasta el {to}: {duration}. Solo según las ausencias registradas; horarios de trabajo, otras misiones y desplazamientos no considerados — no es una disponibilidad garantizada.",
       "freeLeftWindow": "Tiempo libre continuo más largo entre el {from} y el {to} (ventana completa): {duration}. Solo según las ausencias registradas; horarios de trabajo, otras misiones y desplazamientos no considerados — no es una disponibilidad garantizada.",
       "summaryDays": "{same, select, yes {Se guardará: {from}, día completo.} other {Se guardará: del {from} al {to} incluido, días completos.}}",
-      "summaryHours": "Se guardará: del {from} al {to}."
+      "summaryHours": "Se guardará: del {from} al {to}.",
+      "potentialTitle": "{count, plural, one {# misión afectada si se acepta una solicitud} other {# misiones afectadas si se aceptan solicitudes}}",
+      "potentialText": "Conflictos potenciales: la solicitud de ausencia sigue pendiente. Nada se bloquea hasta que la acepte."
     },
     "chat": {
       "title": "Mensajes",
@@ -3701,7 +3711,10 @@
         "save": "Guardar",
         "saved": "Plazo guardado.",
         "unavailable": "Ajuste disponible tras la actualización de la base (migración 21)."
-      }
+      },
+      "stale": "Esta misión ya no está en curso (terminada, cancelada o reasignada): no se guardó nada.",
+      "declaredAt": "Declarada el {at}",
+      "refresh": "Actualizar"
     },
     "incidentResolve": {
       "title": "Intervención validada: ¿está resuelta la incidencia?",
@@ -3737,6 +3750,15 @@
       "absence": {
         "pending": "Por decidir",
         "accepted": "Aceptada"
+      },
+      "edit": {
+        "open": "Editar la ficha",
+        "position": "Puesto",
+        "collaboration": "Tipo de colaboración",
+        "none": "Sin indicar",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "hint": "El nombre y el teléfono siguen siendo los de la persona."
       }
     }
   },
@@ -4009,7 +4031,7 @@
       }
     },
     "around": {
-      "title": "Alrededor del alojamiento",
+      "title": "Descubrir los alrededores",
       "fromMe": "Distancias desde mi posición",
       "fromHome": "Volver al alojamiento",
       "originMe": "Distancias desde su posición (se queda en su teléfono).",
@@ -4049,7 +4071,58 @@
       "showLess": "Mostrar menos",
       "band": "{n, select, 1 {menos de 1 km} 2 {1 a 2 km} other {2 a 3 km}}",
       "nearHidden": "{count, plural, one {# lugar muy cercano aparecerá el {date}, con la dirección.} other {# lugares muy cercanos aparecerán el {date}, con la dirección.}}",
-      "autoHidden": "{count, plural, one {# sugerencia automática cercana será visible el {date}.} other {# sugerencias automáticas cercanas serán visibles el {date}.}}"
+      "autoHidden": "{count, plural, one {# sugerencia automática cercana será visible el {date}.} other {# sugerencias automáticas cercanas serán visibles el {date}.}}",
+      "discover": "Descubrir los alrededores",
+      "discoverHint": "Restaurantes, comercios, actividades y servicios alrededor del alojamiento",
+      "viewLabel": "Vista",
+      "view": {
+        "map": "Mapa",
+        "list": "Lista"
+      },
+      "filtersLabel": "Lo que busca",
+      "filter": {
+        "restaurants": "Restaurantes",
+        "cafes": "Cafés y bares",
+        "groceries": "Compras",
+        "shops": "Comercios",
+        "activities": "Actividades",
+        "transport": "Transporte",
+        "pharmacies": "Farmacias",
+        "services": "Servicios útiles"
+      },
+      "kind": {
+        "restaurant": "Restaurante",
+        "fast_food": "Comida rápida",
+        "cafe": "Cafetería",
+        "bar": "Bar",
+        "pub": "Pub",
+        "ice_cream": "Heladería",
+        "supermarket": "Supermercado",
+        "convenience": "Tienda de barrio",
+        "bakery": "Panadería",
+        "pharmacy": "Farmacia",
+        "hospital": "Hospital",
+        "clinic": "Clínica",
+        "doctors": "Consulta médica",
+        "atm": "Cajero",
+        "bus_stop": "Parada de autobús",
+        "station": "Estación",
+        "museum": "Museo",
+        "park": "Parque"
+      },
+      "radiusLabel": "Radio",
+      "radiusAll": "Todo",
+      "favorites": "Mis favoritos",
+      "favOn": "En mis favoritos",
+      "favOff": "Añadir a favoritos",
+      "favError": "No se pudo guardar el favorito. Inténtelo de nuevo.",
+      "favOffline": "Sin conexión: el favorito no se guardó.",
+      "favUnavailable": "Este enlace ya no es válido: los favoritos ya no están disponibles.",
+      "noFavorites": "Aún no hay favoritos: abra un lugar y toque «Añadir a favoritos».",
+      "noResult": "Ningún lugar para esta opción en este radio.",
+      "resetFilters": "Mostrar todo",
+      "noAddress": "Dirección no facilitada por la fuente",
+      "healthNote": "Salud: HALO no sabe si estos lugares están abiertos ni si atienden urgencias. En caso de urgencia, llame al 112."
     },
     "prepBanner": "Su estancia se acerca. La información práctica (dirección, acceso, guía) aparecerá aquí a partir del {date}. Mientras tanto puede preparar su estancia y escribir al equipo.",
     "prepared": {

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
-import { Bell, CalendarDays, Clock, MapPin, Sparkles } from "lucide-react";
+import { Bell, CalendarDays, ChevronRight, Clock, Compass, MapPin, Sparkles } from "lucide-react";
 import { LogoMark } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
 import { Card } from "@/components/ui/card";
@@ -51,7 +51,7 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
 
   let data: GStay | { status: string } | null = null;
   let problems: GProblem[] = [];
-  type Around = { full?: boolean; near_hidden?: number; auto_hidden?: number; property: { name: string; address: string | null; postal_code: string | null; city: string | null; lat: number | null; lng: number | null }; places: Place[] };
+  type Around = { full?: boolean; near_hidden?: number; auto_hidden?: number; favorites?: string[]; property: { name: string; address: string | null; postal_code: string | null; city: string | null; lat: number | null; lng: number | null }; places: Place[] };
   let around = null as Around | null;
   let failed = false;
   if (isConnected()) {
@@ -119,6 +119,17 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
             {d(g.stay.check_in_at)} → {d(g.stay.check_out_at)}
           </p>
         </div>
+        {around && (around.places.length > 0 || (around.near_hidden ?? 0) > 0 || (around.auto_hidden ?? 0) > 0) && (
+          // Entrée claire vers la carte des alentours (avant l'arrivée comme pendant le séjour)
+          <a href="#alentours" className="flex items-center gap-3 rounded-xl border border-line bg-canvas p-4 hover:bg-surface-hover" data-testid="guest-discover">
+            <Compass className="size-5 shrink-0 text-accent-text" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-semibold">{t("around.discover")}</span>
+              <span className="block text-[13px] text-muted">{t("around.discoverHint")}</span>
+            </span>
+            <ChevronRight className="size-5 text-faint rtl:-scale-x-100" />
+          </a>
+        )}
         {news > 0 && (
           <p className="flex items-center gap-2 rounded-xl border border-accent bg-accent-soft p-4 text-[15px] font-medium" role="status" data-testid="guest-news">
             <Bell className="size-5 text-accent-text" />
@@ -215,6 +226,9 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
             nearHidden={around.near_hidden ?? 0}
             autoHidden={around.auto_hidden ?? 0}
             hiddenUntil={around.full === false ? d(g.stay.details_from) : undefined}
+            token={token}
+            favorites={around.favorites ?? []}
+            favoritesAvailable={Array.isArray(around.favorites)}
           />
         )}
 

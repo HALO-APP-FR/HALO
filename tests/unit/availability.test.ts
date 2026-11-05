@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { absenceLevel, availabilityConflicts, freeMinutes, isAvailable, staysDuringClosures, type Absence } from "@/lib/engine/availability";
+import { absenceLevel, availabilityConflicts, conflictGroup, freeMinutes, isAvailable, staysDuringClosures, type Absence } from "@/lib/engine/availability";
 
 const ana = { id: "ana", position: "housekeeper" };
 const leo = { id: "leo", position: "maintenance" };
@@ -63,6 +63,20 @@ describe("disponibilités (même règle que la base)", () => {
     expect(availabilityConflicts(tasks, [ana, leo], [abs({})], NOW)).toMatchObject([{ taskId: "matin", memberId: "ana", kind: "accepted", absenceIds: ["a1"] }]);
     expect(availabilityConflicts(tasks, [ana, leo], [abs({ status: "pending" })], NOW)).toEqual([{ taskId: "matin", memberId: "ana", kind: "pending", absenceIds: ["a1"] }]);
     expect(availabilityConflicts(tasks, [ana, leo], [abs({ status: "cancelled" })], NOW)).toEqual([]);
+  });
+
+  it("retour du 5/11 : une demande en attente n'est jamais un conflit confirmé (en attente / acceptée / refusée / annulée)", () => {
+    const tasks = [task("matin", "2027-04-10T08:00:00Z", "2027-04-10T12:00:00Z")];
+    const group = (status: Absence["status"]) => availabilityConflicts(tasks, [ana], [abs({ status })], NOW).map((c) => conflictGroup(c.kind));
+    expect(group("pending")).toEqual(["potential"]);
+    expect(group("accepted")).toEqual(["confirmed"]);
+    expect(group("refused")).toEqual([]);
+    expect(group("cancelled")).toEqual([]);
+    // Absence acceptée sur une partie d'une longue fenêtre : à examiner, pas confirmée
+    const long = [task("long", "2027-04-09T08:00:00Z", "2027-04-12T08:00:00Z")];
+    expect(availabilityConflicts(long, [ana], [abs({})], NOW).map((c) => conflictGroup(c.kind))).toEqual(["review"]);
+    // Fermeture d'équipe acceptée : confirmée
+    expect(conflictGroup("closure")).toBe("confirmed");
   });
 
   it("mission en cours : absence à venir dans la fenêtre ≠ absence déjà commencée", () => {

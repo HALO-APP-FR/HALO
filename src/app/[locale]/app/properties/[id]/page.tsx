@@ -1,5 +1,6 @@
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
-import { AlertTriangle, MessagesSquare } from "lucide-react";
+import { AlertTriangle, ChevronDown, MessagesSquare } from "lucide-react";
+import { OpenSectionFromHash } from "@/components/connected/open-section";
 import { Card } from "@/components/ui/card";
 import { windowText } from "@/lib/connected/format";
 import { nowDate } from "@/lib/connected/time";
@@ -12,6 +13,25 @@ import { getContext, isManagerRole } from "@/lib/connected/context";
 import { PlacesManager, type Place } from "@/components/connected/places";
 import { SourcesPanel, type SourceRow } from "@/components/connected/sources-panel";
 import { distanceM } from "@/lib/engine/places";
+
+/**
+ * Section repliable : l'essentiel d'abord (séjours, missions, incidents), les formulaires à la demande.
+ * Ouverte directement si l'adresse vise la section (#guide, #sources, #places).
+ */
+function Section({ id, title, summary, children }: { id: string; title: string; summary: string; children: React.ReactNode }) {
+  return (
+    <details id={id} className="group scroll-mt-32 rounded-xl border border-line bg-surface" data-testid={`section-${id}`}>
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
+        <span className="min-w-0 flex-1">
+          <span className="block text-[16px] font-semibold">{title}</span>
+          <span className="block text-[13px] text-muted">{summary}</span>
+        </span>
+        <ChevronDown className="size-5 text-muted transition-transform group-open:rotate-180" aria-hidden />
+      </summary>
+      <div className="border-t border-line p-1 sm:p-2 [&>*]:border-0 [&>*]:shadow-none">{children}</div>
+    </details>
+  );
+}
 
 export default async function PropertyPage({ params }: PageProps<"/[locale]/app/properties/[id]">) {
   const { locale, id } = await params;
@@ -40,6 +60,8 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
   const tt = await getTranslations("taskType");
   const tts = await getTranslations("taskStatus");
   const tz = (p.timezone as string | null) ?? undefined;
+  // Rubriques du livret réellement remplies (résumé de la section repliée)
+  const guideFilled = Object.entries((g ?? {}) as Record<string, unknown>).filter(([k, v]) => !["id", "organization_id", "property_id", "created_at", "updated_at"].includes(k) && typeof v === "string" && v.trim()).length;
   const coords = p.latitude != null && p.longitude != null ? { lat: p.latitude as number, lng: p.longitude as number } : null;
   const places: Place[] = (placeRows ?? []).map((x) => ({
     id: x.id,
@@ -72,6 +94,7 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
           </Link>
         }
       />
+      <OpenSectionFromHash />
       <div className="mb-6 grid gap-4 lg:grid-cols-3" data-testid="property-overview">
         <Card className="p-4">
           <h2 className="mb-2 text-[15px] font-semibold">{t("overview.stays")}</h2>
@@ -116,7 +139,10 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
       </div>
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <div className="space-y-4">
+          <Section id="guide" title={t("sections.guide")} summary={t("sections.guideSummary", { count: guideFilled })}>
           <GuideEditor propertyId={p.id} guide={g ?? {}} />
+          </Section>
+          <Section id="sources" title={t("sections.sources")} summary={t("sections.sourcesSummary", { count: (sources ?? []).length })}>
           <SourcesPanel
             propertyId={p.id}
             timeZone={p.timezone}
@@ -126,7 +152,10 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
               return { source_id: c.source_id, uid: c.uid, conflict: c.conflict as string, feed_start: c.feed_start, feed_end: c.feed_end, reservation_id: c.reservation_id, stay_label: r?.guest_name ?? null };
             })}
           />
+          </Section>
+          <Section id="places" title={t("sections.places")} summary={t("sections.placesSummary", { count: places.filter((x) => !x.hidden).length })}>
           <PlacesManager propertyId={p.id} coords={coords} geoSource={p.geo_source} autoPlaces={p.auto_places} places={places} overpassUrls={process.env.OVERPASS_URL ? [process.env.OVERPASS_URL] : ["https://overpass-api.de/api/interpreter"]} photonUrl={process.env.PHOTON_URL ?? "https://photon.komoot.io/reverse"} />
+          </Section>
         </div>
         <div className="self-start rounded-xl border border-line bg-surface p-5">
           <h2 className="text-[17px] font-semibold">{t("checklist")}</h2>

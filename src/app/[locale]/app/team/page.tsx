@@ -9,6 +9,7 @@ import { InviteForm } from "@/components/connected/team-forms";
 import { AbsenceForm, AbsenceList, type AbsenceRow } from "@/components/connected/planning-forms";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { loadPlanning } from "@/lib/connected/planning";
+import { conflictGroup } from "@/lib/engine/availability";
 import { nowDate } from "@/lib/connected/time";
 import { periodText, windowText } from "@/lib/connected/format";
 
@@ -66,9 +67,10 @@ export default async function TeamPage({ params }: PageProps<"/[locale]/app/team
       impacts: impactsOf(a.id),
     }));
   // Conflits confirmés (la mission ne peut pas être faite par cette personne) et risques à examiner, séparés
-  const RISK = ["partial", "started", "started_during", "started_before", "started_upcoming"];
-  const conflicts = planning.availability.filter((c) => !RISK.includes(c.kind));
-  const risks = planning.availability.filter((c) => RISK.includes(c.kind));
+  // Trois niveaux distincts : confirmé (absence acceptée), à examiner, potentiel (demande en attente)
+  const conflicts = planning.availability.filter((c) => conflictGroup(c.kind) === "confirmed");
+  const risks = planning.availability.filter((c) => conflictGroup(c.kind) === "review");
+  const potential = planning.availability.filter((c) => conflictGroup(c.kind) === "potential");
   return (
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
@@ -166,6 +168,23 @@ export default async function TeamPage({ params }: PageProps<"/[locale]/app/team
                         </span>
                       ) : null}
                     </span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
+          {potential.length > 0 && (
+            <Card className="p-5" data-testid="availability-potential">
+              <h2 className="text-[17px] font-semibold">{ta("potentialTitle", { count: potential.length })}</h2>
+              <p className="mt-1 text-[14px] text-muted">{ta("potentialText")}</p>
+              <ul className="mt-3 divide-y divide-line">
+                {potential.map((c) => (
+                  <li key={c.taskId} className="flex flex-wrap items-center gap-2 py-2.5" data-testid="availability-potential-row">
+                    <Link href={`/app/missions/${c.taskId}`} className="flex-1 text-[14px] text-accent-text hover:underline">
+                      {label(c.taskId)}
+                    </Link>
+                    <span className="text-[13px] text-muted">{c.memberId ? nameOf(c.memberId) : ta("nobody")} · {ta("conflictKind.pending")}</span>
                   </li>
                 ))}
               </ul>

@@ -153,8 +153,33 @@ export function SpaceTabs(props: { labels: NavLabels }) {
 /** Téléphone : barre inférieure à quatre destinations, libellés toujours visibles, zone tactile ≥ 56 px. */
 function BottomBarInner({ labels }: { labels: NavLabels }) {
   const { space } = useSpace();
+  // Clavier ouvert (saisie en cours) : la barre s'efface pour laisser la place à la zone de saisie ;
+  // sa hauteur est exposée (--bottom-bar) pour que les zones de saisie collantes restent au-dessus
+  const [typing, setTyping] = useState(false);
+  useEffect(() => {
+    const isField = (el: EventTarget | null) => el instanceof HTMLElement && el.matches("input:not([type=checkbox]):not([type=radio]), textarea, select, [contenteditable]");
+    const onIn = (e: FocusEvent) => setTyping(isField(e.target));
+    const onOut = () => setTyping(false);
+    document.addEventListener("focusin", onIn);
+    document.addEventListener("focusout", onOut);
+    return () => {
+      document.removeEventListener("focusin", onIn);
+      document.removeEventListener("focusout", onOut);
+    };
+  }, []);
+  useEffect(() => {
+    const root = document.documentElement;
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => root.style.setProperty("--bottom-bar", mq.matches || typing ? "0px" : "calc(3.5rem + env(safe-area-inset-bottom))");
+    apply();
+    mq.addEventListener("change", apply);
+    return () => {
+      mq.removeEventListener("change", apply);
+      root.style.removeProperty("--bottom-bar");
+    };
+  }, [typing]);
   return (
-    <nav aria-label={labels.label} className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-canvas/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
+    <nav aria-label={labels.label} hidden={typing} className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-canvas/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
       <ul className="grid grid-cols-4" data-testid="bottom-bar">
         {SPACES.map((s) => (
           <li key={s.key}>

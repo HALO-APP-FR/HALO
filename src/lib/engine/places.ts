@@ -21,6 +21,8 @@ export interface ImportedPlace {
   phone: string | null;
   website: string | null;
   distanceM: number;
+  /** Type précis de la source (valeur OpenStreetMap : restaurant, cafe, supermarket, pharmacy…) */
+  kind?: string | null;
 }
 
 const RULES: { category: PlaceCategory; key: string; values: string[] }[] = [
@@ -55,6 +57,51 @@ function categoryOf(tags: Record<string, string>): PlaceCategory | null {
     if (RULES.some((r) => r.category === c && tags[r.key] && r.values.includes(tags[r.key]))) return c;
   }
   return null;
+}
+
+/** Type précis (valeur de l'étiquette OpenStreetMap retenue), dans le même ordre de priorité que la catégorie. */
+export function kindOf(tags: Record<string, string>): string | null {
+  const order: PlaceCategory[] = ["services", "food", "transport", "activities", "shops"];
+  for (const c of order) {
+    const r = RULES.find((x) => x.category === c && tags[x.key] && x.values.includes(tags[x.key]));
+    if (r) return tags[r.key];
+  }
+  return null;
+}
+
+/**
+ * Filtres « envies » du voyageur. Un lieu correspond s'il a l'un des types listés ; un lieu saisi par l'équipe
+ * (sans type précis) correspond par sa catégorie quand le filtre en indique une (fallback).
+ * Aucun filtre « ouvert maintenant » : HALO ne connaît pas l'ouverture réelle.
+ */
+export const GUEST_FILTERS = [
+  { key: "restaurants", kinds: ["restaurant", "fast_food", "food_court"], fallback: "food" },
+  { key: "cafes", kinds: ["cafe", "bar", "pub", "ice_cream"], fallback: null },
+  { key: "groceries", kinds: ["supermarket", "convenience", "bakery", "greengrocer", "butcher", "deli", "cheese", "pastry"], fallback: null },
+  { key: "shops", kinds: ["wine", "alcohol", "mall", "department_store", "laundry"], fallback: "shops" },
+  { key: "activities", kinds: [], fallback: "activities" },
+  { key: "transport", kinds: [], fallback: "transport" },
+  { key: "pharmacies", kinds: ["pharmacy"], fallback: null },
+  { key: "services", kinds: ["hospital", "clinic", "doctors", "atm", "bank", "post_office", "police", "fuel"], fallback: "services" },
+] as const;
+export type GuestFilter = (typeof GUEST_FILTERS)[number]["key"];
+
+export function matchesFilter(p: { category: string; kind?: string | null }, key: GuestFilter | "all"): boolean {
+  if (key === "all") return true;
+  const f = GUEST_FILTERS.find((x) => x.key === key)!;
+  if (p.kind) return (f.kinds as readonly string[]).includes(p.kind) || (f.kinds.length === 0 && f.fallback === p.category);
+  return f.fallback === p.category;
+}
+
+/** Rayons proposés (mètres) ; « null » = tous les lieux affichés (3 km au plus, règle de la base). */
+export const GUEST_RADII = [500, 1000, 2000, null] as const;
+
+/** Distance connue (après l'ouverture) ou tranche (avant) : le lieu est-il dans le rayon ? Distance inconnue : gardé, signalé. */
+export function withinRadius(p: { distance_m?: number | null; distance_band?: number | null }, radius: number | null): boolean {
+  if (radius == null) return true;
+  if (p.distance_m != null) return p.distance_m <= radius;
+  if (p.distance_band != null) return (p.distance_band - 1) * 1000 < radius; // tranche 1 = moins de 1 km…
+  return true;
 }
 
 function addressOf(tags: Record<string, string>): string | null {
@@ -100,6 +147,7 @@ export function parseOverpass(json: { elements?: OverpassElement[]; osm3s?: { ti
       phone: (tags.phone ?? tags["contact:phone"])?.slice(0, 40) ?? null,
       website: (tags.website ?? tags["contact:website"])?.slice(0, 300) ?? null,
       distanceM: d,
+      kind: kindOf(tags),
     });
   }
   all.sort((a, b) => a.distanceM - b.distanceM);
@@ -147,7 +195,9 @@ export function parseGeoapify(json: { features?: GeoapifyFeature[] }, lat: numbe
     seen.add(externalId);
     const d = distanceM(lat, lng, p.lat, p.lon);
     if (d > radius) continue;
-    all.push({ externalId, category, name: name.slice(0, 160), address: p.address_line2?.slice(0, 300) ?? null, lat: p.lat, lng: p.lon, openingHours: p.opening_hours?.slice(0, 300) ?? null, phone: p.contact?.phone?.slice(0, 40) ?? null, website: p.website?.slice(0, 300) ?? null, distanceM: d });
+    const matched = (p.categories ?? []).find((pc) => GEOAPIFY_CATEGORIES[category].some((g) => pc === g || pc.startsWith(`${g}.`)));
+    const kind = matched ? matched.split(".")[1]?.replace(/[^a-z_]/g, "") || null : null;
+    all.push({ externalId, category, name: name.slice(0, 160), address: p.address_line2?.slice(0, 300) ?? null, lat: p.lat, lng: p.lon, openingHours: p.opening_hours?.slice(0, 300) ?? null, phone: p.contact?.phone?.slice(0, 40) ?? null, website: p.website?.slice(0, 300) ?? null, distanceM: d, kind: kind === "clinic_or_praxis" ? "clinic" : kind });
   }
   all.sort((a, b) => a.distanceM - b.distanceM);
   return { places: PLACE_CATEGORIES.flatMap((c) => all.filter((x) => x.category === c).slice(0, MAX_PER_CATEGORY)), dataDate: null as string | null };
@@ -189,7 +239,7 @@ export function parsePhoton(responses: { category: PlaceCategory; json: { featur
       if (d > radius) continue;
       const street = [p.housenumber, p.street].filter(Boolean).join(" ");
       const city = [p.postcode, p.city].filter(Boolean).join(" ");
-      all.push({ externalId, category, name: name.slice(0, 160), address: [street, city].filter(Boolean).join(", ").slice(0, 300) || null, lat: pLat, lng: pLng, openingHours: null, phone: null, website: null, distanceM: d });
+      all.push({ externalId, category, name: name.slice(0, 160), address: [street, city].filter(Boolean).join(", ").slice(0, 300) || null, lat: pLat, lng: pLng, openingHours: null, phone: null, website: null, distanceM: d, kind: p.osm_key && p.osm_value ? kindOf({ [p.osm_key]: p.osm_value }) : null });
     }
   }
   all.sort((a, b) => a.distanceM - b.distanceM);

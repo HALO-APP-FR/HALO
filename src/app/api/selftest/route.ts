@@ -267,6 +267,15 @@ export async function GET(request: NextRequest) {
     check("guest_sees_places_of_own_property", names.includes(`Café ${run}`));
     const { data: forgedPlaces } = await guest.rpc("guest_places", { token: "f".repeat(64) });
     check("forged_link_sees_no_places", (forgedPlaces as { status: string })?.status === "unavailable");
+    // 6e bis. Favoris du voyageur (migration 22) : liés au séjour, refusés avec un lien inventé
+    {
+      const { data: pl } = await a1.from("property_places").select("id").eq("property_id", pA!.id).eq("name", `Café ${run}`).single();
+      const { data: fav, error: fe } = await guest.rpc("guest_place_favorite", { token: tokenA as string, place: pl!.id, fav: true });
+      const { data: gp3 } = await guest.rpc("guest_places", { token: tokenA as string });
+      const { data: forgedFav } = await guest.rpc("guest_place_favorite", { token: "f".repeat(64), place: pl!.id, fav: true });
+      check("guest_favorite_saved_with_stay", !fe && (fav as { status: string })?.status === "ok" && ((gp3 as { favorites?: string[] })?.favorites ?? []).includes(pl!.id), fe ? `${fe.code}:${fe.message}` : JSON.stringify(fav));
+      check("forged_link_cannot_add_favorite", (forgedFav as { status: string } | null)?.status === "unavailable");
+    }
 
     // 6f. Fournisseur réel de lieux (OpenStreetMap) joignable depuis ce serveur
     const g = await geocode({ addressLine: "10 Rue de Rivoli", postalCode: "75004", city: "Paris", countryCode: "FR" });

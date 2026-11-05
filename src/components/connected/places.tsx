@@ -3,10 +3,11 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
-import { Clock, Globe, MapPin, Navigation, Phone } from "lucide-react";
+import { ChevronDown, Clock, Globe, Heart, MapPin, Navigation, Phone } from "lucide-react";
+import { guestFavorite } from "@/lib/connected/guest-actions";
 import { addPlace, deletePlace, importNearbyPlaces, locateProperty, setAutoPlaces, setPlaceHidden, storeImportedPlaces, updatePlace, verifyPlace, type PlaceInput } from "@/lib/connected/actions";
 import { directionsLink, MAPS_APPS, type MapsApp } from "@/lib/engine/directions";
-import { overpassQuery, parseOverpass, parsePhoton, photonUrls, PLACE_CATEGORIES, type PlaceCategory } from "@/lib/engine/places";
+import { GUEST_FILTERS, GUEST_RADII, matchesFilter, overpassQuery, parseOverpass, parsePhoton, photonUrls, PLACE_CATEGORIES, withinRadius, type GuestFilter, type PlaceCategory } from "@/lib/engine/places";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Select } from "@/components/ui/field";
@@ -18,6 +19,8 @@ export interface Place {
   id: string;
   source: "manager" | "owner" | "openstreetmap";
   category: PlaceCategory;
+  /** Type précis (restaurant, cafe, pharmacy…) quand la source le fournit */
+  kind?: string | null;
   name: string;
   description?: string | null;
   address: string | null;
@@ -39,12 +42,17 @@ export interface Place {
 /**
  * Carte OpenStreetMap (Leaflet) : le logement et les lieux affichés. Tuiles et attribution OpenStreetMap.
  * Si les tuiles ne chargent pas (réseau), la liste reste complète et utilisable.
+ * Toucher un marqueur ouvre la fiche du lieu dans la liste.
  */
-function PlacesMap({ center, places, onTilesFailed }: { center: { lat: number; lng: number }; places: Place[]; onTilesFailed: () => void }) {
+function PlacesMap({ center, places, selected, onSelect, onTilesFailed, homeLabel }: { center: { lat: number; lng: number }; places: Place[]; selected?: string | null; onSelect?: (id: string) => void; onTilesFailed: () => void; homeLabel?: string }) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<import("leaflet").Map | null>(null);
   const layer = useRef<import("leaflet").LayerGroup | null>(null);
   const [L, setL] = useState<typeof import("leaflet") | null>(null);
+  const select = useRef(onSelect);
+  useEffect(() => {
+    select.current = onSelect;
+  });
   useEffect(() => {
     let alive = true;
     void import("leaflet").then((mod) => alive && setL(mod.default ?? mod));
@@ -78,62 +86,130 @@ function PlacesMap({ center, places, onTilesFailed }: { center: { lat: number; l
   useEffect(() => {
     if (!L || !layer.current || !map.current) return;
     layer.current.clearLayers();
-    const dot = (color: string, size: number) =>
-      L.divIcon({ className: "", html: `<span style="display:block;width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)"></span>`, iconSize: [size, size] });
-    L.marker([center.lat, center.lng], { icon: dot("#0055FF", 18), zIndexOffset: 1000 }).addTo(layer.current);
+    const dot = (color: string, size: number, ring = false) =>
+      L.divIcon({ className: "", html: `<span style="display:block;width:${size}px;height:${size}px;border-radius:50%;background:${color};border:${ring ? 3 : 2}px solid #fff;box-shadow:0 1px ${ring ? 6 : 3}px rgba(0,0,0,.45)"></span>`, iconSize: [size, size] });
+    L.marker([center.lat, center.lng], { icon: dot("#0055FF", 20), zIndexOffset: 1000, title: homeLabel }).bindTooltip(homeLabel ?? "").addTo(layer.current);
     const pts: [number, number][] = [[center.lat, center.lng]];
     for (const p of places) {
       if (p.lat == null || p.lng == null) continue;
-      L.marker([p.lat, p.lng], { icon: dot(p.source === "openstreetmap" ? "#334155" : "#d97706", 12), title: p.name }).bindTooltip(p.name).addTo(layer.current);
+      const on = p.id === selected;
+      L.marker([p.lat, p.lng], { icon: dot(p.source === "openstreetmap" ? "#334155" : "#d97706", on ? 18 : 12, on), title: p.name, keyboard: true, zIndexOffset: on ? 900 : 0 })
+        .bindTooltip(p.name)
+        .on("click", () => select.current?.(p.id))
+        .addTo(layer.current);
       pts.push([p.lat, p.lng]);
     }
-    if (pts.length > 1) map.current.fitBounds(L.latLngBounds(pts), { padding: [24, 24], maxZoom: 16 });
-  }, [L, places, center.lat, center.lng]);
-  return <div ref={el} className="h-64 w-full overflow-hidden rounded-lg border border-line bg-subtle md:h-80" data-testid="places-map" role="img" aria-label="Carte" />;
+    if (pts.length > 1 && !selected) map.current.fitBounds(L.latLngBounds(pts), { padding: [24, 24], maxZoom: 16 });
+  }, [L, places, center.lat, center.lng, selected, homeLabel]);
+  return <div ref={el} className="h-72 w-full overflow-hidden rounded-xl border border-line bg-subtle md:h-96" data-testid="places-map" role="region" aria-label="Carte" />;
 }
 
 /** Distance volontairement arrondie (à vol d'oiseau depuis le logement) : jamais une fausse précision. */
 export const fmtDistance = (m: number) => (m < 100 ? "< 100 m" : m < 1000 ? `≈ ${Math.round(m / 50) * 50} m` : `≈ ${(Math.round(m / 100) / 10).toFixed(1).replace(".", ",")} km`);
 
+/** Types de lieux pour lesquels HALO ne doit jamais laisser croire à une ouverture ou une prise en charge d'urgence. */
+const HEALTH_KINDS = ["pharmacy", "hospital", "clinic", "doctors"];
+
 /**
- * Autour du logement (voyageur) : organisé autour de l'ADRESSE DU LOGEMENT (aucune position demandée).
- * Pour chaque lieu : origine (équipe, propriétaire ou proposé automatiquement), distance arrondie,
- * adresse, horaires seulement si la source les fournit, itinéraire Plans / Google Maps / Waze.
+ * « Découvrir les alentours » (voyageur) : organisé autour de l'ADRESSE DU LOGEMENT (aucune position demandée).
+ * Carte ou liste, envies (restaurants, cafés, courses, pharmacies…), rayon, fiche lieu dépliable, favoris du séjour.
+ * Pour chaque lieu : origine (équipe, propriétaire ou proposé automatiquement), distance arrondie, adresse,
+ * horaires seulement si la source les fournit, itinéraire Plans / Google Maps / Waze.
  */
-export function GuestAround({ property, places, hiddenUntil, nearHidden = 0, autoHidden = 0 }: { property: { name: string; lat: number | null; lng: number | null; address: string }; places: Place[]; /** Lieux très proches retenus jusqu'à l'ouverture (seul leur nombre est connu) */ nearHidden?: number; /** Suggestions automatiques retenues jusqu'à l'ouverture */ autoHidden?: number; /** Avant la fenêtre habituelle : carte et adresse volontairement masquées jusqu'à cette date */ hiddenUntil?: string }) {
+export function GuestAround({
+  property,
+  places,
+  hiddenUntil,
+  nearHidden = 0,
+  autoHidden = 0,
+  token,
+  favorites: initialFavorites = [],
+  favoritesAvailable = false,
+}: {
+  property: { name: string; lat: number | null; lng: number | null; address: string };
+  places: Place[];
+  /** Lieux très proches retenus jusqu'à l'ouverture (seul leur nombre est connu) */ nearHidden?: number;
+  /** Suggestions automatiques retenues jusqu'à l'ouverture */ autoHidden?: number;
+  /** Avant la fenêtre habituelle : carte et adresse volontairement masquées jusqu'à cette date */ hiddenUntil?: string;
+  /** Lien du séjour : les favoris sont enregistrés avec lui (et suivent ses règles d'expiration) */ token?: string;
+  favorites?: string[];
+  favoritesAvailable?: boolean;
+}) {
   const t = useTranslations("guestSpace.around");
   const tc = useTranslations("places.category");
   const f = useFormatter();
-  const [cat, setCat] = useState<PlaceCategory | "all">("all");
-  const [tilesFailed, setTilesFailed] = useState(false);
   const center = property.lat != null && property.lng != null ? { lat: property.lat, lng: property.lng } : null;
-  // Sélection de l'équipe et du propriétaire d'abord ; suggestions automatiques ensuite, les plus proches en premier,
-  // limitées tant que le voyageur ne demande pas à tout voir (la quantité ne fait pas la pertinence)
+  const [view, setView] = useState<"map" | "list">(center ? "map" : "list");
+  const [filter, setFilter] = useState<GuestFilter | "all" | "favorites">("all");
+  const [radius, setRadius] = useState<number | null>(null);
+  const [tilesFailed, setTilesFailed] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [favs, setFavs] = useState<string[]>(initialFavorites);
+  const [favError, setFavError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const AUTO_LIMIT = 12;
+  const hasDistances = places.some((p) => p.distance_m != null || p.distance_band != null);
+  // Sélection de l'équipe et du propriétaire d'abord ; suggestions automatiques ensuite, les plus proches en premier,
+  // limitées tant que le voyageur ne demande pas à tout voir (la quantité ne fait pas la pertinence)
   const ordered = useMemo(() => {
-    const inCat = places.filter((p) => cat === "all" || p.category === cat);
-    const picks = inCat.filter((p) => p.source !== "openstreetmap");
-    const auto = inCat.filter((p) => p.source === "openstreetmap").sort((a, b) => (a.distance_m ?? Infinity) - (b.distance_m ?? Infinity));
+    const keep = places.filter((p) => (filter === "favorites" ? favs.includes(p.id) : matchesFilter(p, filter)) && withinRadius(p, radius));
+    const picks = keep.filter((p) => p.source !== "openstreetmap");
+    const auto = keep.filter((p) => p.source === "openstreetmap").sort((a, b) => (a.distance_m ?? Infinity) - (b.distance_m ?? Infinity));
     return { picks, auto };
-  }, [places, cat]);
+  }, [places, filter, radius, favs]);
   const autoShown = showAll ? ordered.auto : ordered.auto.slice(0, AUTO_LIMIT);
   const shown = useMemo(() => [...ordered.picks, ...autoShown], [ordered.picks, autoShown]);
-  const counts = useMemo(() => Object.fromEntries(PLACE_CATEGORIES.map((c) => [c, places.filter((p) => p.category === c).length])), [places]);
+  const counts = useMemo(() => Object.fromEntries(GUEST_FILTERS.map((x) => [x.key, places.filter((p) => matchesFilter(p, x.key) && withinRadius(p, radius)).length])), [places, radius]);
   const latestOsm = places.filter((p) => p.source === "openstreetmap").map((p) => p.updated_at).sort().at(-1);
   const sourceLabel = (s: Place["source"]) => (s === "manager" ? t("byTeam") : s === "owner" ? t("byOwner") : t("byOsm"));
+  const healthShown = shown.some((p) => p.kind && HEALTH_KINDS.includes(p.kind)) || filter === "pharmacies";
+  const pick = (id: string) => {
+    setSelected(id);
+    requestAnimationFrame(() => {
+      const card = document.getElementById(`place-${id}`);
+      if (card instanceof HTMLDetailsElement) card.open = true;
+      card?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  };
+  const toggleFav = async (id: string) => {
+    if (!token) return;
+    const on = !favs.includes(id);
+    setFavError(null);
+    setFavs((x) => (on ? [...x, id] : x.filter((y) => y !== id))); // affichage immédiat, annulé si le serveur refuse
+    try {
+      const r = await guestFavorite(token, id, on);
+      if (!r.ok) throw new Error(r.error);
+    } catch (e) {
+      setFavs((x) => (on ? x.filter((y) => y !== id) : [...x, id]));
+      setFavError(typeof navigator !== "undefined" && !navigator.onLine ? t("favOffline") : (e as Error).message === "unavailable" ? t("favUnavailable") : t("favError"));
+    }
+  };
+  const chip = (active: boolean) => cn("h-9 shrink-0 rounded-full border px-3.5 text-[14px] font-medium transition-colors", active ? "border-fg bg-fg text-canvas" : "border-line bg-surface text-fg hover:bg-surface-hover");
   return (
-    <section className="space-y-3" data-testid="guest-around">
-      <h2 className="text-title-3">{t("title")}</h2>
+    <section id="alentours" className="scroll-mt-4 space-y-3" data-testid="guest-around">
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-title-3">{t("discover")}</h2>
+          <p className="text-[14px] text-muted" data-testid="around-origin">
+            {center ? t("originHome", { address: property.address || property.name }) : hiddenUntil ? t("mapLater", { date: hiddenUntil }) : t("noCoordinates")}
+          </p>
+        </div>
+        {center && places.length > 0 && (
+          <div className="inline-flex rounded-full border border-line bg-surface p-0.5" role="group" aria-label={t("viewLabel")} data-testid="around-view">
+            {(["map", "list"] as const).map((v) => (
+              <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)} className={cn("h-8 rounded-full px-3.5 text-[13px] font-medium", view === v ? "bg-fg text-canvas" : "text-muted")} data-testid={`around-view-${v}`}>
+                {t(`view.${v}`)}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       {places.length === 0 && nearHidden === 0 && autoHidden === 0 ? (
         <Card className="p-5 text-[15px] text-muted" data-testid="around-empty">
           {t("empty")}
         </Card>
       ) : (
         <>
-          <p className="text-[14px] text-muted" data-testid="around-origin">
-            {center ? t("originHome", { address: property.address || property.name }) : hiddenUntil ? t("mapLater", { date: hiddenUntil }) : t("noCoordinates")}
-          </p>
           {hiddenUntil && autoHidden > 0 && (
             <p className="text-[13px] text-muted" data-testid="around-auto-hidden">
               {t("autoHidden", { count: autoHidden, date: hiddenUntil })}
@@ -144,30 +220,62 @@ export function GuestAround({ property, places, hiddenUntil, nearHidden = 0, aut
               {t("nearHidden", { count: nearHidden, date: hiddenUntil })}
             </p>
           )}
-          {center && <PlacesMap center={center} places={shown} onTilesFailed={() => setTilesFailed(true)} />}
-          {tilesFailed && (
+          {/* Envies */}
+          <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]" role="toolbar" aria-label={t("filtersLabel")}>
+            <button type="button" aria-pressed={filter === "all"} onClick={() => setFilter("all")} className={chip(filter === "all")} data-testid="around-filter-all">
+              {t("all")}
+            </button>
+            {GUEST_FILTERS.filter((x) => counts[x.key] > 0 || filter === x.key).map((x) => (
+              <button key={x.key} type="button" aria-pressed={filter === x.key} onClick={() => setFilter(x.key)} className={chip(filter === x.key)} data-testid={`around-filter-${x.key}`}>
+                {t(`filter.${x.key}`)}
+                <span className="ms-1 opacity-60">{counts[x.key]}</span>
+              </button>
+            ))}
+            {favoritesAvailable && (
+              <button type="button" aria-pressed={filter === "favorites"} onClick={() => setFilter("favorites")} className={chip(filter === "favorites")} data-testid="around-filter-favorites">
+                <Heart className={cn("me-1 inline size-3.5", favs.length > 0 && "fill-current")} />
+                {t("favorites")}
+                <span className="ms-1 opacity-60">{favs.length}</span>
+              </button>
+            )}
+          </div>
+          {/* Rayon autour du logement */}
+          {hasDistances && (
+            <div className="flex flex-wrap items-center gap-1.5 text-[13px]" role="group" aria-label={t("radiusLabel")} data-testid="around-radius">
+              <span className="me-1 text-muted">{t("radiusLabel")}</span>
+              {GUEST_RADII.map((r) => (
+                <button key={String(r)} type="button" aria-pressed={radius === r} onClick={() => setRadius(r)} className={cn("h-8 rounded-full border px-3 font-medium", radius === r ? "border-accent bg-accent-soft text-accent-text" : "border-line bg-surface")} data-testid={`around-radius-${r ?? "all"}`}>
+                  {r == null ? t("radiusAll") : r < 1000 ? `${r} m` : `${r / 1000} km`}
+                </button>
+              ))}
+            </div>
+          )}
+          {center && view === "map" && <PlacesMap center={center} places={shown} selected={selected} onSelect={pick} onTilesFailed={() => setTilesFailed(true)} homeLabel={property.name} />}
+          {tilesFailed && view === "map" && (
             <p className="text-[13px] text-warning" role="status" data-testid="around-map-offline">
               {t("mapUnavailable")}
             </p>
           )}
-          <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none]" role="tablist">
-            {(["all", ...PLACE_CATEGORIES] as const)
-              .filter((c) => c === "all" || counts[c])
-              .map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  role="tab"
-                  aria-selected={cat === c}
-                  onClick={() => setCat(c)}
-                  className={cn("h-9 shrink-0 rounded-full border px-3.5 text-[14px] font-medium", cat === c ? "border-accent bg-accent text-white" : "border-line bg-surface text-fg")}
-                  data-testid={`around-filter-${c}`}
-                >
-                  {c === "all" ? t("all") : tc(c)}
-                  {c !== "all" && <span className="ms-1 opacity-70">{counts[c]}</span>}
+          {healthShown && (
+            <p className="rounded-lg border border-line bg-surface p-3 text-[13px]" role="note" data-testid="around-health-note">
+              {t("healthNote")}
+            </p>
+          )}
+          {favError && (
+            <p className="text-[13px] text-danger" role="alert" data-testid="around-fav-error">
+              {favError}
+            </p>
+          )}
+          {shown.length === 0 && (
+            <Card className="p-5 text-center text-[14px] text-muted" data-testid="around-no-result">
+              {filter === "favorites" ? t("noFavorites") : t("noResult")}
+              {(filter !== "all" || radius != null) && (
+                <button type="button" className="mt-2 block w-full font-medium text-accent-text" onClick={() => (setFilter("all"), setRadius(null))}>
+                  {t("resetFilters")}
                 </button>
-              ))}
-          </div>
+              )}
+            </Card>
+          )}
           {ordered.picks.length > 0 && ordered.auto.length > 0 && (
             <p className="text-[13px] font-semibold uppercase tracking-wide text-muted" data-testid="around-picks-title">
               {t("picksTitle")}
@@ -177,6 +285,7 @@ export function GuestAround({ property, places, hiddenUntil, nearHidden = 0, aut
             {shown.map((p, idx) => {
               const dest = { name: p.name, addressLine: p.address ?? undefined, lat: p.lat ?? undefined, lng: p.lng ?? undefined };
               const routable = Boolean(p.address) || (p.lat != null && p.lng != null);
+              const fav = favs.includes(p.id);
               return (
                 <li key={p.id}>
                   {idx === ordered.picks.length && ordered.auto.length > 0 && (
@@ -184,86 +293,107 @@ export function GuestAround({ property, places, hiddenUntil, nearHidden = 0, aut
                       {t("autoTitle")}
                     </p>
                   )}
-                  <Card className="p-4" data-testid="around-place" data-category={p.category} data-source={p.source}>
-                    <div className="flex items-start gap-3">
+                  <details
+                    id={`place-${p.id}`}
+                    className={cn("group rounded-xl border bg-surface shadow-card", selected === p.id ? "border-accent" : "border-line")}
+                    data-testid="around-place"
+                    data-category={p.category}
+                    data-kind={p.kind ?? ""}
+                    data-source={p.source}
+                    onToggle={(e) => (e.currentTarget as HTMLDetailsElement).open && setSelected(p.id)}
+                  >
+                    <summary className="flex cursor-pointer list-none items-start gap-3 p-4 [&::-webkit-details-marker]:hidden">
                       <div className="min-w-0 flex-1">
                         <p className="text-[16px] font-semibold">{p.name}</p>
                         <p className="text-[13px] text-muted">
-                          {tc(p.category)}
+                          {p.kind && t.has(`kind.${p.kind}`) ? t(`kind.${p.kind}`) : tc(p.category)}
                           {p.distance_m != null && <span data-testid="around-distance"> · {fmtDistance(p.distance_m)}</span>}
                           {p.distance_m == null && p.distance_band != null && <span data-testid="around-distance-band"> · {t("band", { n: p.distance_band })}</span>}
                         </p>
+                        <span
+                          className={cn("mt-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium", p.source === "openstreetmap" ? "bg-subtle text-muted dark:bg-surface-hover" : "bg-warning-soft text-warning")}
+                          data-testid="around-source"
+                        >
+                          {sourceLabel(p.source)}
+                        </span>
                       </div>
-                      <span
-                        className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium", p.source === "openstreetmap" ? "bg-subtle text-muted dark:bg-surface-hover" : "bg-warning-soft text-warning")}
-                        data-testid="around-source"
-                      >
-                        {sourceLabel(p.source)}
-                      </span>
-                    </div>
-                    {p.description && <p className="mt-2 text-[14px]">{p.description}</p>}
-                    {p.note && (
-                      <p className="mt-1 text-[14px]">
-                        <span className="font-medium">{t("tip")}</span> {p.note}
-                      </p>
-                    )}
-                    <div className="mt-2 space-y-1 text-[14px] text-muted">
-                      {p.address && (
-                        <p className="flex gap-1.5">
-                          <MapPin className="mt-0.5 size-4 shrink-0" />
-                          {p.address}
+                      <ChevronDown className="mt-1 size-5 shrink-0 text-muted transition-transform group-open:rotate-180" aria-hidden />
+                    </summary>
+                    <div className="border-t border-line px-4 pb-4 pt-3" data-testid="around-detail">
+                      {p.description && <p className="text-[14px]">{p.description}</p>}
+                      {p.note && (
+                        <p className="mt-1 text-[14px]">
+                          <span className="font-medium">{t("tip")}</span> {p.note}
                         </p>
                       )}
-                      <p className="flex gap-1.5" data-testid="around-hours">
-                        <Clock className="mt-0.5 size-4 shrink-0" />
-                        {p.opening_hours ? (
-                          <span>
-                            {p.opening_hours} <span className="text-[12px]">({p.source === "openstreetmap" ? t("hoursAsPublished") : p.verified_at ? t("hoursVerified") : t("hoursToConfirm")})</span>
-                          </span>
-                        ) : (
-                          <span className="text-[13px]">{t("noHours")}</span>
-                        )}
-                      </p>
-                      {p.phone && (
-                        <a href={`tel:${p.phone.replace(/[^+\d]/g, "")}`} className="flex gap-1.5 text-accent-text">
-                          <Phone className="mt-0.5 size-4 shrink-0" />
-                          {p.phone}
-                        </a>
-                      )}
-                      {p.website && /^https?:\/\//.test(p.website) && (
-                        <a href={p.website} target="_blank" rel="noreferrer noopener" className="flex gap-1.5 text-accent-text">
-                          <Globe className="mt-0.5 size-4 shrink-0" />
-                          {t("website")}
-                        </a>
-                      )}
-                    </div>
-                    {routable ? (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {MAPS_APPS.map((app: MapsApp) => (
-                          <a
-                            key={app}
-                            href={directionsLink(app, dest)}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line bg-surface px-2.5 text-[13px] font-medium hover:bg-surface-hover"
-                            data-testid={`around-go-${app}`}
-                          >
-                            <Navigation className="size-3.5" />
-                            {t(`app.${app}`)}
+                      <div className="mt-2 space-y-1 text-[14px] text-muted">
+                        <p className="flex gap-1.5">
+                          <MapPin className="mt-0.5 size-4 shrink-0" />
+                          {p.address ?? <span className="text-[13px]">{t("noAddress")}</span>}
+                        </p>
+                        <p className="flex gap-1.5" data-testid="around-hours">
+                          <Clock className="mt-0.5 size-4 shrink-0" />
+                          {p.opening_hours ? (
+                            <span>
+                              {p.opening_hours} <span className="text-[12px]">({p.source === "openstreetmap" ? t("hoursAsPublished") : p.verified_at ? t("hoursVerified") : t("hoursToConfirm")})</span>
+                            </span>
+                          ) : (
+                            <span className="text-[13px]">{t("noHours")}</span>
+                          )}
+                        </p>
+                        {p.phone && (
+                          <a href={`tel:${p.phone.replace(/[^+\d]/g, "")}`} className="flex gap-1.5 text-accent-text">
+                            <Phone className="mt-0.5 size-4 shrink-0" />
+                            {p.phone}
                           </a>
-                        ))}
+                        )}
+                        {p.website && /^https?:\/\//.test(p.website) && (
+                          <a href={p.website} target="_blank" rel="noreferrer noopener" className="flex gap-1.5 text-accent-text">
+                            <Globe className="mt-0.5 size-4 shrink-0" />
+                            {t("website")}
+                          </a>
+                        )}
                       </div>
-                    ) : (
-                      <p className="mt-2 text-[12px] text-muted">{t("noRoute")}</p>
-                    )}
-                    <p className="mt-2 text-[11px] text-faint">
-                      {p.source === "openstreetmap"
-                        ? t("osmData", { date: f.dateTime(new Date(p.updated_at), { dateStyle: "medium" }) })
-                        : p.verified_at
-                          ? t("verifiedOn", { date: f.dateTime(new Date(p.verified_at), { dateStyle: "medium" }) })
-                          : t(p.source === "owner" ? "ownerAddedOn" : "addedOn", { date: f.dateTime(new Date(p.created_at ?? p.updated_at), { dateStyle: "medium" }) })}
-                    </p>
-                  </Card>
+                      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                        {routable ? (
+                          MAPS_APPS.map((app: MapsApp) => (
+                            <a
+                              key={app}
+                              href={directionsLink(app, dest)}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-surface px-3 text-[13px] font-medium hover:bg-surface-hover"
+                              data-testid={`around-go-${app}`}
+                            >
+                              <Navigation className="size-3.5" />
+                              {t(`app.${app}`)}
+                            </a>
+                          ))
+                        ) : (
+                          <p className="text-[12px] text-muted">{t("noRoute")}</p>
+                        )}
+                        {favoritesAvailable && (
+                          <button
+                            type="button"
+                            aria-pressed={fav}
+                            onClick={() => void toggleFav(p.id)}
+                            className={cn("ms-auto inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-[13px] font-medium", fav ? "border-accent bg-accent-soft text-accent-text" : "border-line bg-surface")}
+                            data-testid="around-fav"
+                          >
+                            <Heart className={cn("size-4", fav && "fill-current")} />
+                            {fav ? t("favOn") : t("favOff")}
+                          </button>
+                        )}
+                      </div>
+                      <p className="mt-2 text-[11px] text-faint">
+                        {p.source === "openstreetmap"
+                          ? t("osmData", { date: f.dateTime(new Date(p.updated_at), { dateStyle: "medium" }) })
+                          : p.verified_at
+                            ? t("verifiedOn", { date: f.dateTime(new Date(p.verified_at), { dateStyle: "medium" }) })
+                            : t(p.source === "owner" ? "ownerAddedOn" : "addedOn", { date: f.dateTime(new Date(p.created_at ?? p.updated_at), { dateStyle: "medium" }) })}
+                      </p>
+                    </div>
+                  </details>
                 </li>
               );
             })}
@@ -330,7 +460,7 @@ export function PlacesManager({
       const send = (parsed: ReturnType<typeof parseOverpass>, covered?: string[]) =>
         storeImportedPlaces(
           propertyId,
-          parsed.places.map((x) => ({ externalId: x.externalId, category: x.category, name: x.name, address: x.address, lat: x.lat, lng: x.lng, openingHours: x.openingHours, phone: x.phone, website: x.website })),
+          parsed.places.map((x) => ({ externalId: x.externalId, category: x.category, name: x.name, address: x.address, lat: x.lat, lng: x.lng, openingHours: x.openingHours, phone: x.phone, website: x.website, kind: x.kind ?? null })),
           parsed.dataDate,
           covered,
         );

@@ -63,3 +63,15 @@ export async function guestRequestVip(token: string, criterionId: string | null,
 export async function guestReplyVip(token: string, message: string) {
   return call("guest_reply_vip", { token, message }, token);
 }
+
+/**
+ * Favori d'un lieu, lié au SÉJOUR (retrouvé sur tout appareil qui ouvre le lien) ; lien expiré ou révoqué → refusé.
+ * Ne déclenche aucun envoi (pas de passage par la file d'e-mails).
+ */
+export async function guestFavorite(token: string, placeId: string, fav: boolean): Promise<GuestResult> {
+  const { data, error } = await supabaseAnon().rpc("guest_place_favorite", { token, place: placeId, fav });
+  if (error) return { ok: false, error: error.code === "PGRST202" ? "unavailable" : "server" };
+  const res = data as Rpc;
+  if (res.status !== "ok") return { ok: false, error: "unavailable" };
+  return { ok: true };
+}

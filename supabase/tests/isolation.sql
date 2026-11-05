@@ -186,10 +186,10 @@ where n.nspname = 'public' and c.relkind = 'r' group by c.relname;
 select t.check('aucune fonction exécutable par anon (hors exception invité) : ' || p.proname, p.proname, false)
 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')
-  and p.proname not in ('get_guest_stay', 'guest_request_service', 'guest_reply_service', 'guest_send_message', 'guest_report_problem', 'guest_problems', 'guest_places', 'guest_save_preparation', 'guest_delete_preparation', 'guest_request_vip', 'guest_reply_vip',
+  and p.proname not in ('get_guest_stay', 'guest_request_service', 'guest_reply_service', 'guest_send_message', 'guest_report_problem', 'guest_problems', 'guest_places', 'guest_place_favorite', 'guest_save_preparation', 'guest_delete_preparation', 'guest_request_vip', 'guest_reply_vip',
                         'booking_portal', 'booking_submit', 'booking_guest_action', 'review_portal', 'review_submit', 'get_showcase');
 select t.is('exceptions anonymes : uniquement la porte d''entrée voyageur (lien de séjour)', (select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'booking_guest_action,booking_portal,booking_submit,get_guest_stay,get_showcase,guest_delete_preparation,guest_places,guest_problems,guest_reply_service,guest_reply_vip,guest_report_problem,guest_request_service,guest_request_vip,guest_save_preparation,guest_send_message,review_portal,review_submit');
+  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'booking_guest_action,booking_portal,booking_submit,get_guest_stay,get_showcase,guest_delete_preparation,guest_place_favorite,guest_places,guest_problems,guest_reply_service,guest_reply_vip,guest_report_problem,guest_request_service,guest_request_vip,guest_save_preparation,guest_send_message,review_portal,review_submit');
 
 select t.check('fonction security definer avec search_path fixé : ' || p.proname,
   coalesce(array_to_string(p.proconfig, ','), 'aucun'), coalesce(array_to_string(p.proconfig, ','), '') like '%search_path=%')
@@ -998,6 +998,25 @@ select t.is('lieux : un lieu masqué n''est plus montré', t.q(null, format('sel
 select t.is('lieux : un agent ne les gère pas', t.q('a_agent', 'select count(*) from public.property_places'), '0');
 select t.deny('lieux : un agent n''en ajoute pas', t.dml('a_agent', format('insert into public.property_places (organization_id, property_id, source, category, name) values (%L, %L, ''manager'', ''food'', ''x'')', t.id('A'), t.id('PA1'))));
 select t.is('lieux : une autre organisation ne voit rien', t.q('b_manager', format('select count(*) from public.property_places where organization_id = %L', t.id('A'))), '0');
+-- Migration 22 : type précis et favoris du voyageur (liés au séjour, soumis au lien)
+update public.property_places set kind = 'cafe' where id = t.id('PLACE1');
+select t.is('alentours : le type précis est transmis au voyageur', t.q(null, format('select (public.guest_places(%L) -> ''places'' -> 0 ->> ''kind'')', '1111111111111111111111111111111111111111111111111111111111111111')), 'cafe');
+select t.err('alentours : type invalide refusé', t.dml('a_manager', format('update public.property_places set kind = ''Pas Valide'' where id = %L', t.id('PLACE1'))), '23514');
+select t.is('favoris : ajout par le lien du séjour', t.keep(null, format('select public.guest_place_favorite(%L, %L, true) ->> ''status''', '1111111111111111111111111111111111111111111111111111111111111111', t.id('PLACE1'))), 'ok');
+select t.is('favoris : double ajout', t.keep(null, format('select public.guest_place_favorite(%L, %L, true) ->> ''status''', '1111111111111111111111111111111111111111111111111111111111111111', t.id('PLACE1'))), 'ok');
+select t.is('favoris : sans doublon', (select count(*)::text from public.stay_place_favorites where place_id = t.id('PLACE1')), '1');
+select t.is('favoris : relus avec les lieux', t.q(null, format('select public.guest_places(%L) -> ''favorites'' ->> 0', '1111111111111111111111111111111111111111111111111111111111111111')), t.id('PLACE1')::text);
+select t.is('favoris : lieu d''un autre logement refusé', t.keep(null, format('select public.guest_place_favorite(%L, %L, true) ->> ''status''', '1111111111111111111111111111111111111111111111111111111111111111', t.id('PLACE4'))), 'not_found');
+select t.is('favoris : lieu masqué refusé', t.keep(null, format('select public.guest_place_favorite(%L, %L, true) ->> ''status''', '1111111111111111111111111111111111111111111111111111111111111111', t.id('PLACE2'))), 'not_found');
+select t.is('favoris : lien inventé refusé', t.keep(null, format('select public.guest_place_favorite(%L, %L, true) ->> ''status''', repeat('0', 64), t.id('PLACE1'))), 'unavailable');
+select t.is('favoris : l''autre séjour ne voit pas ces favoris', t.q(null, 'select jsonb_array_length(public.guest_places(''2222222222222222222222222222222222222222222222222222222222222222'') -> ''favorites'')::text'), '0');
+select t.is('favoris : le responsable les voit', t.q('a_manager', format('select count(*) from public.stay_place_favorites where organization_id = %L', t.id('A'))), '1');
+select t.is('favoris : un agent ne les voit pas', t.q('a_agent', 'select count(*) from public.stay_place_favorites'), '0');
+select t.is('favoris : une autre organisation ne les voit pas', t.q('b_manager', 'select count(*) from public.stay_place_favorites'), '0');
+select t.err('favoris : aucune lecture anonyme directe', t.q(null, 'select count(*) from public.stay_place_favorites'), '42501');
+select t.err('favoris : aucune écriture directe', t.dml('a_manager', format('insert into public.stay_place_favorites (organization_id, reservation_id, place_id) values (%L, %L, %L)', t.id('A'), t.id('RA3'), t.id('PLACE4'))), '42501');
+select t.is('favoris : retrait', t.keep(null, format('select public.guest_place_favorite(%L, %L, false) ->> ''status''', '1111111111111111111111111111111111111111111111111111111111111111', t.id('PLACE1'))), 'ok');
+select t.is('favoris : retiré pour de bon', (select count(*)::text from public.stay_place_favorites where place_id = t.id('PLACE1')), '0');
 select t.deny('lieux : une autre organisation n''en ajoute pas', t.dml('b_manager', format('insert into public.property_places (organization_id, property_id, source, category, name) values (%L, %L, ''manager'', ''food'', ''x'')', t.id('A'), t.id('PA1'))));
 select t.is('lieux : le manager en ajoute', t.dml('a_manager', format('insert into public.property_places (organization_id, property_id, source, category, name, address) values (%L, %L, ''manager'', ''services'', ''Pharmacie Élysée'', ''2 rue d''''Été'')', t.id('A'), t.id('PA1'))), '1');
 select t.err('lieux : lieu rattaché au logement d''une autre organisation refusé', t.dml('a_manager', format('insert into public.property_places (organization_id, property_id, source, category, name) values (%L, %L, ''manager'', ''food'', ''x'')', t.id('A'), t.id('PB1'))), '23503');
@@ -1939,14 +1958,15 @@ select t.err('validation : un agent ne valide pas sa propre mission', t.q('a_age
 insert into t.ids select k, gen_random_uuid() from unnest(array['T21', 'I21']) k;
 insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, is_auto_generated, window_start, window_end, duration_min, started_at) values
   (t.id('T21'), t.id('A'), t.id('P20'), 'maintenance', 'in_progress', t.id('a_agent'), false, now() - interval '4 hours', now() + interval '4 hours', 60, now() - interval '2 hours');
-select t.err('dépassement : un autre agent ne répond pas à la place', t.q('a_agent2', format('select public.task_overrun_continue(%L, %L)', t.id('A'), t.id('T21'))), '42501');
+select t.is('dépassement : un autre agent ne répond pas à la place (rappel périmé, rien d''enregistré)', t.keep('a_agent2', format('select public.task_overrun_continue(%L, %L)', t.id('A'), t.id('T21'))), 'stale');
+select t.is('dépassement : rien n''a été enregistré pour l''autre agent', (select count(*)::text from public.task_events where task_id = t.id('T21') and kind = 'overrun_continue'), '0');
 select t.err('dépassement : une autre organisation non plus', t.q('b_manager', format('select public.task_overrun_continue(%L, %L)', t.id('A'), t.id('T21'))), '42501');
 select t.is('dépassement : « Oui, je continue » enregistré', t.keep('a_agent', format('select public.task_overrun_continue(%L, %L)', t.id('A'), t.id('T21'))), 'applied');
 select t.is('dépassement : double appui sans doublon', t.keep('a_agent', format('select public.task_overrun_continue(%L, %L)', t.id('A'), t.id('T21'))), 'already');
 select t.is('dépassement : une seule trace, auteur = agent ; mission toujours en cours (le temps n''est pas arrêté)', (select count(*)::text || '/' || bool_and(actor_id = t.id('a_agent'))::text from public.task_events where task_id = t.id('T21') and kind = 'overrun_continue') || '/' || (select status::text || '/' || (completed_at is null)::text from public.tasks where id = t.id('T21')), '1/true/in_progress/true');
 select t.err('heure de fin : avant le démarrage → refusée', t.q('a_agent', format('select public.propose_task_end(%L, %L, now() - interval ''3 hours'', null)', t.id('A'), t.id('T21'))), '22023');
 select t.err('heure de fin : dans le futur → refusée', t.q('a_agent', format('select public.propose_task_end(%L, %L, now() + interval ''1 hour'', null)', t.id('A'), t.id('T21'))), '22023');
-select t.err('heure de fin : un autre agent ne peut pas la proposer', t.q('a_agent2', format('select public.propose_task_end(%L, %L, now() - interval ''1 hour'', null)', t.id('A'), t.id('T21'))), '42501');
+select t.is('heure de fin : un autre agent ne peut pas la proposer (périmé, rien d''enregistré)', t.keep('a_agent2', format('select public.propose_task_end(%L, %L, now() - interval ''1 hour'', null)', t.id('A'), t.id('T21'))), 'stale');
 select t.is('heure de fin : proposée par l''agent affecté', t.keep('a_agent', format('select public.propose_task_end(%L, %L, now() - interval ''50 minutes'', ''Oubli de terminer (fictif)'')', t.id('A'), t.id('T21'))), 'applied');
 select t.is('heure de fin : en attente, statut et fin réelle inchangés', (select end_proposal_status || '/' || status::text || '/' || (reported_end_at is null)::text from public.tasks where id = t.id('T21')), 'pending/in_progress/true');
 select t.err('heure de fin : l''agent ne valide pas sa propre proposition', t.q('a_agent', format('select public.decide_task_end(%L, %L, true)', t.id('A'), t.id('T21'))), '42501');

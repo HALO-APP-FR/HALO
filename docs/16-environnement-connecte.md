@@ -427,3 +427,51 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 - Nouvelle fiche membre `/app/team/[id]`, réservée aux responsables : appeler (si un numéro est renseigné), écrire, missions à valider, missions en cours et à venir, dernières validées, conversations, absences à venir (type et période seulement, jamais le motif). Le nom et le téléphone sont modifiés par la personne elle-même : la base n'autorise pas un responsable à les changer.
 
 **Compatibilité.** Les pages lisent les colonnes de la migration 21 dans des requêtes séparées. Tant que la migration n'est pas appliquée, les fiches restent affichables et ces informations sont simplement absentes. Le réglage du délai indique qu'il sera disponible après la mise à jour de la base.
+
+## Fiabilité, messagerie, carte « Découvrir les alentours » (migration 22 : `20261117000001_alentours_types_favoris.sql`)
+
+**Absences (sans migration).** Le retour du 5/11 montrait une demande **en attente** parmi les « conflits confirmés ». C'est corrigé avec `conflictGroup`, qui applique une seule règle partout (Équipe et tableau de bord) :
+- **confirmé** : une absence **acceptée** ou une fermeture rend la mission impossible ;
+- **à examiner** : absence partielle, ou mission déjà en cours ;
+- **potentiel** : la demande est encore en attente, rien n'est bloqué.
+
+Une absence refusée ou annulée ne produit aucun conflit. Le tableau de bord ne compte en « urgent » que les conflits confirmés.
+
+**Rappel de durée.**
+- Une réponse au rappel donnée après la fin, l'annulation ou la réattribution de la mission renvoie « stale ». Rien n'est enregistré et l'agent voit un message clair.
+- La migration 22 remplace `task_overrun_continue` et `propose_task_end` pour cela. Avant, ces cas renvoyaient une erreur de droits.
+- L'heure à laquelle l'agent a déclaré la fin (« Déclarée le… ») s'affiche à côté de l'heure qu'il propose.
+- Le responsable peut accepter ou refuser l'heure proposée. Un refus ne change pas l'heure retenue.
+
+**Messagerie.** À l'ouverture, la conversation affiche les derniers messages. Sur téléphone, la barre inférieure s'efface pendant la saisie pour laisser la place à la zone de texte. Les accès ont été vérifiés : un second agent fictif ne voit ni la conversation ni la mission de l'autre agent (page 404), et une autre organisation non plus.
+
+**Fiche membre.** Elle s'ouvre en lecture. Le bouton « Modifier la fiche » permet de changer le poste et le type de collaboration (salarié, indépendant, entreprise partenaire). La base applique les droits : un responsable modifie les agents, le propriétaire tous les membres. Le nom et le téléphone restent ceux saisis par la personne.
+
+**Fiche logement.** Elle affiche d'abord les séjours, les missions et les incidents en cours. Le livret, les calendriers et les alentours sont dans des sections repliables, chacune avec un résumé. Une section s'ouvre directement depuis un lien qui la vise (par exemple `#places`).
+
+**Découvrir les alentours (migration 22).**
+- **Ce qui existait :** carte OpenStreetMap (Leaflet) centrée sur le logement sans demander la position du voyageur, 5 catégories larges, liste avec origine des lieux, distance arrondie, horaires seulement si la source les donne, itinéraire Plans / Google / Waze, adresse et lieux proches masqués avant l'ouverture, message si le fond de carte ne charge pas.
+- **Ce qui est ajouté :**
+  - une entrée « Découvrir les alentours » en haut de l'espace voyageur ;
+  - le choix Carte / Liste ;
+  - des filtres par envie : restaurants, cafés et bars, courses, commerces, activités, transports, pharmacies, services utiles ;
+  - un choix de rayon : 500 m, 1 km, 2 km ou tout (3 km au plus) ;
+  - une fiche lieu dépliable, qui s'ouvre aussi en touchant un marqueur sur la carte ;
+  - l'indication quand une adresse ou des horaires manquent ;
+  - pour les pharmacies et les lieux de santé, un avertissement : HALO ne sait pas s'ils sont ouverts ni s'ils prennent en charge une urgence, avec le rappel du 112 / 15.
+- **Type précis des lieux :** nouvelle colonne `property_places.kind`, remplie à l'import depuis OpenStreetMap, Photon ou Geoapify. Tant que la migration n'est pas appliquée, l'import enregistre les lieux sans ce type.
+- **Favoris du voyageur :** nouvelle table `stay_place_favorites`, rattachée au séjour (on les retrouve sur tout appareil qui ouvre le lien), et nouvelle fonction `guest_place_favorite(token, place, fav)`. Les favoris ne sont lisibles et modifiables qu'avec un lien valide : expiré ou révoqué, la réponse est « unavailable ». Un lieu qui n'est pas visible pour ce voyageur à ce moment ne peut pas être mis en favori. L'équipe peut les lire ; ni les agents ni les autres organisations.
+- **Données envoyées à des fournisseurs :** les tuiles de carte viennent de tile.openstreetmap.org, appelé depuis le navigateur du voyageur (le fournisseur voit son adresse IP et la zone affichée). Les lieux sont importés par l'équipe, via Overpass, Photon ou Geoapify si une clé est configurée. Rien n'est envoyé sur le voyageur lui-même.
+- **Pas encore fait :** recherche par envie en langage libre avec une IA (aucun fournisseur configuré, donc rien de simulé), et filtre « ouvert maintenant » (aucune donnée d'ouverture fiable).
+
+**Notifications push : état réel.**
+- Il n'existe ni service worker, ni manifeste d'application, ni enregistrement des abonnements, ni clés VAPID. Aucune notification push n'est donc envoyée.
+- Ce qui fonctionne aujourd'hui : les informations affichées dans l'application et les e-mails.
+- **Pour activer le Web Push**, il faut :
+  1. générer une paire de clés VAPID (gratuit) et mettre la clé privée dans les variables Vercel, jamais dans le dépôt ;
+  2. ajouter un service worker et un manifeste ;
+  3. créer une table des abonnements par appareil, avec révocation ;
+  4. ajouter l'envoi des notifications depuis la file existante ;
+  5. ajouter un écran d'autorisation qui gère le refus.
+- Sur iPhone, le push ne fonctionne que si HALO est ajouté à l'écran d'accueil (iOS 16.4 ou plus récent).
+- Il faudra tester sur un vrai téléphone.

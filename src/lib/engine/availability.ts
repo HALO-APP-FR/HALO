@@ -184,3 +184,19 @@ export function staysDuringClosures<S extends { id: string; checkInAt: string; c
   const inside = (iso: string, a: Absence) => ms(iso) >= ms(a.startsAt) && ms(iso) < ms(a.endsAt);
   return stays.filter((s) => closures.some((a) => inside(s.checkInAt, a) || inside(s.checkOutAt, a)));
 }
+
+/**
+ * Classement d'un conflit pour l'affichage (retour du 5/11 : une demande EN ATTENTE apparaissait parmi les
+ * « conflits confirmés ») :
+ *  - confirmed : la mission ne peut pas être faite par la personne selon les informations connues
+ *    (absence ACCEPTÉE qui la rend impossible, fermeture d'équipe) ;
+ *  - review : une solution reste possible ou l'état réel est inconnu (absence partielle, mission en cours) ;
+ *  - potential : conflit seulement si la demande en attente est acceptée.
+ * Une absence refusée ou annulée ne produit aucun conflit.
+ */
+export type ConflictGroup = "confirmed" | "review" | "potential";
+export function conflictGroup(kind: AvailabilityConflict["kind"]): ConflictGroup {
+  if (kind === "pending") return "potential";
+  if (kind === "accepted" || kind === "closure") return "confirmed";
+  return "review";
+}

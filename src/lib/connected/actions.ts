@@ -888,9 +888,10 @@ export async function importNearbyPlaces(propertyId: string): Promise<Result<{ c
     phone: x.phone,
     website: x.website,
     source_updated_at: updatedAt,
+    kind: x.kind && /^[a-z_]{1,40}$/.test(x.kind) ? x.kind : null,
   }));
   if (rows.length) {
-    const { error: ue } = await ctx.supabase.from("property_places").upsert(rows, { onConflict: "property_id,source,external_id" });
+    const ue = await upsertPlaces(ctx.supabase, rows);
     if (ue) return fail(errCode(ue));
   }
   // Lieux qui n'existent plus dans OpenStreetMap : retirés, seulement pour les catégories obtenues et si la
@@ -1072,10 +1073,11 @@ export async function storeImportedPlaces(propertyId: string, places: ImportedPl
       phone: x.phone?.slice(0, 40) || null,
       website: x.website && /^https?:\/\//.test(x.website) ? x.website.slice(0, 300) : null,
       source_updated_at: date,
+      kind: x.kind && /^[a-z_]{1,40}$/.test(x.kind) ? x.kind : null,
     }));
   if (rows.length) {
     // Upsert sans toucher « hidden » : un lieu masqué reste masqué ; aucune ligne en double (clé logement + source + identifiant)
-    const { error: ue } = await ctx.supabase.from("property_places").upsert(rows, { onConflict: "property_id,source,external_id" });
+    const ue = await upsertPlaces(ctx.supabase, rows);
     if (ue) return fail(errCode(ue));
   }
   const cats = (covered ?? PLACE_CATEGORIES).filter((c) => PLACE_CATEGORIES.includes(c as never));
@@ -1096,7 +1098,22 @@ export async function storeImportedPlaces(propertyId: string, places: ImportedPl
   revalidatePath("/", "layout");
   return { ok: true, data: { count: rows.length, missing: PLACE_CATEGORIES.filter((c) => !cats.includes(c)) } };
 }
+/**
+ * Enregistrement des lieux importés. Le type précis (« kind », migration 22) est envoyé s'il existe ;
+ * tant que la migration n'est pas appliquée, l'enregistrement se fait sans lui (rien n'est perdu d'autre).
+ */
+async function upsertPlaces(supabase: Awaited<ReturnType<typeof getContext>>["supabase"], rows: Record<string, unknown>[]) {
+  const first = await supabase.from("property_places").upsert(rows, { onConflict: "property_id,source,external_id" });
+  if (!first.error) return null;
+  if (first.error.code === "PGRST204" || /kind/.test(first.error.message ?? "")) {
+    const again = await supabase.from("property_places").upsert(rows.map(({ kind: _kind, ...r }) => r), { onConflict: "property_id,source,external_id" });
+    return again.error;
+  }
+  return first.error;
+}
+
 export interface ImportedPlaceInput {
+  kind?: string | null;
   externalId: string;
   category: string;
   name: string;
@@ -1404,4 +1421,25 @@ export async function keepIncidentOpen(incidentId: string): Promise<Result<{ res
   if (e) return fail(errCode(e));
   revalidatePath("/", "layout");
   return { ok: true, data: { result: data as string } };
+}
+
+/**
+ * Fiche membre : poste et type de collaboration (salarié, indépendant, entreprise partenaire).
+ * Droits appliqués par la base : un responsable modifie les agents, le propriétaire tous les membres ;
+ * le nom et le téléphone restent ceux que la personne a renseignés.
+ */
+export async function updateMember(memberId: string, position: string | null, collaboration: string | null): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase
+    .from("memberships")
+    .update({ position: position || null, collaboration: collaboration || null })
+    .eq("organization_id", ctx.org!.id)
+    .eq("user_id", memberId)
+    .select("user_id");
+  if (e) return fail(errCode(e));
+  // Aucune ligne modifiée = pas le droit (ex. un responsable sur la fiche d'un autre responsable)
+  if (!data || data.length === 0) return fail("forbidden");
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
 }

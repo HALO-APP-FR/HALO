@@ -1776,6 +1776,14 @@
         "incidents": "Incidents ouverts",
         "noIncident": "Aucun incident ouvert.",
         "urgent": "Urgent"
+      },
+      "sections": {
+        "guide": "Livret voyageur",
+        "guideSummary": "{count, plural, =0 {Aucune rubrique remplie} one {# rubrique remplie} other {# rubriques remplies}}",
+        "sources": "Calendriers",
+        "sourcesSummary": "{count, plural, =0 {Aucun calendrier relié} one {# calendrier relié} other {# calendriers reliés}}",
+        "places": "Alentours et recommandations",
+        "placesSummary": "{count, plural, =0 {Aucun lieu visible par le voyageur} one {# lieu visible par le voyageur} other {# lieux visibles par le voyageur}}"
       }
     },
     "guide": {
@@ -2472,7 +2480,7 @@
       "noneMine": "Aucune absence déclarée.",
       "absentNow": "Absent en ce moment",
       "conflictsTitle": "{count, plural, one {# mission à réorganiser} other {# missions à réorganiser}}",
-      "conflictsText": "Conflits confirmés : ces missions ne peuvent pas être faites par la personne affectée (horaire planifié pendant l'absence, ou temps libre restant plus court que la durée prévue). HALO ne les réaffecte jamais seul.",
+      "conflictsText": "Conflits confirmés : selon une absence ACCEPTÉE ou une fermeture, ces missions ne peuvent pas être faites par la personne affectée (horaire planifié pendant l'absence, ou temps libre restant plus court que la durée prévue). HALO ne les réaffecte jamais seul.",
       "nobody": "Personne n'est attribué",
       "conflictKind": {
         "accepted": "absence acceptée",
@@ -2503,7 +2511,9 @@
       "freeLeftFromNow": "Plus long temps libre continu de maintenant au {to} : {duration}. Calcul d'après les seules absences enregistrées ; horaires de travail, autres missions et trajets non pris en compte — pas une disponibilité garantie.",
       "freeLeftWindow": "Plus long temps libre continu entre le {from} et le {to} (fenêtre entière) : {duration}. Calcul d'après les seules absences enregistrées ; horaires de travail, autres missions et trajets non pris en compte — pas une disponibilité garantie.",
       "summaryDays": "{same, select, yes {Sera enregistrée : {from}, journée entière.} other {Sera enregistrée : du {from} au {to} inclus, journées entières.}}",
-      "summaryHours": "Sera enregistrée : du {from} au {to}."
+      "summaryHours": "Sera enregistrée : du {from} au {to}.",
+      "potentialTitle": "{count, plural, one {# mission concernée si une demande est acceptée} other {# missions concernées si des demandes sont acceptées}}",
+      "potentialText": "Conflits potentiels : la demande d'absence est encore en attente. Rien n'est bloqué tant que vous ne l'avez pas acceptée."
     },
     "chat": {
       "title": "Messages",
@@ -3701,7 +3711,10 @@
         "save": "Enregistrer",
         "saved": "Délai enregistré.",
         "unavailable": "Réglage disponible après la mise à jour de la base (migration 21)."
-      }
+      },
+      "stale": "Cette mission n'est plus en cours (terminée, annulée ou réattribuée) : rien n'a été enregistré.",
+      "declaredAt": "Déclarée le {at}",
+      "refresh": "Actualiser"
     },
     "incidentResolve": {
       "title": "Intervention validée : l'incident est-il résolu ?",
@@ -3737,6 +3750,15 @@
       "absence": {
         "pending": "À décider",
         "accepted": "Acceptée"
+      },
+      "edit": {
+        "open": "Modifier la fiche",
+        "position": "Poste",
+        "collaboration": "Type de collaboration",
+        "none": "Non renseigné",
+        "save": "Enregistrer",
+        "cancel": "Annuler",
+        "hint": "Le nom et le téléphone restent ceux de la personne."
       }
     }
   },
@@ -4009,7 +4031,7 @@
       }
     },
     "around": {
-      "title": "Autour du logement",
+      "title": "Découvrir les alentours",
       "fromMe": "Distances depuis ma position",
       "fromHome": "Revenir au logement",
       "originMe": "Distances depuis votre position (elle reste sur votre téléphone).",
@@ -4049,7 +4071,58 @@
       "showLess": "Afficher moins",
       "band": "{n, select, 1 {moins de 1 km} 2 {1 à 2 km} other {2 à 3 km}}",
       "nearHidden": "{count, plural, one {# lieu tout proche du logement apparaîtra le {date}, avec l'adresse.} other {# lieux tout proches du logement apparaîtront le {date}, avec l'adresse.}}",
-      "autoHidden": "{count, plural, one {# suggestion automatique à proximité sera visible le {date}.} other {# suggestions automatiques à proximité seront visibles le {date}.}}"
+      "autoHidden": "{count, plural, one {# suggestion automatique à proximité sera visible le {date}.} other {# suggestions automatiques à proximité seront visibles le {date}.}}",
+      "discover": "Découvrir les alentours",
+      "discoverHint": "Restaurants, commerces, activités et services autour du logement",
+      "viewLabel": "Affichage",
+      "view": {
+        "map": "Carte",
+        "list": "Liste"
+      },
+      "filtersLabel": "Envies",
+      "filter": {
+        "restaurants": "Restaurants",
+        "cafes": "Cafés et bars",
+        "groceries": "Courses",
+        "shops": "Commerces",
+        "activities": "Activités",
+        "transport": "Transports",
+        "pharmacies": "Pharmacies",
+        "services": "Services utiles"
+      },
+      "kind": {
+        "restaurant": "Restaurant",
+        "fast_food": "Restauration rapide",
+        "cafe": "Café",
+        "bar": "Bar",
+        "pub": "Pub",
+        "ice_cream": "Glacier",
+        "supermarket": "Supermarché",
+        "convenience": "Épicerie",
+        "bakery": "Boulangerie",
+        "pharmacy": "Pharmacie",
+        "hospital": "Hôpital",
+        "clinic": "Clinique",
+        "doctors": "Cabinet médical",
+        "atm": "Distributeur",
+        "bus_stop": "Arrêt de bus",
+        "station": "Gare",
+        "museum": "Musée",
+        "park": "Parc"
+      },
+      "radiusLabel": "Rayon",
+      "radiusAll": "Tout",
+      "favorites": "Mes favoris",
+      "favOn": "Dans mes favoris",
+      "favOff": "Ajouter aux favoris",
+      "favError": "Le favori n'a pas pu être enregistré. Réessayez.",
+      "favOffline": "Pas de connexion : le favori n'a pas été enregistré.",
+      "favUnavailable": "Ce lien n'est plus valide : les favoris ne sont plus disponibles.",
+      "noFavorites": "Aucun favori pour l'instant : ouvrez un lieu et touchez « Ajouter aux favoris ».",
+      "noResult": "Aucun lieu pour ce choix dans ce rayon.",
+      "resetFilters": "Tout afficher",
+      "noAddress": "Adresse non communiquée par la source",
+      "healthNote": "Santé : HALO ne sait pas si ces lieux sont ouverts ni s'ils prennent en charge une urgence. En cas d'urgence, appelez le 112 (ou le 15 en France)."
     },
     "prepBanner": "Votre séjour approche. Les informations pratiques (adresse, accès, guide) seront visibles ici à partir du {date}. En attendant, vous pouvez préparer votre séjour et écrire à l'équipe.",
     "prepared": {

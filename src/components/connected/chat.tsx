@@ -42,6 +42,19 @@ export function ChatThread({ threadId, messages, meId, canWrite, sticky = false,
   const [body, setBody] = useState("");
   const [urgent, setUrgent] = useState(false);
   const marked = useRef(false);
+  const end = useRef<HTMLDivElement>(null);
+  const scrolled = useRef(false);
+  // Ouverture de la conversation : on arrive sur les messages les plus récents (l'historique reste au-dessus)
+  useEffect(() => {
+    if (!sticky || scrolled.current) return;
+    scrolled.current = true;
+    end.current?.scrollIntoView({ block: "end" });
+  }, [sticky]);
+  // Nouveau message envoyé ou reçu : rester en bas
+  const count = messages.length + local.length;
+  useEffect(() => {
+    if (sticky && scrolled.current) end.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [count, sticky]);
 
   // Ouverture : la conversation est marquée lue (côté serveur), puis rafraîchie régulièrement
   useEffect(() => {
@@ -146,9 +159,10 @@ export function ChatThread({ threadId, messages, meId, canWrite, sticky = false,
         ))}
         {messages.length === 0 && local.length === 0 && <li className="py-6 text-center text-[14px] text-muted">{t("empty")}</li>}
       </ul>
+      <div ref={end} />
       {canWrite && (
         <form
-          className={cn("space-y-2 border-t border-line bg-surface pt-3", sticky && "sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] -mx-4 px-4 pb-3 md:bottom-0 md:-mx-5 md:px-5")}
+          className={cn("space-y-2 border-t border-line bg-surface pt-3", sticky && "sticky bottom-[var(--bottom-bar,0px)] -mx-4 px-4 pb-3 md:bottom-0 md:-mx-5 md:px-5")}
           onSubmit={(e) => {
             e.preventDefault();
             if (!body.trim()) return;

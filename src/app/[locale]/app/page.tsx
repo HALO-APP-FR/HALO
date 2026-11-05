@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { windowText } from "@/lib/connected/format";
 import { overrunAlert } from "@/lib/engine/overrun";
+import { conflictGroup } from "@/lib/engine/availability";
 
 export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
   const { locale } = await params;
@@ -94,8 +95,8 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     { key: "overrun", n: overrun.length, href: overrun[0] ? `/app/missions/${overrun[0].id}` : "/app/missions", icon: Timer, danger: true },
     // Planning : ménages impossibles, missions touchées par une absence, demandes d'absence — toujours visibles
     { key: "schedule", n: planning.schedule.length, href: "/app/missions", icon: CalendarX2, danger: true },
-    { key: "availability", n: planning.availability.filter((c) => !["partial", "started", "started_during", "started_before", "started_upcoming"].includes(c.kind)).length + planning.closureStays.length, href: "/app/team", icon: CalendarClock, danger: true },
-    { key: "availabilityRisks", n: planning.availability.filter((c) => ["partial", "started", "started_during", "started_before", "started_upcoming"].includes(c.kind)).length, href: "/app/team", icon: CalendarClock, danger: false },
+    { key: "availability", n: planning.availability.filter((c) => conflictGroup(c.kind) === "confirmed").length + planning.closureStays.length, href: "/app/team", icon: CalendarClock, danger: true },
+    { key: "availabilityRisks", n: planning.availability.filter((c) => conflictGroup(c.kind) === "review").length, href: "/app/team", icon: CalendarClock, danger: false },
     { key: "absenceRequests", n: planning.pendingAbsences, href: "/app/team", icon: CalendarClock, danger: true },
     { key: "services", n: services.count ?? 0, href: "/app/services", icon: ConciergeBell, danger: true },
     { key: "prepReview", n: prepReview.count ?? 0, href: "/app/stays?prep=review", icon: ClipboardList, danger: true },

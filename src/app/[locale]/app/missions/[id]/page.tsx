@@ -280,7 +280,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
         </div>
       )}
       {ex?.end_proposal_status && ex.end_proposed_at && (manager || mine) && (
-        <EndProposal taskId={task.id} proposedAt={ex.end_proposed_at} note={ex.end_proposed_note} status={ex.end_proposal_status} canDecide={manager} timeZone={p?.timezone ?? undefined} />
+        <EndProposal taskId={task.id} declaredAt={((events ?? []).find((e: { kind: string }) => e.kind === "end_proposed") as { at: string } | undefined)?.at ?? null} proposedAt={ex.end_proposed_at} note={ex.end_proposed_note} status={ex.end_proposal_status} canDecide={manager} timeZone={p?.timezone ?? undefined} />
       )}
       {askResolve && source && <IncidentResolvePrompt incidentId={source.id} description={source.description} fromGuest={source.source === "guest"} />}
       {/* Deux informations distinctes : la fenêtre pendant laquelle la mission doit être faite, et la durée de travail estimée */}

@@ -5,6 +5,7 @@ import { Link, redirect } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { Avatar } from "@/components/connected/avatar";
+import { MemberEdit } from "@/components/connected/member-edit";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { loadThreads } from "@/lib/connected/chat";
 import { nowDate } from "@/lib/connected/time";
@@ -38,12 +39,13 @@ export default async function MemberPage({ params }: PageProps<"/[locale]/app/te
   const tts = await getTranslations("taskStatus");
   const tc = await getTranslations("connected.chat");
   const tp = await getTranslations("position");
+  const tcol = await getTranslations("collaboration");
   const f = await getFormatter();
   const { supabase, org, user } = await getContext();
   if (!org) redirect({ href: "/app", locale });
   if (!isManagerRole(org!.role)) redirect({ href: "/app/missions", locale });
   const o = org!.id;
-  const { data: m } = await supabase.from("memberships").select("user_id, role, position, is_active, profiles(full_name, phone)").eq("organization_id", o).eq("user_id", id).maybeSingle();
+  const { data: m } = await supabase.from("memberships").select("user_id, role, position, collaboration, is_active, profiles(full_name, phone)").eq("organization_id", o).eq("user_id", id).maybeSingle();
   if (!m) notFound();
   const prof = (Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as { full_name: string | null; phone: string | null } | null;
   const name = prof?.full_name?.trim() || "";
@@ -75,6 +77,7 @@ export default async function MemberPage({ params }: PageProps<"/[locale]/app/te
             <p className="text-[14px] text-muted">
               {tr(`roles.${m.role}`)}
               {m.position ? ` · ${tp.has(m.position) ? tp(m.position) : m.position}` : ""}
+              {m.collaboration ? ` · ${tcol(m.collaboration)}` : ""}
               {m.is_active ? "" : ` · ${tr("inactive")}`}
             </p>
           </div>
@@ -98,6 +101,11 @@ export default async function MemberPage({ params }: PageProps<"/[locale]/app/te
           )}
         </div>
         <p className="mt-3 text-[13px] text-muted">{t(isMe ? "editSelf" : "editHint")}</p>
+        {(org!.role === "owner" || m.role === "agent") && (
+          <div className="mt-2">
+            <MemberEdit memberId={id} position={(m.position as string | null) ?? null} collaboration={(m.collaboration as string | null) ?? null} />
+          </div>
+        )}
         {isMe && (
           <Link href="/app/profile" className="mt-1 inline-block text-[14px] text-accent-text hover:underline">
             {t("editProfile")}

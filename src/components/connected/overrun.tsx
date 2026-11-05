@@ -8,7 +8,7 @@ import { durationText, fromLocalInput, localInputIn } from "@/lib/connected/form
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field, Textarea } from "@/components/ui/field";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { useRun } from "./use-run";
 import { overrunDueAt } from "@/lib/engine/overrun";
 
@@ -22,12 +22,15 @@ export function OverrunPrompt({ taskId, startedAt, durationMin, ackAt, timeZone 
   const t = useTranslations("connected.overrun");
   const f = useFormatter();
   const { pending, error, run } = useRun();
+  const router = useRouter();
   const dueAt = overrunDueAt(startedAt, durationMin, ackAt);
   const [now, setNow] = useState<number | null>(null);
   const [forgot, setForgot] = useState(false);
   const [end, setEnd] = useState("");
   const [note, setNote] = useState("");
   const [sent, setSent] = useState(false);
+  // Rappel devenu périmé (mission terminée, annulée ou réattribuée ailleurs) : rien n'est enregistré
+  const [stale, setStale] = useState(false);
   useEffect(() => {
     const tick = () => setNow(Date.now());
     const first = window.setTimeout(tick, 0);
@@ -37,6 +40,15 @@ export function OverrunPrompt({ taskId, startedAt, durationMin, ackAt, timeZone 
       window.clearInterval(timer);
     };
   }, []);
+  if (stale)
+    return (
+      <p className="mb-4 rounded-xl border border-line bg-surface p-4 text-[14px] text-muted" role="status" data-testid="overrun-stale">
+        {t("stale")}{" "}
+        <button type="button" className="font-medium text-accent-text underline" onClick={() => router.refresh()}>
+          {t("refresh")}
+        </button>
+      </p>
+    );
   if (dueAt === null || now === null || now < dueAt) return null;
   const elapsed = Math.round((now - Date.parse(startedAt)) / 60_000);
   const at = (ms: number) => f.dateTime(new Date(ms), { hour: "2-digit", minute: "2-digit", ...(timeZone ? { timeZone } : {}) });
@@ -49,7 +61,23 @@ export function OverrunPrompt({ taskId, startedAt, durationMin, ackAt, timeZone 
       <p className="mt-1 text-[14px]">{t("text", { since: at(Date.parse(startedAt)), elapsed: durationText(elapsed) })}</p>
       {!sent && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button size="lg" variant="outline" onClick={() => run(() => overrunContinue(taskId))} disabled={pending} data-testid="overrun-continue">
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() =>
+              // Réponse « périmée » : affichée telle quelle, sans recharger (sinon le message disparaîtrait avec le rappel)
+              run(async () => {
+                const r = await overrunContinue(taskId);
+                if (r.ok && r.data.result === "stale") {
+                  setStale(true);
+                  return { ok: false as const, error: "__stale" };
+                }
+                return r;
+              })
+            }
+            disabled={pending}
+            data-testid="overrun-continue"
+          >
             {t("continue")}
           </Button>
           <Button size="lg" onClick={() => document.querySelector<HTMLElement>("[data-testid=mission-finish]")?.scrollIntoView({ behavior: "smooth", block: "center" })} data-testid="overrun-finished">
@@ -69,7 +97,14 @@ export function OverrunPrompt({ taskId, startedAt, durationMin, ackAt, timeZone 
           onSubmit={(e) => {
             e.preventDefault();
             const iso = fromLocalInput(end, timeZone).toISOString();
-            run(() => proposeTaskEnd(taskId, iso, note), () => setSent(true));
+            run(async () => {
+              const r = await proposeTaskEnd(taskId, iso, note);
+              if (r.ok && r.data.result === "stale") {
+                setStale(true);
+                return { ok: false as const, error: "__stale" };
+              }
+              return r;
+            }, () => setSent(true));
           }}
         >
           <Field label={t("endLabel")} htmlFor={`end-${taskId}`} hint={t("endHint")}>
@@ -90,7 +125,7 @@ export function OverrunPrompt({ taskId, startedAt, durationMin, ackAt, timeZone 
 }
 
 /** Heure de fin proposée par l'agent après coup : le responsable l'accepte ou la refuse (historique conservé). */
-export function EndProposal({ taskId, proposedAt, note, status, canDecide, timeZone }: { taskId: string; proposedAt: string; note: string | null; status: string; canDecide: boolean; timeZone?: string }) {
+export function EndProposal({ taskId, declaredAt, proposedAt, note, status, canDecide, timeZone }: { taskId: string; declaredAt: string | null; proposedAt: string; note: string | null; status: string; canDecide: boolean; timeZone?: string }) {
   const t = useTranslations("connected.overrun");
   const f = useFormatter();
   const { pending, error, run } = useRun();
@@ -98,6 +133,11 @@ export function EndProposal({ taskId, proposedAt, note, status, canDecide, timeZ
   return (
     <div className={`mb-4 rounded-xl border p-4 text-[15px] ${status === "pending" ? "border-accent bg-accent-soft" : "border-line bg-surface"}`} data-testid="end-proposal" data-status={status}>
       <p className="font-semibold">{t(`proposal.${status}`, { when })}</p>
+      {declaredAt && (
+        <p className="mt-0.5 text-[13px] text-muted" data-testid="end-declared">
+          {t("declaredAt", { at: f.dateTime(new Date(declaredAt), { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", ...(timeZone ? { timeZone } : {}) }) })}
+        </p>
+      )}
       {note && <p className="mt-1 whitespace-pre-wrap text-[14px]">« {note} »</p>}
       {status === "pending" && canDecide && (
         <div className="mt-3 flex flex-wrap gap-2">
