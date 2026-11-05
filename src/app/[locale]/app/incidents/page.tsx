@@ -4,6 +4,7 @@ import { Link, redirect } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/halo/page-header";
 import { IncidentActions } from "@/components/connected/incident-actions";
+import { IncidentResolvePrompt } from "@/components/connected/overrun";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { cn } from "@/lib/utils";
 
@@ -24,10 +25,13 @@ export default async function IncidentsPage({ params }: PageProps<"/[locale]/app
   }));
   const { data, error } = await supabase
     .from("incidents")
-    .select("id, source, category, description, urgent, status, created_at, taken_at, resolved_at, resolution, guest_message, manager_unread, task_id, reservation_id, follow_up_task_id, properties(name, timezone), reservations(guest_name, guest_email), tasks!incidents_organization_id_task_id_fkey(type), follow:tasks!incidents_follow_up_fk(status)")
+    .select("id, source, category, description, urgent, status, created_at, taken_at, resolved_at, resolution, guest_message, manager_unread, task_id, reservation_id, follow_up_task_id, properties(name, timezone), reservations(guest_name, guest_email), tasks!incidents_organization_id_task_id_fkey(type), follow:tasks!incidents_follow_up_fk(status, validated_at)")
     .eq("organization_id", org!.id)
     .order("created_at", { ascending: false })
     .limit(200);
+  // Incidents laissés ouverts après une intervention validée (migration 21 ; absent avant son application)
+  const { data: keptRows } = await supabase.from("incidents").select("id, kept_open_at").eq("organization_id", org!.id).not("kept_open_at", "is", null).limit(200);
+  const keptOf = new Map(((keptRows ?? []) as { id: string; kept_open_at: string }[]).map((k) => [k.id, k.kept_open_at]));
   const rows = (data ?? []).sort((a, b) => Number(a.status === "resolved") - Number(b.status === "resolved") || Number(b.urgent) - Number(a.urgent));
   const one = <T,>(x: T | T[] | null) => (Array.isArray(x) ? x[0] : x);
   return (
@@ -40,7 +44,7 @@ export default async function IncidentsPage({ params }: PageProps<"/[locale]/app
           const r = one(i.reservations) as { guest_name: string | null; guest_email: string | null } | null;
           const task = one(i.tasks) as { type: string } | null;
           return (
-            <Card key={i.id} className={cn("p-5", i.status === "resolved" && "opacity-70")} data-testid="incident-row" data-status={i.status}>
+            <Card key={i.id} id={`incident-${i.id}`} className={cn("scroll-mt-32 p-5", i.status === "resolved" && "opacity-70")} data-testid="incident-row" data-status={i.status}>
               <div className="flex flex-wrap items-center gap-2">
                 {i.urgent && i.status !== "resolved" && (
                   <span className="inline-flex items-center gap-1 rounded-full bg-danger px-2 py-0.5 text-[12px] font-semibold text-white">
@@ -95,6 +99,15 @@ export default async function IncidentsPage({ params }: PageProps<"/[locale]/app
                   </Link>
                 )}
               </div>
+              {(() => {
+                const fu = one(i.follow as unknown as { status: string; validated_at: string | null } | { status: string; validated_at: string | null }[] | null);
+                const kept = keptOf.get(i.id);
+                return i.status !== "resolved" && fu?.status === "validated" && (!kept || (fu.validated_at && kept < fu.validated_at)) ? (
+                  <div className="mt-3">
+                    <IncidentResolvePrompt incidentId={i.id} description={t("resolvePromptText")} fromGuest={i.source === "guest"} inList />
+                  </div>
+                ) : null;
+              })()}
               <IncidentActions id={i.id} status={i.status} fromGuest={i.source === "guest"} guestHasEmail={Boolean(r?.guest_email)} hasIntervention={Boolean(i.follow_up_task_id)} members={people} timeZone={(one(i.properties) as { timezone?: string } | null)?.timezone ?? undefined} />
             </Card>
           );

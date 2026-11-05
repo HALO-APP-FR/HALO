@@ -5,6 +5,7 @@ import { TaskRuleSettings, ValidationSettings, type TaskTypeRule } from "@/compo
 import { PrepQuestionsSettings, VipCriteriaSettings, type CriterionRow } from "@/components/connected/prep-forms";
 import { Card } from "@/components/ui/card";
 import { ImportEntry } from "@/components/connected/import-entry";
+import { OverrunAlertSetting } from "@/components/connected/overrun";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 
 /** Réglages de l'organisation : ce qui est enregistré ici pilote le serveur (finish_task lit validation_task_types). */
@@ -28,6 +29,8 @@ export default async function SettingsPage({ params }: PageProps<"/[locale]/app/
     supabase.from("organizations").select("validation_task_types, prep_questions").eq("id", org!.id).single(),
     supabase.from("vip_criteria").select("id, label, kind, min_stays, validity_days, guest_visible, editable_by, active").eq("organization_id", org!.id).order("label"),
   ]);
+  const { data: ov, error: ovErr } = await supabase.from("organizations").select("overrun_alert_min").eq("id", org!.id).maybeSingle();
+  const to = await getTranslations("connected.overrun.setting");
   return (
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
@@ -35,6 +38,11 @@ export default async function SettingsPage({ params }: PageProps<"/[locale]/app/
         <ImportEntry title={ti("entryTitle")} text={ti("entryText")} />
         <ValidationSettings initial={(data?.validation_task_types as string[]) ?? []} />
         <TaskRuleSettings initial={rules} />
+        <Card className="p-5">
+          <h2 className="text-[17px] font-semibold">{to("title")}</h2>
+          <p className="mb-4 mt-1 text-[14px] text-muted">{to("text")}</p>
+          <OverrunAlertSetting initial={((ov ?? null) as { overrun_alert_min: number } | null)?.overrun_alert_min ?? 30} available={!ovErr} />
+        </Card>
         <Card className="p-5">
           <h2 className="text-[17px] font-semibold">{t("prep.title")}</h2>
           <p className="mb-4 mt-1 text-[14px] text-muted">{t("prep.text")}</p>

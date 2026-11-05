@@ -159,6 +159,21 @@ export async function GET(request: NextRequest) {
     check("agent_cannot_validate_own_mission", Boolean(selfVal));
     const { data: val } = await a1.rpc("validate_task", { org: orgA, task: mt!.id });
     check("manager_validates_mission", val === "applied", String(val));
+    // 4e. Mission trop longue (migration 21) : réponse de l'agent affecté seulement, heure de fin proposée
+    //     puis décidée par un responsable ; le statut et le temps ne changent pas automatiquement
+    {
+      const { data: ot } = await a1.from("tasks").insert({ organization_id: orgA, property_id: pA!.id, type: "maintenance", status: "assigned", assignee_id: agentId, window_start: soon(-240), window_end: soon(240), duration_min: 30 }).select("id").single();
+      await ag.rpc("start_task", { org: orgA, task: ot!.id, action_id: crypto.randomUUID(), client_at: new Date().toISOString() });
+      const { data: oc, error: oce } = await ag.rpc("task_overrun_continue", { org: orgA, task: ot!.id });
+      check("overrun_continue_by_assigned_agent", !oce && oc === "applied", oce ? `${oce.code}:${oce.message}` : String(oc));
+      const { error: ocB } = await b.rpc("task_overrun_continue", { org: orgA, task: ot!.id });
+      check("overrun_continue_refused_other_org", Boolean(ocB));
+      const { data: pr, error: pre } = await ag.rpc("propose_task_end", { org: orgA, task: ot!.id, ended_at: new Date(Date.now() - 60_000).toISOString(), note: null });
+      const { error: selfDecide } = await ag.rpc("decide_task_end", { org: orgA, task: ot!.id, accept: true });
+      const { data: dec } = await a1.rpc("decide_task_end", { org: orgA, task: ot!.id, accept: true });
+      const { data: otRow } = await a1.from("tasks").select("status, end_proposal_status").eq("id", ot!.id).single();
+      check("end_time_proposed_then_decided_by_manager", !pre && pr === "applied" && Boolean(selfDecide) && dec === "applied" && otRow?.status === "in_progress" && otRow?.end_proposal_status === "accepted", pre ? `${pre.code}:${pre.message}` : `${pr} ${dec} ${otRow?.status} ${otRow?.end_proposal_status}`);
+    }
     // 4d. Règles de mission (migration 19) : ménage impossible avant sa plage, même par appel direct ;
     //     livraison de linge avant l'heure conseillée = confirmation demandée
     {

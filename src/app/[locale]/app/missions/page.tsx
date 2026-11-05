@@ -12,7 +12,8 @@ import { toTask, type Row } from "@/lib/connected/mappers";
 import { loadPlanning } from "@/lib/connected/planning";
 import { blockingAbsences } from "@/lib/engine/availability";
 import { durationText, periodText, zoneLabel } from "@/lib/connected/format";
-import { TriangleAlert } from "lucide-react";
+import { Timer, TriangleAlert } from "lucide-react";
+import { overrunDueAt } from "@/lib/engine/overrun";
 
 export default async function MissionsPage({ params, searchParams }: PageProps<"/[locale]/app/missions">) {
   const { locale } = await params;
@@ -126,7 +127,16 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
                   timeZone={p?.timezone ?? undefined}
                 />
               ) : (
-                <TaskStepButtons taskId={k.id} status={k.status} timeZone={p?.timezone ?? undefined} />
+                <div className="flex flex-col items-end gap-1.5">
+                  {k.status === "in_progress" && k.started_at && (overrunDueAt(k.started_at, k.duration_min, (k.overrun_ack_at as string | null) ?? null) ?? Infinity) <= now.getTime() && (
+                    // Rappel dans l'application (pas de notification push) : l'agent répond depuis la fiche
+                    <Link href={`/app/missions/${k.id}`} className="inline-flex items-center gap-1.5 rounded-full bg-warning-soft px-3 py-1 text-[13px] font-medium" data-testid="mission-overrun">
+                      <Timer className="size-4" />
+                      {t("overrunReached")}
+                    </Link>
+                  )}
+                  <TaskStepButtons taskId={k.id} status={k.status} timeZone={p?.timezone ?? undefined} />
+                </div>
               )}
             </div>
           );

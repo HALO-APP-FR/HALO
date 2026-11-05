@@ -6,7 +6,7 @@
  * accès voyageur limité, prestation, acceptation / refus / précisions, notifications et historique,
  * tentatives d'accès croisées, expiration et révocation, persistance après reconnexion et sur un autre appareil.
  */
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { devices, expect, test, type Browser, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync, readdirSync } from "node:fs";
 import { createServer, type Server } from "node:http";
@@ -452,6 +452,8 @@ test("9 · révocation, remplacement et expiration du lien voyageur", async ({ p
 
 test("10 · persistance après déconnexion et sur un autre appareil", async ({ page, browser }) => {
   await signIn(page, managerA);
+  // Déconnexion depuis le menu Compte (accès permanent en haut à droite)
+  await page.getByTestId("account-menu").click();
   await page.getByRole("button", { name: /Se déconnecter/ }).click();
   await expect(page).toHaveURL(/\/fr\/auth\/sign-in/);
   // Autre « appareil » : nouveau navigateur, aucun stockage local partagé
@@ -594,7 +596,8 @@ test("13 · compte de test de préproduction : connexion sans e-mail, retour à 
   await b.getByLabel("Nom du compte de test").fill(`revue ${run}`);
   await b.getByTestId("test-account-submit").click();
   await expect(b).toHaveURL(/\/fr\/app$/);
-  await expect(b.getByRole("heading", { name: `Revue ${run}` })).toBeVisible();
+  await expect(b.getByRole("heading", { name: "Tableau de bord" })).toBeVisible();
+  await expect(b.locator("main")).toContainText(`Revue ${run}`); // même organisation sur l'autre appareil
   for (const c of [a, b]) await c.context().close();
 });
 
@@ -1006,7 +1009,7 @@ test("18 · missions à valider, messages lus, messagerie interne, itinéraires,
   await m.getByTestId("chat-start").click();
   await expect(m).toHaveURL(/\/fr\/app\/messages\/[0-9a-f-]{36}$/);
   await expect(m.getByTestId("chat-message")).toHaveCount(1);
-  await expect(m.getByTestId("chat-read-state")).toHaveText(" · non lu");
+  await expect(m.getByTestId("chat-read-state")).toHaveText(" · pas encore vu");
 
   const agent = await newPage(browser);
   await agent.addInitScript(() => {
@@ -1048,7 +1051,7 @@ test("18 · missions à valider, messages lus, messagerie interne, itinéraires,
   await m.getByTestId("home-cta-chats").click();
   await m.getByTestId("chat-row").first().click();
   await expect(m.getByTestId("chat-message").filter({ hasText: "Bien reçu" })).toContainText("Nouveau");
-  await expect(m.getByTestId("chat-message").filter({ hasText: "local poubelles" }).getByTestId("chat-read-state")).toHaveText(" · lu");
+  await expect(m.getByTestId("chat-message").filter({ hasText: "local poubelles" }).getByTestId("chat-read-state")).toHaveText(" · vu");
   await m.goto("/fr/app");
   await expect(m.getByTestId("home-chats")).toContainText("Aucun message d'équipe non lu");
 
@@ -1246,7 +1249,7 @@ test("19 · recommandations (modifier, propriétaire, sans coordonnées, automat
   await m.getByTestId("chat-to").first().check();
   await m.getByTestId("chat-first").fill("Point sur la mission de demain");
   await m.getByTestId("chat-start").click();
-  await expect(m.getByTestId("chat-read-state")).toHaveText(" · non lu");
+  await expect(m.getByTestId("chat-read-state")).toHaveText(" · pas encore vu");
   const agent = await newPage(browser);
   await agent.context().clearCookies();
   await agent.goto("/fr/auth/sign-in");
@@ -1261,7 +1264,7 @@ test("19 · recommandations (modifier, propriétaire, sans coordonnées, automat
   await expect(agent).toHaveURL(new RegExp(`/fr/app/missions/${ménage!.id}$`)); // la mission rattachée s'ouvre
   await expect(agent.getByTestId("mission-chat").getByTestId("chat-message")).toContainText("Point sur la mission"); // sans perdre le fil
   await m.reload();
-  await expect(m.getByTestId("chat-read-state")).toHaveText(" · lu");
+  await expect(m.getByTestId("chat-read-state")).toHaveText(" · vu");
   for (const c of [m, agent]) await c.context().close();
 });
 
@@ -1517,18 +1520,10 @@ test("22 · navigation responsable lisible à 1 280 px et page introuvable local
   const ctx = await browser.newContext({ locale: "fr-FR", timezoneId: "Europe/Paris", viewport: { width: 1280, height: 800 } });
   const m = await ctx.newPage();
   await testScenario(m, `nav ${run}`);
-  const bar = m.getByRole("navigation", { name: "Navigation" }).locator("ul").first();
-  // Barre principale entière, sans défilement caché
+  // Quatre espaces visibles en entier, sans défilement caché
+  const bar = m.getByTestId("space-nav");
   expect(await bar.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
-  await m.getByTestId("nav-more").click();
-  await expect(m.getByTestId("nav-more-menu")).toBeVisible();
-  await expect(m.getByTestId("nav-setup")).toHaveText("Configuration");
-  await m.keyboard.press("Escape");
-  await expect(m.getByTestId("nav-more-menu")).toHaveCount(0);
-  await expect(m.getByTestId("nav-more")).toBeFocused();
-  await m.getByTestId("nav-more").click();
-  await m.getByTestId("nav-settings").click();
-  await expect(m).toHaveURL(/\/fr\/app\/settings$/);
+  for (const s of ["dashboard", "logistics", "team", "guest"]) await expect(m.getByTestId(`space-${s}`)).toBeVisible();
   // Adresse inconnue : page HALO en français, sans le message générique anglais
   const r = await m.goto("/fr/page-qui-n-existe-pas");
   expect(r?.status()).toBe(404);
@@ -2917,4 +2912,243 @@ test("34 · lieux avant l'ouverture : données transmises au navigateur sans coo
     await g.context().close();
   }
   await m.context().close();
+});
+
+async function scenarioAgent(browser: Browser, name: string) {
+  const a = await newPage(browser);
+  await a.context().clearCookies();
+  await a.goto("/fr/auth/sign-in");
+  await a.getByLabel("Nom du compte de test").fill(`${name.replace(/\s+/g, "-").toLowerCase()}-agent`);
+  await a.getByTestId("test-account-submit").click();
+  await a.waitForURL(/\/fr\/app/);
+  return a;
+}
+
+test("42 · urgence de bout en bout : fuite urgente → tableau de bord → intervention → compte rendu → validation → « l'incident est-il résolu ? »", async ({ browser }) => {
+  const m = await newPage(browser);
+  const name = `urg ${run}`;
+  const { org } = await testScenario(m, name);
+  await admin.from("organizations").update({ validation_task_types: ["turnover", "maintenance"] }).eq("id", org);
+  const agent = await scenarioAgent(browser, name);
+  // L'agent signale une fuite urgente depuis sa mission
+  await agent.goto("/fr/app/missions");
+  await agent.getByTestId("mission-link").first().click();
+  await agent.getByTestId("report-open").click();
+  await agent.getByLabel("Type de problème").selectOption("leak");
+  await agent.getByTestId("report-description").fill("Fuite sous l'évier, eau au sol (fictif)");
+  await agent.getByTestId("report-urgent").check();
+  await agent.getByTestId("report-send").click();
+  await expect(agent.getByText("Signalé : votre responsable est prévenu.")).toBeVisible();
+
+  // Tableau de bord : en « Urgent ou bloquant », avec l'étiquette Urgent et un lien direct vers l'incident
+  await m.goto("/fr/app");
+  const card = m.getByTestId("home-urgent").getByTestId("home-incidents");
+  await expect(card).toContainText("1 incident ou blocage ouvert");
+  await expect(card.getByTestId("home-details")).toContainText("Urgent");
+  await card.getByTestId("home-details").getByRole("link").first().click();
+  await expect(m).toHaveURL(/\/fr\/app\/incidents#incident-/);
+  await expect(m.getByTestId("tab-incidents")).toHaveAttribute("aria-current", "page");
+  await expect(m.getByTestId("space-logistics")).toHaveAttribute("aria-current", "page");
+  const inc = m.getByTestId("incident-row").filter({ hasText: "Fuite sous l'évier" });
+  await inc.getByTestId("incident-plan-open").click();
+  await inc.getByTestId("incident-plan-assignee").selectOption({ label: "Agent test" });
+  await inc.getByTestId("incident-plan").click();
+  await expect(inc.getByTestId("incident-intervention-status")).toContainText("À faire");
+
+  // L'agent fait l'intervention et la termine avec un compte rendu
+  const { data: iv } = await admin.from("incidents").select("id, follow_up_task_id").eq("organization_id", org).ilike("description", "Fuite sous l%").single();
+  await agent.goto(`/fr/app/missions/${iv!.follow_up_task_id}`);
+  await agent.getByTestId("mission-start").click();
+  // Plage conseillée qui commence au quart d'heure suivant : démarrage anticipé confirmé par l'agent
+  await expect(agent.getByTestId("task-early-confirm").or(agent.getByTestId("mission-finish"))).toBeVisible();
+  if (await agent.getByTestId("task-early-confirm").isVisible()) await agent.getByTestId("task-early-go").click();
+  await expect(agent.getByTestId("mission-finish")).toBeVisible();
+  await agent.getByTestId("task-comment").fill("Joint changé, plus de fuite (fictif)");
+  await agent.getByTestId("task-comment-save").click();
+  await expect(agent.getByTestId("task-comment-save")).toBeDisabled();
+  await agent.getByTestId("mission-finish").click();
+  await expect(agent.getByTestId("task-sent")).toBeVisible();
+
+  // Le responsable voit l'intervention à valider, l'ouvre, la valide
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-toValidate")).toHaveAttribute("data-active", "1");
+  await m.getByTestId("home-cta-toValidate").click();
+  await expect(m).toHaveURL(/status=done/);
+  await expect(m.getByTestId("tab-toValidate")).toHaveAttribute("aria-current", "page");
+  await expect(m.getByTestId("space-team")).toHaveAttribute("aria-current", "page");
+  await m.getByTestId("mission-row").filter({ hasText: "Maintenance" }).getByTestId("mission-link").click();
+  await expect(m.getByTestId("mission-source-incident")).toContainText("Fuite sous l'évier");
+  await m.getByTestId("mission-validate").click();
+  // Validation ≠ résolution : HALO pose la question
+  const ask = m.getByTestId("incident-resolve-prompt");
+  await expect(ask).toContainText("l'incident est-il résolu ?");
+  expect((await admin.from("incidents").select("status").eq("id", iv!.id).single()).data!.status).not.toBe("resolved");
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-incidentResolve")).toHaveAttribute("data-active", "1");
+  await m.getByTestId("home-incidentResolve").getByTestId("home-details").getByRole("link").first().click();
+  const prompt = m.getByTestId("incident-row").filter({ hasText: "Fuite sous l'évier" }).getByTestId("incident-resolve-prompt");
+  await prompt.getByTestId("incident-resolve-yes").click();
+  await prompt.getByTestId("incident-resolve-text").fill("Joint remplacé, contrôle fait (fictif)");
+  await prompt.getByTestId("incident-resolve-confirm").click();
+  await expect(m.getByTestId("incident-row").filter({ hasText: "Fuite sous l'évier" })).toHaveAttribute("data-status", "resolved");
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-incidentResolve")).not.toHaveAttribute("data-active", "1");
+  await expect(m.getByTestId("home-urgent")).toHaveCount(0);
+  for (const c of [m, agent]) await c.context().close();
+});
+
+test("43 · quatre espaces : navigation, anciens liens, compte, téléphone (barre inférieure) et agent inchangé", async ({ browser }) => {
+  const m = await newPage(browser);
+  const name = `nav4 ${run}`;
+  await testScenario(m, name);
+  await expect(m.getByTestId("space-dashboard")).toHaveAttribute("aria-current", "page");
+  // Chaque espace et ses rubriques ; les adresses existantes ne changent pas
+  const expected: [string, string, string, string | null][] = [
+    ["/fr/app/missions", "logistics", "missions", "Missions"],
+    ["/fr/app/incidents", "logistics", "incidents", null],
+    ["/fr/app/properties", "logistics", "properties", null],
+    ["/fr/app/team", "team", "members", null],
+    ["/fr/app/missions?status=done", "team", "toValidate", null],
+    ["/fr/app/messages", "team", "messages", null],
+    ["/fr/app/stays", "guest", "stays", null],
+    ["/fr/app/services", "guest", "services", null],
+    ["/fr/app/bookings", "guest", "bookings", null],
+    ["/fr/app/satisfaction", "guest", "satisfaction", null],
+  ];
+  for (const [url, space, tab] of expected) {
+    const r = await m.goto(url);
+    expect(r?.status(), url).toBe(200);
+    await expect(m.getByTestId(`space-${space}`), url).toHaveAttribute("aria-current", "page");
+    await expect(m.getByTestId(`tab-${tab}`), url).toHaveAttribute("aria-current", "page");
+  }
+  // Pages de compte : aucun espace actif, accessibles par le menu Compte (clavier : Échap rend le focus)
+  await m.goto("/fr/app");
+  await m.getByTestId("account-menu").click();
+  await expect(m.getByTestId("account-menu-list")).toBeVisible();
+  await m.keyboard.press("Escape");
+  await expect(m.getByTestId("account-menu-list")).toHaveCount(0);
+  await expect(m.getByTestId("account-menu")).toBeFocused();
+  await m.keyboard.press("Enter");
+  await m.getByTestId("nav-settings").click();
+  await expect(m).toHaveURL(/\/fr\/app\/settings$/);
+  for (const s of ["dashboard", "logistics", "team", "guest"]) await expect(m.getByTestId(`space-${s}`)).not.toHaveAttribute("aria-current", "page");
+  await m.getByTestId("account-menu").click();
+  for (const k of ["profile", "preferences", "settings", "setup", "import", "notifications"]) await expect(m.getByTestId(`nav-${k}`)).toBeVisible();
+  await expect(m.getByTestId("sign-out")).toBeVisible();
+  await m.keyboard.press("Escape");
+  // Messages : accès permanent en haut
+  await m.getByTestId("top-messages").click();
+  await expect(m).toHaveURL(/\/fr\/app\/messages$/);
+  // Fiche détaillée : rattachée à son espace, retour arrière conservé
+  await m.goto("/fr/app/missions");
+  await m.getByTestId("mission-link").first().click();
+  await expect(m).toHaveURL(/\/fr\/app\/missions\/[0-9a-f-]{36}$/);
+  await expect(m.getByTestId("space-logistics")).toHaveAttribute("aria-current", "page");
+  await m.goBack();
+  await expect(m).toHaveURL(/\/fr\/app\/missions$/);
+  const state = await m.context().storageState();
+
+  // Téléphone : barre inférieure à 4 destinations, rien ne déborde, messages en haut
+  const phone = await browser.newContext({ ...devices["iPhone 13"], locale: "fr-FR", timezoneId: "Europe/Paris", storageState: state });
+  const p = await phone.newPage();
+  for (const url of ["/fr/app", "/fr/app/missions", "/fr/app/team", "/fr/app/messages", "/fr/app/stays", "/fr/app/incidents", "/fr/app/settings"]) {
+    await p.goto(url);
+    await expect(p.getByTestId("bottom-bar")).toBeVisible();
+    await expect(p.getByTestId("space-nav")).toBeHidden();
+    await expect(p.getByTestId("top-messages")).toBeVisible();
+    expect(await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), url).toBeLessThanOrEqual(0);
+  }
+  await p.getByTestId("bottom-guest").click();
+  await expect(p).toHaveURL(/\/fr\/app\/stays$/);
+  await expect(p.getByTestId("bottom-guest")).toHaveAttribute("aria-current", "page");
+  for (const k of ["dashboard", "logistics", "team", "guest"]) {
+    const box = await p.getByTestId(`bottom-${k}`).boundingBox();
+    expect(box!.height).toBeGreaterThanOrEqual(44); // zone tactile confortable
+  }
+  await phone.close();
+
+  // Agent : navigation inchangée, aucun espace manager
+  const agent = await scenarioAgent(browser, name);
+  await agent.goto("/fr/app/missions");
+  await expect(agent.getByTestId("space-nav")).toHaveCount(0);
+  await expect(agent.getByTestId("bottom-bar")).toHaveCount(0);
+  await agent.goto("/fr/app/team");
+  await expect(agent).toHaveURL(/\/fr\/app\/missions$/);
+  for (const c of [m, agent]) await c.context().close();
+});
+
+test("44 · messagerie et fiche agent : écrire depuis la fiche, contexte, confidentialité ; mission trop longue (rappel, fin proposée, alerte)", async ({ browser }) => {
+  const m = await newPage(browser);
+  const name = `msg4 ${run}`;
+  const { org, agentId } = await testScenario(m, name);
+  // Fiche agent depuis Équipe : appeler (si numéro), écrire, missions
+  await m.goto("/fr/app/team");
+  await m.getByTestId("member-row").filter({ hasText: "Agent test" }).getByTestId("member-open").click();
+  await expect(m).toHaveURL(new RegExp(`/fr/app/team/${agentId}$`));
+  await expect(m.getByTestId("member-title")).toHaveText("Agent test");
+  await expect(m.getByTestId("member-missions")).toContainText("Ménage");
+  await m.getByTestId("member-write").click();
+  await expect(m.locator(`[data-testid=chat-to][data-name="Agent test"]`)).toBeChecked();
+  await m.getByTestId("chat-first").fill("Peux-tu vérifier le linge avant 16 h ? (fictif)");
+  await m.getByTestId("chat-start").click();
+  await expect(m).toHaveURL(/\/fr\/app\/messages\/[0-9a-f-]{36}$/);
+  const threadUrl = m.url();
+  await expect(m.getByTestId("chat-header")).toContainText("Agent test");
+  await expect(m.getByTestId("chat-privacy")).toContainText("responsables de l'organisation");
+  await expect(m.getByTestId("chat-read-state")).toHaveText(" · pas encore vu");
+  await m.getByTestId("chat-member-link").click();
+  await expect(m.getByTestId("member-threads").getByTestId("member-thread")).toHaveCount(1);
+  // Liste : personne d'abord, aperçu, contexte
+  await m.goto("/fr/app/messages");
+  await expect(m.getByTestId("chat-row").first()).toContainText("Agent test");
+  await expect(m.getByTestId("chat-row").first()).toContainText("Vous : Peux-tu vérifier");
+
+  // Agent : badge réel, puis plus rien une fois lu
+  const agent = await scenarioAgent(browser, name);
+  await agent.goto("/fr/app/missions");
+  await expect(agent.getByTestId("nav-chat-unread")).toHaveText("1");
+  await agent.goto(threadUrl.replace(/^https?:\/\/[^/]+/, ""));
+  await expect(agent.getByTestId("chat-message")).toContainText("vérifier le linge");
+  await agent.goto("/fr/app/missions");
+  await expect(agent.getByTestId("nav-chat-unread")).toHaveCount(0);
+  // Une autre organisation n'ouvre pas la conversation
+  const other = await newPage(browser);
+  await testScenario(other, `msg4b ${run}`);
+  const r = await other.goto(threadUrl.replace(/^https?:\/\/[^/]+/, ""));
+  expect(r?.status()).toBe(404);
+  await other.context().close();
+
+  // Mission trop longue : rappel à l'agent (dans l'application), « Oui, je continue », heure de fin proposée puis validée
+  const { data: clean } = await admin.from("tasks").select("id").eq("organization_id", org).eq("type", "turnover").eq("assignee_id", agentId).limit(1).single();
+  await admin.from("tasks").update({ status: "in_progress", started_at: new Date(Date.now() - 2 * 3_600_000).toISOString(), duration_min: 60 }).eq("id", clean!.id);
+  await agent.goto("/fr/app/missions");
+  await expect(agent.getByTestId("mission-overrun")).toBeVisible();
+  await agent.getByTestId("mission-overrun").click();
+  await expect(agent.getByTestId("overrun-prompt")).toContainText("Durée estimée atteinte");
+  await agent.getByTestId("overrun-continue").click();
+  await expect(agent.getByTestId("overrun-prompt")).toHaveCount(0);
+  const ack = (await admin.from("tasks").select("overrun_ack_at, status").eq("id", clean!.id).single()).data!;
+  expect(ack.overrun_ack_at).toBeTruthy();
+  expect(ack.status).toBe("in_progress"); // le temps n'est pas arrêté
+  await admin.from("tasks").update({ overrun_ack_at: null }).eq("id", clean!.id);
+  await agent.reload();
+  await agent.getByTestId("overrun-forgot").click();
+  await agent.getByTestId("overrun-end").fill(new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(Date.now() - 45 * 60_000)).replace(" ", "T"));
+  await agent.getByTestId("overrun-propose").click();
+  await expect(agent.getByTestId("overrun-proposed")).toBeVisible();
+  // Responsable : alerte au tableau de bord (délai réglé à 0), proposition à décider sur la fiche
+  await m.goto("/fr/app/settings");
+  await m.getByTestId("overrun-min").fill("0");
+  await m.getByTestId("overrun-save").click();
+  await expect(m.getByTestId("overrun-saved")).toBeVisible();
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-overrun")).toHaveAttribute("data-active", "1");
+  await expect(m.getByTestId("home-overrun")).toContainText("n'est pas une faute"); // aucune qualification de faute ou d'abus
+  await m.getByTestId("home-cta-overrun").click();
+  await expect(m.getByTestId("overrun-status")).toContainText("Pas encore de réponse");
+  await expect(m.getByTestId("end-proposal")).toHaveAttribute("data-status", "pending");
+  await m.getByTestId("end-accept").click();
+  await expect(m.getByTestId("end-proposal")).toHaveAttribute("data-status", "accepted");
+  await expect(m.locator("[data-testid=history-event][data-kind=end_accepted]")).toHaveCount(1);
+  for (const c of [m, agent]) await c.context().close();
 });

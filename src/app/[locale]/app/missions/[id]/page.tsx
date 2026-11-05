@@ -18,6 +18,7 @@ import { MissionTiming } from "@/components/connected/mission-timing";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { MissionDirections } from "@/components/connected/directions";
 import { ChatThread } from "@/components/connected/chat";
+import { EndProposal, IncidentResolvePrompt, OverrunPrompt } from "@/components/connected/overrun";
 import { loadThreadMessages, loadThreads } from "@/lib/connected/chat";
 import { toChatMessages } from "@/lib/connected/chat-view";
 import type { MapsApp } from "@/lib/engine/directions";
@@ -37,7 +38,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
   // La base ne renvoie la mission qu'à un manager ou à son agent assigné
   const { data: task } = await supabase
     .from("tasks")
-    .select("id, type, title, status, window_start, window_end, duration_min, scheduled_start, is_auto_generated, assignee_id, next_reservation_id, correction_reason, notes, property_id, early_start_allowed_at, early_start_reason, completed_at, validated_at, properties(name, address_line, postal_code, city, country_code, latitude, longitude, timezone, instructions)")
+    .select("id, type, title, status, window_start, window_end, duration_min, scheduled_start, is_auto_generated, assignee_id, next_reservation_id, correction_reason, notes, property_id, early_start_allowed_at, early_start_reason, started_at, completed_at, validated_at, properties(name, address_line, postal_code, city, country_code, latitude, longitude, timezone, instructions)")
     .eq("organization_id", o)
     .eq("id", id)
     .maybeSingle();
@@ -53,10 +54,23 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
     // Réglage réellement appliqué par la base à la fin de la mission
     supabase.from("organizations").select("validation_task_types").eq("id", o).single(),
     // Intervention : l'incident d'origine et son état (sa résolution reste une décision du responsable)
-    manager ? supabase.from("incidents").select("id, status, description").eq("organization_id", o).eq("follow_up_task_id", id).maybeSingle() : Promise.resolve({ data: null }),
+    manager ? supabase.from("incidents").select("id, status, description, source").eq("organization_id", o).eq("follow_up_task_id", id).maybeSingle() : Promise.resolve({ data: null }),
     // Historique : lisible par le responsable ET par l'agent affecté (la base le limite à ses missions)
     supabase.from("task_events").select("id, kind, at, note, actor_id").eq("organization_id", o).eq("task_id", id).order("at", { ascending: false }).limit(40),
   ]);
+  // Dépassement, heure de fin proposée, incident laissé ouvert (migration 21) : lus à part, la fiche reste
+  // affichable tant que la migration n'est pas appliquée (colonnes absentes → informations simplement non affichées)
+  const [{ data: extra }, { data: kept }] = await Promise.all([
+    supabase.from("tasks").select("overrun_ack_at, end_proposed_at, end_proposed_note, end_proposal_status, reported_end_at").eq("organization_id", o).eq("id", id).maybeSingle(),
+    source ? supabase.from("incidents").select("kept_open_at").eq("organization_id", o).eq("id", source.id).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+  const ex = (extra ?? null) as { overrun_ack_at: string | null; end_proposed_at: string | null; end_proposed_note: string | null; end_proposal_status: string | null; reported_end_at: string | null } | null;
+  const keptOpenAt = ((kept ?? null) as { kept_open_at: string | null } | null)?.kept_open_at ?? null;
+  const askResolve = Boolean(source && source.status !== "resolved" && task.status === "validated" && (!keptOpenAt || (task.validated_at && keptOpenAt < task.validated_at)));
+  const overrunMin = task.status === "in_progress" && task.started_at && task.duration_min > 0 ? Math.round((nowDate().getTime() - Date.parse(task.started_at)) / 60_000) - task.duration_min : null;
+  const tov = await getTranslations("connected.overrun");
+  const taskTz = ((Array.isArray(task.properties) ? task.properties[0] : task.properties) as { timezone?: string | null } | null)?.timezone ?? null;
+  const hm = (x: string) => f.dateTime(new Date(x), { hour: "2-digit", minute: "2-digit", ...(taskTz ? { timeZone: taskTz } : {}) });
   // Règle et exigences réellement appliquées par la base (démarrage, fin)
   const [{ data: reqRaw }, { data: ruleRaw }] = await Promise.all([
     supabase.rpc("task_requirements", { org: o, task: id }),
@@ -250,6 +264,25 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
           <p className="mt-1 text-[14px] text-muted">{t(task.status === "to_redo" ? "correctionNext" : "correctionNextInProgress")}</p>
         </div>
       )}
+      {mine && task.status === "in_progress" && task.started_at && (
+        <OverrunPrompt taskId={task.id} startedAt={task.started_at} durationMin={task.duration_min} ackAt={ex?.overrun_ack_at ?? null} timeZone={p?.timezone ?? undefined} />
+      )}
+      {manager && overrunMin !== null && overrunMin > 0 && (
+        <div className="mb-4 rounded-xl border border-warning bg-warning-soft p-4 text-[15px]" role="status" data-testid="overrun-status">
+          <p className="font-semibold">{tov("managerTitle", { minutes: overrunMin })}</p>
+          <p className="mt-1 text-[14px]">
+            {tov("managerText", { since: hm(task.started_at!), duration: durationText(task.duration_min) })}{" "}
+            {ex?.overrun_ack_at && Date.parse(ex.overrun_ack_at) >= Date.parse(task.started_at!) + task.duration_min * 60_000
+              ? tov("managerAck", { at: hm(ex.overrun_ack_at) })
+              : tov("managerNoAnswer")}
+          </p>
+          <p className="mt-1 text-[13px] text-muted">{tov("managerHint")}</p>
+        </div>
+      )}
+      {ex?.end_proposal_status && ex.end_proposed_at && (manager || mine) && (
+        <EndProposal taskId={task.id} proposedAt={ex.end_proposed_at} note={ex.end_proposed_note} status={ex.end_proposal_status} canDecide={manager} timeZone={p?.timezone ?? undefined} />
+      )}
+      {askResolve && source && <IncidentResolvePrompt incidentId={source.id} description={source.description} fromGuest={source.source === "guest"} />}
       {/* Deux informations distinctes : la fenêtre pendant laquelle la mission doit être faite, et la durée de travail estimée */}
       <div className="-mt-2 mb-4 flex flex-wrap items-start gap-x-6 gap-y-2 text-[15px]" data-testid="mission-timing">
         <div className="basis-full">
@@ -305,7 +338,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
       )}
       {assign}
       {source && (
-        <Link href="/app/incidents" className="mb-4 block rounded-xl border border-line bg-surface p-4 hover:bg-surface-hover" data-testid="mission-source-incident">
+        <Link href={`/app/incidents#incident-${source.id}`} className="mb-4 block rounded-xl border border-line bg-surface p-4 hover:bg-surface-hover" data-testid="mission-source-incident">
           <span className="block text-[13px] font-medium text-muted">{t("sourceIncident")}</span>
           <span className="block text-[15px]">{source.description}</span>
           <span className="mt-1 block text-[13px]" data-testid="mission-source-status">
@@ -374,6 +407,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
                   extra = "";
                 }
               } else if ((e.kind === "correction_requested" || e.kind === "early_start_allowed") && e.note) extra = ` — « ${e.note} »`;
+              else if (["end_proposed", "end_accepted", "end_rejected"].includes(e.kind) && e.note) extra = ` — ${f.dateTime(new Date(e.note), { dateStyle: "short", timeStyle: "short", ...(p?.timezone ? { timeZone: p.timezone } : {}) })}`;
               // Auteur : l'agent affecté, un responsable, ou le système (synchronisation)
               const who = !e.actor_id ? th("bySystem") : e.actor_id === user!.id ? th("byYou") : e.actor_id === task.assignee_id ? th("byAgent", { name: assigneeName ?? th("agent") }) : th("byManager");
               return (

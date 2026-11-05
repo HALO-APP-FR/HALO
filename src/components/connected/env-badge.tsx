@@ -13,7 +13,7 @@ export async function EnvBadge({ className }: { className?: string }) {
       data-testid="env-badge"
       data-env={env}
       className={cn(
-        "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-semibold",
+        "inline-flex h-7 min-w-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-[12px] font-semibold",
         env === "production" ? "bg-success-soft text-success" : env === "demo" ? "bg-warning-soft text-warning" : "bg-accent-soft text-accent-text",
         className,
       )}

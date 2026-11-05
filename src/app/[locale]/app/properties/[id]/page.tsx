@@ -1,6 +1,11 @@
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
+import { AlertTriangle, MessagesSquare } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { windowText } from "@/lib/connected/format";
+import { nowDate } from "@/lib/connected/time";
+import { cn } from "@/lib/utils";
 import { notFound } from "next/navigation";
-import { redirect } from "@/i18n/navigation";
+import { Link, redirect } from "@/i18n/navigation";
 import { PageHeader } from "@/components/halo/page-header";
 import { GuideEditor } from "@/components/connected/property-forms";
 import { getContext, isManagerRole } from "@/lib/connected/context";
@@ -24,6 +29,17 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
     supabase.from("source_events").select("source_id, uid, conflict, feed_start, feed_end, reservation_id, reservations(guest_name, check_in_at), data_sources!inner(property_id)").eq("organization_id", org!.id).eq("state", "conflict").eq("data_sources.property_id", id).limit(50),
   ]);
   if (!p) notFound();
+  // Fiche logement centrale : ce qui arrive, ce qui est prévu, ce qui pose problème (mêmes données que les listes)
+  const now = nowDate();
+  const [{ data: arrivals }, { data: openTasks }, { data: openInc }] = await Promise.all([
+    supabase.from("reservations").select("id, guest_name, check_in_at, check_out_at").eq("organization_id", org!.id).eq("property_id", id).eq("status", "confirmed").gte("check_out_at", now.toISOString()).order("check_in_at").limit(3),
+    supabase.from("tasks").select("id, type, title, status, window_start, window_end").eq("organization_id", org!.id).eq("property_id", id).in("status", ["unassigned", "assigned", "in_progress", "to_redo", "done"]).order("window_start").limit(6),
+    supabase.from("incidents").select("id, description, urgent, status").eq("organization_id", org!.id).eq("property_id", id).neq("status", "resolved").order("urgent", { ascending: false }).order("created_at").limit(5),
+  ]);
+  const f = await getFormatter();
+  const tt = await getTranslations("taskType");
+  const tts = await getTranslations("taskStatus");
+  const tz = (p.timezone as string | null) ?? undefined;
   const coords = p.latitude != null && p.longitude != null ? { lat: p.latitude as number, lng: p.longitude as number } : null;
   const places: Place[] = (placeRows ?? []).map((x) => ({
     id: x.id,
@@ -46,7 +62,58 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
   }));
   return (
     <>
-      <PageHeader title={p.name} subtitle={[p.address_line, p.city].filter(Boolean).join(", ") || t("noAddress")} />
+      <PageHeader
+        title={p.name}
+        subtitle={[p.address_line, p.city].filter(Boolean).join(", ") || t("noAddress")}
+        actions={
+          <Link href={`/app/messages?property=${p.id}`} className="inline-flex h-9 items-center gap-2 rounded-md border border-line bg-surface px-4 text-[14px] font-medium hover:bg-surface-hover" data-testid="property-write">
+            <MessagesSquare className="size-4" />
+            {t("overview.write")}
+          </Link>
+        }
+      />
+      <div className="mb-6 grid gap-4 lg:grid-cols-3" data-testid="property-overview">
+        <Card className="p-4">
+          <h2 className="mb-2 text-[15px] font-semibold">{t("overview.stays")}</h2>
+          {(arrivals ?? []).length === 0 && <p className="text-[14px] text-muted">{t("overview.noStay")}</p>}
+          <ul className="space-y-1.5 text-[14px]">
+            {(arrivals ?? []).map((r) => (
+              <li key={r.id}>
+                <Link href={`/app/stays/${r.id}`} className="hover:underline">
+                  <span className="font-medium">{r.guest_name || "—"}</span> <span className="text-muted">· {windowText(f, r.check_in_at, r.check_out_at, false, tz)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+        <Card className="p-4">
+          <h2 className="mb-2 text-[15px] font-semibold">{t("overview.missions")}</h2>
+          {(openTasks ?? []).length === 0 && <p className="text-[14px] text-muted">{t("overview.noMission")}</p>}
+          <ul className="space-y-1.5 text-[14px]">
+            {(openTasks ?? []).map((k) => (
+              <li key={k.id}>
+                <Link href={`/app/missions/${k.id}`} className="hover:underline">
+                  <span className="font-medium">{(k.title as string) || tt(k.type)}</span> <span className="text-muted">· {tts(k.status)} · {windowText(f, k.window_start, k.window_end, false, tz)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+        <Card className={cn("p-4", (openInc ?? []).some((i) => i.urgent) && "border-danger")}>
+          <h2 className="mb-2 text-[15px] font-semibold">{t("overview.incidents")}</h2>
+          {(openInc ?? []).length === 0 && <p className="text-[14px] text-muted">{t("overview.noIncident")}</p>}
+          <ul className="space-y-1.5 text-[14px]">
+            {(openInc ?? []).map((i) => (
+              <li key={i.id}>
+                <Link href={`/app/incidents#incident-${i.id}`} className="flex items-baseline gap-1.5 hover:underline">
+                  {i.urgent && <AlertTriangle className="size-3.5 shrink-0 translate-y-0.5 text-danger" aria-label={t("overview.urgent")} />}
+                  <span className="line-clamp-2">{i.description}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <div className="space-y-4">
           <GuideEditor propertyId={p.id} guide={g ?? {}} />

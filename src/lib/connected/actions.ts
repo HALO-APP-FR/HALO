@@ -1354,3 +1354,54 @@ export async function saveVipCriterion(input: { id: string | null; label: string
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
+
+// ---------------------------------------------------------------------------------------------
+// Mission trop longue ou oubliée : rappel dans l'application, heure de fin proposée par l'agent, validée par un responsable
+
+/** « Oui, je continue » : l'agent affecté confirme que la mission dure plus longtemps que prévu (le temps n'est pas arrêté). */
+export async function overrunContinue(taskId: string): Promise<Result<{ result: string }>> {
+  const ctx = await getContext();
+  if (!ctx.user || !ctx.org) return fail("not_signed_in");
+  const { data, error: e } = await ctx.supabase.rpc("task_overrun_continue", { org: ctx.org.id, task: taskId });
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: { result: data as string } };
+}
+
+/** Heure de fin réelle antérieure (oubli de terminer) : enregistrée avec l'historique, à valider par un responsable. */
+export async function proposeTaskEnd(taskId: string, endedAt: string, note: string): Promise<Result<{ result: string }>> {
+  const ctx = await getContext();
+  if (!ctx.user || !ctx.org) return fail("not_signed_in");
+  const { data, error: e } = await ctx.supabase.rpc("propose_task_end", { org: ctx.org.id, task: taskId, ended_at: endedAt, note: note || null });
+  if (e) return fail(e.message?.includes("invalid_end") ? "invalid_end" : errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: { result: data as string } };
+}
+
+export async function decideTaskEnd(taskId: string, accept: boolean): Promise<Result<{ result: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.rpc("decide_task_end", { org: ctx.org!.id, task: taskId, accept });
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: { result: data as string } };
+}
+
+export async function setOverrunAlert(minutes: number): Promise<Result> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { error: e } = await ctx.supabase.rpc("set_overrun_alert", { org: ctx.org!.id, minutes });
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+/** Après une intervention validée : le responsable choisit de laisser l'incident ouvert (sans le résoudre). */
+export async function keepIncidentOpen(incidentId: string): Promise<Result<{ result: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  const { data, error: e } = await ctx.supabase.rpc("keep_incident_open", { org: ctx.org!.id, incident: incidentId });
+  if (e) return fail(errCode(e));
+  revalidatePath("/", "layout");
+  return { ok: true, data: { result: data as string } };
+}

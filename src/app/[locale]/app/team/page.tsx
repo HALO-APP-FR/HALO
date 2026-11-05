@@ -1,6 +1,7 @@
 import { durationText } from "@/lib/connected/format";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
-import { Phone, TriangleAlert } from "lucide-react";
+import { ChevronRight, Phone, TriangleAlert } from "lucide-react";
+import { Avatar } from "@/components/connected/avatar";
 import { Link, redirect } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/halo/page-header";
@@ -77,9 +78,11 @@ export default async function TeamPage({ params }: PageProps<"/[locale]/app/team
             {people.map((m) => {
               const missing = [!m.name && t("fields.name"), !m.phone && t("fields.phone")].filter(Boolean) as string[];
               return (
-                <div key={m.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5" data-testid="member-row">
+                <div key={m.id} className="flex flex-wrap items-center gap-3 px-4 py-3.5 md:px-5" data-testid="member-row">
+                  <Link href={`/app/team/${m.id}`} className="group flex min-w-0 flex-1 items-center gap-3" data-testid="member-open">
+                  <Avatar name={m.name} id={m.id} />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[15px] font-medium" data-testid="member-name">
+                    <span className="block text-[15px] font-medium group-hover:underline" data-testid="member-name">
                       {m.name || t("noName")}
                     </span>
                     <span className="block text-[13px] text-muted">
@@ -88,6 +91,7 @@ export default async function TeamPage({ params }: PageProps<"/[locale]/app/team
                       {missing.length > 0 && <span className="text-warning"> · {t("toComplete", { fields: missing.join(", ") })}</span>}
                     </span>
                   </span>
+                  </Link>
                   {absent.has(m.id) && (
                     <span className="rounded-full bg-warning-soft px-2.5 py-1 text-[12px] font-medium text-warning" data-testid="member-absent">
                       {ta("absentNow")}
@@ -99,6 +103,7 @@ export default async function TeamPage({ params }: PageProps<"/[locale]/app/team
                       {m.phone}
                     </a>
                   )}
+                  <ChevronRight className="size-4 text-faint rtl:-scale-x-100" aria-hidden />
                 </div>
               );
             })}

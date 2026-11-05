@@ -1933,6 +1933,39 @@ select t.deny('photos : objets de stockage invisibles pour une autre organisatio
 select t.err('validation : un agent ne valide pas sa propre mission', t.q('a_agent', format('select public.validate_task(%L, %L)', t.id('A'), t.id('T20F'))), '42501');
 
 
+-- =====================================================================
+-- 21. Mission trop longue, heure de fin proposée, incident laissé ouvert
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['T21', 'I21']) k;
+insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, is_auto_generated, window_start, window_end, duration_min, started_at) values
+  (t.id('T21'), t.id('A'), t.id('P20'), 'maintenance', 'in_progress', t.id('a_agent'), false, now() - interval '4 hours', now() + interval '4 hours', 60, now() - interval '2 hours');
+select t.err('dépassement : un autre agent ne répond pas à la place', t.q('a_agent2', format('select public.task_overrun_continue(%L, %L)', t.id('A'), t.id('T21'))), '42501');
+select t.err('dépassement : une autre organisation non plus', t.q('b_manager', format('select public.task_overrun_continue(%L, %L)', t.id('A'), t.id('T21'))), '42501');
+select t.is('dépassement : « Oui, je continue » enregistré', t.keep('a_agent', format('select public.task_overrun_continue(%L, %L)', t.id('A'), t.id('T21'))), 'applied');
+select t.is('dépassement : double appui sans doublon', t.keep('a_agent', format('select public.task_overrun_continue(%L, %L)', t.id('A'), t.id('T21'))), 'already');
+select t.is('dépassement : une seule trace, auteur = agent ; mission toujours en cours (le temps n''est pas arrêté)', (select count(*)::text || '/' || bool_and(actor_id = t.id('a_agent'))::text from public.task_events where task_id = t.id('T21') and kind = 'overrun_continue') || '/' || (select status::text || '/' || (completed_at is null)::text from public.tasks where id = t.id('T21')), '1/true/in_progress/true');
+select t.err('heure de fin : avant le démarrage → refusée', t.q('a_agent', format('select public.propose_task_end(%L, %L, now() - interval ''3 hours'', null)', t.id('A'), t.id('T21'))), '22023');
+select t.err('heure de fin : dans le futur → refusée', t.q('a_agent', format('select public.propose_task_end(%L, %L, now() + interval ''1 hour'', null)', t.id('A'), t.id('T21'))), '22023');
+select t.err('heure de fin : un autre agent ne peut pas la proposer', t.q('a_agent2', format('select public.propose_task_end(%L, %L, now() - interval ''1 hour'', null)', t.id('A'), t.id('T21'))), '42501');
+select t.is('heure de fin : proposée par l''agent affecté', t.keep('a_agent', format('select public.propose_task_end(%L, %L, now() - interval ''50 minutes'', ''Oubli de terminer (fictif)'')', t.id('A'), t.id('T21'))), 'applied');
+select t.is('heure de fin : en attente, statut et fin réelle inchangés', (select end_proposal_status || '/' || status::text || '/' || (reported_end_at is null)::text from public.tasks where id = t.id('T21')), 'pending/in_progress/true');
+select t.err('heure de fin : l''agent ne valide pas sa propre proposition', t.q('a_agent', format('select public.decide_task_end(%L, %L, true)', t.id('A'), t.id('T21'))), '42501');
+select t.err('heure de fin : une autre organisation ne décide pas', t.q('b_manager', format('select public.decide_task_end(%L, %L, true)', t.id('A'), t.id('T21'))), '42501');
+select t.is('heure de fin : acceptée par un responsable', t.keep('a_manager', format('select public.decide_task_end(%L, %L, true)', t.id('A'), t.id('T21'))), 'applied');
+select t.is('heure de fin : retenue = proposée, historique complet', (select (reported_end_at = end_proposed_at)::text || '/' || end_proposal_status from public.tasks where id = t.id('T21')) || '/' || (select string_agg(kind, ',' order by id) from public.task_events where task_id = t.id('T21') and kind like 'end_%'), 'true/accepted/end_proposed,end_accepted');
+select t.is('heure de fin : seconde décision sans effet', t.keep('a_manager', format('select public.decide_task_end(%L, %L, false)', t.id('A'), t.id('T21'))), 'stale');
+select t.deny('dépassement : un autre agent ne voit pas la mission', t.q('a_agent2', format('select count(*) from public.tasks where id = %L', t.id('T21'))));
+select t.err('délai d''alerte : réservé aux responsables', t.q('a_agent', format('select public.set_overrun_alert(%L, 45)', t.id('A'))), '42501');
+select t.err('délai d''alerte : valeur hors bornes refusée', t.q('a_manager', format('select public.set_overrun_alert(%L, -5)', t.id('A'))), '22023');
+select t.keep('a_manager', format('select public.set_overrun_alert(%L, 45)', t.id('A')));
+select t.is('délai d''alerte : enregistré', (select overrun_alert_min::text from public.organizations where id = t.id('A')), '45');
+insert into public.incidents (id, organization_id, property_id, source, category, description, status) values (t.id('I21'), t.id('A'), t.id('P20'), 'agent', 'leak', 'Fuite sous l''évier (fictif)', 'in_progress');
+select t.err('incident laissé ouvert : un agent ne décide pas', t.q('a_agent', format('select public.keep_incident_open(%L, %L)', t.id('A'), t.id('I21'))), '42501');
+select t.err('incident laissé ouvert : une autre organisation non plus', t.q('b_manager', format('select public.keep_incident_open(%L, %L)', t.id('A'), t.id('I21'))), '42501');
+select t.is('incident laissé ouvert : décision enregistrée', t.keep('a_manager', format('select public.keep_incident_open(%L, %L)', t.id('A'), t.id('I21'))), 'applied');
+select t.is('incident laissé ouvert : toujours ouvert, décision datée', (select status || '/' || (kept_open_at is not null)::text || '/' || (kept_open_by = t.id('a_manager'))::text from public.incidents where id = t.id('I21')), 'in_progress/true/true');
+select t.err('incident : aucune écriture directe de la décision', t.dml('a_manager', format('update public.incidents set kept_open_at = null where id = %L', t.id('I21'))), '42501');
+
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);
 do $$ declare n int; begin

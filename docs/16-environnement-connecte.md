@@ -404,3 +404,26 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 **Tests** : isolation 2112/0 (section 20), concurrence 13/13, unitaires 172, e2e 59/59 (40, 41), téléphone simulé sans débordement.
 
 **Retour arrière** : restaurer `log_task_change` (migration 19), supprimer `apply_task_sync` (l'application revient à la mise à jour filtrée).
+
+## Expérience manager en quatre espaces (migration 21 : `20261116000001_depassement_fin_incident_ouvert.sql`)
+
+**Navigation (sans migration).** Le responsable navigue entre quatre espaces : **Tableau de bord** (`/app`), **Logistique** (Missions, Incidents, Logements), **Équipe** (Membres et absences, À valider, Messages) et **Guest** (Séjours, Prestations, Demandes de séjour, Satisfaction). Aucune adresse n'a changé : chaque page existante est rattachée à un espace d'après son adresse, ce qui garde valides les liens des e-mails et les favoris. « À valider » reste `/app/missions?status=done`. Les pages de compte (profil, préférences, réglages, configuration, import, journal des e-mails) sont dans le menu Compte, en haut à droite. Les messages sont toujours accessibles en haut, avec le nombre réel de conversations non lues. Sur téléphone, une barre inférieure propose les quatre espaces. La navigation de l'agent est inchangée.
+
+**Tableau de bord.** Il est organisé en quatre blocs : « Urgent ou bloquant », « En attente de votre décision », « Aujourd'hui et demain » (arrivées sous 48 h et missions des 24 h) et « Synthèse ». Un sujet est classé urgent selon des règles explicites : incident marqué urgent, horaire promis qui contredit le séjour, ménage impossible entre deux séjours, ou mission empêchée par une absence. Le tableau de bord n'affiche pas « sous contrôle » : les catégories vides sont annoncées comme « rien en attente ».
+
+**Incident → intervention → validation → résolution.** Valider une intervention ne résout pas l'incident. HALO pose ensuite la question « L'incident est-il résolu ? », sur la fiche de la mission, dans la liste des incidents et au tableau de bord. Le responsable choisit « Résoudre », avec un compte rendu, ou « Le laisser ouvert ». Ce second choix est enregistré par `keep_incident_open`, et la question revient si une nouvelle intervention est validée plus tard. Pour un incident signalé par un voyageur, la résolution se fait depuis la liste des incidents, ce qui permet de lui envoyer un message.
+
+**Mission trop longue (migration 21).**
+- À la durée estimée, comptée depuis le démarrage réel, l'agent voit un rappel **dans l'application** : sur la fiche de la mission et dans sa liste. Il peut répondre « Oui, je continue » (`task_overrun_continue`, la question revient 30 min plus tard) ou « J'ai terminé », qui le renvoie aux étapes de fin habituelles.
+- S'il a oublié de terminer, l'agent propose une heure de fin antérieure (`propose_task_end`), comprise entre le démarrage et maintenant. Un responsable l'accepte ou la refuse (`decide_task_end`). L'historique garde tout. Le statut et `completed_at` ne changent pas ; l'heure acceptée va dans `reported_end_at`.
+- Sans réponse après le délai choisi (`organizations.overrun_alert_min`, 30 min par défaut, réglable dans Réglages), la mission remonte au tableau de bord du responsable.
+- Le temps n'est jamais arrêté automatiquement et HALO ne qualifie jamais un dépassement de faute.
+- **Limite :** il n'y a pas de notification push. Le rappel n'apparaît que si l'agent ouvre l'application. Il est calculé sur l'appareil, donc il s'affiche aussi hors ligne, mais la réponse n'est envoyée qu'avec du réseau.
+
+**Messagerie et fiche agent.**
+- La liste des conversations met la personne en premier : initiales, aperçu du dernier message, date et non-lu. La conversation reprend la présentation habituelle des bulles, avec le contexte (mission, logement ou séjour) et un lien pour l'ouvrir. Sur téléphone, la zone de saisie reste visible.
+- L'état « vu » est calculé à partir de la dernière ouverture de la conversation. HALO n'affiche ni accusé de remise ni présence en ligne.
+- Règle d'accès affichée dans l'interface et appliquée par la base (`can_read_thread`) : les participants et les responsables de l'organisation peuvent lire une conversation ; les autres agents, les voyageurs et les autres organisations ne le peuvent pas.
+- Nouvelle fiche membre `/app/team/[id]`, réservée aux responsables : appeler (si un numéro est renseigné), écrire, missions à valider, missions en cours et à venir, dernières validées, conversations, absences à venir (type et période seulement, jamais le motif). Le nom et le téléphone sont modifiés par la personne elle-même : la base n'autorise pas un responsable à les changer.
+
+**Compatibilité.** Les pages lisent les colonnes de la migration 21 dans des requêtes séparées. Tant que la migration n'est pas appliquée, les fiches restent affichables et ces informations sont simplement absentes. Le réglage du délai indique qu'il sera disponible après la mise à jour de la base.

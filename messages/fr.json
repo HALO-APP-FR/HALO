@@ -1322,7 +1322,7 @@
       "team": "Équipe",
       "setup": "Configuration",
       "incidents": "Incidents",
-      "notifications": "Envois",
+      "notifications": "Journal des e-mails",
       "settings": "Réglages",
       "profile": "Mon profil",
       "messages": "Messages",
@@ -1330,7 +1330,15 @@
       "more": "Plus",
       "import": "Importer mes données",
       "bookings": "Demandes de séjour",
-      "satisfaction": "Satisfaction"
+      "satisfaction": "Satisfaction",
+      "dashboard": "Tableau de bord",
+      "logistics": "Logistique",
+      "teamSpace": "Équipe",
+      "guest": "Guest",
+      "members": "Membres et absences",
+      "toValidate": "À valider",
+      "account": "Compte",
+      "spaceTabs": "Rubriques de l'espace"
     },
     "env": {
       "demo": "Démo",
@@ -1433,10 +1441,11 @@
       "no_property": "Cet avis n'est relié à aucun logement : impossible de créer un incident.",
       "use_timing_decision": "Un horaire d'arrivée ou de départ se confirme ou s'annule avec la décision dédiée, qui vérifie la préparation.",
       "timing_window": "Une mission liée ne pouvait pas suivre ce nouvel horaire. Rien n'a été modifié ; rechargez la page pour voir l'effet prévu sur chaque mission.",
-      "missing_requirements": "Des preuves exigées manquent (checklist, photos ou commentaire) : demandez une correction plutôt que de valider."
+      "missing_requirements": "Des preuves exigées manquent (checklist, photos ou commentaire) : demandez une correction plutôt que de valider.",
+      "invalid_end": "L'heure doit être entre le démarrage de la mission et maintenant."
     },
     "home": {
-      "subtitle": "Ce qui demande votre attention.",
+      "subtitle": "ce qui demande votre attention",
       "onboardingTitle": "Terminez la configuration de HALO",
       "onboardingResume": "Reprenez là où vous vous êtes arrêté, vos réponses sont gardées.",
       "onboardingStart": "3 à 5 minutes pour une première configuration utile.",
@@ -1471,7 +1480,7 @@
       "nowTitle": "À traiter maintenant",
       "nowEmpty": "Aucune demande, validation, incident ou absence en attente de décision. Les arrivées à surveiller sont juste en dessous.",
       "infoTitle": "À surveiller",
-      "calmTitle": "{count, plural, one {Sous contrôle : # catégorie sans élément} other {Sous contrôle : # catégories sans élément}}",
+      "calmTitle": "{count, plural, one {Rien en attente dans # autre catégorie} other {Rien en attente dans # autres catégories}}",
       "why": {
         "incidents": "Un problème signalé sur un logement attend une prise en charge.",
         "timingMismatch": "Un horaire promis au voyageur n'est pas celui du séjour.",
@@ -1481,7 +1490,9 @@
         "services": "Un voyageur attend une réponse.",
         "bookings": "Une demande de séjour attend une réponse.",
         "absenceRequests": "Un membre de l'équipe attend votre décision.",
-        "unassigned": "Personne n'est prévu pour ces missions."
+        "unassigned": "Personne n'est prévu pour ces missions.",
+        "incidentResolve": "L'intervention est validée, mais l'incident reste ouvert tant que vous ne l'avez pas résolu.",
+        "overrun": "L'agent n'a pas répondu au rappel dans le délai choisi. Un dépassement n'est pas une faute : le temps continue de courir."
       },
       "cta": {
         "incidents": "Traiter",
@@ -1493,17 +1504,42 @@
         "bookings": "Répondre",
         "absenceRequests": "Décider",
         "unassigned": "Attribuer",
-        "open": "Ouvrir"
+        "open": "Ouvrir",
+        "incidentResolve": "Décider",
+        "overrun": "Voir la mission",
+        "chats": "Lire",
+        "prepReview": "Examiner",
+        "prepDue": "Préparer",
+        "vipRequests": "Décider",
+        "lowReviewsGuest": "Traiter",
+        "lowReviewsOwner": "Traiter",
+        "messages": "Lire",
+        "availabilityRisks": "Examiner"
       },
       "detail": {
         "toValidate": "{mission} · {property} · terminée le {date}",
         "incident": "{property} : {text} ({date})",
-        "incidentUrgent": "Urgent · {property} : {text} ({date})"
+        "incidentUrgent": "Urgent · {property} : {text} ({date})",
+        "incidentResolve": "{property} : {text}",
+        "overrun": "{mission} · {property} · {who} · +{minutes} min"
       },
       "cleaningLine": "Ménage : {status} · {who}",
       "nobody": "personne n'est attribué",
       "whyNotReady": "Pas encore « prête » : le ménage n'est pas validé par un responsable.",
-      "testEmails": "{count, plural, =0 {Aucun e-mail vers une adresse de test} one {# e-mail vers une adresse de test (.invalid), non envoyé volontairement} other {# e-mails vers des adresses de test (.invalid), non envoyés volontairement}}"
+      "testEmails": "{count, plural, =0 {Aucun e-mail vers une adresse de test} one {# e-mail vers une adresse de test (.invalid), non envoyé volontairement} other {# e-mails vers des adresses de test (.invalid), non envoyés volontairement}}",
+      "title": "Tableau de bord",
+      "urgentTitle": "Urgent ou bloquant",
+      "decideTitle": "En attente de votre décision",
+      "todayTitle": "Aujourd'hui et demain",
+      "soonTitle": "Missions des prochaines 24 heures",
+      "soonEmpty": "Aucune mission prévue dans les 24 prochaines heures.",
+      "allMissions": "Toutes les missions",
+      "summaryTitle": "Synthèse",
+      "resubmitted": "Renvoyée après correction",
+      "urgentTag": "Urgent",
+      "noName": "Sans nom",
+      "incidentResolve": "{count, plural, =0 {Aucun incident à clôturer} one {# intervention validée : l'incident est-il résolu ?} other {# interventions validées : les incidents sont-ils résolus ?}}",
+      "overrun": "{count, plural, =0 {Aucune mission en dépassement sans réponse} one {# mission en dépassement, fin à confirmer} other {# missions en dépassement, fin à confirmer}}"
     },
     "onb": {
       "progress": "Étape {n} sur {total}",
@@ -1730,7 +1766,17 @@
       "create": "Créer le logement",
       "noAddress": "Adresse non renseignée",
       "checklist": "Checklist de ménage",
-      "noChecklist": "Aucune checklist : elle vient de la configuration confirmée."
+      "noChecklist": "Aucune checklist : elle vient de la configuration confirmée.",
+      "overview": {
+        "write": "Écrire à l'équipe",
+        "stays": "Séjours en cours et à venir",
+        "noStay": "Aucun séjour confirmé à venir.",
+        "missions": "Missions ouvertes",
+        "noMission": "Aucune mission ouverte.",
+        "incidents": "Incidents ouverts",
+        "noIncident": "Aucun incident ouvert.",
+        "urgent": "Urgent"
+      }
     },
     "guide": {
       "title": "Livret voyageur",
@@ -2049,7 +2095,8 @@
       "riskStartedTitle": "Mission en cours : {name} a une absence pendant sa fenêtre — à vérifier",
       "riskActions": "Risque à examiner, pas un conflit : la mission reste possible en dehors de l'absence. Planifiez un créneau hors absence pour le confirmer.",
       "partialFor": "absence partielle ({period})",
-      "basisWindowFromNow": "Fenêtre déjà commencée : calcul sur le temps restant, {window}, sans horaire planifié. Plus long temps libre continu hors absences enregistrées : {free} ; durée prévue {duration}. Horaires de travail, autres missions et trajets non connus de HALO : ce n'est pas une disponibilité garantie."
+      "basisWindowFromNow": "Fenêtre déjà commencée : calcul sur le temps restant, {window}, sans horaire planifié. Plus long temps libre continu hors absences enregistrées : {free} ; durée prévue {duration}. Horaires de travail, autres missions et trajets non connus de HALO : ce n'est pas une disponibilité garantie.",
+      "overrunReached": "Durée estimée atteinte : répondre"
     },
     "team": {
       "title": "Équipe",
@@ -2212,7 +2259,8 @@
       "planHint": "La mission est reliée à la prochaine arrivée du logement : tant qu'elle n'est pas faite, l'arrivée n'est pas « prête ».",
       "planConfirm": "Créer l'intervention",
       "openIntervention": "Voir l'intervention",
-      "interventionStatus": "intervention : {status}"
+      "interventionStatus": "intervention : {status}",
+      "resolvePromptText": "L'intervention liée a été validée. Résolvez l'incident ou laissez-le ouvert."
     },
     "notifications": {
       "title": "Envois et notifications",
@@ -2348,7 +2396,11 @@
         "window_changed": "Créneau modifié",
         "early_start_allowed": "Démarrage anticipé autorisé",
         "started_early": "Démarrée avant le début conseillé",
-        "resubmitted": "Correction renvoyée, à valider"
+        "resubmitted": "Correction renvoyée, à valider",
+        "overrun_continue": "« Oui, je continue » (durée estimée dépassée)",
+        "end_proposed": "Heure de fin réelle proposée",
+        "end_accepted": "Heure de fin proposée acceptée",
+        "end_rejected": "Heure de fin proposée refusée"
       },
       "bySystem": "automatique",
       "byYou": "vous",
@@ -2454,15 +2506,15 @@
       "summaryHours": "Sera enregistrée : du {from} au {to}."
     },
     "chat": {
-      "title": "Messages d'équipe",
+      "title": "Messages",
       "subtitle": "Consignes liées aux missions, logements et séjours. Jamais visibles des voyageurs.",
       "none": "Aucune conversation.",
       "new": "Nouveau",
       "urgent": "Urgent",
       "noName": "Sans nom",
-      "readAll": "lu",
-      "readSome": "lu par {n} sur {total}",
-      "unread": "non lu",
+      "readAll": "vu",
+      "readSome": "vu par {n} sur {total}",
+      "unread": "pas encore vu",
       "state": {
         "sending": "Envoi en cours…",
         "offline": "En attente : pas de réseau. Il partira au retour du réseau.",
@@ -2470,7 +2522,7 @@
       },
       "retry": "Réessayer",
       "empty": "Aucun message.",
-      "write": "Votre message",
+      "write": "Écrire un message…",
       "markUrgent": "Urgent (toujours notifié)",
       "send": "Envoyer",
       "newTitle": "Nouvelle conversation",
@@ -2490,12 +2542,21 @@
       },
       "message": "Message",
       "start": "Envoyer",
-      "back": "Messages",
+      "back": "Toutes les conversations",
       "missionTitle": "Messages de la mission",
       "newForMission": "Écrire à propos de cette mission",
       "noneForMission": "Aucune conversation sur cette mission.",
-      "readBy": "lu par {names}",
-      "notReadBy": "pas encore lu par {names}"
+      "readBy": "vu par {names}",
+      "notReadBy": "pas encore vu par {names}",
+      "subtitleManager": "Échanges avec votre équipe, toujours rattachés à une mission, un logement ou un séjour.",
+      "you": "Vous",
+      "noneManager": "Écrivez à un membre depuis « Nouvelle conversation » ou depuis sa fiche.",
+      "noneAgent": "Les messages de votre responsable apparaîtront ici.",
+      "privacy": "Visible par les participants et par les responsables de l'organisation. Jamais par les voyageurs ni par les autres agents.",
+      "privacyReader": "Vous lisez cette conversation en tant que responsable : vous n'en êtes pas participant, mais tous les responsables de l'organisation y ont accès.",
+      "cancel": "Annuler",
+      "profile": "Voir la fiche",
+      "profileOf": "Fiche de {name}"
     },
     "prefs": {
       "title": "Notifications",
@@ -3606,6 +3667,77 @@
       "manual": "Plage fixée manuellement : HALO ne la recalcule pas.",
       "actionManager": "À faire : modifier le créneau, attribuer, ou revoir l'heure d'arrivée avec le voyageur.",
       "actionAgent": "Prévenez votre responsable si vous ne pouvez pas terminer avant l'arrivée."
+    },
+    "overrun": {
+      "title": "Durée estimée atteinte ({duration})",
+      "text": "Mission démarrée à {since}, en cours depuis {elapsed}. Vous continuez ?",
+      "continue": "Oui, je continue",
+      "finished": "J'ai terminé",
+      "finishedHint": "« J'ai terminé » vous amène aux étapes de fin habituelles (preuves, commentaire, « Terminer »). Le temps n'est jamais arrêté automatiquement.",
+      "forgot": "J'avais fini plus tôt et j'ai oublié de terminer",
+      "endLabel": "Heure de fin réelle",
+      "endHint": "Entre le démarrage et maintenant. Proposée au responsable, qui l'accepte ou la refuse ; tout reste dans l'historique.",
+      "noteLabel": "Précision (facultatif)",
+      "propose": "Proposer cette heure",
+      "proposed": "Heure proposée au responsable. Terminez maintenant la mission avec « Terminer ».",
+      "proposal": {
+        "pending": "Heure de fin proposée par l'agent : {when}",
+        "accepted": "Heure de fin retenue : {when} (acceptée par un responsable)",
+        "rejected": "Heure de fin proposée ({when}) refusée par un responsable"
+      },
+      "accept": "Accepter cette heure",
+      "reject": "Refuser",
+      "waiting": "En attente de la décision d'un responsable.",
+      "managerTitle": "En cours au-delà de la durée estimée (+{minutes} min)",
+      "managerText": "Démarrée à {since}, durée estimée {duration}.",
+      "managerAck": "L'agent a confirmé continuer à {at}.",
+      "managerNoAnswer": "Pas encore de réponse de l'agent au rappel.",
+      "managerHint": "Le rappel s'affiche dans l'application de l'agent (pas de notification push). Un dépassement n'est pas une faute : échangez avec l'agent si besoin.",
+      "setting": {
+        "title": "Missions plus longues que prévu",
+        "text": "À la durée estimée, l'agent voit un rappel dans l'application (« Oui, je continue » / « J'ai terminé »). Sans réponse après ce délai, la mission apparaît sur votre tableau de bord.",
+        "label": "Délai avant de vous alerter (minutes)",
+        "hint": "Après la durée estimée, ou après la dernière réponse « Oui, je continue ».",
+        "save": "Enregistrer",
+        "saved": "Délai enregistré.",
+        "unavailable": "Réglage disponible après la mise à jour de la base (migration 21)."
+      }
+    },
+    "incidentResolve": {
+      "title": "Intervention validée : l'incident est-il résolu ?",
+      "hint": "Valider l'intervention ne résout pas l'incident : c'est votre décision.",
+      "yes": "Oui, résoudre l'incident",
+      "yesGuest": "Oui, résoudre (et prévenir le voyageur)",
+      "no": "Non, le laisser ouvert",
+      "resolution": "Ce qui a été fait",
+      "confirm": "Résoudre l'incident",
+      "useBelow": "Signalé par un voyageur : résolvez avec « Résoudre » ci-dessous pour pouvoir le prévenir."
+    },
+    "member": {
+      "back": "Équipe",
+      "call": "Appeler · {phone}",
+      "noPhone": "Aucun numéro renseigné",
+      "write": "Écrire",
+      "editHint": "Le nom et le téléphone sont renseignés par la personne elle-même, depuis son profil.",
+      "editSelf": "C'est votre fiche.",
+      "editProfile": "Modifier mon profil",
+      "toValidate": "À valider",
+      "noneToValidate": "Aucune mission terminée en attente de validation.",
+      "finishedAt": "Terminée le {date}",
+      "review": "Examiner",
+      "upcoming": "Missions en cours et à venir",
+      "noneUpcoming": "Aucune mission en cours ou à venir.",
+      "recent": "Dernières missions validées",
+      "validatedAt": "validée le {date}",
+      "conversations": "Conversations",
+      "noConversation": "Aucune conversation avec cette personne.",
+      "absences": "Absences à venir",
+      "noAbsence": "Aucune absence enregistrée à venir.",
+      "absenceHint": "Seuls le type et la période sont affichés ici ; les demandes se décident depuis Équipe.",
+      "absence": {
+        "pending": "À décider",
+        "accepted": "Acceptée"
+      }
     }
   },
   "email": {

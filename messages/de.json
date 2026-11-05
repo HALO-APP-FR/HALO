@@ -1322,7 +1322,7 @@
       "team": "Team",
       "setup": "Einrichtung",
       "incidents": "Vorfälle",
-      "notifications": "Versand",
+      "notifications": "E-Mail-Protokoll",
       "settings": "Einstellungen",
       "profile": "Mein Profil",
       "messages": "Nachrichten",
@@ -1330,7 +1330,15 @@
       "more": "Mehr",
       "import": "Daten importieren",
       "bookings": "Aufenthaltsanfragen",
-      "satisfaction": "Zufriedenheit"
+      "satisfaction": "Zufriedenheit",
+      "dashboard": "Übersicht",
+      "logistics": "Logistik",
+      "teamSpace": "Team",
+      "guest": "Guest",
+      "members": "Mitglieder und Abwesenheiten",
+      "toValidate": "Freizugeben",
+      "account": "Konto",
+      "spaceTabs": "Bereiche"
     },
     "env": {
       "demo": "Demo",
@@ -1433,10 +1441,11 @@
       "no_property": "Diese Bewertung ist keiner Unterkunft zugeordnet: Kein Vorfall möglich.",
       "use_timing_decision": "Eine An- oder Abreisezeit wird mit der eigenen Entscheidung bestätigt oder storniert, die die Vorbereitung prüft.",
       "timing_window": "Ein verknüpfter Einsatz konnte der neuen Uhrzeit nicht folgen. Nichts wurde geändert; laden Sie die Seite neu, um die geplante Wirkung je Einsatz zu sehen.",
-      "missing_requirements": "Erforderliche Nachweise fehlen (Checkliste, Fotos oder Kommentar): Korrektur anfordern statt freigeben."
+      "missing_requirements": "Erforderliche Nachweise fehlen (Checkliste, Fotos oder Kommentar): Korrektur anfordern statt freigeben.",
+      "invalid_end": "Die Uhrzeit muss zwischen Beginn des Einsatzes und jetzt liegen."
     },
     "home": {
-      "subtitle": "Was Ihre Aufmerksamkeit braucht.",
+      "subtitle": "was Ihre Aufmerksamkeit braucht",
       "onboardingTitle": "HALO fertig einrichten",
       "onboardingResume": "Machen Sie dort weiter, wo Sie aufgehört haben; Antworten sind gespeichert.",
       "onboardingStart": "3 bis 5 Minuten bis zu einer nützlichen Grundeinrichtung.",
@@ -1471,7 +1480,7 @@
       "nowTitle": "Jetzt zu erledigen",
       "nowEmpty": "Keine Anfrage, Freigabe, kein Vorfall und keine Abwesenheit wartet auf eine Entscheidung. Die zu beobachtenden Anreisen stehen direkt darunter.",
       "infoTitle": "Im Blick behalten",
-      "calmTitle": "{count, plural, one {Unter Kontrolle: # Kategorie ohne Eintrag} other {Unter Kontrolle: # Kategorien ohne Eintrag}}",
+      "calmTitle": "{count, plural, one {Nichts offen in # weiteren Kategorie} other {Nichts offen in # weiteren Kategorien}}",
       "why": {
         "incidents": "Ein gemeldetes Problem in einer Unterkunft wartet auf Bearbeitung.",
         "timingMismatch": "Eine dem Gast zugesagte Uhrzeit passt nicht zum Aufenthalt.",
@@ -1481,7 +1490,9 @@
         "services": "Ein Gast wartet auf eine Antwort.",
         "bookings": "Eine Aufenthaltsanfrage wartet auf Antwort.",
         "absenceRequests": "Ein Teammitglied wartet auf Ihre Entscheidung.",
-        "unassigned": "Für diese Einsätze ist niemand eingeplant."
+        "unassigned": "Für diese Einsätze ist niemand eingeplant.",
+        "incidentResolve": "Der Einsatz ist freigegeben, der Vorfall bleibt aber offen, bis Sie ihn beheben.",
+        "overrun": "Die Person hat innerhalb der Frist nicht auf die Erinnerung geantwortet. Eine Überschreitung ist kein Fehler: die Zeit läuft weiter."
       },
       "cta": {
         "incidents": "Bearbeiten",
@@ -1493,17 +1504,42 @@
         "bookings": "Antworten",
         "absenceRequests": "Entscheiden",
         "unassigned": "Zuweisen",
-        "open": "Öffnen"
+        "open": "Öffnen",
+        "incidentResolve": "Entscheiden",
+        "overrun": "Einsatz ansehen",
+        "chats": "Lesen",
+        "prepReview": "Prüfen",
+        "prepDue": "Vorbereiten",
+        "vipRequests": "Entscheiden",
+        "lowReviewsGuest": "Bearbeiten",
+        "lowReviewsOwner": "Bearbeiten",
+        "messages": "Lesen",
+        "availabilityRisks": "Prüfen"
       },
       "detail": {
         "toValidate": "{mission} · {property} · abgeschlossen {date}",
         "incident": "{property}: {text} ({date})",
-        "incidentUrgent": "Dringend · {property}: {text} ({date})"
+        "incidentUrgent": "Dringend · {property}: {text} ({date})",
+        "incidentResolve": "{property}: {text}",
+        "overrun": "{mission} · {property} · {who} · +{minutes} Min."
       },
       "cleaningLine": "Reinigung: {status} · {who}",
       "nobody": "niemand zugewiesen",
       "whyNotReady": "Noch nicht „bereit“: die Reinigung ist noch nicht freigegeben.",
-      "testEmails": "{count, plural, =0 {Keine E-Mail an eine Testadresse} one {# E-Mail an eine Testadresse (.invalid), absichtlich nicht gesendet} other {# E-Mails an Testadressen (.invalid), absichtlich nicht gesendet}}"
+      "testEmails": "{count, plural, =0 {Keine E-Mail an eine Testadresse} one {# E-Mail an eine Testadresse (.invalid), absichtlich nicht gesendet} other {# E-Mails an Testadressen (.invalid), absichtlich nicht gesendet}}",
+      "title": "Übersicht",
+      "urgentTitle": "Dringend oder blockierend",
+      "decideTitle": "Wartet auf Ihre Entscheidung",
+      "todayTitle": "Heute und morgen",
+      "soonTitle": "Einsätze der nächsten 24 Stunden",
+      "soonEmpty": "Keine Einsätze in den nächsten 24 Stunden.",
+      "allMissions": "Alle Einsätze",
+      "summaryTitle": "Zusammenfassung",
+      "resubmitted": "Nach Korrektur erneut eingereicht",
+      "urgentTag": "Dringend",
+      "noName": "Ohne Namen",
+      "incidentResolve": "{count, plural, =0 {Kein Vorfall abzuschließen} one {# Einsatz freigegeben: ist der Vorfall behoben?} other {# Einsätze freigegeben: sind die Vorfälle behoben?}}",
+      "overrun": "{count, plural, =0 {Kein überzogener Einsatz ohne Antwort} one {# Einsatz überzogen, Ende zu bestätigen} other {# Einsätze überzogen, Ende zu bestätigen}}"
     },
     "onb": {
       "progress": "Schritt {n} von {total}",
@@ -1730,7 +1766,17 @@
       "create": "Unterkunft anlegen",
       "noAddress": "Keine Adresse",
       "checklist": "Reinigungs-Checkliste",
-      "noChecklist": "Keine Checkliste: Sie stammt aus der bestätigten Einrichtung."
+      "noChecklist": "Keine Checkliste: Sie stammt aus der bestätigten Einrichtung.",
+      "overview": {
+        "write": "Team schreiben",
+        "stays": "Laufende und kommende Aufenthalte",
+        "noStay": "Kein bestätigter kommender Aufenthalt.",
+        "missions": "Offene Einsätze",
+        "noMission": "Keine offenen Einsätze.",
+        "incidents": "Offene Vorfälle",
+        "noIncident": "Keine offenen Vorfälle.",
+        "urgent": "Dringend"
+      }
     },
     "guide": {
       "title": "Gästemappe",
@@ -2049,7 +2095,8 @@
       "riskStartedTitle": "Einsatz läuft: {name} hat eine Abwesenheit in seinem Fenster — zu prüfen",
       "riskActions": "Zu prüfendes Risiko, kein Konflikt: Der Einsatz bleibt außerhalb der Abwesenheit möglich. Planen Sie einen Termin außerhalb, um ihn zu bestätigen.",
       "partialFor": "teilweise abwesend ({period})",
-      "basisWindowFromNow": "Fenster bereits begonnen: Berechnung über die Restzeit, {window}, ohne geplanten Termin. Längste freie Zeit außerhalb erfasster Abwesenheiten: {free}; geplante Dauer {duration}. Arbeitszeiten, andere Einsätze und Anfahrten sind HALO unbekannt: keine garantierte Verfügbarkeit."
+      "basisWindowFromNow": "Fenster bereits begonnen: Berechnung über die Restzeit, {window}, ohne geplanten Termin. Längste freie Zeit außerhalb erfasster Abwesenheiten: {free}; geplante Dauer {duration}. Arbeitszeiten, andere Einsätze und Anfahrten sind HALO unbekannt: keine garantierte Verfügbarkeit.",
+      "overrunReached": "Geschätzte Dauer erreicht: antworten"
     },
     "team": {
       "title": "Team",
@@ -2212,7 +2259,8 @@
       "planHint": "Der Einsatz ist mit der nächsten Anreise verknüpft: Bis er erledigt ist, gilt sie nicht als „bereit“.",
       "planConfirm": "Einsatz erstellen",
       "openIntervention": "Einsatz ansehen",
-      "interventionStatus": "Einsatz: {status}"
+      "interventionStatus": "Einsatz: {status}",
+      "resolvePromptText": "Der verknüpfte Einsatz wurde freigegeben. Beheben Sie den Vorfall oder lassen Sie ihn offen."
     },
     "notifications": {
       "title": "Versand und Benachrichtigungen",
@@ -2348,7 +2396,11 @@
         "window_changed": "Zeitfenster geändert",
         "early_start_allowed": "Früher Beginn erlaubt",
         "started_early": "Vor dem empfohlenen Beginn gestartet",
-        "resubmitted": "Korrektur zurückgesendet, freizugeben"
+        "resubmitted": "Korrektur zurückgesendet, freizugeben",
+        "overrun_continue": "„Ja, ich mache weiter“ (geschätzte Dauer überschritten)",
+        "end_proposed": "Tatsächliches Ende vorgeschlagen",
+        "end_accepted": "Vorgeschlagenes Ende angenommen",
+        "end_rejected": "Vorgeschlagenes Ende abgelehnt"
       },
       "bySystem": "automatisch",
       "byYou": "Sie",
@@ -2454,15 +2506,15 @@
       "summaryHours": "Wird gespeichert: vom {from} bis {to}."
     },
     "chat": {
-      "title": "Teamnachrichten",
+      "title": "Nachrichten",
       "subtitle": "Anweisungen zu Einsätzen, Unterkünften und Aufenthalten. Für Gäste nie sichtbar.",
       "none": "Keine Unterhaltung.",
       "new": "Neu",
       "urgent": "Dringend",
       "noName": "Ohne Namen",
-      "readAll": "gelesen",
-      "readSome": "von {n} von {total} gelesen",
-      "unread": "ungelesen",
+      "readAll": "gesehen",
+      "readSome": "von {n} von {total} gesehen",
+      "unread": "noch nicht gesehen",
       "state": {
         "sending": "Wird gesendet …",
         "offline": "Wartet: kein Netz. Wird gesendet, sobald das Netz zurück ist.",
@@ -2470,7 +2522,7 @@
       },
       "retry": "Erneut versuchen",
       "empty": "Keine Nachricht.",
-      "write": "Ihre Nachricht",
+      "write": "Nachricht schreiben…",
       "markUrgent": "Dringend (immer benachrichtigt)",
       "send": "Senden",
       "newTitle": "Neue Unterhaltung",
@@ -2490,12 +2542,21 @@
       },
       "message": "Nachricht",
       "start": "Senden",
-      "back": "Nachrichten",
+      "back": "Alle Gespräche",
       "missionTitle": "Nachrichten zum Einsatz",
       "newForMission": "Zu diesem Einsatz schreiben",
       "noneForMission": "Keine Unterhaltung zu diesem Einsatz.",
-      "readBy": "gelesen von {names}",
-      "notReadBy": "noch nicht gelesen von {names}"
+      "readBy": "gesehen von {names}",
+      "notReadBy": "noch nicht gesehen von {names}",
+      "subtitleManager": "Gespräche mit Ihrem Team, immer mit einem Einsatz, einer Unterkunft oder einem Aufenthalt verknüpft.",
+      "you": "Sie",
+      "noneManager": "Schreiben Sie einem Mitglied über „Neues Gespräch“ oder über sein Profil.",
+      "noneAgent": "Nachrichten Ihrer Leitung erscheinen hier.",
+      "privacy": "Sichtbar für die Teilnehmenden und die Leitung der Organisation. Nie für Gäste oder andere Mitarbeitende.",
+      "privacyReader": "Sie lesen dieses Gespräch als Leitung: Sie nehmen nicht teil, aber alle Leitungspersonen der Organisation haben Zugriff.",
+      "cancel": "Abbrechen",
+      "profile": "Profil ansehen",
+      "profileOf": "Profil von {name}"
     },
     "prefs": {
       "title": "Benachrichtigungen",
@@ -3606,6 +3667,77 @@
       "manual": "Fenster manuell festgelegt: HALO berechnet es nicht neu.",
       "actionManager": "Zu tun: Fenster ändern, zuweisen oder die Anreisezeit mit dem Gast klären.",
       "actionAgent": "Informieren Sie Ihre Leitung, wenn Sie vor der Anreise nicht fertig werden."
+    },
+    "overrun": {
+      "title": "Geschätzte Dauer erreicht ({duration})",
+      "text": "Einsatz um {since} begonnen, läuft seit {elapsed}. Machen Sie weiter?",
+      "continue": "Ja, ich mache weiter",
+      "finished": "Ich bin fertig",
+      "finishedHint": "„Ich bin fertig“ führt zu den üblichen Abschlussschritten (Nachweise, Kommentar, „Abschließen“). Die Zeit wird nie automatisch gestoppt.",
+      "forgot": "Ich war früher fertig und habe vergessen abzuschließen",
+      "endLabel": "Tatsächliches Ende",
+      "endHint": "Zwischen Beginn und jetzt. Wird der Leitung vorgeschlagen, die annimmt oder ablehnt; alles bleibt im Verlauf.",
+      "noteLabel": "Hinweis (optional)",
+      "propose": "Diese Uhrzeit vorschlagen",
+      "proposed": "Uhrzeit an die Leitung gesendet. Schließen Sie den Einsatz jetzt mit „Abschließen“ ab.",
+      "proposal": {
+        "pending": "Von der Person vorgeschlagenes Ende: {when}",
+        "accepted": "Übernommenes Ende: {when} (von der Leitung angenommen)",
+        "rejected": "Vorgeschlagenes Ende ({when}) von der Leitung abgelehnt"
+      },
+      "accept": "Uhrzeit annehmen",
+      "reject": "Ablehnen",
+      "waiting": "Wartet auf die Entscheidung der Leitung.",
+      "managerTitle": "Läuft über die geschätzte Dauer hinaus (+{minutes} Min.)",
+      "managerText": "Begonnen um {since}, geschätzte Dauer {duration}.",
+      "managerAck": "Die Person hat um {at} bestätigt weiterzumachen.",
+      "managerNoAnswer": "Noch keine Antwort auf die Erinnerung.",
+      "managerHint": "Die Erinnerung erscheint in der App der Person (keine Push-Benachrichtigung). Eine Überschreitung ist kein Fehler: sprechen Sie bei Bedarf mit der Person.",
+      "setting": {
+        "title": "Einsätze länger als geplant",
+        "text": "Bei Erreichen der geschätzten Dauer sieht die Person eine Erinnerung in der App („Ja, ich mache weiter“ / „Ich bin fertig“). Ohne Antwort nach dieser Frist erscheint der Einsatz in Ihrer Übersicht.",
+        "label": "Frist bis zur Warnung (Minuten)",
+        "hint": "Nach der geschätzten Dauer oder nach dem letzten „Ja, ich mache weiter“.",
+        "save": "Speichern",
+        "saved": "Frist gespeichert.",
+        "unavailable": "Einstellung nach dem Datenbank-Update verfügbar (Migration 21)."
+      }
+    },
+    "incidentResolve": {
+      "title": "Einsatz freigegeben: ist der Vorfall behoben?",
+      "hint": "Die Freigabe des Einsatzes behebt den Vorfall nicht: das entscheiden Sie.",
+      "yes": "Ja, Vorfall beheben",
+      "yesGuest": "Ja, beheben (und Gast informieren)",
+      "no": "Nein, offen lassen",
+      "resolution": "Was getan wurde",
+      "confirm": "Vorfall beheben",
+      "useBelow": "Von einem Gast gemeldet: unten mit „Beheben“ abschließen, um ihn zu informieren."
+    },
+    "member": {
+      "back": "Team",
+      "call": "Anrufen · {phone}",
+      "noPhone": "Keine Nummer hinterlegt",
+      "write": "Schreiben",
+      "editHint": "Name und Telefon trägt die Person selbst in ihrem Profil ein.",
+      "editSelf": "Das ist Ihr Profil.",
+      "editProfile": "Mein Profil bearbeiten",
+      "toValidate": "Freizugeben",
+      "noneToValidate": "Kein abgeschlossener Einsatz wartet auf Freigabe.",
+      "finishedAt": "Abgeschlossen am {date}",
+      "review": "Prüfen",
+      "upcoming": "Laufende und kommende Einsätze",
+      "noneUpcoming": "Keine laufenden oder kommenden Einsätze.",
+      "recent": "Zuletzt freigegebene Einsätze",
+      "validatedAt": "freigegeben am {date}",
+      "conversations": "Gespräche",
+      "noConversation": "Kein Gespräch mit dieser Person.",
+      "absences": "Kommende Abwesenheiten",
+      "noAbsence": "Keine kommende Abwesenheit erfasst.",
+      "absenceHint": "Hier stehen nur Art und Zeitraum; Anträge werden unter Team entschieden.",
+      "absence": {
+        "pending": "Zu entscheiden",
+        "accepted": "Angenommen"
+      }
     }
   },
   "email": {

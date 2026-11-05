@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { AlertTriangle, Send, WifiOff } from "lucide-react";
-import { useRouter } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { markTeamThreadRead, postTeamMessage, startTeamThread } from "@/lib/connected/actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -34,7 +34,7 @@ type Local = { clientId: string; body: string; urgent: boolean; state: "sending"
  * Fil d'une conversation. Un message n'est affiché « envoyé » qu'après confirmation du serveur :
  * hors réseau il reste « en attente » et repart tout seul au retour du réseau (même identifiant, pas de doublon).
  */
-export function ChatThread({ threadId, messages, meId, canWrite }: { threadId: string; messages: ChatMessage[]; meId: string; canWrite: boolean }) {
+export function ChatThread({ threadId, messages, meId, canWrite, sticky = false, showAuthors = true }: { threadId: string; messages: ChatMessage[]; meId: string; canWrite: boolean; sticky?: boolean; showAuthors?: boolean }) {
   const t = useTranslations("connected.chat");
   const f = useFormatter();
   const router = useRouter();
@@ -80,44 +80,57 @@ export function ChatThread({ threadId, messages, meId, canWrite }: { threadId: s
 
   return (
     <div className="space-y-3" data-testid="chat-thread">
-      <ul className="space-y-2">
-        {messages.map((m) => {
+      <ul className="space-y-1.5">
+        {messages.map((m, i) => {
           const mine = m.authorId === meId;
+          const prev = messages[i - 1];
+          const day = f.dateTime(new Date(m.at), { weekday: "long", day: "numeric", month: "long" });
+          const newDay = !prev || f.dateTime(new Date(prev.at), { weekday: "long", day: "numeric", month: "long" }) !== day;
+          const grouped = !newDay && prev && prev.authorId === m.authorId && Date.parse(m.at) - Date.parse(prev.at) < 5 * 60_000;
           return (
-            <li
-              key={m.id}
-              className={cn("max-w-[88%] rounded-lg px-3 py-2 text-[15px]", mine ? "ms-auto bg-accent-soft" : "bg-subtle dark:bg-surface-hover", m.urgent && "border border-danger")}
-              data-testid="chat-message"
-              data-mine={mine ? "1" : "0"}
-            >
-              {(m.isNew || m.urgent) && (
-                <span className="mb-1 flex gap-1.5">
-                  {m.isNew && <span className="rounded-full bg-danger px-2 py-0.5 text-[11px] font-semibold text-white">{t("new")}</span>}
-                  {m.urgent && <span className="rounded-full bg-danger-soft px-2 py-0.5 text-[11px] font-semibold text-danger">{t("urgent")}</span>}
-                </span>
-              )}
-              <p className="whitespace-pre-wrap">{m.body}</p>
-              <p className="mt-1 text-[12px] text-faint">
-                {m.authorName || t("noName")} · {f.dateTime(new Date(m.at), { dateStyle: "short", timeStyle: "short" })}
-                {mine && (
-                  <span data-testid="chat-read-state">
-                    {" · "}
-                    {m.readBy >= m.readTotal ? t("readAll") : m.readBy > 0 ? t("readSome", { n: m.readBy, total: m.readTotal }) : t("unread")}
-                  </span>
-                )}
-              </p>
-              {mine && m.readTotal > 1 && (
-                <p className="text-[11px] text-faint" data-testid="chat-read-detail">
-                  {m.readers.length > 0 && t("readBy", { names: m.readers.join(", ") })}
-                  {m.readers.length > 0 && m.notYet.length > 0 && " · "}
-                  {m.notYet.length > 0 && t("notReadBy", { names: m.notYet.join(", ") })}
-                </p>
-              )}
+            <li key={m.id} className={cn(!grouped && "pt-2")}>
+              {newDay && <p className="py-2 text-center text-[12px] font-medium text-muted first-letter:uppercase">{day}</p>}
+              <div className={cn("flex", mine ? "justify-end" : "justify-start")}>
+                <div
+                  className={cn(
+                    "max-w-[85%] rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed md:max-w-[75%]",
+                    mine ? "rounded-ee-md bg-accent text-on-accent" : "rounded-es-md border border-line bg-surface",
+                    m.urgent && "ring-2 ring-danger ring-offset-1 ring-offset-canvas",
+                  )}
+                  data-testid="chat-message"
+                  data-mine={mine ? "1" : "0"}
+                >
+                  {!mine && showAuthors && !grouped && <p className="mb-0.5 text-[12px] font-semibold text-muted">{m.authorName || t("noName")}</p>}
+                  {(m.isNew || m.urgent) && (
+                    <span className="mb-1 flex gap-1.5">
+                      {m.isNew && <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-semibold text-on-accent">{t("new")}</span>}
+                      {m.urgent && <span className="rounded-full bg-danger px-2 py-0.5 text-[11px] font-semibold text-white">{t("urgent")}</span>}
+                    </span>
+                  )}
+                  <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                  <p className={cn("mt-0.5 text-[11px]", mine ? "text-on-accent/80" : "text-faint")}>
+                    {f.dateTime(new Date(m.at), { hour: "2-digit", minute: "2-digit" })}
+                    {mine && (
+                      <span data-testid="chat-read-state">
+                        {" · "}
+                        {m.readBy >= m.readTotal ? t("readAll") : m.readBy > 0 ? t("readSome", { n: m.readBy, total: m.readTotal }) : t("unread")}
+                      </span>
+                    )}
+                  </p>
+                  {mine && m.readTotal > 1 && (
+                    <p className="text-[11px] text-on-accent/80" data-testid="chat-read-detail">
+                      {m.readers.length > 0 && t("readBy", { names: m.readers.join(", ") })}
+                      {m.readers.length > 0 && m.notYet.length > 0 && " · "}
+                      {m.notYet.length > 0 && t("notReadBy", { names: m.notYet.join(", ") })}
+                    </p>
+                  )}
+                </div>
+              </div>
             </li>
           );
         })}
         {local.map((m) => (
-          <li key={m.clientId} className="ms-auto max-w-[88%] rounded-lg border border-dashed border-line px-3 py-2 text-[15px]" data-testid="chat-pending" data-state={m.state}>
+          <li key={m.clientId} className="ms-auto max-w-[85%] rounded-2xl rounded-ee-md border border-dashed border-line px-3.5 py-2 text-[15px] md:max-w-[75%]" data-testid="chat-pending" data-state={m.state}>
             <p className="whitespace-pre-wrap">{m.body}</p>
             <p className="mt-1 flex items-center gap-1.5 text-[12px] text-warning">
               {m.state === "offline" && <WifiOff className="size-3.5" />}
@@ -131,11 +144,11 @@ export function ChatThread({ threadId, messages, meId, canWrite }: { threadId: s
             </p>
           </li>
         ))}
-        {messages.length === 0 && local.length === 0 && <li className="text-[14px] text-muted">{t("empty")}</li>}
+        {messages.length === 0 && local.length === 0 && <li className="py-6 text-center text-[14px] text-muted">{t("empty")}</li>}
       </ul>
       {canWrite && (
         <form
-          className="space-y-2"
+          className={cn("space-y-2 border-t border-line bg-surface pt-3", sticky && "sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] -mx-4 px-4 pb-3 md:bottom-0 md:-mx-5 md:px-5")}
           onSubmit={(e) => {
             e.preventDefault();
             if (!body.trim()) return;
@@ -146,17 +159,32 @@ export function ChatThread({ threadId, messages, meId, canWrite }: { threadId: s
             void send(m);
           }}
         >
-          <Textarea value={body} onChange={(e) => setBody(e.target.value)} maxLength={4000} rows={2} aria-label={t("write")} placeholder={t("write")} data-testid="chat-body" />
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-[14px]">
-              <input type="checkbox" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} data-testid="chat-urgent" />
-              {t("markUrgent")}
-            </label>
-            <Button type="submit" size="sm" className="ms-auto" disabled={!body.trim()} data-testid="chat-send">
+          <div className="flex items-end gap-2">
+            <Textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onKeyDown={(e) => {
+                // Ordinateur : Entrée envoie, Maj+Entrée va à la ligne
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && window.matchMedia("(pointer: fine)").matches) {
+                  e.preventDefault();
+                  e.currentTarget.form?.requestSubmit();
+                }
+              }}
+              maxLength={4000}
+              rows={2}
+              aria-label={t("write")}
+              placeholder={t("write")}
+              className="min-h-11 flex-1 resize-none rounded-2xl"
+              data-testid="chat-body"
+            />
+            <Button type="submit" size="icon" className="size-11 rounded-full" disabled={!body.trim()} aria-label={t("send")} data-testid="chat-send">
               <Send />
-              {t("send")}
             </Button>
           </div>
+          <label className="flex items-center gap-2 text-[13px] text-muted">
+            <input type="checkbox" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} data-testid="chat-urgent" />
+            {t("markUrgent")}
+          </label>
         </form>
       )}
     </div>
@@ -168,16 +196,18 @@ export function NewThreadForm({
   members,
   contexts,
   initial,
+  initialTo = [],
 }: {
   members: { id: string; name: string; role: string }[];
   contexts: { kind: "task" | "property" | "reservation"; id: string; label: string }[];
   initial?: { kind: "task" | "property" | "reservation"; id: string };
+  initialTo?: string[];
 }) {
   const t = useTranslations("connected.chat");
   const router = useRouter();
   const { pending, error, run } = useRun();
   const [clientId, setClientId] = useState(() => crypto.randomUUID());
-  const [to, setTo] = useState<string[]>([]);
+  const [to, setTo] = useState<string[]>(() => initialTo.filter((x) => members.some((m) => m.id === x)));
   const [ctx, setCtx] = useState(initial ? `${initial.kind}:${initial.id}` : contexts[0] ? `${contexts[0].kind}:${contexts[0].id}` : "");
   const [body, setBody] = useState("");
   const [urgent, setUrgent] = useState(false);
@@ -187,6 +217,7 @@ export function NewThreadForm({
     <Card className="p-5" data-testid="chat-new">
       <h2 className="text-[17px] font-semibold">{t("newTitle")}</h2>
       <p className="mt-1 text-[14px] text-muted">{t("newText")}</p>
+      <p className="mt-1 text-[13px] text-muted">{t("privacy")}</p>
       <form
         className="mt-4 space-y-4"
         onSubmit={(e) => {
@@ -229,9 +260,14 @@ export function NewThreadForm({
             <input type="checkbox" checked={urgent} onChange={(e) => setUrgent(e.target.checked)} />
             {t("markUrgent")}
           </label>
-          <Button type="submit" className="ms-auto" disabled={pending || !to.length || !ctx || !body.trim()} data-testid="chat-start">
-            {t("start")}
-          </Button>
+          <span className="ms-auto flex items-center gap-2">
+            <Link href="/app/messages" className="px-2 text-[14px] text-muted hover:text-fg">
+              {t("cancel")}
+            </Link>
+            <Button type="submit" disabled={pending || !to.length || !ctx || !body.trim()} data-testid="chat-start">
+              {t("start")}
+            </Button>
+          </span>
         </div>
         {error && <p role="alert" className="text-[14px] text-danger">{error}</p>}
       </form>

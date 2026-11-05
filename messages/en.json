@@ -1322,7 +1322,7 @@
       "team": "Team",
       "setup": "Setup",
       "incidents": "Incidents",
-      "notifications": "Notifications",
+      "notifications": "Email log",
       "settings": "Settings",
       "profile": "My profile",
       "messages": "Messages",
@@ -1330,7 +1330,15 @@
       "more": "More",
       "import": "Import my data",
       "bookings": "Stay requests",
-      "satisfaction": "Satisfaction"
+      "satisfaction": "Satisfaction",
+      "dashboard": "Dashboard",
+      "logistics": "Operations",
+      "teamSpace": "Team",
+      "guest": "Guest",
+      "members": "Members and absences",
+      "toValidate": "To approve",
+      "account": "Account",
+      "spaceTabs": "Section pages"
     },
     "env": {
       "demo": "Demo",
@@ -1433,10 +1441,11 @@
       "no_property": "This review isn't linked to a property: an incident can't be created.",
       "use_timing_decision": "An arrival or departure time is confirmed or cancelled with the dedicated decision, which checks preparation.",
       "timing_window": "A linked mission couldn't follow this new time. Nothing was changed; reload the page to see the planned effect on each mission.",
-      "missing_requirements": "Required proof is missing (checklist, photos or comment): ask for a correction instead of approving."
+      "missing_requirements": "Required proof is missing (checklist, photos or comment): ask for a correction instead of approving.",
+      "invalid_end": "The time must be between the mission start and now."
     },
     "home": {
-      "subtitle": "What needs your attention.",
+      "subtitle": "what needs your attention",
       "onboardingTitle": "Finish setting up HALO",
       "onboardingResume": "Pick up where you left off, your answers are saved.",
       "onboardingStart": "3 to 5 minutes to a useful first setup.",
@@ -1471,7 +1480,7 @@
       "nowTitle": "To handle now",
       "nowEmpty": "No request, approval, incident or absence waiting for a decision. Arrivals to watch are just below.",
       "infoTitle": "To keep an eye on",
-      "calmTitle": "{count, plural, one {Under control: # category with nothing} other {Under control: # categories with nothing}}",
+      "calmTitle": "{count, plural, one {Nothing pending in # other category} other {Nothing pending in # other categories}}",
       "why": {
         "incidents": "A reported problem at a property is waiting to be handled.",
         "timingMismatch": "A time promised to the guest doesn't match the stay.",
@@ -1481,7 +1490,9 @@
         "services": "A guest is waiting for an answer.",
         "bookings": "A stay request is waiting for an answer.",
         "absenceRequests": "A team member is waiting for your decision.",
-        "unassigned": "Nobody is planned for these missions."
+        "unassigned": "Nobody is planned for these missions.",
+        "incidentResolve": "The intervention is approved, but the incident stays open until you resolve it.",
+        "overrun": "The agent hasn't answered the reminder within the chosen delay. Running over isn't a fault: time keeps running."
       },
       "cta": {
         "incidents": "Handle",
@@ -1493,17 +1504,42 @@
         "bookings": "Reply",
         "absenceRequests": "Decide",
         "unassigned": "Assign",
-        "open": "Open"
+        "open": "Open",
+        "incidentResolve": "Decide",
+        "overrun": "View mission",
+        "chats": "Read",
+        "prepReview": "Review",
+        "prepDue": "Prepare",
+        "vipRequests": "Decide",
+        "lowReviewsGuest": "Handle",
+        "lowReviewsOwner": "Handle",
+        "messages": "Read",
+        "availabilityRisks": "Review"
       },
       "detail": {
         "toValidate": "{mission} · {property} · finished {date}",
         "incident": "{property}: {text} ({date})",
-        "incidentUrgent": "Urgent · {property}: {text} ({date})"
+        "incidentUrgent": "Urgent · {property}: {text} ({date})",
+        "incidentResolve": "{property}: {text}",
+        "overrun": "{mission} · {property} · {who} · +{minutes} min"
       },
       "cleaningLine": "Cleaning: {status} · {who}",
       "nobody": "nobody assigned",
       "whyNotReady": "Not “ready” yet: the cleaning hasn't been approved by a manager.",
-      "testEmails": "{count, plural, =0 {No email to a test address} one {# email to a test address (.invalid), intentionally not sent} other {# emails to test addresses (.invalid), intentionally not sent}}"
+      "testEmails": "{count, plural, =0 {No email to a test address} one {# email to a test address (.invalid), intentionally not sent} other {# emails to test addresses (.invalid), intentionally not sent}}",
+      "title": "Dashboard",
+      "urgentTitle": "Urgent or blocking",
+      "decideTitle": "Waiting for your decision",
+      "todayTitle": "Today and tomorrow",
+      "soonTitle": "Missions in the next 24 hours",
+      "soonEmpty": "No mission planned in the next 24 hours.",
+      "allMissions": "All missions",
+      "summaryTitle": "Summary",
+      "resubmitted": "Resubmitted after correction",
+      "urgentTag": "Urgent",
+      "noName": "No name",
+      "incidentResolve": "{count, plural, =0 {No incident to close} one {# intervention approved: is the incident resolved?} other {# interventions approved: are the incidents resolved?}}",
+      "overrun": "{count, plural, =0 {No overrunning mission without answer} one {# mission running over, end to confirm} other {# missions running over, end to confirm}}"
     },
     "onb": {
       "progress": "Step {n} of {total}",
@@ -1730,7 +1766,17 @@
       "create": "Create property",
       "noAddress": "No address",
       "checklist": "Cleaning checklist",
-      "noChecklist": "No checklist: it comes from the confirmed setup."
+      "noChecklist": "No checklist: it comes from the confirmed setup.",
+      "overview": {
+        "write": "Message the team",
+        "stays": "Current and upcoming stays",
+        "noStay": "No confirmed upcoming stay.",
+        "missions": "Open missions",
+        "noMission": "No open mission.",
+        "incidents": "Open incidents",
+        "noIncident": "No open incident.",
+        "urgent": "Urgent"
+      }
     },
     "guide": {
       "title": "Guest guide",
@@ -2049,7 +2095,8 @@
       "riskStartedTitle": "Mission in progress: {name} has an absence within its window — to check",
       "riskActions": "A risk to check, not a conflict: the mission is still possible outside the absence. Plan a slot outside it to confirm.",
       "partialFor": "partial absence ({period})",
-      "basisWindowFromNow": "Window already started: calculated on the remaining time, {window}, with no planned slot. Longest continuous free time outside recorded absences: {free}; planned duration {duration}. Working hours, other missions and travel unknown to HALO: not guaranteed availability."
+      "basisWindowFromNow": "Window already started: calculated on the remaining time, {window}, with no planned slot. Longest continuous free time outside recorded absences: {free}; planned duration {duration}. Working hours, other missions and travel unknown to HALO: not guaranteed availability.",
+      "overrunReached": "Estimated duration reached: answer"
     },
     "team": {
       "title": "Team",
@@ -2212,7 +2259,8 @@
       "planHint": "The mission is linked to the property's next arrival: until it's done, that arrival isn't “ready”.",
       "planConfirm": "Create the intervention",
       "openIntervention": "See the intervention",
-      "interventionStatus": "intervention: {status}"
+      "interventionStatus": "intervention: {status}",
+      "resolvePromptText": "The linked intervention has been approved. Resolve the incident or keep it open."
     },
     "notifications": {
       "title": "Notifications sent",
@@ -2348,7 +2396,11 @@
         "window_changed": "Time slot changed",
         "early_start_allowed": "Early start allowed",
         "started_early": "Started before the recommended time",
-        "resubmitted": "Correction sent back, to approve"
+        "resubmitted": "Correction sent back, to approve",
+        "overrun_continue": "“Yes, I'm continuing” (estimated duration exceeded)",
+        "end_proposed": "Actual end time proposed",
+        "end_accepted": "Proposed end time accepted",
+        "end_rejected": "Proposed end time refused"
       },
       "bySystem": "automatic",
       "byYou": "you",
@@ -2454,15 +2506,15 @@
       "summaryHours": "Will be saved: from {from} to {to}."
     },
     "chat": {
-      "title": "Team messages",
+      "title": "Messages",
       "subtitle": "Instructions linked to missions, properties and stays. Never visible to guests.",
       "none": "No conversation.",
       "new": "New",
       "urgent": "Urgent",
       "noName": "No name",
-      "readAll": "read",
-      "readSome": "read by {n} of {total}",
-      "unread": "unread",
+      "readAll": "seen",
+      "readSome": "seen by {n} of {total}",
+      "unread": "not seen yet",
       "state": {
         "sending": "Sending…",
         "offline": "Waiting: no network. It will be sent when the network is back.",
@@ -2470,7 +2522,7 @@
       },
       "retry": "Retry",
       "empty": "No message.",
-      "write": "Your message",
+      "write": "Write a message…",
       "markUrgent": "Urgent (always notified)",
       "send": "Send",
       "newTitle": "New conversation",
@@ -2490,12 +2542,21 @@
       },
       "message": "Message",
       "start": "Send",
-      "back": "Messages",
+      "back": "All conversations",
       "missionTitle": "Mission messages",
       "newForMission": "Write about this mission",
       "noneForMission": "No conversation about this mission.",
-      "readBy": "read by {names}",
-      "notReadBy": "not yet read by {names}"
+      "readBy": "seen by {names}",
+      "notReadBy": "not yet seen by {names}",
+      "subtitleManager": "Conversations with your team, always linked to a mission, property or stay.",
+      "you": "You",
+      "noneManager": "Write to a member from “New conversation” or from their profile.",
+      "noneAgent": "Messages from your manager will appear here.",
+      "privacy": "Visible to participants and to the organisation's managers. Never to guests or other agents.",
+      "privacyReader": "You're reading this conversation as a manager: you're not a participant, but all the organisation's managers can access it.",
+      "cancel": "Cancel",
+      "profile": "View profile",
+      "profileOf": "{name}'s profile"
     },
     "prefs": {
       "title": "Notifications",
@@ -3606,6 +3667,77 @@
       "manual": "Window set manually: HALO doesn't recalculate it.",
       "actionManager": "To do: change the window, assign, or review the arrival time with the guest.",
       "actionAgent": "Tell your manager if you can't finish before arrival."
+    },
+    "overrun": {
+      "title": "Estimated duration reached ({duration})",
+      "text": "Mission started at {since}, running for {elapsed}. Are you continuing?",
+      "continue": "Yes, I'm continuing",
+      "finished": "I'm done",
+      "finishedHint": "“I'm done” takes you to the usual finishing steps (proof, comment, “Finish”). Time is never stopped automatically.",
+      "forgot": "I finished earlier and forgot to close it",
+      "endLabel": "Actual end time",
+      "endHint": "Between the start and now. Sent to the manager, who accepts or refuses it; everything stays in the history.",
+      "noteLabel": "Note (optional)",
+      "propose": "Propose this time",
+      "proposed": "Time sent to the manager. Now finish the mission with “Finish”.",
+      "proposal": {
+        "pending": "End time proposed by the agent: {when}",
+        "accepted": "End time kept: {when} (accepted by a manager)",
+        "rejected": "Proposed end time ({when}) refused by a manager"
+      },
+      "accept": "Accept this time",
+      "reject": "Refuse",
+      "waiting": "Waiting for a manager's decision.",
+      "managerTitle": "Running past the estimated duration (+{minutes} min)",
+      "managerText": "Started at {since}, estimated duration {duration}.",
+      "managerAck": "The agent confirmed continuing at {at}.",
+      "managerNoAnswer": "No answer from the agent to the reminder yet.",
+      "managerHint": "The reminder shows in the agent's app (no push notification). Running over isn't a fault: talk to the agent if needed.",
+      "setting": {
+        "title": "Missions taking longer than planned",
+        "text": "At the estimated duration, the agent sees an in-app reminder (“Yes, I'm continuing” / “I'm done”). With no answer after this delay, the mission appears on your dashboard.",
+        "label": "Delay before alerting you (minutes)",
+        "hint": "After the estimated duration, or after the last “Yes, I'm continuing”.",
+        "save": "Save",
+        "saved": "Delay saved.",
+        "unavailable": "Setting available after the database update (migration 21)."
+      }
+    },
+    "incidentResolve": {
+      "title": "Intervention approved: is the incident resolved?",
+      "hint": "Approving the intervention doesn't resolve the incident: that's your decision.",
+      "yes": "Yes, resolve the incident",
+      "yesGuest": "Yes, resolve (and tell the guest)",
+      "no": "No, keep it open",
+      "resolution": "What was done",
+      "confirm": "Resolve the incident",
+      "useBelow": "Reported by a guest: resolve with “Resolve” below so you can tell them."
+    },
+    "member": {
+      "back": "Team",
+      "call": "Call · {phone}",
+      "noPhone": "No number on file",
+      "write": "Write",
+      "editHint": "Name and phone are filled in by the person themselves, from their profile.",
+      "editSelf": "This is your profile.",
+      "editProfile": "Edit my profile",
+      "toValidate": "To approve",
+      "noneToValidate": "No finished mission waiting for approval.",
+      "finishedAt": "Finished on {date}",
+      "review": "Review",
+      "upcoming": "Current and upcoming missions",
+      "noneUpcoming": "No current or upcoming mission.",
+      "recent": "Latest approved missions",
+      "validatedAt": "approved on {date}",
+      "conversations": "Conversations",
+      "noConversation": "No conversation with this person.",
+      "absences": "Upcoming absences",
+      "noAbsence": "No upcoming absence recorded.",
+      "absenceHint": "Only the type and period are shown here; requests are decided from Team.",
+      "absence": {
+        "pending": "To decide",
+        "accepted": "Accepted"
+      }
     }
   },
   "email": {
