@@ -1061,7 +1061,7 @@
     "time": "Heure",
     "people": "Personnes",
     "details": "Détails",
-    "detailsPlaceholder": "Allergies, préférences, adresse de prise en charge…",
+    "detailsPlaceholder": "Préférences, horaires, adresse de prise en charge…",
     "assignee": "Confiée à",
     "assigneeHint": "Seuls les membres au poste « {position} » sont proposés.",
     "nobody": "Personne",
@@ -1272,7 +1272,10 @@
       "prep_blocking": "Préparation : « {title} » pas encore faite",
       "assignee_absent": "Ménage affecté à une personne absente sur ce créneau",
       "incident_detail": "{category} : {text}",
-      "service_detail": "Demande en attente de décision : {kind}"
+      "service_detail": "Demande en attente de décision : {kind}",
+      "assignee_absent_mission": "{mission} : la personne affectée est absente sur ce créneau",
+      "mission_conflict": "Mission liée incompatible avec l'heure d'arrivée",
+      "assignee_absence_risk": "Absence sur une mission liée : à vérifier"
     },
     "action": {
       "assign": "Attribuer",
@@ -1289,6 +1292,21 @@
       "linen": "Linge",
       "maintenance": "Maintenance",
       "inspection": "Contrôle qualité"
+    },
+    "conflict": {
+      "impossible": "« {mission} » ne peut pas être terminée avant l'arrivée :",
+      "at_risk": "« {mission} » à vérifier :"
+    },
+    "conflictReason": {
+      "cannot_finish": "même en commençant au plus tôt, la durée prévue dépasse l'heure d'arrivée.",
+      "slot_after_arrival": "le créneau planifié finit après l'arrivée.",
+      "deadline_after_arrival": "sa plage se termine après l'arrivée.",
+      "unassigned": "personne n'est attribué."
+    },
+    "conflictManual": "Plage fixée manuellement : HALO ne la modifie pas.",
+    "absenceRisk": {
+      "started": "{mission} en cours, la personne affectée a une absence pendant la plage : avancement inconnu, à vérifier.",
+      "partial": "{mission} : absence de la personne affectée sur une partie de la plage — encore possible en dehors, à vérifier."
     }
   },
   "connected": {
@@ -2336,7 +2354,13 @@
       "byYou": "vous",
       "byAgent": "{name}",
       "agent": "agent",
-      "byManager": "un responsable"
+      "byManager": "un responsable",
+      "origin": {
+        "sync": "recalcul automatique (séjours modifiés)",
+        "timing": "ajustée par une décision d'horaire voyageur",
+        "manual": "modifiée par un responsable",
+        "unknown": "origine non enregistrée (ancien changement)"
+      }
     },
     "schedule": {
       "title": "{count, plural, one {# ménage impossible à planifier} other {# ménages impossibles à planifier}}",
@@ -3379,9 +3403,10 @@
       "recommendedHint": "Recommandation : démarrer plus tôt reste possible, après confirmation.",
       "derogation": "Démarrage anticipé autorisé par un responsable : « {reason} »",
       "source": {
-        "auto": "Plage calculée automatiquement d'après les séjours.",
-        "created": "Plage choisie à la création de la mission.",
-        "edited": "Plage modifiée par un responsable (plus recalculée automatiquement)."
+        "auto": "Plage calculée automatiquement d'après les séjours : recalculée si un séjour change.",
+        "created": "Plage choisie à la création de la mission : jamais recalculée automatiquement.",
+        "edited": "Plage modifiée par un responsable : jamais recalculée automatiquement ; HALO signale si un séjour la rend incompatible.",
+        "auto_timing": "Plage calculée automatiquement, ajustée par une décision d'horaire voyageur : recalculée si un séjour change."
       }
     },
     "timingDecision": {
@@ -3559,6 +3584,28 @@
       "comment": "Commentaire exigé",
       "photosNote": "Les photos obligatoires se règlent point par point dans la checklist de chaque logement.",
       "saved": "Enregistré"
+    },
+    "arrivalConflict": {
+      "title": "Avant l'arrivée : les missions tiennent-elles ?",
+      "text": "Comparaison avec l'arrivée confirmée ({arrival}), d'après les plages et durées estimées connues de HALO. Une estimation n'est pas une garantie ; rien n'est modifié automatiquement.",
+      "level": {
+        "impossible": "Impossible avec les contraintes connues",
+        "at_risk": "À vérifier",
+        "unknown": "Inconnu : mission en cours, avancement non connu",
+        "possible": "Possible d'après les informations connues"
+      },
+      "summary": "Arrivée confirmée : {arrival}. Mission possible au plus tôt : {from}, durée estimée {duration}.",
+      "reason": {
+        "cannot_finish": "Même en commençant au plus tôt, elle ne peut pas être terminée avant l'arrivée.",
+        "slot_after_arrival": "Son créneau planifié finit après l'arrivée.",
+        "deadline_after_arrival": "Sa plage se termine après l'arrivée : elle peut être faite trop tard.",
+        "unassigned": "Personne n'est attribué.",
+        "in_progress": "Mission en cours : HALO ne connaît pas son avancement.",
+        "arrival_passed": "L'heure d'arrivée est passée."
+      },
+      "manual": "Plage fixée manuellement : HALO ne la recalcule pas.",
+      "actionManager": "À faire : modifier le créneau, attribuer, ou revoir l'heure d'arrivée avec le voyageur.",
+      "actionAgent": "Prévenez votre responsable si vous ne pouvez pas terminer avant l'arrivée."
     }
   },
   "email": {
@@ -3744,10 +3791,11 @@
       "when": "Date et heure souhaitées",
       "people": "Personnes",
       "details": "Précisions",
-      "detailsPlaceholder": "Allergies, préférences, adresse de prise en charge…",
+      "detailsPlaceholder": "Préférences, horaires, adresse de prise en charge…",
       "sent": "Demande envoyée. Elle apparaît ci-dessus avec son statut.",
       "send": "Envoyer la demande",
-      "localTime": "Heure locale du logement."
+      "localTime": "Heure locale du logement.",
+      "detailsHint": "N'indiquez aucune information de santé ni de paiement. Si un besoin particulier doit être pris en compte, l'équipe vous contactera."
     },
     "reply": {
       "answer": "Votre réponse",

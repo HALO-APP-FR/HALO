@@ -2132,7 +2132,7 @@ test("28 · scénario de référence : absence, arrivée menacée, réaffectatio
   await m.goto("/fr/app");
   const arrival = m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" });
   await expect(arrival).toHaveAttribute("data-state", "blocked");
-  await expect(arrival.getByTestId("arrival-causes")).toContainText("affecté à une personne absente");
+  await expect(arrival.getByTestId("arrival-causes")).toContainText("la personne affectée est absente sur ce créneau");
 
   // Mission : fenêtre, durée, créneau distincts ; conflit d'absence ; personnes disponibles et limites
   await m.goto(`/fr/app/missions/${clean!.id}`);
@@ -2794,6 +2794,100 @@ test("39 · correction visible jusqu'au renvoi (deux corrections, rechargement),
   await m.goto(`/fr/app/stays/${stay!.id}`);
   await expect(m.getByTestId("stay-mission-relation").first()).toContainText(/Avant l'arrivée de ce séjour|Après le départ de ce séjour/);
   for (const c of [m, agent]) await c.context().close();
+});
+
+test("40 · brief du 5/11 : origine de plage identique partout, plage manuelle jamais recalculée, mission incompatible avec l'arrivée signalée", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `orig ${run}`);
+  const { data: stay } = await admin.from("reservations").select("id, check_in_at, property_id").eq("organization_id", org).eq("guest_name", "Voyageur test").single();
+  const { data: clean } = await admin.from("tasks").select("id, window_end").eq("organization_id", org).eq("next_reservation_id", stay!.id).eq("type", "turnover").single();
+  // Le scénario crée un ménage manuel : on le rend automatique (comme une mission générée d'après les séjours)
+  await admin.from("tasks").update({ is_auto_generated: true }).eq("id", clean!.id);
+  // Plage automatique : même information sur la fiche mission et sur la fiche séjour
+  await m.goto(`/fr/app/missions/${clean!.id}`);
+  await expect(m.getByTestId("mission-window-source")).toHaveAttribute("data-source", "auto");
+  await m.goto(`/fr/app/stays/${stay!.id}`);
+  await expect(m.getByTestId("stay-mission-relation").first()).toContainText("Plage calculée automatiquement");
+  // Modification manuelle (motif tracé) : les deux fiches disent « manuelle »
+  await m.goto(`/fr/app/missions/${clean!.id}`);
+  await m.getByTestId("window-edit").click();
+  const end = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(Date.parse(stay!.check_in_at) - 30 * 60_000)).replace(" ", "T");
+  await m.getByTestId("window-end").fill(end);
+  await m.getByTestId("window-reason").fill("Clés remises plus tard (fictif)");
+  await m.getByTestId("window-save").click();
+  await expect(m.getByTestId("mission-window-source")).toHaveAttribute("data-source", "edited");
+  await expect(m.locator("[data-testid=history-event][data-kind=window_changed]").first()).toContainText("modifiée par un responsable");
+  await m.goto(`/fr/app/stays/${stay!.id}`);
+  await expect(m.getByTestId("stay-mission-relation").first()).toContainText("Plage fixée par un responsable");
+  // L'arrivée est avancée d'une heure (séjour modifié) : la plage manuelle n'est pas touchée, l'incompatibilité est signalée
+  const before = (await admin.from("tasks").select("window_start, window_end").eq("id", clean!.id).single()).data!;
+  const newIn = new Date(Date.parse(stay!.check_in_at) - 2 * 3_600_000).toISOString();
+  await admin.from("reservations").update({ check_in_at: newIn }).eq("id", stay!.id);
+  await m.goto(`/fr/app/stays/${stay!.id}`);
+  await expect(m.getByTestId("stay-prep-check").filter({ has: m.locator(`a[href$="/app/missions/${clean!.id}"]`) })).toHaveAttribute("data-level", "at_risk");
+  await expect(m.getByTestId("stay-prep-checks")).toContainText("Plage fixée manuellement");
+  await m.goto(`/fr/app/missions/${clean!.id}`);
+  await expect(m.getByTestId("mission-arrival-conflict")).toContainText("Sa plage se termine après l'arrivée");
+  expect((await admin.from("tasks").select("window_start, window_end").eq("id", clean!.id).single()).data).toEqual(before);
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" }).getByTestId("arrival-causes")).toContainText("à vérifier");
+
+  // Mission de préparation qui commence à l'heure d'arrivée (cas « table calme ») : impossible, visible partout
+  const { data: prepT } = await admin.from("tasks").insert({ organization_id: org, property_id: stay!.property_id, next_reservation_id: stay!.id, type: "other", title: "QA — préparer table calme", is_auto_generated: false, window_start: newIn, window_end: new Date(Date.parse(newIn) + 2 * 3_600_000).toISOString(), duration_min: 30 }).select("id").single();
+  await m.goto(`/fr/app/stays/${stay!.id}`);
+  await expect(m.getByTestId("stay-prep-check").filter({ hasText: "préparer table calme" })).toHaveAttribute("data-level", "impossible");
+  await m.goto(`/fr/app/missions/${prepT!.id}`);
+  await expect(m.getByTestId("mission-arrival-conflict")).toHaveAttribute("data-level", "impossible");
+  await expect(m.getByTestId("mission-arrival-conflict")).toContainText("durée estimée 30 min");
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" })).toHaveAttribute("data-state", "blocked");
+  await expect(m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" }).getByTestId("arrival-causes")).toContainText("ne peut pas être terminée avant l'arrivée");
+  await m.close();
+});
+
+test("41 · absence liée à l'arrivée, champ voyageur sans donnée de santé, dates saisies depuis un autre fuseau", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org, agentId } = await testScenario(m, `abar ${run}`);
+  const { data: stay } = await admin.from("reservations").select("id, check_in_at, property_id").eq("organization_id", org).eq("guest_name", "Voyageur test").single();
+  const { data: clean } = await admin.from("tasks").select("id").eq("organization_id", org).eq("next_reservation_id", stay!.id).eq("type", "turnover").single();
+  // Ménage en cours, absence acceptée sur une partie de la plage : « à vérifier », avancement inconnu (jamais « impossible »)
+  await admin.from("tasks").update({ assignee_id: agentId, status: "in_progress", started_at: new Date().toISOString(), window_start: new Date(Date.now() - 3_600_000).toISOString() }).eq("id", clean!.id);
+  const { data: ab } = await admin.from("absences").insert({ organization_id: org, scope: "member", member_id: agentId, kind: "unavailable", starts_at: new Date(Date.now() + 3_600_000).toISOString(), ends_at: new Date(Date.now() + 2 * 3_600_000).toISOString(), status: "accepted", client_id: crypto.randomUUID(), reason: "QA fictif" }).select("id").single();
+  await m.goto("/fr/app");
+  const row = m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" });
+  await expect(row.locator("[data-kind=assignee_absence_risk]")).toContainText("avancement inconnu");
+  expect(await row.getAttribute("data-state")).not.toBe("blocked");
+  // Absence annulée : l'alerte disparaît
+  await admin.from("absences").update({ status: "cancelled" }).eq("id", ab!.id);
+  await m.reload();
+  await expect(m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" }).locator("[data-kind=assignee_absence_risk]")).toHaveCount(0);
+
+  // Voyageur : aucune suggestion de donnée de santé dans le champ libre, consigne cohérente
+  await m.goto(`/fr/app/stays/${stay!.id}`);
+  await m.getByTestId("link-create").click();
+  const gUrl = (await m.getByTestId("guest-link-url").inputValue()).replace(/^https?:\/\/[^/]+/, "");
+  const g = await newPage(browser);
+  await g.goto(gUrl);
+  await expect(g.locator("body")).not.toContainText("Allergies");
+  await expect(g.locator("body")).toContainText("N'indiquez aucune information de santé");
+
+  // Séjour saisi depuis un appareil réglé sur New York : 16:00 saisi = 16:00 au logement (Paris)
+  const ny = await browser.newContext({ timezoneId: "America/New_York", locale: "fr-FR" });
+  const p2 = await ny.newPage();
+  await p2.goto("/fr/auth/sign-in");
+  await p2.getByLabel("Nom du compte de test").fill(`abar ${run}`);
+  await p2.getByTestId("test-account-submit").click();
+  await p2.waitForURL(/\/fr\/app/);
+  await p2.goto("/fr/app/stays");
+  await p2.getByLabel("Nom du voyageur").fill(`QA fuseau ${run}`);
+  await p2.locator("#st-in").fill("2029-03-10T16:00");
+  await p2.locator("#st-out").fill("2029-03-12T10:00");
+  await p2.getByTestId("stay-create").click();
+  await p2.waitForURL(/\/fr\/app\/stays\/[0-9a-f-]{36}/);
+  const { data: tzStay } = await admin.from("reservations").select("check_in_at, check_out_at").eq("guest_name", `QA fuseau ${run}`).single();
+  const paris = (x: string) => new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(x));
+  expect([paris(tzStay!.check_in_at), paris(tzStay!.check_out_at)]).toEqual(["2029-03-10 16:00", "2029-03-12 10:00"]);
+  for (const c of [m, g, p2]) await c.context().close();
 });
 
 test("34 · lieux avant l'ouverture : données transmises au navigateur sans coordonnées, plusieurs localisations", async ({ browser }) => {

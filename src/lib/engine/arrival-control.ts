@@ -13,6 +13,7 @@
  */
 import type { Alert, Reservation, ServiceRequest, Task } from "@/lib/domain/types";
 import { infeasibility, type Infeasibility } from "./conflicts";
+import { arrivalPrepChecks } from "./prep-conflicts";
 
 export type ArrivalState = "blocked" | "watch" | "preparing" | "ready";
 const RANK: Record<ArrivalState, number> = { ready: 0, preparing: 1, watch: 2, blocked: 3 };
@@ -28,8 +29,12 @@ export type BlockerKind =
   | "open_incident"
   | "linen_shortage"
   | "service_pending"
-  // Ménage affecté à une personne absente sur son créneau : la couverture n'est qu'apparente
+  // Mission liée affectée à une personne absente sur son créneau : la couverture n'est qu'apparente
   | "assignee_absent"
+  // Absence sur une partie de la plage, ou mission déjà en cours : à examiner (avancement inconnu)
+  | "assignee_absence_risk"
+  // Mission liée à l'arrivée incompatible (impossible) ou à risque avec l'heure d'arrivée confirmée
+  | "mission_conflict"
   // Action de préparation indispensable encore ouverte (préparation du séjour)
   | "prep_blocking"
   | "guest_arrived_not_ready"
@@ -91,8 +96,8 @@ export interface ArrivalInput {
   steps?: { linenRequired: boolean };
   /** Actions de préparation indispensables encore ouvertes : l'arrivée ne peut pas être « prête ». */
   prepBlocking?: { reservationId: string; title: string; assigneeId: string | null; dueAt: string | null }[];
-  /** Absence connue de la personne affectée sur le créneau de la mission (fausse couverture) */
-  assigneeAbsent?: (task: Task) => boolean;
+  /** Absence connue de la personne affectée : conflit confirmé, risque (absence partielle) ou rien */
+  assigneeAbsent?: (task: Task) => "conflict" | "risk" | null | boolean;
   now: Date;
 }
 
@@ -135,9 +140,6 @@ export function arrivalControl(input: ArrivalInput): ArrivalRow[] {
               blockers.push({ kind: "cleaning_late_start", severity: "watch", responsible: who, action: { kind: "open_task", taskId: cleaning.id } });
             }
         }
-        if (cleaning.assigneeId && ["assigned", "to_redo"].includes(cleaning.status) && input.assigneeAbsent?.(cleaning)) {
-          blockers.unshift({ kind: "assignee_absent", severity: "blocked", responsible: { kind: "manager" }, action: { kind: "open_task", taskId: cleaning.id } });
-        }
         if (cleaning.status !== "validated" && input.dayKeyOf && input.linenShortageDays?.has(input.dayKeyOf(cleaning))) {
           blockers.push({ kind: "linen_shortage", severity: "watch", responsible: { kind: "manager" }, action: { kind: "open_linen" } });
         }
@@ -165,6 +167,34 @@ export function arrivalControl(input: ArrivalInput): ArrivalRow[] {
           responsible: a.assigneeId ? { kind: "member", id: a.assigneeId } : { kind: "manager" },
           action: { kind: "open_stay" },
           detail: a.title,
+        });
+      }
+
+      // Absences sur les missions liées à cette arrivée (ménage, linge, préparation…)
+      for (const x of input.tasks) {
+        if (x.nextReservationId !== stay.id || !x.assigneeId || !["assigned", "to_redo", "in_progress"].includes(x.status)) continue;
+        const lv = input.assigneeAbsent?.(x);
+        if (!lv) continue;
+        const level = lv === true ? "conflict" : lv;
+        if (level === "conflict" && x.status !== "in_progress") {
+          blockers.unshift({ kind: "assignee_absent", severity: "blocked", responsible: { kind: "manager" }, action: { kind: "open_task", taskId: x.id }, detail: x.type });
+        } else {
+          blockers.push({ kind: "assignee_absence_risk", severity: "watch", responsible: { kind: "manager" }, action: { kind: "open_task", taskId: x.id }, detail: `${x.type}|${x.status === "in_progress" ? "started" : "partial"}` });
+        }
+      }
+      // Missions liées incompatibles avec l'heure d'arrivée confirmée (plage, durée, créneau) — jamais recalculées ici
+      for (const c of arrivalPrepChecks(input.tasks, stay, now)) {
+        const task = input.tasks.find((x) => x.id === c.taskId)!;
+        const isStep = task.type === "turnover" || Object.values(STEP_TASK).includes(task.type);
+        // Déjà signalé autrement : ménage irréalisable / non attribué, étape non attribuée
+        const reasons = c.reasons.filter((r) => r !== "in_progress" && r !== "arrival_passed" && !(r === "unassigned" && isStep) && !(task.type === "turnover" && r === "cannot_finish" && blockers.some((b) => b.kind === "cleaning_infeasible")));
+        if (!reasons.length) continue;
+        blockers.push({
+          kind: "mission_conflict",
+          severity: c.level === "impossible" ? "blocked" : "watch",
+          responsible: { kind: "manager" },
+          action: { kind: "open_task", taskId: task.id },
+          detail: `${c.level}|${reasons.join(",")}|${c.manual ? "manual" : "auto"}|${task.title ?? ""}|${task.type}`,
         });
       }
 

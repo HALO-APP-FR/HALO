@@ -24,7 +24,7 @@ export async function MissionTiming({
   /** firm : intervention impossible avant le début de la plage ; recommended : début conseillé */
   startRule?: "firm" | "recommended";
   /** Origine de la plage : calculée d'après les séjours, choisie à la création, modifiée par un responsable */
-  source?: "auto" | "created" | "edited";
+  source?: "auto" | "auto_timing" | "created" | "edited";
   /** Dérogation de démarrage anticipé accordée (motif), ou null */
   derogation?: string | null;
 }) {

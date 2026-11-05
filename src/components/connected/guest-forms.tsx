@@ -68,7 +68,7 @@ export function GuestRequestForm({ token, kinds, minDate, timeZone, variant = "s
           <Input id={id("people")} type="number" min={1} max={100} value={f.people} onChange={(e) => setF({ ...f, people: Number(e.target.value) })} />
         </Field>
       )}
-      <Field label={timing ? t("timing.details") : t("request.details")} htmlFor={id("details")} className="sm:col-span-2">
+      <Field label={timing ? t("timing.details") : t("request.details")} htmlFor={id("details")} hint={t("request.detailsHint")} className="sm:col-span-2">
         <Textarea id={id("details")} value={f.details} onChange={(e) => { const val = e.target.value; setF((prev) => ({ ...prev, details: val })); }} maxLength={2000} placeholder={timing ? t("timing.detailsPlaceholder") : t("request.detailsPlaceholder")} />
       </Field>
       <div className="flex flex-wrap items-center gap-3 sm:col-span-2">

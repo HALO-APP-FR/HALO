@@ -1061,7 +1061,7 @@
     "time": "Hora",
     "people": "Pessoas",
     "details": "Detalhes",
-    "detailsPlaceholder": "Alergias, preferências, morada de recolha…",
+    "detailsPlaceholder": "Preferências, horários, morada de recolha…",
     "assignee": "Atribuído a",
     "assigneeHint": "Só aparecem membros com a função «{position}».",
     "nobody": "Ninguém",
@@ -1272,7 +1272,10 @@
       "prep_blocking": "Preparação: «{title}» ainda não feita",
       "assignee_absent": "Limpeza atribuída a alguém ausente nesse horário",
       "incident_detail": "{category}: {text}",
-      "service_detail": "Pedido a aguardar decisão: {kind}"
+      "service_detail": "Pedido a aguardar decisão: {kind}",
+      "assignee_absent_mission": "{mission}: a pessoa atribuída está ausente neste horário",
+      "mission_conflict": "Missão ligada incompatível com a hora de chegada",
+      "assignee_absence_risk": "Ausência numa missão ligada: a verificar"
     },
     "action": {
       "assign": "Atribuir",
@@ -1289,6 +1292,21 @@
       "linen": "Roupa",
       "maintenance": "Manutenção",
       "inspection": "Controlo de qualidade"
+    },
+    "conflict": {
+      "impossible": "«{mission}» não pode ser concluída antes da chegada:",
+      "at_risk": "«{mission}» a verificar:"
+    },
+    "conflictReason": {
+      "cannot_finish": "mesmo a começar o mais cedo possível, a duração prevista ultrapassa a hora de chegada.",
+      "slot_after_arrival": "o horário planeado termina depois da chegada.",
+      "deadline_after_arrival": "a sua janela termina depois da chegada.",
+      "unassigned": "ninguém está atribuído."
+    },
+    "conflictManual": "Janela fixada manualmente: o HALO não a altera.",
+    "absenceRisk": {
+      "started": "{mission} em curso, a pessoa atribuída tem uma ausência na janela: progresso desconhecido, a verificar.",
+      "partial": "{mission}: ausência da pessoa atribuída numa parte da janela — ainda possível fora dela, a verificar."
     }
   },
   "connected": {
@@ -2336,7 +2354,13 @@
       "byYou": "você",
       "byAgent": "{name}",
       "agent": "agente",
-      "byManager": "um responsável"
+      "byManager": "um responsável",
+      "origin": {
+        "sync": "recálculo automático (estadias alteradas)",
+        "timing": "ajustada por uma decisão de horário",
+        "manual": "alterada por um responsável",
+        "unknown": "origem não registada (alteração antiga)"
+      }
     },
     "schedule": {
       "title": "{count, plural, one {# limpeza impossível de planear} other {# limpezas impossíveis de planear}}",
@@ -3379,9 +3403,10 @@
       "recommendedHint": "Recomendação: começar mais cedo continua possível, após confirmação.",
       "derogation": "Início antecipado autorizado por um responsável: «{reason}»",
       "source": {
-        "auto": "Janela calculada automaticamente a partir das estadias.",
-        "created": "Janela escolhida na criação da missão.",
-        "edited": "Janela alterada por um responsável (já não é recalculada)."
+        "auto": "Janela calculada automaticamente a partir das estadias: recalculada se uma estadia mudar.",
+        "created": "Janela escolhida na criação da missão: nunca recalculada automaticamente.",
+        "edited": "Janela alterada por um responsável: nunca recalculada; o HALO avisa se uma estadia a tornar incompatível.",
+        "auto_timing": "Janela calculada automaticamente, ajustada por uma decisão de horário: recalculada se uma estadia mudar."
       }
     },
     "timingDecision": {
@@ -3559,6 +3584,28 @@
       "comment": "Comentário exigido",
       "photosNote": "As fotos obrigatórias definem-se item a item na checklist de cada alojamento.",
       "saved": "Guardado"
+    },
+    "arrivalConflict": {
+      "title": "Antes da chegada: as missões cabem?",
+      "text": "Comparação com a chegada confirmada ({arrival}), segundo as janelas e durações estimadas conhecidas pelo HALO. Uma estimativa não é uma garantia; nada é alterado automaticamente.",
+      "level": {
+        "impossible": "Impossível com as restrições conhecidas",
+        "at_risk": "A verificar",
+        "unknown": "Desconhecido: missão em curso, progresso não conhecido",
+        "possible": "Possível segundo a informação conhecida"
+      },
+      "summary": "Chegada confirmada: {arrival}. Missão possível a partir de: {from}, duração estimada {duration}.",
+      "reason": {
+        "cannot_finish": "Mesmo a começar o mais cedo possível, não pode ser concluída antes da chegada.",
+        "slot_after_arrival": "O seu horário planeado termina depois da chegada.",
+        "deadline_after_arrival": "A sua janela termina depois da chegada: pode ser feita tarde demais.",
+        "unassigned": "Ninguém está atribuído.",
+        "in_progress": "Missão em curso: o HALO não conhece o progresso.",
+        "arrival_passed": "A hora de chegada já passou."
+      },
+      "manual": "Janela fixada manualmente: o HALO não a recalcula.",
+      "actionManager": "A fazer: alterar a janela, atribuir ou rever a hora de chegada com o hóspede.",
+      "actionAgent": "Avise o seu responsável se não conseguir terminar antes da chegada."
     }
   },
   "email": {
@@ -3744,10 +3791,11 @@
       "when": "Data e hora pretendidas",
       "people": "Pessoas",
       "details": "Detalhes",
-      "detailsPlaceholder": "Alergias, preferências, morada de recolha…",
+      "detailsPlaceholder": "Preferências, horários, morada de recolha…",
       "sent": "Pedido enviado. Aparece acima com o estado.",
       "send": "Enviar pedido",
-      "localTime": "Hora local do alojamento."
+      "localTime": "Hora local do alojamento.",
+      "detailsHint": "Não indique informações de saúde nem de pagamento. Se uma necessidade particular tiver de ser considerada, a equipa contacta-o."
     },
     "reply": {
       "answer": "A sua resposta",

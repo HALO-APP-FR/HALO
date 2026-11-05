@@ -1061,7 +1061,7 @@
     "time": "Time",
     "people": "People",
     "details": "Details",
-    "detailsPlaceholder": "Allergies, preferences, pick-up address…",
+    "detailsPlaceholder": "Preferences, times, pick-up address…",
     "assignee": "Assigned to",
     "assigneeHint": "Only members with the “{position}” role are listed.",
     "nobody": "Nobody",
@@ -1272,7 +1272,10 @@
       "prep_blocking": "Preparation: “{title}” not done yet",
       "assignee_absent": "Cleaning assigned to someone absent on that slot",
       "incident_detail": "{category}: {text}",
-      "service_detail": "Request awaiting decision: {kind}"
+      "service_detail": "Request awaiting decision: {kind}",
+      "assignee_absent_mission": "{mission}: the assignee is absent for this slot",
+      "mission_conflict": "Linked mission incompatible with the arrival time",
+      "assignee_absence_risk": "Absence on a linked mission: to check"
     },
     "action": {
       "assign": "Assign",
@@ -1289,6 +1292,21 @@
       "linen": "Linen",
       "maintenance": "Maintenance",
       "inspection": "Quality check"
+    },
+    "conflict": {
+      "impossible": "“{mission}” can't be finished before arrival:",
+      "at_risk": "“{mission}” to check:"
+    },
+    "conflictReason": {
+      "cannot_finish": "even starting as early as possible, the planned duration goes past the arrival time.",
+      "slot_after_arrival": "the planned slot ends after arrival.",
+      "deadline_after_arrival": "its window ends after arrival.",
+      "unassigned": "nobody is assigned."
+    },
+    "conflictManual": "Window set manually: HALO doesn't change it.",
+    "absenceRisk": {
+      "started": "{mission} in progress, the assignee has an absence during the window: progress unknown, to check.",
+      "partial": "{mission}: the assignee is absent for part of the window — still possible outside it, to check."
     }
   },
   "connected": {
@@ -2336,7 +2354,13 @@
       "byYou": "you",
       "byAgent": "{name}",
       "agent": "agent",
-      "byManager": "a manager"
+      "byManager": "a manager",
+      "origin": {
+        "sync": "automatic recalculation (stays changed)",
+        "timing": "adjusted by a guest time decision",
+        "manual": "changed by a manager",
+        "unknown": "origin not recorded (older change)"
+      }
     },
     "schedule": {
       "title": "{count, plural, one {# cleaning cannot be scheduled} other {# cleanings cannot be scheduled}}",
@@ -3379,9 +3403,10 @@
       "recommendedHint": "Recommendation: starting earlier is still possible, after confirmation.",
       "derogation": "Early start allowed by a manager: “{reason}”",
       "source": {
-        "auto": "Window calculated automatically from the stays.",
-        "created": "Window chosen when the mission was created.",
-        "edited": "Window changed by a manager (no longer recalculated)."
+        "auto": "Window calculated automatically from the stays: recalculated if a stay changes.",
+        "created": "Window chosen when the mission was created: never recalculated automatically.",
+        "edited": "Window changed by a manager: never recalculated automatically; HALO flags it if a stay makes it incompatible.",
+        "auto_timing": "Window calculated automatically, adjusted by a guest time decision: recalculated if a stay changes."
       }
     },
     "timingDecision": {
@@ -3559,6 +3584,28 @@
       "comment": "Comment required",
       "photosNote": "Required photos are set item by item in each property's checklist.",
       "saved": "Saved"
+    },
+    "arrivalConflict": {
+      "title": "Before arrival: do the missions fit?",
+      "text": "Compared with the confirmed arrival ({arrival}), from the windows and estimated durations known to HALO. An estimate isn't a guarantee; nothing is changed automatically.",
+      "level": {
+        "impossible": "Impossible with the known constraints",
+        "at_risk": "To check",
+        "unknown": "Unknown: mission in progress, progress not known",
+        "possible": "Possible according to known information"
+      },
+      "summary": "Confirmed arrival: {arrival}. Mission possible from: {from}, estimated duration {duration}.",
+      "reason": {
+        "cannot_finish": "Even starting as early as possible, it can't be finished before arrival.",
+        "slot_after_arrival": "Its planned slot ends after arrival.",
+        "deadline_after_arrival": "Its window ends after arrival: it could be done too late.",
+        "unassigned": "Nobody is assigned.",
+        "in_progress": "Mission in progress: HALO doesn't know its progress.",
+        "arrival_passed": "The arrival time has passed."
+      },
+      "manual": "Window set manually: HALO doesn't recalculate it.",
+      "actionManager": "To do: change the window, assign, or review the arrival time with the guest.",
+      "actionAgent": "Tell your manager if you can't finish before arrival."
     }
   },
   "email": {
@@ -3744,10 +3791,11 @@
       "when": "Preferred date and time",
       "people": "People",
       "details": "Details",
-      "detailsPlaceholder": "Allergies, preferences, pickup address…",
+      "detailsPlaceholder": "Preferences, times, pick-up address…",
       "sent": "Request sent. It now appears above with its status.",
       "send": "Send request",
-      "localTime": "Local time at the property."
+      "localTime": "Local time at the property.",
+      "detailsHint": "Don't include any health or payment information. If a specific need must be taken into account, the team will contact you."
     },
     "reply": {
       "answer": "Your answer",

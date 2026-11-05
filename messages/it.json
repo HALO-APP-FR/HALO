@@ -1061,7 +1061,7 @@
     "time": "Ora",
     "people": "Persone",
     "details": "Dettagli",
-    "detailsPlaceholder": "Allergie, preferenze, indirizzo di ritiro…",
+    "detailsPlaceholder": "Preferenze, orari, indirizzo di ritiro…",
     "assignee": "Affidato a",
     "assigneeHint": "Sono proposti solo i membri con ruolo «{position}».",
     "nobody": "Nessuno",
@@ -1272,7 +1272,10 @@
       "prep_blocking": "Preparazione: «{title}» non ancora fatta",
       "assignee_absent": "Pulizia assegnata a una persona assente in quella fascia",
       "incident_detail": "{category}: {text}",
-      "service_detail": "Richiesta in attesa di decisione: {kind}"
+      "service_detail": "Richiesta in attesa di decisione: {kind}",
+      "assignee_absent_mission": "{mission}: la persona assegnata è assente in questa fascia",
+      "mission_conflict": "Missione collegata incompatibile con l'orario di arrivo",
+      "assignee_absence_risk": "Assenza su una missione collegata: da verificare"
     },
     "action": {
       "assign": "Assegna",
@@ -1289,6 +1292,21 @@
       "linen": "Biancheria",
       "maintenance": "Manutenzione",
       "inspection": "Controllo qualità"
+    },
+    "conflict": {
+      "impossible": "«{mission}» non può essere completata prima dell'arrivo:",
+      "at_risk": "«{mission}» da verificare:"
+    },
+    "conflictReason": {
+      "cannot_finish": "anche iniziando il prima possibile, la durata prevista supera l'ora di arrivo.",
+      "slot_after_arrival": "la fascia pianificata finisce dopo l'arrivo.",
+      "deadline_after_arrival": "la sua fascia termina dopo l'arrivo.",
+      "unassigned": "nessuno è assegnato."
+    },
+    "conflictManual": "Fascia fissata manualmente: HALO non la modifica.",
+    "absenceRisk": {
+      "started": "{mission} in corso, la persona assegnata ha un'assenza nella fascia: avanzamento sconosciuto, da verificare.",
+      "partial": "{mission}: assenza della persona assegnata su parte della fascia — ancora possibile al di fuori, da verificare."
     }
   },
   "connected": {
@@ -2336,7 +2354,13 @@
       "byYou": "tu",
       "byAgent": "{name}",
       "agent": "operatore",
-      "byManager": "un responsabile"
+      "byManager": "un responsabile",
+      "origin": {
+        "sync": "ricalcolo automatico (soggiorni modificati)",
+        "timing": "adattata da una decisione d'orario",
+        "manual": "modificata da un responsabile",
+        "unknown": "origine non registrata (modifica precedente)"
+      }
     },
     "schedule": {
       "title": "{count, plural, one {# pulizia impossibile da pianificare} other {# pulizie impossibili da pianificare}}",
@@ -3379,9 +3403,10 @@
       "recommendedHint": "Raccomandazione: iniziare prima resta possibile, dopo conferma.",
       "derogation": "Inizio anticipato autorizzato da un responsabile: «{reason}»",
       "source": {
-        "auto": "Fascia calcolata automaticamente dai soggiorni.",
-        "created": "Fascia scelta alla creazione della missione.",
-        "edited": "Fascia modificata da un responsabile (non più ricalcolata)."
+        "auto": "Fascia calcolata automaticamente dai soggiorni: ricalcolata se un soggiorno cambia.",
+        "created": "Fascia scelta alla creazione della missione: mai ricalcolata automaticamente.",
+        "edited": "Fascia modificata da un responsabile: mai ricalcolata; HALO segnala se un soggiorno la rende incompatibile.",
+        "auto_timing": "Fascia calcolata automaticamente, adattata da una decisione d'orario: ricalcolata se un soggiorno cambia."
       }
     },
     "timingDecision": {
@@ -3559,6 +3584,28 @@
       "comment": "Commento richiesto",
       "photosNote": "Le foto obbligatorie si impostano voce per voce nella checklist di ogni alloggio.",
       "saved": "Salvato"
+    },
+    "arrivalConflict": {
+      "title": "Prima dell'arrivo: le missioni ci stanno?",
+      "text": "Confronto con l'arrivo confermato ({arrival}), in base alle fasce e durate stimate note a HALO. Una stima non è una garanzia; nulla viene modificato automaticamente.",
+      "level": {
+        "impossible": "Impossibile con i vincoli noti",
+        "at_risk": "Da verificare",
+        "unknown": "Sconosciuto: missione in corso, avanzamento non noto",
+        "possible": "Possibile in base alle informazioni note"
+      },
+      "summary": "Arrivo confermato: {arrival}. Missione possibile dal: {from}, durata stimata {duration}.",
+      "reason": {
+        "cannot_finish": "Anche iniziando il prima possibile, non può finire prima dell'arrivo.",
+        "slot_after_arrival": "La sua fascia pianificata finisce dopo l'arrivo.",
+        "deadline_after_arrival": "La sua fascia finisce dopo l'arrivo: può essere fatta troppo tardi.",
+        "unassigned": "Nessuno è assegnato.",
+        "in_progress": "Missione in corso: HALO non ne conosce l'avanzamento.",
+        "arrival_passed": "L'ora di arrivo è passata."
+      },
+      "manual": "Fascia fissata manualmente: HALO non la ricalcola.",
+      "actionManager": "Da fare: modificare la fascia, assegnare o rivedere l'orario di arrivo con l'ospite.",
+      "actionAgent": "Avvisa il tuo responsabile se non riesci a finire prima dell'arrivo."
     }
   },
   "email": {
@@ -3744,10 +3791,11 @@
       "when": "Data e ora desiderate",
       "people": "Persone",
       "details": "Dettagli",
-      "detailsPlaceholder": "Allergie, preferenze, indirizzo di ritiro…",
+      "detailsPlaceholder": "Preferenze, orari, indirizzo di ritiro…",
       "sent": "Richiesta inviata. Appare sopra con il suo stato.",
       "send": "Invia richiesta",
-      "localTime": "Ora locale dell'alloggio."
+      "localTime": "Ora locale dell'alloggio.",
+      "detailsHint": "Non indicare informazioni sanitarie né di pagamento. Se un'esigenza particolare va considerata, il team ti contatterà."
     },
     "reply": {
       "answer": "La tua risposta",

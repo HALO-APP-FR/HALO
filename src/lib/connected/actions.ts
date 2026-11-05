@@ -253,7 +253,10 @@ export async function syncTasks(propertyId: string): Promise<Result<{ created: n
     if ("pets" in p2) row.pets = p2.pets ?? 0;
     if ("vip" in p2) row.vip = p2.vip ?? false;
     if (p2.durationMin) row.duration_min = p2.durationMin;
-    const { error: ue } = await ctx.supabase.from("tasks").update(row).eq("organization_id", org).eq("id", u.id);
+    // Recalcul par la base : une mission manuelle ou terminée n'est jamais modifiée (« manual_kept »),
+    // et l'historique enregistre un recalcul automatique, pas une modification par un responsable
+    let { error: ue } = await ctx.supabase.rpc("apply_task_sync", { org, task: u.id, patch: row });
+    if (ue?.code === "PGRST202") ({ error: ue } = await ctx.supabase.from("tasks").update(row).eq("organization_id", org).eq("id", u.id).eq("is_auto_generated", true));
     if (ue) return fail(errCode(ue));
   }
   if (plan.cancel.length) {

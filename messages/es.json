@@ -1061,7 +1061,7 @@
     "time": "Hora",
     "people": "Personas",
     "details": "Detalles",
-    "detailsPlaceholder": "Alergias, preferencias, dirección de recogida…",
+    "detailsPlaceholder": "Preferencias, horarios, dirección de recogida…",
     "assignee": "Asignado a",
     "assigneeHint": "Solo aparecen los miembros con el puesto «{position}».",
     "nobody": "Nadie",
@@ -1272,7 +1272,10 @@
       "prep_blocking": "Preparación: «{title}» aún no hecha",
       "assignee_absent": "Limpieza asignada a alguien ausente en esa franja",
       "incident_detail": "{category}: {text}",
-      "service_detail": "Solicitud pendiente de decisión: {kind}"
+      "service_detail": "Solicitud pendiente de decisión: {kind}",
+      "assignee_absent_mission": "{mission}: la persona asignada está ausente en esta franja",
+      "mission_conflict": "Misión vinculada incompatible con la hora de llegada",
+      "assignee_absence_risk": "Ausencia en una misión vinculada: a verificar"
     },
     "action": {
       "assign": "Asignar",
@@ -1289,6 +1292,21 @@
       "linen": "Ropa de cama",
       "maintenance": "Mantenimiento",
       "inspection": "Control de calidad"
+    },
+    "conflict": {
+      "impossible": "«{mission}» no puede terminarse antes de la llegada:",
+      "at_risk": "«{mission}» a verificar:"
+    },
+    "conflictReason": {
+      "cannot_finish": "incluso empezando lo antes posible, la duración prevista supera la hora de llegada.",
+      "slot_after_arrival": "la franja planificada termina después de la llegada.",
+      "deadline_after_arrival": "su franja termina después de la llegada.",
+      "unassigned": "nadie está asignado."
+    },
+    "conflictManual": "Franja fijada manualmente: HALO no la modifica.",
+    "absenceRisk": {
+      "started": "{mission} en curso, la persona asignada tiene una ausencia en la franja: avance desconocido, a verificar.",
+      "partial": "{mission}: ausencia de la persona asignada en parte de la franja — aún posible fuera de ella, a verificar."
     }
   },
   "connected": {
@@ -2336,7 +2354,13 @@
       "byYou": "usted",
       "byAgent": "{name}",
       "agent": "agente",
-      "byManager": "un responsable"
+      "byManager": "un responsable",
+      "origin": {
+        "sync": "recálculo automático (estancias modificadas)",
+        "timing": "ajustada por una decisión de horario",
+        "manual": "modificada por un responsable",
+        "unknown": "origen no registrado (cambio antiguo)"
+      }
     },
     "schedule": {
       "title": "{count, plural, one {# limpieza imposible de planificar} other {# limpiezas imposibles de planificar}}",
@@ -3379,9 +3403,10 @@
       "recommendedHint": "Recomendación: empezar antes sigue siendo posible, tras confirmar.",
       "derogation": "Inicio anticipado autorizado por un responsable: «{reason}»",
       "source": {
-        "auto": "Franja calculada automáticamente según las estancias.",
-        "created": "Franja elegida al crear la misión.",
-        "edited": "Franja modificada por un responsable (ya no se recalcula)."
+        "auto": "Franja calculada automáticamente según las estancias: se recalcula si cambia una estancia.",
+        "created": "Franja elegida al crear la misión: nunca se recalcula automáticamente.",
+        "edited": "Franja modificada por un responsable: nunca se recalcula; HALO avisa si una estancia la hace incompatible.",
+        "auto_timing": "Franja calculada automáticamente, ajustada por una decisión de horario: se recalcula si cambia una estancia."
       }
     },
     "timingDecision": {
@@ -3559,6 +3584,28 @@
       "comment": "Comentario exigido",
       "photosNote": "Las fotos obligatorias se configuran punto por punto en la lista de cada alojamiento.",
       "saved": "Guardado"
+    },
+    "arrivalConflict": {
+      "title": "Antes de la llegada: ¿caben las misiones?",
+      "text": "Comparación con la llegada confirmada ({arrival}), según las franjas y duraciones estimadas conocidas por HALO. Una estimación no es una garantía; no se modifica nada automáticamente.",
+      "level": {
+        "impossible": "Imposible con las restricciones conocidas",
+        "at_risk": "A verificar",
+        "unknown": "Desconocido: misión en curso, avance no conocido",
+        "possible": "Posible según la información conocida"
+      },
+      "summary": "Llegada confirmada: {arrival}. Misión posible desde: {from}, duración estimada {duration}.",
+      "reason": {
+        "cannot_finish": "Incluso empezando lo antes posible, no puede terminarse antes de la llegada.",
+        "slot_after_arrival": "Su franja planificada termina después de la llegada.",
+        "deadline_after_arrival": "Su franja termina después de la llegada: puede hacerse demasiado tarde.",
+        "unassigned": "Nadie está asignado.",
+        "in_progress": "Misión en curso: HALO no conoce su avance.",
+        "arrival_passed": "La hora de llegada ha pasado."
+      },
+      "manual": "Franja fijada manualmente: HALO no la recalcula.",
+      "actionManager": "Por hacer: modificar la franja, asignar o revisar la hora de llegada con el huésped.",
+      "actionAgent": "Avise a su responsable si no puede terminar antes de la llegada."
     }
   },
   "email": {
@@ -3744,10 +3791,11 @@
       "when": "Fecha y hora deseadas",
       "people": "Personas",
       "details": "Detalles",
-      "detailsPlaceholder": "Alergias, preferencias, dirección de recogida…",
+      "detailsPlaceholder": "Preferencias, horarios, dirección de recogida…",
       "sent": "Solicitud enviada. Aparece arriba con su estado.",
       "send": "Enviar solicitud",
-      "localTime": "Hora local del alojamiento."
+      "localTime": "Hora local del alojamiento.",
+      "detailsHint": "No indique información de salud ni de pago. Si hay que tener en cuenta una necesidad particular, el equipo le contactará."
     },
     "reply": {
       "answer": "Su respuesta",

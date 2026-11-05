@@ -388,3 +388,19 @@ Sans service d'envoi, aucun e-mail voyageur n'est envoyé et chaque envoi est ma
 **Autres améliorations** : correction demandée affichée en haut de la fiche (motif, date, preuves désignées, prochaine action) jusqu'au renvoi ; carte d'arrivée : état du ménage et raison « pas encore prête » ; fiche séjour : position de chaque mission entre deux séjours ; « plage modifiée » seulement si une personne l'a modifiée ; adresses de test `.invalid` comptées à part (« non envoyé volontairement ») ; bouton de la page de connexion qui débordait sur téléphone.
 
 **Tests** : unitaires 167 (dont dates/fuseaux/changements d'heure), isolation 2090/0, e2e 57/57 (38 dates, 39 corrections successives), captures téléphone simulé (iPhone 13) sans débordement.
+
+## Origine des plages, missions incompatibles avec l'arrivée, absences sur l'arrivée (migration 20 : `20261115000001_origine_plages_conflits_arrivee.sql`)
+
+**Contradiction du 5/11 (QA Carte : « modifiée par un responsable » sur la fiche mission, « calculée automatiquement » sur la fiche séjour)** — cause vérifiée dans le code : la fiche séjour lisait le bon indicateur (`is_auto_generated`, celui qu'utilise le recalcul) ; la fiche mission déduisait « modifiée » de l'historique, où le recalcul automatique et la décision d'horaire voyageur étaient enregistrés avec la session du responsable, donc comme une modification humaine. Erreur d'affichage + historique ambigu ; la logique de recalcul était correcte (elle ne touchait que les missions automatiques, mais par un filtre côté application seulement).
+
+**Correction** : une seule source de vérité (`is_auto_generated`) sur toutes les fiches ; historique avec l'origine de chaque changement de plage (`sync` recalcul automatique sans auteur, `timing` décision d'horaire, `manual` responsable, `unknown` pour les anciens changements) ; recalcul via `apply_task_sync`, qui refuse côté base toute plage manuelle (`manual_kept`) ou mission terminée.
+
+**Missions incompatibles avec l'arrivée confirmée** (`prep-conflicts.ts`, sans recalcul) : impossible / à vérifier / inconnu (mission en cours) / possible d'après les données connues — fiche séjour, fiche mission (arrivée, plage, durée estimée, plage manuelle) et carte d'arrivée (bloquée si impossible). Une plage manuelle n'est jamais modifiée : HALO signale et propose d'agir.
+
+**Absences** : toute mission liée à l'arrivée ; absence couvrant la plage d'une mission non commencée → bloquée ; absence partielle ou mission déjà en cours → « à vérifier, avancement inconnu », jamais « impossible ».
+
+**Voyageur** : suggestion « Allergies » retirée ; consigne commune « aucune information de santé ni de paiement » (demande, horaire, questionnaire). Le champ « précisions » est lisible par les responsables (pas les agents), n'est pas copié dans les e-mails d'équipe, et est conservé avec la demande (supprimé avec le séjour ou l'organisation) — aucune durée de conservation spécifique définie.
+
+**Tests** : isolation 2112/0 (section 20), concurrence 13/13, unitaires 172, e2e 59/59 (40, 41), téléphone simulé sans débordement.
+
+**Retour arrière** : restaurer `log_task_change` (migration 19), supprimer `apply_task_sync` (l'application revient à la mise à jour filtrée).

@@ -1876,6 +1876,63 @@ select t.is('révocation du lien A : le lien B reste valable', t.q(null, format(
 select t.is('lien voyageur : jamais d''accès direct aux tables', t.q(null, 'select count(*) from public.tasks'), 'ERR:42501:permission denied for table tasks');
 
 
+-- =====================================================================
+-- 20. Origine des plages (une source de vérité), recalcul qui épargne les plages manuelles, photos par point (migration 20)
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['P20', 'R20A', 'R20B', 'T20A', 'T20M', 'CR20', 'I20a', 'I20b', 'T20P', 'SV20']) k;
+insert into public.properties (id, organization_id, name, timezone) values (t.id('P20'), t.id('A'), 'Logement 20', 'Europe/Paris');
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values
+  (t.id('R20A'), t.id('A'), t.id('P20'), 'QA 20 A', '2028-11-20 15:00+00', '2028-11-22 09:00+00'),
+  (t.id('R20B'), t.id('A'), t.id('P20'), 'QA 20 B', '2028-12-10 15:00+00', '2028-12-12 09:00+00');
+insert into public.tasks (id, organization_id, property_id, type, status, reservation_id, next_reservation_id, is_auto_generated, window_start, window_end, duration_min) values
+  (t.id('T20A'), t.id('A'), t.id('P20'), 'turnover', 'unassigned', t.id('R20A'), t.id('R20B'), true, '2028-11-22 09:00+00', '2028-12-10 15:00+00', 90),
+  (t.id('T20M'), t.id('A'), t.id('P20'), 'other', 'unassigned', null, t.id('R20B'), false, '2028-12-10 13:00+00', '2028-12-10 17:00+00', 30);
+select t.is('création : origine enregistrée (automatique / manuelle)', (select string_agg(note, ',' order by note) from public.task_events where task_id in (t.id('T20A'), t.id('T20M')) and kind = 'created'), 'auto,manual');
+-- Recalcul automatique (séjour suivant avancé) : mission automatique mise à jour, origine « sync », sans auteur
+select t.is('recalcul : mission automatique mise à jour', t.keep('a_manager', format('select public.apply_task_sync(%L, %L, ''{"window_end": "2028-12-09T15:00:00Z"}'')', t.id('A'), t.id('T20A'))), 'applied');
+select t.is('recalcul : historique « recalcul automatique », sans auteur', (select (note::jsonb ->> 'origin') || '/' || coalesce(actor_id::text, 'aucun') from public.task_events where task_id = t.id('T20A') and kind = 'window_changed' order by id desc limit 1), 'sync/aucun');
+select t.is('recalcul : la mission reste automatique', (select is_auto_generated::text from public.tasks where id = t.id('T20A')), 'true');
+-- Plage manuelle : jamais modifiée par le recalcul, même par appel direct
+select t.is('recalcul : plage manuelle conservée', t.keep('a_manager', format('select public.apply_task_sync(%L, %L, ''{"window_end": "2028-12-09T15:00:00Z"}'')', t.id('A'), t.id('T20M'))) || '/' || (select to_char(window_end at time zone 'UTC', 'MM-DD HH24:MI') from public.tasks where id = t.id('T20M')), 'manual_kept/12-10 17:00');
+select t.err('recalcul : un agent ne peut pas l''appeler', t.q('a_agent', format('select public.apply_task_sync(%L, %L, ''{}'')', t.id('A'), t.id('T20A'))), '42501');
+select t.err('recalcul : une autre organisation non plus', t.q('b_manager', format('select public.apply_task_sync(%L, %L, ''{}'')', t.id('A'), t.id('T20A'))), '42501');
+-- Modification par un responsable : la mission devient manuelle, origine « manual », avec auteur et motif
+select t.is('modification manuelle : appliquée', t.keep('a_manager', format('select public.set_task_window(%L, %L, ''2028-11-23 09:00+00'', ''2028-12-09 12:00+00'', 90, ''Clés disponibles le 23 (fictif)'')', t.id('A'), t.id('T20A'))), 'applied');
+select t.is('modification manuelle : mission manuelle, historique avec origine et motif', (select is_auto_generated::text from public.tasks where id = t.id('T20A')) || '/' || (select (note::jsonb ->> 'origin') || '/' || (note::jsonb ->> 'reason') || '/' || (actor_id = t.id('a_manager'))::text from public.task_events where task_id = t.id('T20A') and kind = 'window_changed' order by id desc limit 1), 'false/manual/Clés disponibles le 23 (fictif)/true');
+select t.is('après modification manuelle : le recalcul ne la touche plus', t.keep('a_manager', format('select public.apply_task_sync(%L, %L, ''{"window_end": "2028-12-01T15:00:00Z"}'')', t.id('A'), t.id('T20A'))), 'manual_kept');
+-- Décision d'horaire voyageur : origine « timing »
+insert into public.tasks (id, organization_id, property_id, type, status, next_reservation_id, is_auto_generated, window_start, window_end, duration_min) values
+  (t.id('T20P'), t.id('A'), t.id('P20'), 'turnover', 'unassigned', t.id('R20B'), true, '2028-12-08 09:00+00', '2028-12-10 15:00+00', 90);
+insert into public.service_requests (id, organization_id, property_id, reservation_id, kind, start_at, status, source) values (t.id('SV20'), t.id('A'), t.id('P20'), t.id('R20B'), 'early_checkin', '2028-12-10 13:00+00', 'requested', 'guest');
+select t.is('décision d''horaire : appliquée', t.keep('a_manager', format('select public.timing_decide(%L, %L, ''confirm'', true) ->> ''status''', t.id('A'), t.id('SV20'))), 'applied');
+select t.is('décision d''horaire : historique « ajustée par une décision d''horaire »', (select note::jsonb ->> 'origin' from public.task_events where task_id = t.id('T20P') and kind = 'window_changed' order by id desc limit 1), 'timing');
+
+-- Photos obligatoires : chaque point exige SA photo ; photo générale, mauvais point ou envoi échoué ne comptent pas
+insert into t.ids select k, gen_random_uuid() from unnest(array['T20F', 'F20a', 'F20g', 'F20x', 'F20b']) k;
+insert into public.checklist_rooms (id, organization_id, property_id, name) values (t.id('CR20'), t.id('A'), t.id('P20'), 'Salle d''eau');
+insert into public.checklist_items (id, organization_id, room_id, label, photo_required) values (t.id('I20a'), t.id('A'), t.id('CR20'), 'Douche', true), (t.id('I20b'), t.id('A'), t.id('CR20'), 'Lavabo', true);
+insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, is_auto_generated, window_start, window_end, duration_min, started_at) values
+  (t.id('T20F'), t.id('A'), t.id('P20'), 'turnover', 'in_progress', t.id('a_agent'), false, now() - interval '2 hours', now() + interval '2 hours', 60, now() - interval '1 hour');
+select t.is('photos : 2 exigées, aucune → refus', t.keep('a_agent', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T20F'))), 'missing:photos');
+insert into public.files (id, organization_id, kind, task_id, property_id, checklist_item_id, path, mime, size_bytes, created_by) values
+  (t.id('F20a'), t.id('A'), 'task_photo', t.id('T20F'), t.id('P20'), t.id('I20a'), t.id('A') || '/task/' || t.id('T20F') || '/a.jpg', 'image/jpeg', 10, t.id('a_agent')),
+  (t.id('F20g'), t.id('A'), 'task_photo', t.id('T20F'), t.id('P20'), null, t.id('A') || '/task/' || t.id('T20F') || '/g.jpg', 'image/jpeg', 10, t.id('a_agent')),
+  -- Envoi échoué : métadonnée créée, fichier jamais déposé
+  (t.id('F20x'), t.id('A'), 'task_photo', t.id('T20F'), t.id('P20'), t.id('I20b'), t.id('A') || '/task/' || t.id('T20F') || '/x.jpg', 'image/jpeg', 10, t.id('a_agent'));
+insert into storage.objects (bucket_id, name, owner) values ('org-files', t.id('A') || '/task/' || t.id('T20F') || '/a.jpg', t.id('a_agent')), ('org-files', t.id('A') || '/task/' || t.id('T20F') || '/g.jpg', t.id('a_agent'));
+select t.is('photos : la photo du point « Douche » et une photo générale ne couvrent pas « Lavabo » ; l''envoi échoué ne compte pas', t.q('a_agent', format('select public.missing_required_photos(%L, %L)', t.id('A'), t.id('T20F'))), '1');
+select t.is('photos : fin toujours refusée, mission en cours', t.keep('a_agent', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T20F'))), 'missing:photos');
+insert into public.files (id, organization_id, kind, task_id, property_id, checklist_item_id, path, mime, size_bytes, created_by) values
+  (t.id('F20b'), t.id('A'), 'task_photo', t.id('T20F'), t.id('P20'), t.id('I20b'), t.id('A') || '/task/' || t.id('T20F') || '/b.jpg', 'image/jpeg', 10, t.id('a_agent'));
+insert into storage.objects (bucket_id, name, owner) values ('org-files', t.id('A') || '/task/' || t.id('T20F') || '/b.jpg', t.id('a_agent'));
+select t.is('photos : toutes présentes → fin acceptée', t.keep('a_agent', format('select public.finish_task(%L, %L, gen_random_uuid())', t.id('A'), t.id('T20F'))), 'applied');
+select t.is('photos : le responsable voit les preuves', t.q('a_manager', format('select count(*) from public.files where task_id = %L', t.id('T20F'))), '4');
+select t.deny('photos : un autre agent ne les voit pas', t.q('a_agent2', format('select count(*) from public.files where task_id = %L', t.id('T20F'))));
+select t.deny('photos : une autre organisation ne les voit pas', t.q('b_manager', format('select count(*) from public.files where task_id = %L', t.id('T20F'))));
+select t.deny('photos : objets de stockage invisibles pour une autre organisation', t.q('b_manager', format('select count(*) from storage.objects where name like %L', t.id('A') || '/task/' || t.id('T20F') || '/%')));
+select t.err('validation : un agent ne valide pas sa propre mission', t.q('a_agent', format('select public.validate_task(%L, %L)', t.id('A'), t.id('T20F'))), '42501');
+
+
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);
 do $$ declare n int; begin

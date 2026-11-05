@@ -1061,7 +1061,7 @@
     "time": "Uhrzeit",
     "people": "Personen",
     "details": "Details",
-    "detailsPlaceholder": "Allergien, Wünsche, Abholadresse…",
+    "detailsPlaceholder": "Vorlieben, Uhrzeiten, Abholadresse…",
     "assignee": "Zugewiesen an",
     "assigneeHint": "Nur Mitglieder mit der Funktion „{position}“ werden angezeigt.",
     "nobody": "Niemand",
@@ -1272,7 +1272,10 @@
       "prep_blocking": "Vorbereitung: „{title}“ noch nicht erledigt",
       "assignee_absent": "Reinigung einer in diesem Zeitraum abwesenden Person zugewiesen",
       "incident_detail": "{category}: {text}",
-      "service_detail": "Anfrage wartet auf Entscheidung: {kind}"
+      "service_detail": "Anfrage wartet auf Entscheidung: {kind}",
+      "assignee_absent_mission": "{mission}: die zugewiesene Person ist in diesem Zeitraum abwesend",
+      "mission_conflict": "Verknüpfter Einsatz passt nicht zur Anreisezeit",
+      "assignee_absence_risk": "Abwesenheit bei einem verknüpften Einsatz: prüfen"
     },
     "action": {
       "assign": "Zuweisen",
@@ -1289,6 +1292,21 @@
       "linen": "Wäsche",
       "maintenance": "Wartung",
       "inspection": "Qualitätskontrolle"
+    },
+    "conflict": {
+      "impossible": "„{mission}“ kann nicht vor der Anreise fertig werden:",
+      "at_risk": "„{mission}“ prüfen:"
+    },
+    "conflictReason": {
+      "cannot_finish": "selbst bei frühestem Beginn überschreitet die geplante Dauer die Anreisezeit.",
+      "slot_after_arrival": "der geplante Termin endet nach der Anreise.",
+      "deadline_after_arrival": "sein Fenster endet nach der Anreise.",
+      "unassigned": "niemand ist zugewiesen."
+    },
+    "conflictManual": "Fenster manuell festgelegt: HALO ändert es nicht.",
+    "absenceRisk": {
+      "started": "{mission} läuft, die zugewiesene Person ist im Fenster abwesend: Fortschritt unbekannt, prüfen.",
+      "partial": "{mission}: Abwesenheit der zugewiesenen Person in einem Teil des Fensters — außerhalb noch möglich, prüfen."
     }
   },
   "connected": {
@@ -2336,7 +2354,13 @@
       "byYou": "Sie",
       "byAgent": "{name}",
       "agent": "Mitarbeiter",
-      "byManager": "Leitung"
+      "byManager": "Leitung",
+      "origin": {
+        "sync": "automatische Neuberechnung (Aufenthalte geändert)",
+        "timing": "durch eine Uhrzeit-Entscheidung angepasst",
+        "manual": "von der Leitung geändert",
+        "unknown": "Ursprung nicht erfasst (ältere Änderung)"
+      }
     },
     "schedule": {
       "title": "{count, plural, one {# Reinigung nicht planbar} other {# Reinigungen nicht planbar}}",
@@ -3379,9 +3403,10 @@
       "recommendedHint": "Empfehlung: früher beginnen bleibt nach Bestätigung möglich.",
       "derogation": "Früher Beginn von der Leitung erlaubt: „{reason}“",
       "source": {
-        "auto": "Fenster automatisch aus den Aufenthalten berechnet.",
-        "created": "Fenster bei der Erstellung gewählt.",
-        "edited": "Fenster von der Leitung geändert (nicht mehr neu berechnet)."
+        "auto": "Fenster automatisch aus den Aufenthalten berechnet: wird bei Änderungen neu berechnet.",
+        "created": "Fenster bei Erstellung gewählt: nie automatisch neu berechnet.",
+        "edited": "Fenster von der Leitung geändert: nie neu berechnet; HALO meldet, wenn ein Aufenthalt es unpassend macht.",
+        "auto_timing": "Fenster automatisch berechnet, durch eine Uhrzeit-Entscheidung angepasst: wird bei Änderungen neu berechnet."
       }
     },
     "timingDecision": {
@@ -3559,6 +3584,28 @@
       "comment": "Kommentar erforderlich",
       "photosNote": "Pflichtfotos werden Punkt für Punkt in der Checkliste jeder Unterkunft festgelegt.",
       "saved": "Gespeichert"
+    },
+    "arrivalConflict": {
+      "title": "Vor der Anreise: passen die Einsätze?",
+      "text": "Vergleich mit der bestätigten Anreise ({arrival}) anhand der HALO bekannten Fenster und geschätzten Dauern. Eine Schätzung ist keine Garantie; nichts wird automatisch geändert.",
+      "level": {
+        "impossible": "Mit den bekannten Vorgaben unmöglich",
+        "at_risk": "Prüfen",
+        "unknown": "Unbekannt: Einsatz läuft, Fortschritt nicht bekannt",
+        "possible": "Laut bekannten Angaben möglich"
+      },
+      "summary": "Bestätigte Anreise: {arrival}. Einsatz frühestens: {from}, geschätzte Dauer {duration}.",
+      "reason": {
+        "cannot_finish": "Selbst bei frühestem Beginn ist sie vor der Anreise nicht fertig.",
+        "slot_after_arrival": "Ihr geplanter Termin endet nach der Anreise.",
+        "deadline_after_arrival": "Ihr Fenster endet nach der Anreise: sie könnte zu spät erledigt werden.",
+        "unassigned": "Niemand ist zugewiesen.",
+        "in_progress": "Einsatz läuft: HALO kennt den Fortschritt nicht.",
+        "arrival_passed": "Die Anreisezeit ist vorbei."
+      },
+      "manual": "Fenster manuell festgelegt: HALO berechnet es nicht neu.",
+      "actionManager": "Zu tun: Fenster ändern, zuweisen oder die Anreisezeit mit dem Gast klären.",
+      "actionAgent": "Informieren Sie Ihre Leitung, wenn Sie vor der Anreise nicht fertig werden."
     }
   },
   "email": {
@@ -3744,10 +3791,11 @@
       "when": "Gewünschtes Datum und Uhrzeit",
       "people": "Personen",
       "details": "Angaben",
-      "detailsPlaceholder": "Allergien, Wünsche, Abholadresse…",
+      "detailsPlaceholder": "Vorlieben, Uhrzeiten, Abholadresse…",
       "sent": "Anfrage gesendet. Sie erscheint oben mit Status.",
       "send": "Anfrage senden",
-      "localTime": "Ortszeit der Unterkunft."
+      "localTime": "Ortszeit der Unterkunft.",
+      "detailsHint": "Keine Gesundheits- oder Zahlungsdaten angeben. Muss ein besonderer Bedarf berücksichtigt werden, meldet sich das Team."
     },
     "reply": {
       "answer": "Ihre Antwort",

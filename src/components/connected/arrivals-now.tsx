@@ -8,7 +8,7 @@ import type { Alert, ServiceRequest } from "@/lib/domain/types";
 import type { supabaseServer } from "@/lib/supabase/server";
 import { CreateCleaningButton, PlanLinenForm } from "./create-cleaning-button";
 import { cn } from "@/lib/utils";
-import { blockingAbsences } from "@/lib/engine/availability";
+import { absenceLevel } from "@/lib/engine/availability";
 import type { PlanningAlerts } from "@/lib/connected/planning";
 
 type Client = Awaited<ReturnType<typeof supabaseServer>>;
@@ -64,7 +64,9 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired, plannin
     assigneeAbsent: planning
       ? (task) => {
           const m = planning.members.find((x) => x.id === task.assigneeId);
-          return Boolean(m && blockingAbsences(m, task, planning.absences).length);
+          if (!m) return null;
+          const lv = absenceLevel(m, task, planning.absences, ["accepted"], now).level;
+          return lv === "none" ? null : lv;
         }
       : undefined,
   });
@@ -86,7 +88,19 @@ export async function ArrivalsNow({ supabase, orgId, now, linenRequired, plannin
   };
   // Cause lisible, issue des données réelles (catégorie et description de l'incident, type de demande)
   const incCat = new Map((incidents ?? []).map((i) => [i.id as string, i.category as string]));
+  const tt = await getTranslations("taskType");
   const cause = (x: ArrivalRow["blockers"][number]) => {
+    if (x.kind === "mission_conflict") {
+      const [level, reasons, origin, title, type] = String(x.detail ?? "").split("|");
+      const mission = title || tt(type);
+      const why = reasons.split(",").filter(Boolean).map((r) => t(`conflictReason.${r}`)).join(" ; ");
+      return `${t(`conflict.${level === "impossible" ? "impossible" : "at_risk"}`, { mission })} ${why}${origin === "manual" ? ` ${t("conflictManual")}` : ""}`;
+    }
+    if (x.kind === "assignee_absence_risk") {
+      const [type, how] = String(x.detail ?? "").split("|");
+      return t(`absenceRisk.${how === "started" ? "started" : "partial"}`, { mission: tt(type) });
+    }
+    if (x.kind === "assignee_absent" && x.detail) return t("blocker.assignee_absent_mission", { mission: tt(String(x.detail)) });
     if (x.kind.startsWith("step_")) return t(`blocker.${x.kind}`, { step: t(`step.${x.detail}`) });
     if (x.kind === "prep_blocking") return t("blocker.prep_blocking", { title: String(x.detail ?? "") });
     if ((x.kind === "open_incident" || x.kind === "urgent_incident") && x.action.kind === "open_incident") {

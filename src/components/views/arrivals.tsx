@@ -37,6 +37,8 @@ const BLOCKER_ICON: Record<BlockerKind, LucideIcon> = {
   no_cleaning: Sparkles,
   cleaning_unassigned: UserRoundX,
   assignee_absent: UserRoundX,
+  assignee_absence_risk: UserRoundX,
+  mission_conflict: AlertTriangle,
   cleaning_infeasible: AlertTriangle,
   cleaning_late_start: Loader,
   awaiting_validation: ClipboardCheck,
