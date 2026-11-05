@@ -168,7 +168,8 @@ export async function GET(request: NextRequest) {
       check("overrun_continue_by_assigned_agent", !oce && oc === "applied", oce ? `${oce.code}:${oce.message}` : String(oc));
       const { error: ocB } = await b.rpc("task_overrun_continue", { org: orgA, task: ot!.id });
       check("overrun_continue_refused_other_org", Boolean(ocB));
-      const { data: pr, error: pre } = await ag.rpc("propose_task_end", { org: orgA, task: ot!.id, ended_at: new Date(Date.now() - 60_000).toISOString(), note: null });
+      // Mission démarrée à l'instant : heure proposée = maintenant (marge d'horloge tolérée par la base)
+      const { data: pr, error: pre } = await ag.rpc("propose_task_end", { org: orgA, task: ot!.id, ended_at: new Date(Date.now() + 20_000).toISOString(), note: null });
       const { error: selfDecide } = await ag.rpc("decide_task_end", { org: orgA, task: ot!.id, accept: true });
       const { data: dec } = await a1.rpc("decide_task_end", { org: orgA, task: ot!.id, accept: true });
       const { data: otRow } = await a1.from("tasks").select("status, end_proposal_status").eq("id", ot!.id).single();
