@@ -3369,7 +3369,8 @@ test("46 · absences (en attente ≠ confirmé), incident laissé ouvert, second
   await agent.goto(`/fr/app/missions/${clean!.id}`);
   await expect(agent.getByTestId("overrun-prompt")).toBeVisible();
   await admin.from("tasks").update({ status: "cancelled" }).eq("id", clean!.id);
-  await agent.getByTestId("overrun-continue").click();
+  // La page peut s'actualiser au même moment (mission annulée) : le bouton peut disparaître avant le clic, les deux issues sont acceptées
+  await agent.getByTestId("overrun-continue").click({ timeout: 5000 }).catch(() => {});
   // Rappel périmé : message « plus en cours » ou rappel retiré par l'actualisation de la page ; jamais enregistré
   await expect(agent.getByTestId("overrun-continue")).toHaveCount(0);
   expect((await admin.from("tasks").select("overrun_ack_at").eq("id", clean!.id).single()).data!.overrun_ack_at).toBeNull();
