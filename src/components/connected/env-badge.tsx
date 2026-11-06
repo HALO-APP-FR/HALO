@@ -20,7 +20,7 @@ export async function EnvBadge({ className }: { className?: string }) {
       title={t(`${env}Hint`)}
     >
       <Icon className="size-3.5" strokeWidth={2.2} />
-      {t(env)}
+      <span className="max-[380px]:sr-only">{t(env)}</span>
     </span>
   );
 }

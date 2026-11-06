@@ -4,7 +4,8 @@ import { Link } from "@/i18n/navigation";
 import { Logo } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
 import { EnvBadge } from "./env-badge";
-import { AccountMenu, BottomBar, MessagesButton, OrgSwitcher, SpaceNav, SpaceTabs, type NavLabels } from "./shell-client";
+import { AccountMenu, AgentBottomBar, BottomBar, MessagesButton, OrgSwitcher, SpaceNav, SpaceTabs, type NavLabels } from "./shell-client";
+import { cn } from "@/lib/utils";
 import type { OrgSummary } from "@/lib/connected/context";
 
 const AGENT_NAV = [
@@ -28,42 +29,69 @@ export async function ConnectedShell({ org, orgs, email, missingName = false, un
   const labels = Object.fromEntries(labelKeys.map((k) => [k, t(`nav.${k}`)])) as NavLabels;
   return (
     <div className="min-h-dvh bg-subtle">
+      {manager && (
+        // ===== Barre latérale (ordinateur) =====
+        <aside className="fixed inset-y-0 start-0 z-30 hidden w-[248px] flex-col border-e border-line bg-canvas md:flex">
+          <div className="flex h-16 items-center px-5">
+            <Link href="/app" aria-label="HALO">
+              <Logo />
+            </Link>
+          </div>
+          <div className="flex-1 px-3 pt-2">
+            <SpaceNav labels={labels} />
+          </div>
+          <div className="space-y-2 border-t border-line p-3">
+            <EnvBadge />
+            {org && (
+              <div className="px-2 py-1.5">
+                {orgs.length > 1 ? (
+                  <OrgSwitcher orgs={orgs.map((o) => ({ id: o.id, name: o.name }))} current={org.id} />
+                ) : (
+                  <p className="truncate text-[13px] font-semibold" title={org.name}>{org.name}</p>
+                )}
+                <p className="truncate text-caption text-muted" title={email}>{email}</p>
+              </div>
+            )}
+          </div>
+        </aside>
+      )}
+      <div className={manager ? "md:ps-[248px]" : undefined}>
       <header className="sticky top-0 z-20 border-b border-line bg-canvas/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-[1200px] items-center gap-3 px-4 md:px-8">
-          <Link href="/app" aria-label="HALO" className="shrink-0">
+        <div className={cn("mx-auto flex h-14 items-center gap-3 px-4", manager ? "md:h-16 md:px-8" : "max-w-[1200px] md:px-8")}>
+          <Link href="/app" aria-label="HALO" className={cn("shrink-0", manager && "md:hidden")}>
             <Logo />
           </Link>
-          <EnvBadge />
-          {manager && <SpaceNav labels={labels} />}
-          <div className="ms-auto flex items-center gap-1.5">
-            {orgs.length > 1 && org ? <OrgSwitcher orgs={orgs.map((o) => ({ id: o.id, name: o.name }))} current={org.id} /> : org ? <span className="hidden max-w-40 truncate text-[14px] font-medium lg:inline">{org.name}</span> : null}
+          <span className={cn(manager && "md:hidden")}>
+            <EnvBadge />
+          </span>
+          {!manager && org && (
+            <nav aria-label={t("nav.label")} className="ms-2 hidden md:block">
+              <ul className="flex gap-1">
+                {AGENT_NAV.map(({ key, href, icon: Icon }) => (
+                  <li key={key}>
+                    <Link href={href} className="flex h-9 items-center gap-2 whitespace-nowrap rounded-md px-3 text-[14px] font-medium text-muted hover:bg-subtle hover:text-fg dark:hover:bg-surface-hover">
+                      <Icon className="size-4" />
+                      {t(`nav.${key}`)}
+                      {key === "messages" && unreadChats > 0 && (
+                        <span className="rounded-full bg-danger px-1.5 text-[11px] font-semibold text-white" data-testid="nav-chat-unread">
+                          {unreadChats}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
+          <div className="ms-auto flex items-center gap-1">
             {org && manager && <MessagesButton label={labels.messages} unread={unreadChats} />}
             <LocaleSwitcher variant="icon" />
             <AccountMenu labels={labels} email={email} signOut={t("signOut")} manager={manager} />
           </div>
         </div>
-        {!manager && org && (
-          <nav aria-label={t("nav.label")} className="mx-auto flex max-w-[1200px] items-start gap-1 px-2 md:px-6">
-            <ul className="flex min-w-0 flex-1 gap-1 overflow-x-auto pb-2 [scrollbar-width:none]">
-              {AGENT_NAV.map(({ key, href, icon: Icon }) => (
-                <li key={key}>
-                  <Link href={href} className="flex h-9 items-center gap-2 whitespace-nowrap rounded-md px-3 text-[14px] font-medium text-muted hover:bg-subtle hover:text-fg dark:hover:bg-surface-hover">
-                    <Icon className="size-4" />
-                    {t(`nav.${key}`)}
-                    {key === "messages" && unreadChats > 0 && (
-                      <span className="rounded-full bg-danger px-1.5 text-[11px] font-semibold text-white" data-testid="nav-chat-unread">
-                        {unreadChats}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        )}
         {manager && <SpaceTabs labels={labels} />}
       </header>
-      <main className={`mx-auto w-full max-w-[1200px] px-4 pt-6 md:px-8 md:pt-8 ${manager ? "pb-28 md:pb-24" : "pb-24"}`}>
+      <main className="mx-auto w-full max-w-[1200px] px-4 pb-28 pt-6 md:px-8 md:pb-24 md:pt-8">
         {missingName && org && (
           // Profil sans nom : l'équipe verrait « Sans nom » — on le demande partout jusqu'à ce qu'il soit renseigné
           <Link href="/app/profile" className="mb-4 flex items-center gap-3 rounded-xl border border-warning bg-warning-soft p-4 text-[15px]" data-testid="profile-incomplete">
@@ -76,7 +104,8 @@ export async function ConnectedShell({ org, orgs, email, missingName = false, un
         )}
         {children}
       </main>
-      {manager && <BottomBar labels={labels} />}
+      </div>
+      {manager ? <BottomBar labels={labels} /> : org && <AgentBottomBar unread={unreadChats} labels={{ missions: t("nav.missions"), messages: t("nav.messages"), profile: t("nav.profile"), preferences: t("nav.preferences"), label: t("nav.label") }} />}
     </div>
   );
 }

@@ -1529,9 +1529,9 @@
       "testEmails": "{count, plural, =0 {Nenhum e-mail para um endereço de teste} one {# e-mail para um endereço de teste (.invalid), não enviado de propósito} other {# e-mails para endereços de teste (.invalid), não enviados de propósito}}",
       "title": "Painel",
       "urgentTitle": "Urgente ou bloqueante",
-      "decideTitle": "À espera da sua decisão",
+      "decideTitle": "A sua decisão",
       "todayTitle": "Hoje e amanhã",
-      "soonTitle": "Missões das próximas 24 horas",
+      "soonTitle": "Próximas 24 horas",
       "soonEmpty": "Nenhuma missão prevista nas próximas 24 horas.",
       "allMissions": "Todas as missões",
       "summaryTitle": "Resumo",
@@ -1539,7 +1539,20 @@
       "urgentTag": "Urgente",
       "noName": "Sem nome",
       "incidentResolve": "{count, plural, =0 {Nenhum incidente a encerrar} one {# intervenção validada: o incidente está resolvido?} other {# intervenções validadas: os incidentes estão resolvidos?}}",
-      "overrun": "{count, plural, =0 {Nenhuma missão em excesso sem resposta} one {# missão em excesso, fim a confirmar} other {# missões em excesso, fim a confirmar}}"
+      "overrun": "{count, plural, =0 {Nenhuma missão em excesso sem resposta} one {# missão em excesso, fim a confirmar} other {# missões em excesso, fim a confirmar}}",
+      "kpi": {
+        "arrivals": "Chegadas de hoje",
+        "departures": "Partidas de hoje",
+        "missions": "Missões de hoje",
+        "unassigned": "Sem agente"
+      },
+      "todoTitle": "A tratar",
+      "kpiShort": {
+        "arrivals": "Chegadas",
+        "departures": "Partidas",
+        "missions": "Missões",
+        "unassigned": "Sem agente"
+      }
     },
     "onb": {
       "progress": "Passo {n} de {total}",
@@ -3760,6 +3773,39 @@
         "cancel": "Cancelar",
         "hint": "O nome e o telefone continuam os da pessoa."
       }
+    },
+    "missionList": {
+      "period": "Período",
+      "periods": {
+        "today": "Hoje",
+        "week": "7 dias",
+        "upcoming": "Próximas",
+        "past": "Passadas"
+      },
+      "search": "Pesquisar um alojamento, uma pessoa…",
+      "status": "Estado",
+      "todo": "A tratar",
+      "allStatuses": "Todos os estados",
+      "toValidate": "A validar",
+      "type": "Tipo",
+      "allTypes": "Todos os tipos",
+      "property": "Alojamento",
+      "allProperties": "Todos os alojamentos",
+      "reset": "Limpar filtros",
+      "emptyText": "Nenhuma missão para estes filtros. As missões são criadas a partir das estadias.",
+      "mineEmptyText": "As suas próximas missões aparecerão aqui assim que lhe forem atribuídas.",
+      "colMission": "Missão",
+      "colWhen": "Quando",
+      "colAgent": "Pessoa",
+      "colStatus": "Estado",
+      "before": "antes das {time}",
+      "alert": {
+        "late": "Fora de prazo",
+        "away": "Pessoa ausente",
+        "overrun": "Duração excedida",
+        "assignSoon": "A atribuir"
+      },
+      "count": "{count, plural, =0 {Nenhuma missão} one {# missão} other {# missões}}"
     }
   },
   "email": {
@@ -4055,7 +4101,7 @@
       "byOsm": "Proposto automaticamente (OpenStreetMap)",
       "empty": "A equipa ainda não adicionou recomendações para este alojamento.",
       "noCoordinates": "O alojamento ainda não está localizado: sem mapa nem distância, as moradas continuam utilizáveis.",
-      "mapUnavailable": "Fundo de mapa indisponível (ligação ou serviço): a lista abaixo continua completa.",
+      "mapUnavailable": "Não foi possível carregar o fundo do mapa (ligação ou serviço de mapas). Todos os locais continuam abaixo, com o itinerário para cada um.",
       "tip": "Dica:",
       "noHours": "Horário não indicado pela fonte",
       "noRoute": "Morada não indicada: itinerário indisponível.",
@@ -4122,7 +4168,8 @@
       "noResult": "Nenhum local para esta escolha neste raio.",
       "resetFilters": "Mostrar tudo",
       "noAddress": "Morada não fornecida pela fonte",
-      "healthNote": "Saúde: o HALO não sabe se estes locais estão abertos nem se atendem urgências. Em caso de urgência, ligue 112."
+      "healthNote": "Saúde: o HALO não sabe se estes locais estão abertos nem se atendem urgências. Em caso de urgência, ligue 112.",
+      "mapUnavailableTitle": "Mapa indisponível de momento"
     },
     "prepBanner": "A sua estadia aproxima-se. As informações práticas (morada, acesso, guia) aparecerão aqui a partir de {date}. Entretanto pode preparar a estadia e escrever à equipa.",
     "prepared": {

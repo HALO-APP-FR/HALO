@@ -1529,9 +1529,9 @@
       "testEmails": "{count, plural, =0 {No email to a test address} one {# email to a test address (.invalid), intentionally not sent} other {# emails to test addresses (.invalid), intentionally not sent}}",
       "title": "Dashboard",
       "urgentTitle": "Urgent or blocking",
-      "decideTitle": "Waiting for your decision",
+      "decideTitle": "Your decision",
       "todayTitle": "Today and tomorrow",
-      "soonTitle": "Missions in the next 24 hours",
+      "soonTitle": "Next 24 hours",
       "soonEmpty": "No mission planned in the next 24 hours.",
       "allMissions": "All missions",
       "summaryTitle": "Summary",
@@ -1539,7 +1539,20 @@
       "urgentTag": "Urgent",
       "noName": "No name",
       "incidentResolve": "{count, plural, =0 {No incident to close} one {# intervention approved: is the incident resolved?} other {# interventions approved: are the incidents resolved?}}",
-      "overrun": "{count, plural, =0 {No overrunning mission without answer} one {# mission running over, end to confirm} other {# missions running over, end to confirm}}"
+      "overrun": "{count, plural, =0 {No overrunning mission without answer} one {# mission running over, end to confirm} other {# missions running over, end to confirm}}",
+      "kpi": {
+        "arrivals": "Today's arrivals",
+        "departures": "Today's departures",
+        "missions": "Today's missions",
+        "unassigned": "Unassigned"
+      },
+      "todoTitle": "To handle",
+      "kpiShort": {
+        "arrivals": "Arrivals",
+        "departures": "Departures",
+        "missions": "Missions",
+        "unassigned": "Unassigned"
+      }
     },
     "onb": {
       "progress": "Step {n} of {total}",
@@ -3760,6 +3773,39 @@
         "cancel": "Cancel",
         "hint": "Name and phone stay those entered by the person."
       }
+    },
+    "missionList": {
+      "period": "Period",
+      "periods": {
+        "today": "Today",
+        "week": "7 days",
+        "upcoming": "Upcoming",
+        "past": "Past"
+      },
+      "search": "Search a property, a person…",
+      "status": "Status",
+      "todo": "To handle",
+      "allStatuses": "All statuses",
+      "toValidate": "To approve",
+      "type": "Type",
+      "allTypes": "All types",
+      "property": "Property",
+      "allProperties": "All properties",
+      "reset": "Clear filters",
+      "emptyText": "No mission for these filters. Missions are created from stays.",
+      "mineEmptyText": "Your next missions will appear here as soon as they're assigned to you.",
+      "colMission": "Mission",
+      "colWhen": "When",
+      "colAgent": "Person",
+      "colStatus": "Status",
+      "before": "before {time}",
+      "alert": {
+        "late": "Out of time",
+        "away": "Person absent",
+        "overrun": "Over time",
+        "assignSoon": "To assign"
+      },
+      "count": "{count, plural, =0 {No mission} one {# mission} other {# missions}}"
     }
   },
   "email": {
@@ -4055,7 +4101,7 @@
       "byOsm": "Suggested automatically (OpenStreetMap)",
       "empty": "The team has not added recommendations for this property yet.",
       "noCoordinates": "The property is not located yet: no map or distance, addresses remain usable.",
-      "mapUnavailable": "Map tiles unavailable (connection or service): the list below remains complete.",
+      "mapUnavailable": "The map background couldn't be loaded (connection or map service). All places are still listed below, with directions to each.",
       "tip": "Tip:",
       "noHours": "Opening hours not provided by the source",
       "noRoute": "No address provided: directions unavailable.",
@@ -4122,7 +4168,8 @@
       "noResult": "No place for this choice within this radius.",
       "resetFilters": "Show everything",
       "noAddress": "Address not provided by the source",
-      "healthNote": "Health: HALO doesn't know whether these places are open or handle emergencies. In an emergency, call 112."
+      "healthNote": "Health: HALO doesn't know whether these places are open or handle emergencies. In an emergency, call 112.",
+      "mapUnavailableTitle": "Map unavailable right now"
     },
     "prepBanner": "Your stay is coming up. Practical details (address, access, guide) will appear here from {date}. Meanwhile you can prepare your stay and message the team.",
     "prepared": {

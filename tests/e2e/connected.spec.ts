@@ -70,8 +70,14 @@ async function openSections(page: Page) {
   while ((await closed.count()) > 0) await closed.first().click();
 }
 
-async function newPage(browser: Browser) {
+/** Tuile PNG 1×1 : le serveur de tuiles réel n'est pas joignable depuis l'environnement de test. */
+const TILE = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+async function newPage(browser: Browser, tiles: "ok" | "blocked" = "ok") {
   const ctx = await browser.newContext({ locale: "fr-FR", timezoneId: "Europe/Paris" });
+  // Fond de carte simulé : normal, ou refusé comme les images « 403 Access blocked » observées en préproduction
+  await ctx.route("https://tile.openstreetmap.org/**", (route) =>
+    tiles === "ok" ? route.fulfill({ status: 200, contentType: "image/png", body: TILE, headers: { "access-control-allow-origin": "*" } }) : route.fulfill({ status: 403, contentType: "image/png", body: TILE, headers: { "access-control-allow-origin": "*" } }),
+  );
   return ctx.newPage();
 }
 
@@ -390,12 +396,13 @@ test("8 · cloisonnement : autre organisation, autre séjour, agent", async ({ p
   await pa.goto("/fr/app/team");
   await expect(pa.getByTestId("member-row").filter({ hasText: "Sam Agent" })).toContainText("06 12 34 56 78");
   await pa.goto("/fr/app/missions");
-  const turnover = pa.getByTestId("mission-row").filter({ hasText: "Ménage · Loft Canal" }).first();
+  const turnover = pa.getByTestId("mission-row").filter({ hasText: "Loft Canal" }).filter({ hasText: "Ménage" }).first();
   await turnover.getByTestId("assign-select").selectOption({ label: "Sam Agent" });
   await expect(turnover.getByTestId("assign-select")).toHaveValue(/.+/);
   await agent.reload();
   await expect(agent.getByTestId("mission-row")).toHaveCount(1);
-  await expect(agent.getByTestId("mission-row")).toContainText("Ménage · Loft Canal");
+  await expect(agent.getByTestId("mission-row")).toContainText("Loft Canal");
+  await expect(agent.getByTestId("mission-row")).toContainText("Ménage");
   await agent.goto("/fr/app/stays");
   await expect(agent).toHaveURL(/\/fr\/app\/missions$/);
   await agent.goto("/fr/app/services");
@@ -676,7 +683,7 @@ test("15 · linge (blanchisserie) et maintenance comptent dans « logement prêt
   await signIn(m, managerA);
   // Assigner le ménage créé au test 14 → le point suivant apparaît : le linge (organisation avec blanchisserie)
   await m.goto("/fr/app/missions");
-  const unassigned = m.getByTestId("mission-row").filter({ hasText: "Ménage · Loft Canal" }).filter({ has: m.locator('select[data-testid="assign-select"] option[value=""]:checked') });
+  const unassigned = m.getByTestId("mission-row").filter({ hasText: "Loft Canal" }).filter({ hasText: "Ménage" }).filter({ has: m.locator('select[data-testid="assign-select"] option[value=""]:checked') });
   await unassigned.first().getByTestId("assign-select").selectOption({ label: "Sam Agent" });
   await m.goto("/fr/app");
   const row = m.getByTestId("arrival-row").filter({ hasText: "Alex Martin" });
@@ -710,7 +717,7 @@ test("15 · linge (blanchisserie) et maintenance comptent dans « logement prêt
   await expect(inc).toHaveAttribute("data-status", "in_progress");
   await expect(inc.getByTestId("incident-intervention")).toBeVisible();
   await agent.goto("/fr/app/missions");
-  const mission = agent.getByTestId("mission-row").filter({ hasText: "Maintenance · Loft Canal" });
+  const mission = agent.getByTestId("mission-row").filter({ hasText: "Loft Canal" }).filter({ hasText: "Maintenance" });
   await expect(mission).toHaveCount(1);
   await mission.getByTestId("mission-link").click();
   await expect(agent.getByTestId("mission-notes")).toContainText("Fuite sous l'évier");
@@ -749,14 +756,15 @@ test("16 · scénario de test complet, journal des envois et affectation hors fe
   await agent.getByTestId("test-account-submit").click();
   await agent.waitForURL(/\/fr\/app/);
   await agent.goto("/fr/app/missions");
-  await expect(agent.getByTestId("mission-row")).toContainText("Ménage · Appartement test");
+  await expect(agent.getByTestId("mission-row")).toContainText("Appartement test");
+  await expect(agent.getByTestId("mission-row")).toContainText("Ménage");
 
   // Mission dont la fenêtre est dépassée : affectation impossible sans nouvelle fin confirmée
   const { data: t } = await admin.from("tasks").select("id, organization_id, property_id").eq("type", "turnover").eq("is_auto_generated", false).order("created_at", { ascending: false }).limit(1).single();
   const past = Date.now() - 3 * 3_600_000;
   await admin.from("tasks").insert({ organization_id: t!.organization_id, property_id: t!.property_id, type: "other", window_start: new Date(past - 3_600_000).toISOString(), window_end: new Date(past).toISOString(), duration_min: 30 });
   await m.goto("/fr/app/missions");
-  const late = m.getByTestId("mission-row").filter({ hasText: "Autre · Appartement test" });
+  const late = m.getByTestId("mission-row").filter({ hasText: "Appartement test" }).filter({ hasText: "Autre" });
   await late.getByTestId("assign-select").selectOption({ label: "Agent test" });
   await expect(late.getByTestId("out-of-window")).toBeVisible();
   await late.getByTestId("out-of-window-confirm").click();
@@ -855,7 +863,7 @@ test("17 · validation par type, créneau lisible et corrigé, absences et ferme
   // 5. Nouvelle mission sur la période : l'agent absent n'est pas proposé (et la base refuserait)
   await admin.from("tasks").insert({ organization_id: org, property_id: prop!.id, type: "inspection", window_start: at(60), window_end: at(240), duration_min: 45 });
   await m.goto("/fr/app/missions");
-  const insp = m.getByTestId("mission-row").filter({ hasText: "Contrôle · Appartement test" });
+  const insp = m.getByTestId("mission-row").filter({ hasText: "Appartement test" }).filter({ hasText: "Contrôle" });
   const opt = insp.getByTestId("assign-select").locator("option", { hasText: "Agent test" });
   await expect(opt).toBeDisabled();
   await expect(opt).toContainText("indisponible : Congé");
@@ -2663,7 +2671,9 @@ test("37 · brief du 4/11 : linge préparé puis réalisé, règles de démarrag
   const lrow = agent.getByTestId("mission-row").filter({ has: agent.locator(`a[href$="/app/missions/${lin!.id}"]`) });
   await lrow.getByTestId("task-start").click();
   const early = lrow.getByTestId("task-early-confirm");
-  if (await early.isVisible().catch(() => false)) await lrow.getByTestId("task-early-go").click();
+  // Démarrage anticipé à confirmer (plage conseillée) ou démarrage direct : on attend la réponse réelle
+  await expect(early.or(lrow.getByTestId("task-finish"))).toBeVisible();
+  if (await early.isVisible()) await lrow.getByTestId("task-early-go").click();
   await expect(lrow).toContainText("En cours");
   await lrow.getByTestId("task-finish").click();
   await expect(lrow.locator("[data-testid=task-missing] [data-missing=comment]")).toBeVisible();
@@ -3163,9 +3173,10 @@ test("44 · messagerie et fiche agent : écrire depuis la fiche, contexte, confi
   await expect(m.getByTestId("overrun-saved")).toBeVisible();
   await m.goto("/fr/app");
   await expect(m.getByTestId("home-overrun")).toHaveAttribute("data-active", "1");
-  await expect(m.getByTestId("home-overrun")).toContainText("n'est pas une faute"); // aucune qualification de faute ou d'abus
+  await expect(m.getByTestId("home-overrun")).not.toContainText(/abus|fautif|en faute/); // aucune qualification de faute ou d'abus
   await m.getByTestId("home-cta-overrun").click();
   await expect(m.getByTestId("overrun-status")).toContainText("Pas encore de réponse");
+  await expect(m.getByTestId("overrun-status")).toContainText("n'est pas une faute");
   await expect(m.getByTestId("end-proposal")).toHaveAttribute("data-status", "pending");
   await m.getByTestId("end-accept").click();
   await expect(m.getByTestId("end-proposal")).toHaveAttribute("data-status", "accepted");
@@ -3236,6 +3247,13 @@ test("45 · Découvrir les alentours : carte/liste, envies, rayon, fiche lieu, f
   await g2.getByTestId("around-filter-favorites").click();
   await expect(g2.getByTestId("around-place")).toHaveCount(1);
   await expect(g2.getByTestId("around-place")).toContainText("Café Fictif");
+  // Fond de carte refusé (images « 403 Access blocked ») : message clair, pas de carte trompeuse, liste utilisable
+  const gb = await newPage(browser, "blocked");
+  await gb.goto(gUrl);
+  await expect(gb.getByTestId("around-map-offline")).toContainText("Carte indisponible");
+  await expect(gb.getByTestId("places-map")).toHaveCount(0);
+  await expect(gb.getByTestId("around-place")).toHaveCount(5);
+  await gb.context().close();
   // Lien révoqué : plus rien de lisible, favori refusé
   await m.reload();
   await m.getByTestId("link-revoke").click();
@@ -3351,4 +3369,76 @@ test("46 · absences (en attente ≠ confirmé), incident laissé ouvert, second
   await expect(m.getByTestId("section-guide")).not.toHaveAttribute("open", "");
   await expect(m.getByTestId("section-places")).toHaveAttribute("open", "");
   for (const c of [m, a2, agent]) await c.context().close();
+});
+
+test("47 · refonte visuelle : liste des missions (filtres réels, statut, personne, alerte), tableau de bord (synthèse, à traiter), téléphones 375 et 390 px", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org, agentId } = await testScenario(m, `vis ${run}`);
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+  const { data: p2 } = await admin.from("properties").insert({ organization_id: org, name: "Loft Canal Saint-Martin, très long nom de logement pour vérifier la coupure", city: "Paris", timezone: "Europe/Paris" }).select("id").single();
+  const H = 3_600_000;
+  await admin.from("tasks").insert([
+    { organization_id: org, property_id: p2!.id, type: "turnover", status: "unassigned", window_start: new Date(Date.now() + 2 * H).toISOString(), window_end: new Date(Date.now() + 7 * H).toISOString(), duration_min: 120 },
+    { organization_id: org, property_id: p2!.id, type: "maintenance", status: "done", assignee_id: agentId, title: "Joint sous l'évier", window_start: new Date(Date.now() - 5 * H).toISOString(), window_end: new Date(Date.now() - H).toISOString(), duration_min: 45, started_at: new Date(Date.now() - 3 * H).toISOString(), completed_at: new Date(Date.now() - 2 * H).toISOString() },
+  ]);
+  await m.goto("/fr/app/missions");
+  // Ligne : logement mis en avant, type, statut, personne ; alerte courte pour une mission sans agent proche
+  const un = m.getByTestId("mission-row").filter({ hasText: "très long nom" }).filter({ hasText: "Ménage" });
+  await expect(un).toHaveAttribute("data-status", "unassigned");
+  await expect(un.getByTestId("mission-alert-assignSoon")).toBeVisible();
+  await expect(un.getByTestId("assign-select")).toBeVisible();
+  // Une mission terminée n'a plus de sélecteur : avatar et nom
+  const done = m.getByTestId("mission-row").filter({ hasText: "Joint sous l'évier" });
+  await expect(done.getByTestId("assign-select")).toHaveCount(0);
+  await expect(done.getByTestId("mission-assignee")).toContainText("Agent test");
+  // Filtres réels : type, logement, statut, recherche, période — l'adresse garde le choix
+  await m.getByTestId("mission-filter-type").selectOption("maintenance");
+  await expect(m).toHaveURL(/type=maintenance/);
+  await expect(m.getByTestId("mission-row")).toHaveCount(1);
+  await m.getByTestId("mission-filters-reset").click();
+  await expect(m).toHaveURL(/\/fr\/app\/missions$/);
+  await m.getByTestId("mission-filter-property").selectOption(prop!.id);
+  await expect(m).toHaveURL(new RegExp(`property=${prop!.id}`));
+  await expect(m.getByTestId("mission-row").filter({ hasText: "très long nom" })).toHaveCount(0);
+  await m.getByTestId("mission-filters-reset").click();
+  await expect(m).toHaveURL(/\/fr\/app\/missions$/);
+  await m.getByTestId("mission-filter-status").selectOption("unassigned");
+  await expect(m.getByTestId("mission-row")).toHaveCount(1);
+  await m.getByTestId("mission-filters-reset").click();
+  await expect(m).toHaveURL(/\/fr\/app\/missions$/);
+  await m.getByTestId("mission-search").fill("très long");
+  await expect(m).toHaveURL(/q=tr/);
+  await expect(m.getByTestId("mission-row")).toHaveCount(2); // les deux missions de ce logement, aucune autre
+  await expect(m.getByTestId("mission-row").filter({ hasText: "Appartement test" })).toHaveCount(0);
+  await m.getByTestId("mission-filters-reset").click();
+  await expect(m).toHaveURL(/\/fr\/app\/missions$/);
+  await m.getByRole("radio", { name: "Passées" }).click();
+  await expect(m).toHaveURL(/period=past/);
+  await expect(m.getByTestId("mission-row").filter({ hasText: "Joint sous l'évier" })).toHaveCount(1);
+  // Tableau de bord : synthèse réelle, chaque ligne mène au bon écran
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-kpis")).toBeVisible();
+  await expect(m.getByTestId("home-toValidate")).toHaveAttribute("data-active", "1");
+  await m.getByTestId("home-cta-toValidate").click();
+  await expect(m).toHaveURL(/status=done/);
+  await expect(m.getByTestId("mission-row")).toHaveCount(1);
+  const state = await m.context().storageState();
+  // Téléphones : rien ne déborde, la barre du bas ne masque pas la dernière ligne
+  for (const dev of [devices["iPhone SE"], devices["iPhone 13"]]) {
+    const ctx = await browser.newContext({ ...dev, locale: "fr-FR", timezoneId: "Europe/Paris", storageState: state });
+    const p = await ctx.newPage();
+    for (const url of ["/fr/app", "/fr/app/missions", `/fr/app/missions?property=${p2!.id}`, "/fr/app/team", "/fr/app/messages"]) {
+      await p.goto(url);
+      expect(await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), `${url} ${dev.viewport.width}`).toBeLessThanOrEqual(0);
+    }
+    await p.goto("/fr/app/missions");
+    const last = p.getByTestId("mission-row").last();
+    await last.scrollIntoViewIfNeeded();
+    await p.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    const box = await last.boundingBox();
+    const bar = await p.getByTestId("bottom-bar").boundingBox();
+    expect(box!.y + box!.height, "dernière mission au-dessus de la barre").toBeLessThanOrEqual(bar!.y + 1);
+    await ctx.close();
+  }
+  await m.context().close();
 });

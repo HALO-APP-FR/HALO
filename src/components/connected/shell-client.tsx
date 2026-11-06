@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { BellRing, CircleUser, FileSpreadsheet, LayoutDashboard, LogOut, Mail, MessagesSquare, Settings2, SlidersHorizontal, Sparkles, Truck, Users } from "lucide-react";
+import { BellRing, CircleUser, FileSpreadsheet, LayoutDashboard, ListChecks, LogOut, Mail, MessagesSquare, Settings2, SlidersHorizontal, Sparkles, Truck, Users } from "lucide-react";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { signOut } from "@/lib/connected/auth-actions";
 import { setActiveOrganization } from "@/lib/connected/actions";
@@ -80,22 +80,23 @@ function useSpace() {
 
 function SpaceNavInner({ labels }: { labels: NavLabels }) {
   const { space } = useSpace();
+  // Barre latérale (ordinateur), dans l'esprit de la démo : quatre espaces, l'actif mis en avant
   return (
-    <nav aria-label={labels.label} className="hidden md:block">
-      <ul className="flex items-center gap-0.5" data-testid="space-nav">
+    <nav aria-label={labels.label}>
+      <ul className="space-y-0.5" data-testid="space-nav">
         {SPACES.map((s) => (
           <li key={s.key}>
             <Link
               href={s.href}
               aria-current={space === s.key ? "page" : undefined}
               className={cn(
-                "flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-3.5 text-[14px] font-medium transition-colors",
-                space === s.key ? "bg-fg text-canvas" : "text-muted hover:bg-subtle hover:text-fg dark:hover:bg-surface-hover",
+                "flex h-10 items-center gap-3 rounded-md px-3 text-[14px] font-medium transition-colors duration-150",
+                space === s.key ? "bg-subtle text-fg dark:bg-surface-hover" : "text-muted hover:bg-subtle hover:text-fg dark:hover:bg-surface-hover",
               )}
               data-testid={`space-${s.key}`}
             >
-              <s.icon className="size-4" />
-              {labels[s.label]}
+              <s.icon className={cn("size-[18px] shrink-0", space === s.key && "text-accent-text")} strokeWidth={space === s.key ? 2.2 : 1.8} />
+              <span className="truncate">{labels[s.label]}</span>
             </Link>
           </li>
         ))}
@@ -150,11 +151,11 @@ export function SpaceTabs(props: { labels: NavLabels }) {
   );
 }
 
-/** Téléphone : barre inférieure à quatre destinations, libellés toujours visibles, zone tactile ≥ 56 px. */
-function BottomBarInner({ labels }: { labels: NavLabels }) {
-  const { space } = useSpace();
-  // Clavier ouvert (saisie en cours) : la barre s'efface pour laisser la place à la zone de saisie ;
-  // sa hauteur est exposée (--bottom-bar) pour que les zones de saisie collantes restent au-dessus
+/**
+ * Clavier ouvert (saisie en cours) : la barre inférieure s'efface pour laisser la place à la zone de saisie ;
+ * sa hauteur est exposée (--bottom-bar) pour que les zones de saisie collantes restent au-dessus.
+ */
+function useBarSpace() {
   const [typing, setTyping] = useState(false);
   useEffect(() => {
     const isField = (el: EventTarget | null) => el instanceof HTMLElement && el.matches("input:not([type=checkbox]):not([type=radio]), textarea, select, [contenteditable]");
@@ -178,6 +179,13 @@ function BottomBarInner({ labels }: { labels: NavLabels }) {
       root.style.removeProperty("--bottom-bar");
     };
   }, [typing]);
+  return typing;
+}
+
+/** Téléphone : barre inférieure à quatre destinations, libellés toujours visibles, zone tactile ≥ 56 px. */
+function BottomBarInner({ labels }: { labels: NavLabels }) {
+  const { space } = useSpace();
+  const typing = useBarSpace();
   return (
     <nav aria-label={labels.label} hidden={typing} className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-canvas/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
       <ul className="grid grid-cols-4" data-testid="bottom-bar">
@@ -186,11 +194,11 @@ function BottomBarInner({ labels }: { labels: NavLabels }) {
             <Link
               href={s.href}
               aria-current={space === s.key ? "page" : undefined}
-              className={cn("flex h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", space === s.key ? "text-fg" : "text-muted")}
+              className={cn("flex h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", space === s.key ? "text-accent-text" : "text-muted")}
               data-testid={`bottom-${s.key}`}
             >
               <s.icon className={cn("size-[22px]", space === s.key && "stroke-[2.25]")} />
-              <span className="max-w-full truncate px-1">{labels[s.label]}</span>
+              <span className="max-w-full truncate px-0.5 max-[380px]:text-[10px] max-[380px]:tracking-tight">{labels[s.label]}</span>
             </Link>
           </li>
         ))}
@@ -203,6 +211,38 @@ export function BottomBar(props: { labels: NavLabels }) {
     <Suspense fallback={null}>
       <BottomBarInner {...props} />
     </Suspense>
+  );
+}
+
+/** Agent (téléphone) : barre inférieure — Missions, Messages (non-lus réels), Profil, Préférences. */
+export function AgentBottomBar({ unread, labels }: { unread: number; labels: { missions: string; messages: string; profile: string; preferences: string; label: string } }) {
+  const pathname = usePathname();
+  const typing = useBarSpace();
+  const items = [
+    { key: "missions", href: "/app/missions", icon: ListChecks },
+    { key: "messages", href: "/app/messages", icon: MessagesSquare },
+    { key: "profile", href: "/app/profile", icon: CircleUser },
+    { key: "preferences", href: "/app/preferences", icon: BellRing },
+  ] as const;
+  return (
+    <nav aria-label={labels.label} hidden={typing} className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-canvas/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
+      <ul className="grid grid-cols-4" data-testid="agent-bottom-bar">
+        {items.map((i) => {
+          const on = under(pathname, i.href) || (i.href === "/app/missions" && pathname === "/app");
+          return (
+            <li key={i.key}>
+              <Link href={i.href} aria-current={on ? "page" : undefined} className={cn("relative flex h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium", on ? "text-accent-text" : "text-muted")}>
+                <i.icon className="size-[22px]" strokeWidth={on ? 2.2 : 1.8} />
+                <span className="max-w-full truncate px-1">{labels[i.key]}</span>
+                {i.key === "messages" && unread > 0 && (
+                  <span className="absolute end-[calc(50%-20px)] top-1.5 min-w-4 rounded-full bg-danger px-1 text-center text-[10px] font-bold leading-4 text-white">{unread > 99 ? "99+" : unread}</span>
+                )}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
 

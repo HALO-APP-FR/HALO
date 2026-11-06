@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { allowEarlyStart, assignTask, cancelTask } from "@/lib/connected/actions";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,10 @@ export function AssignSelect({
   reasons = {},
   partial = {},
   timeZone,
+  compact = false,
 }: {
+  /** Liste des missions : sélecteur discret (pastille), l'essentiel de la ligne reste lisible */
+  compact?: boolean;
   taskId: string;
   current: string | null;
   members: { id: string; name: string }[];
@@ -44,8 +48,9 @@ export function AssignSelect({
   const [pendingMember, setPendingMember] = useState<string | null>(null);
   const [end, setEnd] = useState(() => localInputIn(new Date(Math.ceil((Date.now() + (durationMin + 30) * 60_000) / 900_000) * 900_000), timeZone));
   return (
-    <div className="min-w-44">
+    <div className={compact ? "min-w-0" : "min-w-44"}>
       <Select
+        className={compact ? cn("h-9 max-w-44 rounded-full ps-3 text-[13px] font-medium", !(pendingMember ?? current) && "border-danger/50 text-danger") : undefined}
         aria-label={t("assignee")}
         value={pendingMember ?? current ?? ""}
         disabled={pending || disabled}

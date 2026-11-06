@@ -475,3 +475,41 @@ Une absence refusée ou annulée ne produit aucun conflit. Le tableau de bord ne
   5. ajouter un écran d'autorisation qui gère le refus.
 - Sur iPhone, le push ne fonctionne que si HALO est ajouté à l'écran d'accueil (iOS 16.4 ou plus récent).
 - Il faudra tester sur un vrai téléphone.
+
+## Refonte visuelle (référence : la démo)
+
+Cette refonte ne touche ni la base de données ni aucune adresse.
+
+**Éléments repris de la démo** :
+- la barre latérale sur ordinateur ;
+- les pastilles de type de mission (`TaskTypeIcon`, avec la couleur du type) ;
+- les statuts sous forme de point et de libellé (`StatusPill`) ;
+- les indicateurs chiffrés (`KpiCard`) ;
+- le sélecteur segmenté ;
+- les états vides (`EmptyState`) ;
+- les lignes courtes « À traiter » ;
+- la carte de mission côté agent, avec une barre de couleur selon le type.
+
+**Écrans modifiés**
+
+- **Navigation** :
+  - sur ordinateur, une barre latérale avec les quatre espaces, l'environnement et l'organisation ;
+  - en haut, les messages, la langue et le compte ;
+  - les rubriques de chaque espace en onglets ;
+  - sur téléphone, une barre inférieure pour le responsable, et une nouvelle barre inférieure pour l'agent (Missions, Messages, Profil, Préférences).
+- **Liste des missions (responsable)** :
+  - chaque ligne montre le logement mis en avant, le type (et l'intitulé seulement s'il existe), le jour et le créneau ou l'heure limite, la personne et le statut ;
+  - une alerte courte s'affiche si besoin : « Hors délai », « Personne absente », « Durée dépassée » ou « À assigner » ;
+  - le sélecteur de personne n'apparaît que si l'affectation est modifiable, sous forme de pastille ; sinon on voit les initiales et le nom ;
+  - les filtres agissent réellement sur la requête et sont conservés dans l'adresse : période, statut, type, logement, recherche.
+- **Liste des missions (agent)** : des cartes terrain avec le logement, l'adresse, l'horaire, les consignes en aperçu et l'action (démarrer ou terminer).
+- **Tableau de bord** :
+  - quatre chiffres réels (arrivées et départs du jour dans le fuseau de l'organisation, missions du jour, missions sans agent), chacun menant à la liste filtrée ;
+  - « À traiter » en lignes courtes, l'urgent d'abord ;
+  - « Prochaines 24 heures » sous forme de tableau ;
+  - les arrivées, puis la synthèse.
+- **Fiche mission** : un en-tête avec le type, le statut, le logement et l'adresse, puis les horaires regroupés dans une carte.
+
+**Carte « Découvrir les alentours »** : les tuiles « 403 Access blocked » venaient de la règle `no-referrer` de l'espace voyageur, qui protège le jeton du lien. Sans en-tête Referer, le serveur OpenStreetMap refuse les tuiles. Corrections :
+- les tuiles, et elles seules, sont maintenant demandées avec `strict-origin-when-cross-origin` : seule l'origine du site est transmise, jamais le jeton ;
+- une tuile est vérifiée avant l'affichage : si elle est refusée ou inaccessible, la carte est remplacée par le message « Carte indisponible pour le moment » et la liste reste complète.

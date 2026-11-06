@@ -2,7 +2,10 @@ import { getFormatter, getTranslations, setRequestLocale } from "next-intl/serve
 import { notFound } from "next/navigation";
 import { MapPin } from "lucide-react";
 import { Link, redirect } from "@/i18n/navigation";
-import { PageHeader } from "@/components/halo/page-header";
+import { cn } from "@/lib/utils";
+import { StatusPill } from "@/components/halo/status-pill";
+import { TaskTypeIcon, TASK_TYPE_META } from "@/components/halo/task-type";
+import type { TaskStatus, TaskType } from "@/lib/domain/types";
 import { MissionReport, type ReportRoom } from "@/components/connected/mission-report";
 import { ReportIncident } from "@/components/connected/report-incident";
 import { WindowEditor } from "@/components/connected/planning-forms";
@@ -244,10 +247,20 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
       <Link href="/app/missions" className="mb-3 inline-block text-[14px] text-accent-text hover:underline">
         ← {t("back")}
       </Link>
-      <PageHeader
-        title={task.title ? `${task.title} · ${p?.name ?? ""}` : `${tt(task.type)} · ${p?.name ?? ""}`}
-        subtitle={task.title ? `${tt(task.type)} · ${tts(task.status)}` : tts(task.status)}
-      />
+      {/* En-tête dans l'esprit de la démo : type et statut, logement mis en avant, l'intitulé seulement s'il existe */}
+      <header className="relative mb-5 overflow-hidden rounded-xl border border-line bg-surface p-5 shadow-card md:p-6" data-testid="mission-hero">
+        <span className={cn("absolute inset-y-0 start-0 w-1", TASK_TYPE_META[task.type as TaskType]?.bar)} aria-hidden />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className={cn("flex items-center gap-2 text-[15px] font-semibold", TASK_TYPE_META[task.type as TaskType]?.text)}>
+            <TaskTypeIcon type={task.type as TaskType} size="sm" />
+            {tt(task.type)}
+          </span>
+          <StatusPill status={task.status as TaskStatus} />
+        </div>
+        <h1 className="mt-3 text-[24px] font-semibold leading-8 tracking-[-0.01em] md:text-title-1">{task.title || p?.name}</h1>
+        {task.title && <p className="text-[16px] font-medium text-muted">{p?.name}</p>}
+        {p?.address_line && <p className="mt-1 text-[14px] text-muted">{[p.address_line, p.city].filter(Boolean).join(", ")}</p>}
+      </header>
       {/* Correction demandée : en haut de la fiche, tant qu'elle n'a pas été renvoyée */}
       {mine && (task.status === "to_redo" || task.status === "in_progress") && task.correction_reason && (
         <div className="mb-4 rounded-xl border border-warning bg-warning-soft p-4 text-[15px]" role="status" data-testid="correction-banner" data-status={task.status}>
@@ -284,7 +297,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
       )}
       {askResolve && source && <IncidentResolvePrompt incidentId={source.id} description={source.description} fromGuest={source.source === "guest"} />}
       {/* Deux informations distinctes : la fenêtre pendant laquelle la mission doit être faite, et la durée de travail estimée */}
-      <div className="-mt-2 mb-4 flex flex-wrap items-start gap-x-6 gap-y-2 text-[15px]" data-testid="mission-timing">
+      <div className="mb-4 flex flex-wrap items-start gap-x-6 gap-y-3 rounded-xl border border-line bg-surface p-5 text-[15px] shadow-card" data-testid="mission-timing">
         <div className="basis-full">
           <MissionTiming
             task={task}

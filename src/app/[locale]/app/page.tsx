@@ -1,5 +1,5 @@
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowRight, ClipboardList, Crown, ClipboardCheck, MessagesSquare, CalendarClock, CalendarDays, CalendarX2, ConciergeBell, MailWarning, MessageSquare, Settings2, TriangleAlert, UserRoundX, CalendarPlus, Star, Timer, CircleCheck } from "lucide-react";
+import { ArrowRight, ClipboardList, Crown, ClipboardCheck, MessagesSquare, CalendarClock, CalendarDays, CalendarX2, ConciergeBell, DoorClosed, KeyRound, ListChecks, MailWarning, MessageSquare, Settings2, TriangleAlert, UserRoundX, CalendarPlus, Star, Timer, CircleCheck } from "lucide-react";
 import { Link, redirect } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/halo/page-header";
@@ -11,7 +11,12 @@ import { loadPlanning } from "@/lib/connected/planning";
 import { unreadThreads } from "@/lib/connected/chat";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
-import { windowText } from "@/lib/connected/format";
+import { windowText, zonedMidnight } from "@/lib/connected/format";
+import { KpiCard } from "@/components/halo/kpi-card";
+import { StatusPill } from "@/components/halo/status-pill";
+import { TaskTypeIcon } from "@/components/halo/task-type";
+import { Avatar } from "@/components/connected/avatar";
+import type { TaskStatus, TaskType } from "@/lib/domain/types";
 import { overrunAlert } from "@/lib/engine/overrun";
 import { conflictGroup } from "@/lib/engine/availability";
 
@@ -39,6 +44,17 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     unreadThreads(supabase, org.id),
   ]);
   const in24 = new Date(now.getTime() + 24 * 3_600_000).toISOString();
+  // Journée dans le fuseau de l'organisation (pas celui du serveur)
+  const { data: tzRow } = await supabase.from("organizations").select("timezone").eq("id", org.id).single();
+  const orgTz = (tzRow?.timezone as string | undefined) ?? "Europe/Paris";
+  const todayKey = new Intl.DateTimeFormat("sv-SE", { timeZone: orgTz, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  const d0 = zonedMidnight(todayKey, orgTz);
+  const d1 = zonedMidnight(new Intl.DateTimeFormat("sv-SE", { timeZone: orgTz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(d0.getTime() + 36 * 3_600_000)), orgTz);
+  const [arrToday, depToday, tasksToday] = await Promise.all([
+    supabase.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "confirmed").gte("check_in_at", d0.toISOString()).lt("check_in_at", d1.toISOString()),
+    supabase.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "confirmed").gte("check_out_at", d0.toISOString()).lt("check_out_at", d1.toISOString()),
+    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org.id).neq("status", "cancelled").lt("window_start", d1.toISOString()).gte("window_end", d0.toISOString()),
+  ]);
   const [urgentInc, followInc, running, soon, keptRes, alertRes, ackRes] = await Promise.all([
     supabase.from("incidents").select("id", { count: "exact", head: true }).eq("organization_id", org.id).neq("status", "resolved").eq("urgent", true),
     // Interventions validées dont l'incident reste ouvert : la résolution est une décision distincte du responsable
@@ -46,7 +62,7 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     // Missions en cours : dépassement = durée estimée écoulée depuis le démarrage réel (aucune qualification de faute)
     supabase.from("tasks").select("id, type, title, started_at, duration_min, assignee_id, properties(name)").eq("organization_id", org.id).eq("status", "in_progress").not("started_at", "is", null).limit(100),
     // Missions prévues dans les 24 h (ou en cours)
-    supabase.from("tasks").select("id, type, title, status, window_start, window_end, scheduled_start, assignee_id, properties(name, timezone)").eq("organization_id", org.id).in("status", ["unassigned", "assigned", "in_progress", "to_redo"]).lte("window_start", in24).gte("window_end", now.toISOString()).order("window_start").limit(8),
+    supabase.from("tasks").select("id, type, title, status, window_start, window_end, scheduled_start, duration_min, assignee_id, properties(name, timezone)").eq("organization_id", org.id).in("status", ["unassigned", "assigned", "in_progress", "to_redo", "done"]).lte("window_start", in24).gte("window_end", now.toISOString()).order("window_start").limit(10),
     // Migration 21 (lu à part : sans elle, réglages par défaut et aucune réponse connue)
     supabase.from("incidents").select("id, kept_open_at").eq("organization_id", org.id).neq("status", "resolved").not("kept_open_at", "is", null).limit(50),
     supabase.from("organizations").select("overrun_alert_min").eq("id", org.id).maybeSingle(),
@@ -180,46 +196,46 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     })),
   };
 
-  const item = (r: (typeof active)[number], tone: "urgent" | "decide") => {
+  const row = (r: (typeof active)[number], tone: "urgent" | "decide") => {
     const Icon = r.icon;
+    const d = details[r.key] ?? [];
     return (
-      <li key={r.key} className="rounded-xl border border-line bg-surface p-4 shadow-card md:p-5" data-testid={`home-${r.key}`} data-active="1" data-tone={tone}>
-        <div className="flex items-start gap-3.5">
-          <span className={cn("grid size-10 shrink-0 place-items-center rounded-full", tone === "urgent" ? "bg-danger-soft text-danger" : "bg-subtle text-fg dark:bg-surface-hover")}>
-            <Icon className="size-[18px]" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[16px] font-semibold leading-snug">{t(`home.${r.key}`, { count: r.n })}</p>
-            {t.has(`home.why.${r.key}`) && <p className="mt-0.5 text-[14px] text-muted">{t(`home.why.${r.key}`)}</p>}
-            {(details[r.key] ?? []).length > 0 && (
-              <ul className="mt-2.5 space-y-1.5 text-[14px]" data-testid="home-details">
-                {details[r.key].map((d) => (
-                  <li key={d.id}>
-                    <Link href={d.href} className="group flex items-baseline gap-2 text-fg">
-                      {d.tag && <span className={cn("shrink-0 rounded-full px-2 py-px text-[11px] font-semibold", tone === "urgent" || d.tag === t("home.urgentTag") ? "bg-danger text-white" : "bg-accent-soft text-accent-text")}>{d.tag}</span>}
-                      <span className="min-w-0 group-hover:underline">{d.text}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <Link
-              href={r.href}
-              className={cn(buttonVariants({ variant: tone === "urgent" ? "danger" : "primary", size: "md" }), "mt-3.5")}
-              data-testid={`home-cta-${r.key}`}
-            >
-              {t.has(`home.cta.${r.key}`) ? t(`home.cta.${r.key}`) : t("home.cta.open")}
-              <ArrowRight className="rtl:-scale-x-100" />
-            </Link>
-          </div>
+      <li key={r.key} className="flex flex-wrap items-start gap-x-3.5 gap-y-2 px-4 py-3.5 sm:items-center md:px-5" data-testid={`home-${r.key}`} data-active="1" data-tone={tone}>
+        <span className={cn("grid size-9 shrink-0 place-items-center rounded-md", tone === "urgent" ? "bg-danger-soft text-danger" : r.key === "toValidate" || r.key === "incidentResolve" ? "bg-warning-soft text-warning" : "bg-subtle text-muted dark:bg-surface-hover")}>
+          <Icon className="size-[18px]" strokeWidth={1.9} />
+        </span>
+        <div className="min-w-0 flex-1 basis-[calc(100%-3.5rem)] sm:basis-0">
+          <p className="text-[15px] font-medium leading-snug">{t(`home.${r.key}`, { count: r.n })}</p>
+          {d.length > 0 && (
+            <ul className="mt-0.5 space-y-0.5 text-[13px] text-muted" data-testid="home-details">
+              {d.slice(0, 2).map((x) => (
+                <li key={x.id} className="truncate">
+                  <Link href={x.href} className="hover:text-fg hover:underline">
+                    {x.tag && <span className={cn("me-1.5 rounded-full px-1.5 py-px text-[11px] font-semibold", x.tag === t("home.urgentTag") ? "bg-danger text-white" : "bg-accent-soft text-accent-text")}>{x.tag}</span>}
+                    {x.text}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
+        <Link
+          href={r.href}
+          className={cn(buttonVariants({ variant: tone === "urgent" ? "primary" : "secondary", size: "sm" }), "ms-[3.125rem] shrink-0 sm:ms-auto")}
+          data-testid={`home-cta-${r.key}`}
+        >
+          {t.has(`home.cta.${r.key}`) ? t(`home.cta.${r.key}`) : t("home.cta.open")}
+          <ArrowRight className="rtl:-scale-x-100" />
+        </Link>
       </li>
     );
   };
+  const fmtDay = fmt.dateTime(now, { weekday: "long", day: "numeric", month: "long", timeZone: orgTz });
+  const nameFor = (id: string | null) => (id ? planning.members.find((m) => m.id === id)?.name ?? "" : "");
 
   return (
     <>
-      <PageHeader title={t("home.title")} subtitle={`${org.name} · ${t("home.subtitle")}`} />
+      <PageHeader title={t("home.title")} subtitle={`${fmtDay} · ${org.name}`} />
       {!onboardingDone && (
         <Link href="/app/onboarding" className="mb-6 flex items-center gap-3 rounded-xl border border-accent bg-accent-soft p-4" data-testid="onboarding-resume">
           <Settings2 className="size-5 text-accent-text" />
@@ -230,59 +246,90 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
           <ArrowRight className="size-5 text-accent-text rtl:-scale-x-100" />
         </Link>
       )}
-      <div data-testid="home-now" className="space-y-8">
+      {/* Synthèse de la journée : chiffres réels, chacun ouvre la liste correspondante */}
+      <div className="mb-6 grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4" data-testid="home-kpis">
+        <KpiCard label={t("home.kpi.arrivals")} shortLabel={t("home.kpiShort.arrivals")} value={arrToday.count ?? 0} icon={KeyRound} href="/app/stays" />
+        <KpiCard label={t("home.kpi.departures")} shortLabel={t("home.kpiShort.departures")} value={depToday.count ?? 0} icon={DoorClosed} href="/app/stays" />
+        <KpiCard label={t("home.kpi.missions")} shortLabel={t("home.kpiShort.missions")} value={tasksToday.count ?? 0} icon={ListChecks} href="/app/missions?period=today&status=all" />
+        <KpiCard label={t("home.kpi.unassigned")} shortLabel={t("home.kpiShort.unassigned")} value={unassigned.count ?? 0} icon={UserRoundX} tone="danger" href="/app/missions?status=unassigned" />
+      </div>
+
+      {/* À traiter : lignes courtes, l'urgent d'abord */}
+      <Card className="mb-6 overflow-hidden" data-testid="home-now">
+        <h2 className="px-4 pb-1 pt-4 text-title-3 md:px-5 md:pt-5">{t("home.todoTitle")}</h2>
         {active.length === 0 && (
-          <Card className="p-5 text-[15px] text-muted" data-testid="home-now-empty">{t("home.nowEmpty")}</Card>
+          <p className="px-4 pb-5 pt-1 text-[15px] text-muted md:px-5" data-testid="home-now-empty">
+            {t("home.nowEmpty")}
+          </p>
         )}
         {urgent.length > 0 && (
           <section aria-labelledby="home-urgent-title" data-testid="home-urgent">
-            <h2 id="home-urgent-title" className="mb-3 flex items-center gap-2 text-[17px] font-semibold">
-              <span className="size-2 rounded-full bg-danger" aria-hidden />
+            <h3 id="home-urgent-title" className="flex items-center gap-2 px-4 pb-1 pt-3 text-micro text-danger md:px-5">
+              <span className="size-1.5 rounded-full bg-danger" aria-hidden />
               {t("home.urgentTitle")}
-            </h2>
-            <ul className="grid gap-3 lg:grid-cols-2">
-              {urgent.map((r) => item(r, "urgent"))}
-            </ul>
+            </h3>
+            <ul className="divide-y divide-line">{urgent.map((r) => row(r, "urgent"))}</ul>
           </section>
         )}
         {decide.length > 0 && (
-          <section aria-labelledby="home-decide-title" data-testid="home-decide">
-            <h2 id="home-decide-title" className="mb-3 text-[17px] font-semibold">{t("home.decideTitle")}</h2>
-            <ul className="grid gap-3 lg:grid-cols-2">
-              {decide.map((r) => item(r, "decide"))}
-            </ul>
+          <section aria-labelledby="home-decide-title" data-testid="home-decide" className={cn(urgent.length > 0 && "border-t border-line")}>
+            <h3 id="home-decide-title" className="px-4 pb-1 pt-3 text-micro text-muted md:px-5">{t("home.decideTitle")}</h3>
+            <ul className="divide-y divide-line">{decide.map((r) => row(r, "decide"))}</ul>
           </section>
         )}
-      </div>
+      </Card>
 
-      <section className="mt-10" aria-labelledby="home-today-title">
-        <h2 id="home-today-title" className="mb-1 text-[17px] font-semibold">{t("home.todayTitle")}</h2>
-        <p className="mb-3 text-[14px] text-muted">{t("home.arrivalsTitle")}</p>
-        <ArrivalsNow supabase={supabase} orgId={org.id} now={now} linenRequired={linenRequired} planning={planning} />
-        <h3 className="mb-2 mt-6 text-[14px] font-semibold text-muted">{t("home.soonTitle")}</h3>
-        <Card className="divide-y divide-line" data-testid="home-soon">
-          {(soon.data ?? []).length === 0 && <p className="p-4 text-[15px] text-muted">{t("home.soonEmpty")}</p>}
-          {(soon.data ?? []).map((k) => {
-            const tz = ((Array.isArray(k.properties) ? k.properties[0] : k.properties) as { timezone?: string } | null)?.timezone ?? undefined;
-            return (
-              <Link key={k.id} href={`/app/missions/${k.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-hover md:px-5" data-testid="home-soon-row">
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-medium">{(k.title as string) || tt(k.type as string)} · {pname(k.properties)}</span>
-                  <span className="block truncate text-[13px] text-muted">{windowText(fmt, k.window_start as string, k.window_end as string, false, tz)} · {nameOf(k.assignee_id as string | null)}</span>
-                </span>
-                <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[12px] font-medium", k.status === "unassigned" ? "bg-warning-soft text-warning" : "bg-subtle dark:bg-surface-hover")}>{tts(k.status as string)}</span>
-              </Link>
-            );
-          })}
-          <Link href="/app/missions" className="flex items-center justify-between px-4 py-3 text-[14px] font-medium text-accent-text hover:bg-surface-hover md:px-5">
+      {/* Journée : missions des prochaines 24 h */}
+      <Card className="mb-6 overflow-hidden" data-testid="home-soon">
+        <div className="flex items-center justify-between px-4 pb-2 pt-4 md:px-5 md:pt-5">
+          <h2 className="text-title-3">{t("home.soonTitle")}</h2>
+          <Link href="/app/missions" className="inline-flex items-center gap-1 text-[14px] text-muted hover:text-fg">
             {t("home.allMissions")}
             <ArrowRight className="size-4 rtl:-scale-x-100" />
           </Link>
-        </Card>
+        </div>
+        {(soon.data ?? []).length === 0 && <p className="px-4 pb-5 text-[15px] text-muted md:px-5">{t("home.soonEmpty")}</p>}
+        <ul className="divide-y divide-line border-t border-line">
+          {(soon.data ?? []).map((k) => {
+            const tz = ((Array.isArray(k.properties) ? k.properties[0] : k.properties) as { timezone?: string } | null)?.timezone ?? undefined;
+            const who = nameFor(k.assignee_id as string | null);
+            return (
+              <li key={k.id}>
+                <Link href={`/app/missions/${k.id}`} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 hover:bg-surface-hover md:grid-cols-[auto_minmax(0,2fr)_minmax(0,1.6fr)_minmax(0,1.2fr)_auto] md:px-5" data-testid="home-soon-row">
+                  <TaskTypeIcon type={k.type as TaskType} size="sm" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-[15px] font-semibold">{pname(k.properties)}</span>
+                    <span className="block truncate text-[13px] text-muted">
+                      {(k.title as string) || tt(k.type as string)}
+                      <span className="md:hidden"> · {windowText(fmt, k.window_start as string, k.window_end as string, false, tz)}</span>
+                    </span>
+                  </span>
+                  <span className="hidden truncate text-[14px] text-muted md:block">{windowText(fmt, k.window_start as string, k.window_end as string, false, tz)}</span>
+                  <span className="hidden min-w-0 items-center gap-2 text-[14px] md:flex">
+                    {who ? (
+                      <>
+                        <Avatar name={who} id={k.assignee_id as string} size="sm" />
+                        <span className="truncate">{who}</span>
+                      </>
+                    ) : (
+                      <span className="text-danger">{t("home.nobody")}</span>
+                    )}
+                  </span>
+                  <StatusPill status={k.status as TaskStatus} />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
+
+      <section className="mb-6" aria-labelledby="home-arrivals-title">
+        <h2 id="home-arrivals-title" className="mb-3 text-title-3">{t("home.arrivalsTitle")}</h2>
+        <ArrivalsNow supabase={supabase} orgId={org.id} now={now} linenRequired={linenRequired} planning={planning} />
       </section>
 
-      <section className="mt-10" aria-labelledby="home-summary-title">
-        <h2 id="home-summary-title" className="mb-3 text-[17px] font-semibold">{t("home.summaryTitle")}</h2>
+      <section aria-labelledby="home-summary-title">
+        <h2 id="home-summary-title" className="mb-3 text-title-3">{t("home.summaryTitle")}</h2>
         {info.length > 0 && (
           <Card className="mb-3 divide-y divide-line">
             {info.map(({ key, n, href, icon: Icon }) => (

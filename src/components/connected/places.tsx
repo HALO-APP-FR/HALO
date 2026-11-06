@@ -64,17 +64,30 @@ function PlacesMap({ center, places, selected, onSelect, onTilesFailed, homeLabe
     if (!L || !el.current || map.current) return;
     map.current = L.map(el.current, { scrollWheelZoom: false, attributionControl: true }).setView([center.lat, center.lng], 15);
     let failed = false;
+    const fail = () => {
+      if (!failed) {
+        failed = true;
+        onTilesFailed();
+      }
+    };
+    // Le serveur de tuiles peut répondre par une IMAGE « 403 Access blocked » (refus d'usage) : le navigateur
+    // l'affiche comme une tuile normale, sans erreur. On vérifie donc une tuile réelle avant de faire confiance au fond.
+    const z = 15;
+    const tx = Math.floor(((center.lng + 180) / 360) * 2 ** z);
+    const ty = Math.floor(((1 - Math.log(Math.tan((center.lat * Math.PI) / 180) + 1 / Math.cos((center.lat * Math.PI) / 180)) / Math.PI) / 2) * 2 ** z);
+    fetch(`https://tile.openstreetmap.org/${z}/${tx}/${ty}.png`, { referrerPolicy: "strict-origin-when-cross-origin", cache: "force-cache" })
+      .then((r) => {
+        if (!r.ok || !(r.headers.get("content-type") ?? "image/png").startsWith("image/")) fail();
+      })
+      .catch(() => fail());
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
+      // Le fournisseur exige l'origine du site (sans elle : tuiles « Access blocked »)
+      referrerPolicy: "strict-origin-when-cross-origin",
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>',
     })
       // Fond de carte indisponible (hors connexion, service saturé) : on le dit, la liste reste utilisable
-      .on("tileerror", () => {
-        if (!failed) {
-          failed = true;
-          onTilesFailed();
-        }
-      })
+      .on("tileerror", fail)
       .addTo(map.current);
     layer.current = L.layerGroup().addTo(map.current);
     return () => {
@@ -250,11 +263,13 @@ export function GuestAround({
               ))}
             </div>
           )}
-          {center && view === "map" && <PlacesMap center={center} places={shown} selected={selected} onSelect={pick} onTilesFailed={() => setTilesFailed(true)} homeLabel={property.name} />}
+          {center && view === "map" && !tilesFailed && <PlacesMap center={center} places={shown} selected={selected} onSelect={pick} onTilesFailed={() => setTilesFailed(true)} homeLabel={property.name} />}
           {tilesFailed && view === "map" && (
-            <p className="text-[13px] text-warning" role="status" data-testid="around-map-offline">
-              {t("mapUnavailable")}
-            </p>
+            // Fond de carte refusé ou inaccessible : pas de carte trompeuse, la liste reste complète
+            <div className="rounded-xl border border-line bg-surface p-4 text-[14px]" role="status" data-testid="around-map-offline">
+              <p className="font-medium">{t("mapUnavailableTitle")}</p>
+              <p className="mt-0.5 text-muted">{t("mapUnavailable")}</p>
+            </div>
           )}
           {healthShown && (
             <p className="rounded-lg border border-line bg-surface p-3 text-[13px]" role="note" data-testid="around-health-note">

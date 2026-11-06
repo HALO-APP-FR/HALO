@@ -1529,9 +1529,9 @@
       "testEmails": "{count, plural, =0 {Keine E-Mail an eine Testadresse} one {# E-Mail an eine Testadresse (.invalid), absichtlich nicht gesendet} other {# E-Mails an Testadressen (.invalid), absichtlich nicht gesendet}}",
       "title": "Übersicht",
       "urgentTitle": "Dringend oder blockierend",
-      "decideTitle": "Wartet auf Ihre Entscheidung",
+      "decideTitle": "Ihre Entscheidung",
       "todayTitle": "Heute und morgen",
-      "soonTitle": "Einsätze der nächsten 24 Stunden",
+      "soonTitle": "Nächste 24 Stunden",
       "soonEmpty": "Keine Einsätze in den nächsten 24 Stunden.",
       "allMissions": "Alle Einsätze",
       "summaryTitle": "Zusammenfassung",
@@ -1539,7 +1539,20 @@
       "urgentTag": "Dringend",
       "noName": "Ohne Namen",
       "incidentResolve": "{count, plural, =0 {Kein Vorfall abzuschließen} one {# Einsatz freigegeben: ist der Vorfall behoben?} other {# Einsätze freigegeben: sind die Vorfälle behoben?}}",
-      "overrun": "{count, plural, =0 {Kein überzogener Einsatz ohne Antwort} one {# Einsatz überzogen, Ende zu bestätigen} other {# Einsätze überzogen, Ende zu bestätigen}}"
+      "overrun": "{count, plural, =0 {Kein überzogener Einsatz ohne Antwort} one {# Einsatz überzogen, Ende zu bestätigen} other {# Einsätze überzogen, Ende zu bestätigen}}",
+      "kpi": {
+        "arrivals": "Anreisen heute",
+        "departures": "Abreisen heute",
+        "missions": "Einsätze heute",
+        "unassigned": "Ohne Person"
+      },
+      "todoTitle": "Zu erledigen",
+      "kpiShort": {
+        "arrivals": "Anreisen",
+        "departures": "Abreisen",
+        "missions": "Einsätze",
+        "unassigned": "Ohne Person"
+      }
     },
     "onb": {
       "progress": "Schritt {n} von {total}",
@@ -3760,6 +3773,39 @@
         "cancel": "Abbrechen",
         "hint": "Name und Telefon bleiben die der Person."
       }
+    },
+    "missionList": {
+      "period": "Zeitraum",
+      "periods": {
+        "today": "Heute",
+        "week": "7 Tage",
+        "upcoming": "Anstehend",
+        "past": "Vergangen"
+      },
+      "search": "Unterkunft, Person suchen…",
+      "status": "Status",
+      "todo": "Zu erledigen",
+      "allStatuses": "Alle Status",
+      "toValidate": "Freizugeben",
+      "type": "Art",
+      "allTypes": "Alle Arten",
+      "property": "Unterkunft",
+      "allProperties": "Alle Unterkünfte",
+      "reset": "Filter zurücksetzen",
+      "emptyText": "Keine Einsätze für diese Filter. Einsätze entstehen aus Aufenthalten.",
+      "mineEmptyText": "Ihre nächsten Einsätze erscheinen hier, sobald sie Ihnen zugewiesen werden.",
+      "colMission": "Einsatz",
+      "colWhen": "Wann",
+      "colAgent": "Person",
+      "colStatus": "Status",
+      "before": "bis {time}",
+      "alert": {
+        "late": "Verspätet",
+        "away": "Person abwesend",
+        "overrun": "Zeit überschritten",
+        "assignSoon": "Zuzuweisen"
+      },
+      "count": "{count, plural, =0 {Kein Einsatz} one {# Einsatz} other {# Einsätze}}"
     }
   },
   "email": {
@@ -4055,7 +4101,7 @@
       "byOsm": "Automatisch vorgeschlagen (OpenStreetMap)",
       "empty": "Das Team hat für diese Unterkunft noch keine Empfehlungen hinzugefügt.",
       "noCoordinates": "Die Unterkunft ist noch nicht verortet: keine Karte und keine Entfernung, die Adressen bleiben nutzbar.",
-      "mapUnavailable": "Kartenhintergrund nicht verfügbar (Verbindung oder Dienst): Die Liste unten bleibt vollständig.",
+      "mapUnavailable": "Der Kartenhintergrund konnte nicht geladen werden (Verbindung oder Kartendienst). Alle Orte stehen weiterhin unten, mit Route zu jedem.",
       "tip": "Tipp:",
       "noHours": "Öffnungszeiten von der Quelle nicht angegeben",
       "noRoute": "Keine Adresse angegeben: Route nicht verfügbar.",
@@ -4122,7 +4168,8 @@
       "noResult": "Kein Ort für diese Auswahl in diesem Umkreis.",
       "resetFilters": "Alles anzeigen",
       "noAddress": "Adresse von der Quelle nicht angegeben",
-      "healthNote": "Gesundheit: HALO weiß nicht, ob diese Orte geöffnet sind oder Notfälle behandeln. Im Notfall 112 anrufen."
+      "healthNote": "Gesundheit: HALO weiß nicht, ob diese Orte geöffnet sind oder Notfälle behandeln. Im Notfall 112 anrufen.",
+      "mapUnavailableTitle": "Karte derzeit nicht verfügbar"
     },
     "prepBanner": "Ihr Aufenthalt rückt näher. Praktische Infos (Adresse, Zugang, Leitfaden) erscheinen hier ab {date}. Bis dahin können Sie Ihren Aufenthalt vorbereiten und dem Team schreiben.",
     "prepared": {
