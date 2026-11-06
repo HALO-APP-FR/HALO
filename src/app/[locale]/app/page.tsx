@@ -1,5 +1,5 @@
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
-import { ArrowRight, ClipboardList, Crown, ClipboardCheck, MessagesSquare, CalendarClock, CalendarDays, CalendarX2, ConciergeBell, DoorClosed, KeyRound, ListChecks, MailWarning, MessageSquare, Settings2, TriangleAlert, UserRoundX, CalendarPlus, Star, Timer, CircleCheck } from "lucide-react";
+import { ArrowRight, ClipboardList, Crown, ClipboardCheck, MessagesSquare, CalendarClock, CalendarDays, CalendarX2, ConciergeBell, DoorClosed, KeyRound, MailWarning, Sparkles, MessageSquare, Settings2, TriangleAlert, UserRoundX, CalendarPlus, Star, Timer, CircleCheck } from "lucide-react";
 import { Link, redirect } from "@/i18n/navigation";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/halo/page-header";
@@ -53,7 +53,7 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
   const [arrToday, depToday, tasksToday] = await Promise.all([
     supabase.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "confirmed").gte("check_in_at", d0.toISOString()).lt("check_in_at", d1.toISOString()),
     supabase.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "confirmed").gte("check_out_at", d0.toISOString()).lt("check_out_at", d1.toISOString()),
-    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org.id).neq("status", "cancelled").lt("window_start", d1.toISOString()).gte("window_end", d0.toISOString()),
+    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("type", "turnover").neq("status", "cancelled").lt("window_start", d1.toISOString()).gte("window_end", d0.toISOString()),
   ]);
   const [urgentInc, followInc, running, soon, keptRes, alertRes, ackRes] = await Promise.all([
     supabase.from("incidents").select("id", { count: "exact", head: true }).eq("organization_id", org.id).neq("status", "resolved").eq("urgent", true),
@@ -230,12 +230,13 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
       </li>
     );
   };
+  const tnav = await getTranslations("nav");
   const fmtDay = fmt.dateTime(now, { weekday: "long", day: "numeric", month: "long", timeZone: orgTz });
   const nameFor = (id: string | null) => (id ? planning.members.find((m) => m.id === id)?.name ?? "" : "");
 
   return (
     <>
-      <PageHeader title={t("home.title")} subtitle={`${fmtDay} · ${org.name}`} />
+      <PageHeader title={tnav("today")} subtitle={fmtDay} />
       {!onboardingDone && (
         <Link href="/app/onboarding" className="mb-6 flex items-center gap-3 rounded-xl border border-accent bg-accent-soft p-4" data-testid="onboarding-resume">
           <Settings2 className="size-5 text-accent-text" />
@@ -250,7 +251,7 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
       <div className="mb-6 grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4" data-testid="home-kpis">
         <KpiCard label={t("home.kpi.arrivals")} shortLabel={t("home.kpiShort.arrivals")} value={arrToday.count ?? 0} icon={KeyRound} href="/app/stays" />
         <KpiCard label={t("home.kpi.departures")} shortLabel={t("home.kpiShort.departures")} value={depToday.count ?? 0} icon={DoorClosed} href="/app/stays" />
-        <KpiCard label={t("home.kpi.missions")} shortLabel={t("home.kpiShort.missions")} value={tasksToday.count ?? 0} icon={ListChecks} href="/app/missions?period=today&status=all" />
+        <KpiCard label={t("home.kpi.turnovers")} shortLabel={t("home.kpiShort.turnovers")} value={tasksToday.count ?? 0} icon={Sparkles} href="/app/missions?period=today&status=all&type=turnover" />
         <KpiCard label={t("home.kpi.unassigned")} shortLabel={t("home.kpiShort.unassigned")} value={unassigned.count ?? 0} icon={UserRoundX} tone="danger" href="/app/missions?status=unassigned" />
       </div>
 
@@ -282,9 +283,9 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
       {/* Journée : missions des prochaines 24 h */}
       <Card className="mb-6 overflow-hidden" data-testid="home-soon">
         <div className="flex items-center justify-between px-4 pb-2 pt-4 md:px-5 md:pt-5">
-          <h2 className="text-title-3">{t("home.soonTitle")}</h2>
-          <Link href="/app/missions" className="inline-flex items-center gap-1 text-[14px] text-muted hover:text-fg">
-            {t("home.allMissions")}
+          <h2 className="text-title-3">{t("home.dayTitle")}</h2>
+          <Link href="/app/planning" className="inline-flex items-center gap-1 text-[14px] text-muted hover:text-fg">
+            {tnav("planning")}
             <ArrowRight className="size-4 rtl:-scale-x-100" />
           </Link>
         </div>

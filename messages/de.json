@@ -1338,7 +1338,8 @@
       "members": "Mitglieder und Abwesenheiten",
       "toValidate": "Freizugeben",
       "account": "Konto",
-      "spaceTabs": "Bereiche"
+      "spaceTabs": "Bereiche",
+      "guestGroup": "Aufenthalte und Gäste"
     },
     "env": {
       "demo": "Demo",
@@ -1544,15 +1545,18 @@
         "arrivals": "Anreisen heute",
         "departures": "Abreisen heute",
         "missions": "Einsätze heute",
-        "unassigned": "Ohne Person"
+        "unassigned": "Ohne Person",
+        "turnovers": "Reinigungen heute"
       },
       "todoTitle": "Zu erledigen",
       "kpiShort": {
         "arrivals": "Anreisen",
         "departures": "Abreisen",
         "missions": "Einsätze",
-        "unassigned": "Ohne Person"
-      }
+        "unassigned": "Ohne Person",
+        "turnovers": "Reinigungen"
+      },
+      "dayTitle": "Tagesablauf"
     },
     "onb": {
       "progress": "Schritt {n} von {total}",
@@ -2077,7 +2081,7 @@
       "unassigned": "Nicht zugewiesen",
       "start": "Starten",
       "finish": "Abschließen",
-      "title": "Einsätze",
+      "title": "Aufgaben",
       "subtitle": "Automatisch aus Aufenthalten erzeugt.",
       "mineTitle": "Meine Einsätze",
       "mineSubtitle": "Nur Ihnen zugewiesene Einsätze.",
@@ -2221,7 +2225,7 @@
       "scenarioContinue": "Als Manager eintreten"
     },
     "incidents": {
-      "title": "Vorfälle und Blocker",
+      "title": "Meldungen",
       "subtitle": "Von Mitarbeitern oder Gästen gemeldet, bis zur Lösung.",
       "loadError": "Vorfälle konnten nicht geladen werden.",
       "empty": "Kein Vorfall gemeldet.",
@@ -3806,6 +3810,81 @@
         "assignSoon": "Zuzuweisen"
       },
       "count": "{count, plural, =0 {Kein Einsatz} one {# Einsatz} other {# Einsätze}}"
+    },
+    "planningPage": {
+      "subtitle": "{count, plural, =0 {Keine Aufgaben an diesem Tag} one {# Aufgabe an diesem Tag} other {# Aufgaben an diesem Tag}}",
+      "previous": "Vorheriger Tag",
+      "next": "Nächster Tag",
+      "today": "Heute",
+      "loadError": "Der Plan konnte nicht geladen werden.",
+      "unassigned": "{count, plural, one {# Aufgabe zuzuweisen} other {# Aufgaben zuzuweisen}}",
+      "assignHint": "Öffnen Sie eine Aufgabe, um die Person zu wählen: Abwesenheiten und Konflikte werden dort geprüft.",
+      "empty": "Keine Aufgaben an diesem Tag",
+      "emptyText": "Aufgaben werden aus Aufenthalten oder der Aufgabenliste erstellt.",
+      "count": "{count, plural, one {# Aufgabe} other {# Aufgaben}}",
+      "all": "Alle",
+      "noAgent": "Ohne Person",
+      "noName": "Ohne Namen",
+      "nothingForAgent": "Nichts geplant"
+    },
+    "linenPage": {
+      "subtitle": "Lieferungen, Abholungen und Wäsche-Vorfälle aus Ihren echten Daten.",
+      "loadError": "Wäsche-Aufgaben konnten nicht geladen werden.",
+      "kpi": {
+        "deliveries": "Lieferungen · 7 Tage",
+        "pickups": "Abholungen · 7 Tage",
+        "noAgent": "Wäsche-Aufgaben ohne Person",
+        "incidents": "Offene Wäsche-Vorfälle"
+      },
+      "kpiShort": {
+        "deliveries": "Lieferungen",
+        "pickups": "Abholungen",
+        "noAgent": "Ohne Person",
+        "incidents": "Vorfälle"
+      },
+      "missionsTitle": "Lieferungen und Abholungen · nächste 7 Tage",
+      "missionsEmpty": "Keine Lieferung oder Abholung geplant",
+      "missionsEmptyText": "Planen Sie eine Lieferung aus einem Aufenthalt („Bereit“) oder erstellen Sie eine Wäsche-Aufgabe.",
+      "missionsHint": "Das sind echte Aufgaben: gleicher Ablauf (Zuweisung, Fotos, Freigabe).",
+      "noAgent": "Ohne Person",
+      "incidentsTitle": "Offene Wäsche-Vorfälle",
+      "incidentsEmpty": "Kein offener Wäsche-Vorfall.",
+      "modelTitle": "Wäsche-Organisation",
+      "modelUnset": "Nicht festgelegt",
+      "turnaround": "Umlaufzeit: {days, plural, one {# Tag} other {# Tage}}",
+      "readinessOn": "Wäsche wird bei jeder Anreise unter „Bereit“ geprüft.",
+      "readinessOff": "Wäsche ist nicht Teil der Prüfung „Bereit“ (keine Wäscherei angegeben).",
+      "modelEdit": "In der Einrichtung ändern",
+      "demoOnly": {
+        "title": "Hier noch nicht verfügbar",
+        "text": "Diese Funktionen gibt es nur in der Demo mit fiktiven Daten. Sie erscheinen hier erst, wenn sie auf Ihren Daten beruhen.",
+        "items": {
+          "stock": {
+            "name": "Bestand nach Ort",
+            "build": "Zu bauen: Artikelkatalog (Laken, Bezüge, Handtücher) und Bestandsbewegungen sauber / schmutzig / Wäscherei / Unterkunft."
+          },
+          "kits": {
+            "name": "Bedarf und Sets pro Unterkunft",
+            "build": "Zu bauen: Set je Unterkunft (Betten, Bäder) und Bedarf aus echten Aufenthalten berechnet."
+          },
+          "shortage": {
+            "name": "Fehlbestands-Warnungen",
+            "build": "Zu bauen: verfügbarer Bestand gegen 7-Tage-Bedarf, sobald Bestand und Sets existieren."
+          },
+          "laundry": {
+            "name": "Wäscherei-Aufträge",
+            "build": "Zu bauen: Aufträge (gesendete Teile, erwartete Rückgabe, Kosten) mit Status und Abgleich bei Lieferung."
+          },
+          "partner": {
+            "name": "Zugang für externe Wäscherei",
+            "build": "Zu bauen: Partnerrolle nur für eigene Aufträge, pro Organisation getrennt (Zugriffsregeln in der Datenbank) und getestet."
+          },
+          "journal": {
+            "name": "Protokoll und Kosten",
+            "build": "Zu bauen: Bewegungsverlauf und Kosten pro Wechsel aus echten Aufträgen."
+          }
+        }
+      }
     }
   },
   "email": {

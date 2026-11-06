@@ -4,7 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { Logo } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
 import { EnvBadge } from "./env-badge";
-import { AccountMenu, AgentBottomBar, BottomBar, MessagesButton, OrgSwitcher, SpaceNav, SpaceTabs, type NavLabels } from "./shell-client";
+import { AccountMenu, AgentBottomBar, ManagerBottomBar, ManagerSidebarNav, MessagesButton, OrgSwitcher, type NavLabels } from "./shell-client";
 import { cn } from "@/lib/utils";
 import type { OrgSummary } from "@/lib/connected/context";
 
@@ -16,30 +16,33 @@ const AGENT_NAV = [
 ] as const;
 
 /**
- * Coquille de l'environnement connecté.
- * Responsable : quatre espaces (Tableau de bord, Logistique, Équipe, Guest), barre inférieure sur téléphone,
- * Messages et Compte toujours accessibles en haut. Toutes les adresses existantes restent valides :
- * chaque page est simplement rattachée à un espace (voir SPACES dans shell-client).
- * Agent : navigation inchangée.
+ * Coquille de l'environnement connecté, reprise de la démo.
+ * Responsable : barre latérale à neuf entrées (Aujourd'hui, Planning, Tâches, Alertes, Prestations, Logements,
+ * Linge, Équipe, Réglages) + Séjours, Messages, Réservation directe, Satisfaction ; sur téléphone, barre basse
+ * (Aujourd'hui, Planning, Tâches, Alertes) et « Plus ». Toutes les adresses existantes restent valides.
+ * Agent : missions, messages, profil, préférences.
  */
-export async function ConnectedShell({ org, orgs, email, missingName = false, unreadChats = 0, children }: { org: OrgSummary | null; orgs: OrgSummary[]; email: string; missingName?: boolean; unreadChats?: number; children: React.ReactNode }) {
+export async function ConnectedShell({ org, orgs, email, missingName = false, unreadChats = 0, openAlerts = 0, children }: { org: OrgSummary | null; orgs: OrgSummary[]; email: string; missingName?: boolean; unreadChats?: number; openAlerts?: number; children: React.ReactNode }) {
   const t = await getTranslations("connected");
+  const tn = await getTranslations("nav");
   const manager = org?.role === "owner" || org?.role === "manager";
-  const labelKeys = ["dashboard", "logistics", "teamSpace", "guest", "missions", "incidents", "properties", "import", "members", "toValidate", "messages", "stays", "services", "bookings", "satisfaction", "profile", "preferences", "settings", "setup", "notifications", "account", "label", "spaceTabs"] as const;
-  const labels = Object.fromEntries(labelKeys.map((k) => [k, t(`nav.${k}`)])) as NavLabels;
+  const demoKeys = ["today", "planning", "tasks", "alerts", "services", "properties", "linen", "team", "settings", "more"] as const;
+  const labelKeys = ["stays", "messages", "bookings", "satisfaction", "import", "profile", "preferences", "setup", "notifications", "account", "label", "guestGroup"] as const;
+  const labels = {
+    ...Object.fromEntries(demoKeys.map((k) => [k, tn(k)])),
+    ...Object.fromEntries(labelKeys.map((k) => [k, t(`nav.${k}`)])),
+  } as NavLabels;
   return (
     <div className="min-h-dvh bg-subtle">
       {manager && (
-        // ===== Barre latérale (ordinateur) =====
+        // ===== Barre latérale (ordinateur), comme la démo =====
         <aside className="fixed inset-y-0 start-0 z-30 hidden w-[248px] flex-col border-e border-line bg-canvas md:flex">
           <div className="flex h-16 items-center px-5">
             <Link href="/app" aria-label="HALO">
               <Logo />
             </Link>
           </div>
-          <div className="flex-1 px-3 pt-2">
-            <SpaceNav labels={labels} />
-          </div>
+          <ManagerSidebarNav labels={labels} unread={unreadChats} alerts={openAlerts} />
           <div className="space-y-2 border-t border-line p-3">
             <EnvBadge />
             {org && (
@@ -56,8 +59,8 @@ export async function ConnectedShell({ org, orgs, email, missingName = false, un
         </aside>
       )}
       <div className={manager ? "md:ps-[248px]" : undefined}>
-      <header className="sticky top-0 z-20 border-b border-line bg-canvas/90 backdrop-blur-xl">
-        <div className={cn("mx-auto flex h-14 items-center gap-3 px-4", manager ? "md:h-16 md:px-8" : "max-w-[1200px] md:px-8")}>
+      <header className={cn("sticky top-0 z-20 border-b border-line bg-canvas/85 backdrop-blur-xl", manager && "md:pointer-events-none md:static md:border-0 md:bg-transparent md:backdrop-blur-none")}>
+        <div className={cn("mx-auto flex h-14 items-center gap-3 px-4", manager ? "md:h-0 md:px-8" : "max-w-[1200px] md:px-8")}>
           <Link href="/app" aria-label="HALO" className={cn("shrink-0", manager && "md:hidden")}>
             <Logo />
           </Link>
@@ -83,15 +86,14 @@ export async function ConnectedShell({ org, orgs, email, missingName = false, un
               </ul>
             </nav>
           )}
-          <div className="ms-auto flex items-center gap-1">
+          <div className={cn("ms-auto flex items-center gap-1", manager && "md:pointer-events-auto md:fixed md:end-6 md:top-3 md:z-30 md:rounded-full md:border md:border-line md:bg-canvas/90 md:p-0.5 md:shadow-card md:backdrop-blur-xl")}>
             {org && manager && <MessagesButton label={labels.messages} unread={unreadChats} />}
             <LocaleSwitcher variant="icon" />
             <AccountMenu labels={labels} email={email} signOut={t("signOut")} manager={manager} />
           </div>
         </div>
-        {manager && <SpaceTabs labels={labels} />}
       </header>
-      <main className="mx-auto w-full max-w-[1200px] px-4 pb-28 pt-6 md:px-8 md:pb-24 md:pt-8">
+      <main className="mx-auto w-full max-w-[1280px] px-4 pb-32 pt-6 md:px-8 md:pb-16 md:pt-10">
         {missingName && org && (
           // Profil sans nom : l'équipe verrait « Sans nom » — on le demande partout jusqu'à ce qu'il soit renseigné
           <Link href="/app/profile" className="mb-4 flex items-center gap-3 rounded-xl border border-warning bg-warning-soft p-4 text-[15px]" data-testid="profile-incomplete">
@@ -105,7 +107,7 @@ export async function ConnectedShell({ org, orgs, email, missingName = false, un
         {children}
       </main>
       </div>
-      {manager ? <BottomBar labels={labels} /> : org && <AgentBottomBar unread={unreadChats} labels={{ missions: t("nav.missions"), messages: t("nav.messages"), profile: t("nav.profile"), preferences: t("nav.preferences"), label: t("nav.label") }} />}
+      {manager ? <ManagerBottomBar labels={labels} unread={unreadChats} alerts={openAlerts} /> : org && <AgentBottomBar unread={unreadChats} labels={{ missions: t("nav.missions"), messages: t("nav.messages"), profile: t("nav.profile"), preferences: t("nav.preferences"), label: t("nav.label") }} />}
     </div>
   );
 }

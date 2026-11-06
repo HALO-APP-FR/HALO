@@ -1338,7 +1338,8 @@
       "members": "Membros e ausências",
       "toValidate": "A validar",
       "account": "Conta",
-      "spaceTabs": "Secções do espaço"
+      "spaceTabs": "Secções do espaço",
+      "guestGroup": "Estadias e hóspedes"
     },
     "env": {
       "demo": "Demo",
@@ -1544,15 +1545,18 @@
         "arrivals": "Chegadas de hoje",
         "departures": "Partidas de hoje",
         "missions": "Missões de hoje",
-        "unassigned": "Sem agente"
+        "unassigned": "Sem agente",
+        "turnovers": "Limpezas de hoje"
       },
       "todoTitle": "A tratar",
       "kpiShort": {
         "arrivals": "Chegadas",
         "departures": "Partidas",
         "missions": "Missões",
-        "unassigned": "Sem agente"
-      }
+        "unassigned": "Sem agente",
+        "turnovers": "Limpezas"
+      },
+      "dayTitle": "Dia"
     },
     "onb": {
       "progress": "Passo {n} de {total}",
@@ -2077,7 +2081,7 @@
       "unassigned": "Não atribuída",
       "start": "Começar",
       "finish": "Terminar",
-      "title": "Missões",
+      "title": "Tarefas",
       "subtitle": "Geradas automaticamente a partir das estadias.",
       "mineTitle": "As minhas missões",
       "mineSubtitle": "Apenas as missões atribuídas a si.",
@@ -2221,7 +2225,7 @@
       "scenarioContinue": "Entrar como manager"
     },
     "incidents": {
-      "title": "Incidentes e bloqueios",
+      "title": "Alertas",
       "subtitle": "Comunicados pelos agentes ou hóspedes, até à resolução.",
       "loadError": "Não foi possível carregar os incidentes.",
       "empty": "Nenhum incidente.",
@@ -3806,6 +3810,81 @@
         "assignSoon": "A atribuir"
       },
       "count": "{count, plural, =0 {Nenhuma missão} one {# missão} other {# missões}}"
+    },
+    "planningPage": {
+      "subtitle": "{count, plural, =0 {Nenhuma tarefa neste dia} one {# tarefa neste dia} other {# tarefas neste dia}}",
+      "previous": "Dia anterior",
+      "next": "Dia seguinte",
+      "today": "Hoje",
+      "loadError": "Não foi possível carregar o planeamento.",
+      "unassigned": "{count, plural, one {# tarefa por atribuir} other {# tarefas por atribuir}}",
+      "assignHint": "Abra uma tarefa para escolher o agente: as ausências e conflitos são verificados aí.",
+      "empty": "Nenhuma tarefa neste dia",
+      "emptyText": "As tarefas são criadas a partir das estadias ou da lista de tarefas.",
+      "count": "{count, plural, one {# tarefa} other {# tarefas}}",
+      "all": "Todos",
+      "noAgent": "Sem agente",
+      "noName": "Sem nome",
+      "nothingForAgent": "Nada previsto"
+    },
+    "linenPage": {
+      "subtitle": "Entregas, recolhas e incidentes de roupa, com os seus dados reais.",
+      "loadError": "Não foi possível carregar as tarefas de roupa.",
+      "kpi": {
+        "deliveries": "Entregas · 7 dias",
+        "pickups": "Recolhas · 7 dias",
+        "noAgent": "Tarefas de roupa sem agente",
+        "incidents": "Incidentes de roupa abertos"
+      },
+      "kpiShort": {
+        "deliveries": "Entregas",
+        "pickups": "Recolhas",
+        "noAgent": "Sem agente",
+        "incidents": "Incidentes"
+      },
+      "missionsTitle": "Entregas e recolhas · próximos 7 dias",
+      "missionsEmpty": "Nenhuma entrega ou recolha prevista",
+      "missionsEmptyText": "Planeie uma entrega a partir de uma estadia («Pronto») ou crie uma tarefa de roupa.",
+      "missionsHint": "São tarefas reais: seguem o mesmo percurso (atribuição, fotos, validação).",
+      "noAgent": "Sem agente",
+      "incidentsTitle": "Incidentes de roupa abertos",
+      "incidentsEmpty": "Nenhum incidente de roupa aberto.",
+      "modelTitle": "Organização da roupa",
+      "modelUnset": "Não definida",
+      "turnaround": "Prazo de rotação: {days, plural, one {# dia} other {# dias}}",
+      "readinessOn": "A roupa é verificada em «Pronto» em cada chegada.",
+      "readinessOff": "A roupa não entra no controlo «Pronto» (sem lavandaria declarada).",
+      "modelEdit": "Alterar na configuração",
+      "demoOnly": {
+        "title": "Ainda não disponível aqui",
+        "text": "Estas funções só existem na demo, com dados fictícios. Não são mostradas aqui enquanto não usarem os seus dados.",
+        "items": {
+          "stock": {
+            "name": "Stock por local",
+            "build": "A construir: catálogo de artigos (lençóis, capas, toalhas) e movimentos de stock limpo / sujo / lavandaria / alojamento."
+          },
+          "kits": {
+            "name": "Necessidades e kits por alojamento",
+            "build": "A construir: kit de cada alojamento (camas, casas de banho) e cálculo das necessidades a partir das estadias reais."
+          },
+          "shortage": {
+            "name": "Alertas de falta",
+            "build": "A construir: stock disponível face às necessidades a 7 dias, quando existirem stock e kits."
+          },
+          "laundry": {
+            "name": "Encomendas à lavandaria",
+            "build": "A construir: encomendas (peças enviadas, regresso previsto, custo) com estados e conferência na entrega."
+          },
+          "partner": {
+            "name": "Acesso da lavandaria externa",
+            "build": "A construir: papel de parceiro limitado às suas encomendas, isolado por organização (regras de acesso na base) e testado."
+          },
+          "journal": {
+            "name": "Registo e custos",
+            "build": "A construir: histórico de movimentos e custo por rotação, alimentados pelas encomendas reais."
+          }
+        }
+      }
     }
   },
   "email": {

@@ -1338,7 +1338,8 @@
       "members": "Members and absences",
       "toValidate": "To approve",
       "account": "Account",
-      "spaceTabs": "Section pages"
+      "spaceTabs": "Section pages",
+      "guestGroup": "Stays and guests"
     },
     "env": {
       "demo": "Demo",
@@ -1544,15 +1545,18 @@
         "arrivals": "Today's arrivals",
         "departures": "Today's departures",
         "missions": "Today's missions",
-        "unassigned": "Unassigned"
+        "unassigned": "Unassigned",
+        "turnovers": "Cleanings today"
       },
       "todoTitle": "To handle",
       "kpiShort": {
         "arrivals": "Arrivals",
         "departures": "Departures",
         "missions": "Missions",
-        "unassigned": "Unassigned"
-      }
+        "unassigned": "Unassigned",
+        "turnovers": "Cleanings"
+      },
+      "dayTitle": "Day"
     },
     "onb": {
       "progress": "Step {n} of {total}",
@@ -2077,7 +2081,7 @@
       "unassigned": "Unassigned",
       "start": "Start",
       "finish": "Finish",
-      "title": "Missions",
+      "title": "Tasks",
       "subtitle": "Generated automatically from stays.",
       "mineTitle": "My missions",
       "mineSubtitle": "Only the missions assigned to you.",
@@ -2221,7 +2225,7 @@
       "scenarioContinue": "Enter as manager"
     },
     "incidents": {
-      "title": "Incidents and blockers",
+      "title": "Alerts",
       "subtitle": "Reported by your agents or guests, until resolved.",
       "loadError": "Couldn't load incidents.",
       "empty": "No incident reported.",
@@ -3806,6 +3810,81 @@
         "assignSoon": "To assign"
       },
       "count": "{count, plural, =0 {No mission} one {# mission} other {# missions}}"
+    },
+    "planningPage": {
+      "subtitle": "{count, plural, =0 {No tasks this day} one {# task this day} other {# tasks this day}}",
+      "previous": "Previous day",
+      "next": "Next day",
+      "today": "Today",
+      "loadError": "The schedule could not be loaded.",
+      "unassigned": "{count, plural, one {# task to assign} other {# tasks to assign}}",
+      "assignHint": "Open a task to choose the agent: absences and conflicts are checked there.",
+      "empty": "No tasks this day",
+      "emptyText": "Tasks are created from stays or the task list.",
+      "count": "{count, plural, one {# task} other {# tasks}}",
+      "all": "All",
+      "noAgent": "No agent",
+      "noName": "No name",
+      "nothingForAgent": "Nothing planned"
+    },
+    "linenPage": {
+      "subtitle": "Deliveries, pickups and linen incidents, from your real data.",
+      "loadError": "Linen tasks could not be loaded.",
+      "kpi": {
+        "deliveries": "Deliveries · 7 days",
+        "pickups": "Pickups · 7 days",
+        "noAgent": "Linen tasks without agent",
+        "incidents": "Open linen incidents"
+      },
+      "kpiShort": {
+        "deliveries": "Deliveries",
+        "pickups": "Pickups",
+        "noAgent": "No agent",
+        "incidents": "Incidents"
+      },
+      "missionsTitle": "Deliveries and pickups · next 7 days",
+      "missionsEmpty": "No delivery or pickup planned",
+      "missionsEmptyText": "Plan a delivery from a stay (\"Ready\") or create a linen task.",
+      "missionsHint": "These are real tasks: they follow the same flow (assignment, photos, validation).",
+      "noAgent": "No agent",
+      "incidentsTitle": "Open linen incidents",
+      "incidentsEmpty": "No open linen incident.",
+      "modelTitle": "Linen set-up",
+      "modelUnset": "Not set",
+      "turnaround": "Turnaround: {days, plural, one {# day} other {# days}}",
+      "readinessOn": "Linen is checked in \"Ready\" for every arrival.",
+      "readinessOff": "Linen is not part of the \"Ready\" check (no laundry declared).",
+      "modelEdit": "Change in set-up",
+      "demoOnly": {
+        "title": "Not available here yet",
+        "text": "These functions only exist in the demo, with fictitious data. They are not shown here until they rely on your data.",
+        "items": {
+          "stock": {
+            "name": "Stock by location",
+            "build": "To build: item catalogue (sheets, covers, towels) and clean / dirty / laundry / property stock movements."
+          },
+          "kits": {
+            "name": "Needs and kits per property",
+            "build": "To build: each property's kit (beds, bathrooms) and needs calculated from real stays."
+          },
+          "shortage": {
+            "name": "Shortage alerts",
+            "build": "To build: available stock vs. 7-day needs, once stock and kits exist."
+          },
+          "laundry": {
+            "name": "Laundry orders",
+            "build": "To build: orders (items sent, expected return, cost) with statuses and reconciliation on delivery."
+          },
+          "partner": {
+            "name": "External laundry access",
+            "build": "To build: partner role limited to its own orders, isolated per organisation (database access rules) and tested."
+          },
+          "journal": {
+            "name": "Log and costs",
+            "build": "To build: movement history and cost per turnover, fed by real orders."
+          }
+        }
+      }
     }
   },
   "email": {

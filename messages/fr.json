@@ -1338,7 +1338,8 @@
       "members": "Membres et absences",
       "toValidate": "À valider",
       "account": "Compte",
-      "spaceTabs": "Rubriques de l'espace"
+      "spaceTabs": "Rubriques de l'espace",
+      "guestGroup": "Séjours et voyageurs"
     },
     "env": {
       "demo": "Démo",
@@ -1544,15 +1545,18 @@
         "arrivals": "Arrivées du jour",
         "departures": "Départs du jour",
         "missions": "Missions du jour",
-        "unassigned": "Sans agent"
+        "unassigned": "Sans agent",
+        "turnovers": "Ménages du jour"
       },
       "todoTitle": "À traiter",
       "kpiShort": {
         "arrivals": "Arrivées",
         "departures": "Départs",
         "missions": "Missions",
-        "unassigned": "Sans agent"
-      }
+        "unassigned": "Sans agent",
+        "turnovers": "Ménages"
+      },
+      "dayTitle": "Journée"
     },
     "onb": {
       "progress": "Étape {n} sur {total}",
@@ -2077,7 +2081,7 @@
       "unassigned": "Non assignée",
       "start": "Commencer",
       "finish": "Terminer",
-      "title": "Missions",
+      "title": "Tâches",
       "subtitle": "Générées automatiquement à partir des séjours.",
       "mineTitle": "Mes missions",
       "mineSubtitle": "Uniquement les missions qui vous sont confiées.",
@@ -2221,7 +2225,7 @@
       "scenarioContinue": "Entrer comme manager"
     },
     "incidents": {
-      "title": "Incidents et blocages",
+      "title": "Alertes",
       "subtitle": "Signalés par vos agents ou vos voyageurs, jusqu'à leur résolution.",
       "loadError": "Impossible de charger les incidents.",
       "empty": "Aucun incident signalé.",
@@ -3806,6 +3810,81 @@
         "assignSoon": "À assigner"
       },
       "count": "{count, plural, =0 {Aucune mission} one {# mission} other {# missions}}"
+    },
+    "planningPage": {
+      "subtitle": "{count, plural, =0 {Aucune mission ce jour} one {# mission ce jour} other {# missions ce jour}}",
+      "previous": "Jour précédent",
+      "next": "Jour suivant",
+      "today": "Aujourd'hui",
+      "loadError": "Le planning n'a pas pu être chargé.",
+      "unassigned": "{count, plural, one {# mission à affecter} other {# missions à affecter}}",
+      "assignHint": "Ouvrez une mission pour choisir l'agent : les absences et conflits y sont vérifiés.",
+      "empty": "Aucune mission ce jour",
+      "emptyText": "Les missions se créent depuis les séjours ou la liste des tâches.",
+      "count": "{count, plural, one {# mission} other {# missions}}",
+      "all": "Tous",
+      "noAgent": "Sans agent",
+      "noName": "Sans nom",
+      "nothingForAgent": "Rien de prévu"
+    },
+    "linenPage": {
+      "subtitle": "Livraisons, collectes et incidents linge, sur vos données réelles.",
+      "loadError": "Les missions linge n'ont pas pu être chargées.",
+      "kpi": {
+        "deliveries": "Livraisons · 7 jours",
+        "pickups": "Collectes · 7 jours",
+        "noAgent": "Missions linge sans agent",
+        "incidents": "Incidents linge ouverts"
+      },
+      "kpiShort": {
+        "deliveries": "Livraisons",
+        "pickups": "Collectes",
+        "noAgent": "Sans agent",
+        "incidents": "Incidents"
+      },
+      "missionsTitle": "Livraisons et collectes · 7 prochains jours",
+      "missionsEmpty": "Aucune livraison ni collecte prévue",
+      "missionsEmptyText": "Planifiez une livraison depuis un séjour (« Logement prêt ») ou créez une mission linge.",
+      "missionsHint": "Ce sont de vraies missions : elles suivent le même parcours (affectation, photos, validation).",
+      "noAgent": "Sans agent",
+      "incidentsTitle": "Incidents linge ouverts",
+      "incidentsEmpty": "Aucun incident linge ouvert.",
+      "modelTitle": "Organisation du linge",
+      "modelUnset": "Non renseignée",
+      "turnaround": "Délai de rotation : {days, plural, one {# jour} other {# jours}}",
+      "readinessOn": "Le linge est contrôlé dans « Logement prêt » à chaque arrivée.",
+      "readinessOff": "Le linge n'entre pas dans le contrôle « Logement prêt » (pas de blanchisserie déclarée).",
+      "modelEdit": "Modifier dans la configuration",
+      "demoOnly": {
+        "title": "Pas encore disponible ici",
+        "text": "Ces fonctions n'existent que dans la démo, avec des données fictives. Elles ne sont pas affichées ici tant qu'elles ne reposent pas sur vos données.",
+        "items": {
+          "stock": {
+            "name": "Stocks par emplacement",
+            "build": "À construire : catalogue d'articles (draps, housses, serviettes) et mouvements de stock propre / sale / blanchisserie / logement."
+          },
+          "kits": {
+            "name": "Besoins et kits par logement",
+            "build": "À construire : composition du kit de chaque logement (lits, salles de bain) et calcul des besoins à partir des séjours réels."
+          },
+          "shortage": {
+            "name": "Alertes de manque",
+            "build": "À construire : comparaison stock disponible / besoins sur 7 jours, dès que stocks et kits existent."
+          },
+          "laundry": {
+            "name": "Commandes blanchisserie",
+            "build": "À construire : commandes (pièces envoyées, retour prévu, coût) avec statuts et rapprochement à la livraison."
+          },
+          "partner": {
+            "name": "Accès blanchisseur externe",
+            "build": "À construire : rôle partenaire limité à ses commandes, cloisonné par organisation (règles d'accès en base) et testé."
+          },
+          "journal": {
+            "name": "Journal et coûts",
+            "build": "À construire : historique des mouvements et coût par rotation, alimentés par les commandes réelles."
+          }
+        }
+      }
     }
   },
   "email": {

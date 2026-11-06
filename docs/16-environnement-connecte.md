@@ -513,3 +513,21 @@ Cette refonte ne touche ni la base de données ni aucune adresse.
 **Carte « Découvrir les alentours »** : les tuiles « 403 Access blocked » venaient de la règle `no-referrer` de l'espace voyageur, qui protège le jeton du lien. Sans en-tête Referer, le serveur OpenStreetMap refuse les tuiles. Corrections :
 - les tuiles, et elles seules, sont maintenant demandées avec `strict-origin-when-cross-origin` : seule l'origine du site est transmise, jamais le jeton ;
 - une tuile est vérifiée avant l'affichage : si elle est refusée ou inaccessible, la carte est remplacée par le message « Carte indisponible pour le moment » et la liste reste complète.
+
+## Retour à la navigation et à la présentation de la démo (sans migration)
+
+La navigation en quatre espaces est abandonnée. Le responsable retrouve les **neuf entrées de la démo** : Aujourd'hui (`/app`), Planning (`/app/planning`), Tâches (`/app/missions`), Alertes (`/app/incidents`), Prestations, Logements (+ import), Linge (`/app/linen`), Équipe, Réglages (+ configuration, journal des e-mails). Un groupe « Séjours et voyageurs » donne accès aux Séjours (espace Guest), Messages (non-lus réels), Demandes de séjour et Satisfaction. Sur téléphone : barre basse de la démo (Aujourd'hui, Planning, Tâches, Alertes avec le nombre d'alertes ouvertes) et « Plus » pour le reste. Messages, langue et compte restent accessibles en haut. Aucune adresse n'a changé. Agent inchangé ; Planning et Linge le renvoient vers ses missions.
+
+**Écrans**
+- **Aujourd'hui** : titre et date comme la démo ; chiffres réels Arrivées, Départs, Ménages du jour, Sans agent ; « À traiter » ; « Journée » (24 h) avec lien vers Planning.
+- **Planning** (nouveau, données réelles) : journée par agent sur une grille horaire 7 h–22 h (élargie si une mission en sort), missions à affecter en tête, arrivées et départs du jour, navigation jour par jour ; sur téléphone, puces par agent et liste horaire. L'affectation se fait depuis la mission (absences et conflits vérifiés) : pas de glisser-déposer.
+- **Tâches / Alertes** : titres de la démo ; liste compacte inchangée (logement, horaire, agent, statut).
+- **Linge** (nouveau) : uniquement du réel — livraisons et collectes des 7 prochains jours (vraies missions), missions linge sans agent, incidents linge ouverts, organisation du linge déclarée (modèle, délai de rotation, contrôle dans « logement prêt »).
+
+**Linge : ce qui n'existe que dans la démo** (affiché tel quel dans la carte « Pas encore disponible ici », sans chiffre ni bouton) et ce qu'il faut construire :
+1. Stocks par emplacement → catalogue d'articles et mouvements propre / sale / blanchisserie / logement.
+2. Besoins et kits par logement → composition par logement, besoins calculés depuis les séjours réels.
+3. Alertes de manque → stock disponible / besoins 7 jours (dépend de 1 et 2).
+4. Commandes blanchisserie → commandes (pièces, retour prévu, coût), statuts, rapprochement à la livraison.
+5. Accès blanchisseur externe → rôle partenaire limité à ses commandes, cloisonné par organisation, testé.
+6. Journal et coûts → historique et coût par rotation alimentés par les commandes.

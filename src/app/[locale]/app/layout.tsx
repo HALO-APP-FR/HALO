@@ -16,8 +16,13 @@ export default async function AppLayout({ children, params }: LayoutProps<"/[loc
   const { supabase, user, org, orgs, profile } = await getContext();
   if (!user) redirect({ href: "/auth/sign-in", locale });
   const unreadChats = org ? await unreadThreads(supabase, org.id) : 0;
+  // Pastille « Alertes » (comme la démo) : incidents réellement ouverts, pour les responsables
+  const openAlerts =
+    org && (org.role === "owner" || org.role === "manager")
+      ? ((await supabase.from("incidents").select("id", { count: "exact", head: true }).eq("organization_id", org.id).neq("status", "resolved")).count ?? 0)
+      : 0;
   return (
-    <ConnectedShell org={org} orgs={orgs} email={user!.email ?? ""} missingName={!profile?.full_name?.trim()} unreadChats={unreadChats}>
+    <ConnectedShell org={org} orgs={orgs} email={user!.email ?? ""} missingName={!profile?.full_name?.trim()} unreadChats={unreadChats} openAlerts={openAlerts}>
       {children}
     </ConnectedShell>
   );

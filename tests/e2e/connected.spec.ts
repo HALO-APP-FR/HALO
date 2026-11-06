@@ -611,8 +611,8 @@ test("13 · compte de test de préproduction : connexion sans e-mail, retour à 
   await b.getByLabel("Nom du compte de test").fill(`revue ${run}`);
   await b.getByTestId("test-account-submit").click();
   await expect(b).toHaveURL(/\/fr\/app$/);
-  await expect(b.getByRole("heading", { name: "Tableau de bord" })).toBeVisible();
-  await expect(b.locator("main")).toContainText(`Revue ${run}`); // même organisation sur l'autre appareil
+  await expect(b.getByRole("heading", { level: 1, name: "Aujourd'hui" })).toBeVisible();
+  await expect(b.locator("aside")).toContainText(`Revue ${run}`); // même organisation sur l'autre appareil
   for (const c of [a, b]) await c.context().close();
 });
 
@@ -1541,10 +1541,10 @@ test("22 · navigation responsable lisible à 1 280 px et page introuvable local
   const ctx = await browser.newContext({ locale: "fr-FR", timezoneId: "Europe/Paris", viewport: { width: 1280, height: 800 } });
   const m = await ctx.newPage();
   await testScenario(m, `nav ${run}`);
-  // Quatre espaces visibles en entier, sans défilement caché
-  const bar = m.getByTestId("space-nav");
-  expect(await bar.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
-  for (const s of ["dashboard", "logistics", "team", "guest"]) await expect(m.getByTestId(`space-${s}`)).toBeVisible();
+  // Les neuf entrées de la démo, visibles dans la barre latérale, sans défilement caché
+  const bar = m.getByTestId("manager-nav");
+  expect(await bar.evaluate((el) => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+  for (const s of ["today", "planning", "tasks", "alerts", "services", "properties", "linen", "team", "settings", "stays", "messages"]) await expect(m.getByTestId(`nav-${s}`)).toBeVisible();
   // Adresse inconnue : page HALO en français, sans le message générique anglais
   const r = await m.goto("/fr/page-qui-n-existe-pas");
   expect(r?.status()).toBe(404);
@@ -2972,8 +2972,7 @@ test("42 · urgence de bout en bout : fuite urgente → tableau de bord → inte
   await expect(card.getByTestId("home-details")).toContainText("Urgent");
   await card.getByTestId("home-details").getByRole("link").first().click();
   await expect(m).toHaveURL(/\/fr\/app\/incidents#incident-/);
-  await expect(m.getByTestId("tab-incidents")).toHaveAttribute("aria-current", "page");
-  await expect(m.getByTestId("space-logistics")).toHaveAttribute("aria-current", "page");
+  await expect(m.getByTestId("nav-alerts")).toHaveAttribute("aria-current", "page");
   const inc = m.getByTestId("incident-row").filter({ hasText: "Fuite sous l'évier" });
   await inc.getByTestId("incident-plan-open").click();
   await inc.getByTestId("incident-plan-assignee").selectOption({ label: "Agent test" });
@@ -2999,8 +2998,7 @@ test("42 · urgence de bout en bout : fuite urgente → tableau de bord → inte
   await expect(m.getByTestId("home-toValidate")).toHaveAttribute("data-active", "1");
   await m.getByTestId("home-cta-toValidate").click();
   await expect(m).toHaveURL(/status=done/);
-  await expect(m.getByTestId("tab-toValidate")).toHaveAttribute("aria-current", "page");
-  await expect(m.getByTestId("space-team")).toHaveAttribute("aria-current", "page");
+  await expect(m.getByTestId("nav-tasks")).toHaveAttribute("aria-current", "page");
   await m.getByTestId("mission-row").filter({ hasText: "Maintenance" }).getByTestId("mission-link").click();
   await expect(m.getByTestId("mission-source-incident")).toContainText("Fuite sous l'évier");
   await m.getByTestId("mission-validate").click();
@@ -3022,31 +3020,52 @@ test("42 · urgence de bout en bout : fuite urgente → tableau de bord → inte
   for (const c of [m, agent]) await c.context().close();
 });
 
-test("43 · quatre espaces : navigation, anciens liens, compte, téléphone (barre inférieure) et agent inchangé", async ({ browser }) => {
+test("43 · navigation de la démo : neuf entrées, Linge et Planning réels, anciens liens, compte, téléphone (« Plus ») et agent inchangé", async ({ browser }) => {
   const m = await newPage(browser);
-  const name = `nav4 ${run}`;
-  await testScenario(m, name);
-  await expect(m.getByTestId("space-dashboard")).toHaveAttribute("aria-current", "page");
-  // Chaque espace et ses rubriques ; les adresses existantes ne changent pas
-  const expected: [string, string, string, string | null][] = [
-    ["/fr/app/missions", "logistics", "missions", "Missions"],
-    ["/fr/app/incidents", "logistics", "incidents", null],
-    ["/fr/app/properties", "logistics", "properties", null],
-    ["/fr/app/team", "team", "members", null],
-    ["/fr/app/missions?status=done", "team", "toValidate", null],
-    ["/fr/app/messages", "team", "messages", null],
-    ["/fr/app/stays", "guest", "stays", null],
-    ["/fr/app/services", "guest", "services", null],
-    ["/fr/app/bookings", "guest", "bookings", null],
-    ["/fr/app/satisfaction", "guest", "satisfaction", null],
+  const name = `nav9 ${run}`;
+  const { org: navOrg } = await testScenario(m, name);
+  await expect(m.getByTestId("nav-today")).toHaveAttribute("aria-current", "page");
+  await expect(m.getByRole("heading", { level: 1, name: "Aujourd'hui" })).toBeVisible();
+  // Chaque entrée de la démo et chaque adresse existante : page réelle, entrée active, titre de la démo
+  const expected: [string, string, string | null][] = [
+    ["/fr/app", "today", "Aujourd'hui"],
+    ["/fr/app/planning", "planning", "Planning"],
+    ["/fr/app/missions", "tasks", "Tâches"],
+    ["/fr/app/missions?status=done", "tasks", null],
+    ["/fr/app/incidents", "alerts", "Alertes"],
+    ["/fr/app/services", "services", "Prestations"],
+    ["/fr/app/properties", "properties", "Logements"],
+    ["/fr/app/import", "properties", null],
+    ["/fr/app/linen", "linen", "Linge"],
+    ["/fr/app/team", "team", "Équipe"],
+    ["/fr/app/settings", "settings", "Réglages"],
+    ["/fr/app/notifications", "settings", null],
+    ["/fr/app/stays", "stays", null],
+    ["/fr/app/messages", "messages", null],
+    ["/fr/app/bookings", "bookings", null],
+    ["/fr/app/satisfaction", "satisfaction", null],
   ];
-  for (const [url, space, tab] of expected) {
+  for (const [url, key, title] of expected) {
     const r = await m.goto(url);
     expect(r?.status(), url).toBe(200);
-    await expect(m.getByTestId(`space-${space}`), url).toHaveAttribute("aria-current", "page");
-    await expect(m.getByTestId(`tab-${tab}`), url).toHaveAttribute("aria-current", "page");
+    await expect(m.getByTestId(`nav-${key}`), url).toHaveAttribute("aria-current", "page");
+    if (title) await expect(m.getByRole("heading", { level: 1, name: title }), url).toBeVisible();
   }
-  // Pages de compte : aucun espace actif, accessibles par le menu Compte (clavier : Échap rend le focus)
+  // Linge : uniquement du réel (missions linge du scénario), et la liste honnête de ce qui n'existe qu'en démo
+  await m.goto("/fr/app/linen");
+  await expect(m.getByTestId("linen-kpis")).toBeVisible();
+  await expect(m.getByTestId("linen-model")).toContainText("Blanchisserie externe");
+  await expect(m.getByTestId("linen-demo-only")).toContainText("Pas encore disponible ici");
+  for (const k of ["stock", "kits", "shortage", "laundry", "partner", "journal"]) await expect(m.getByTestId(`linen-demo-only-${k}`)).toBeVisible();
+  const linenDb = await admin.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", navOrg).in("type", ["linen_delivery", "linen_pickup"]).neq("status", "cancelled").gte("window_end", new Date().toISOString()).lt("window_start", new Date(Date.now() + 6 * 86_400_000).toISOString());
+  expect(await m.getByTestId("linen-mission").count()).toBeGreaterThanOrEqual(linenDb.count ?? 0);
+  // Planning : jour réel, navigation jour par jour, chaque mission ouvre sa fiche
+  await m.goto("/fr/app/planning");
+  await m.getByTestId("planning-next").click();
+  await expect(m).toHaveURL(/\/fr\/app\/planning\?d=\d{4}-\d{2}-\d{2}$/);
+  await m.getByTestId("planning-today").click();
+  await expect(m).toHaveURL(/\/fr\/app\/planning$/);
+  // Compte : menu clavier (Échap rend le focus), réglages aussi dans la barre latérale
   await m.goto("/fr/app");
   await m.getByTestId("account-menu").click();
   await expect(m.getByTestId("account-menu-list")).toBeVisible();
@@ -3054,51 +3073,64 @@ test("43 · quatre espaces : navigation, anciens liens, compte, téléphone (bar
   await expect(m.getByTestId("account-menu-list")).toHaveCount(0);
   await expect(m.getByTestId("account-menu")).toBeFocused();
   await m.keyboard.press("Enter");
-  await m.getByTestId("nav-settings").click();
-  await expect(m).toHaveURL(/\/fr\/app\/settings$/);
-  for (const s of ["dashboard", "logistics", "team", "guest"]) await expect(m.getByTestId(`space-${s}`)).not.toHaveAttribute("aria-current", "page");
-  await m.getByTestId("account-menu").click();
-  for (const k of ["profile", "preferences", "settings", "setup", "import", "notifications"]) await expect(m.getByTestId(`nav-${k}`)).toBeVisible();
+  for (const k of ["profile", "preferences", "setup", "import", "notifications"]) await expect(m.getByTestId("account-menu-list").getByTestId(`nav-${k}`)).toBeVisible();
   await expect(m.getByTestId("sign-out")).toBeVisible();
   await m.keyboard.press("Escape");
+  await m.getByTestId("nav-settings").click();
+  await expect(m).toHaveURL(/\/fr\/app\/settings$/);
   // Messages : accès permanent en haut
   await m.getByTestId("top-messages").click();
   await expect(m).toHaveURL(/\/fr\/app\/messages$/);
-  // Fiche détaillée : rattachée à son espace, retour arrière conservé
+  // Fiche détaillée : rattachée à Tâches, retour arrière conservé
   await m.goto("/fr/app/missions");
   await m.getByTestId("mission-link").first().click();
   await expect(m).toHaveURL(/\/fr\/app\/missions\/[0-9a-f-]{36}$/);
-  await expect(m.getByTestId("space-logistics")).toHaveAttribute("aria-current", "page");
+  await expect(m.getByTestId("nav-tasks")).toHaveAttribute("aria-current", "page");
   await m.goBack();
   await expect(m).toHaveURL(/\/fr\/app\/missions$/);
   const state = await m.context().storageState();
 
-  // Téléphone : barre inférieure à 4 destinations, rien ne déborde, messages en haut
-  const phone = await browser.newContext({ ...devices["iPhone 13"], locale: "fr-FR", timezoneId: "Europe/Paris", storageState: state });
-  const p = await phone.newPage();
-  for (const url of ["/fr/app", "/fr/app/missions", "/fr/app/team", "/fr/app/messages", "/fr/app/stays", "/fr/app/incidents", "/fr/app/settings"]) {
-    await p.goto(url);
-    await expect(p.getByTestId("bottom-bar")).toBeVisible();
-    await expect(p.getByTestId("space-nav")).toBeHidden();
-    await expect(p.getByTestId("top-messages")).toBeVisible();
-    expect(await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), url).toBeLessThanOrEqual(0);
+  // Téléphones 375 et 390 px : barre basse de la démo (4 entrées + Plus), rien ne déborde
+  for (const dev of [devices["iPhone SE"], devices["iPhone 13"]]) {
+    const phone = await browser.newContext({ ...dev, locale: "fr-FR", timezoneId: "Europe/Paris", storageState: state });
+    const p = await phone.newPage();
+    for (const url of ["/fr/app", "/fr/app/planning", "/fr/app/missions", "/fr/app/incidents", "/fr/app/linen", "/fr/app/team", "/fr/app/messages", "/fr/app/stays", "/fr/app/settings"]) {
+      await p.goto(url);
+      await expect(p.getByTestId("bottom-bar"), url).toBeVisible();
+      await expect(p.getByTestId("manager-nav"), url).toBeHidden();
+      await expect(p.getByTestId("top-messages"), url).toBeVisible();
+      expect(await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), `${url} ${dev.viewport.width}`).toBeLessThanOrEqual(0);
+    }
+    for (const k of ["today", "planning", "tasks", "alerts", "more"]) {
+      const box = await p.getByTestId(`bottom-${k}`).boundingBox();
+      expect(box!.height).toBeGreaterThanOrEqual(44); // zone tactile confortable
+    }
+    // « Plus » : les cinq autres entrées + séjours et voyageurs
+    await p.getByTestId("bottom-more").click();
+    for (const k of ["services", "properties", "linen", "team", "settings", "stays", "messages", "bookings", "satisfaction"]) await expect(p.getByTestId(`more-${k}`)).toBeVisible();
+    await p.getByTestId("more-linen").click();
+    await expect(p).toHaveURL(/\/fr\/app\/linen$/);
+    await expect(p.getByRole("heading", { level: 1, name: "Linge" })).toBeVisible();
+    // Les cartes restent dans l'écran (aucune ligne coupée à droite)
+    for (const id of ["linen-kpis", "linen-missions", "linen-demo-only"]) {
+      const box = await p.getByTestId(id).boundingBox();
+      expect(box!.x + box!.width, `${id} ${dev.viewport.width}`).toBeLessThanOrEqual(dev.viewport.width + 0.5);
+    }
+    await p.getByTestId("bottom-planning").click();
+    await expect(p).toHaveURL(/\/fr\/app\/planning$/);
+    await expect(p.getByTestId("bottom-planning")).toHaveAttribute("aria-current", "page");
+    await phone.close();
   }
-  await p.getByTestId("bottom-guest").click();
-  await expect(p).toHaveURL(/\/fr\/app\/stays$/);
-  await expect(p.getByTestId("bottom-guest")).toHaveAttribute("aria-current", "page");
-  for (const k of ["dashboard", "logistics", "team", "guest"]) {
-    const box = await p.getByTestId(`bottom-${k}`).boundingBox();
-    expect(box!.height).toBeGreaterThanOrEqual(44); // zone tactile confortable
-  }
-  await phone.close();
 
-  // Agent : navigation inchangée, aucun espace manager
+  // Agent : navigation inchangée, aucune entrée manager, pages manager refusées
   const agent = await scenarioAgent(browser, name);
   await agent.goto("/fr/app/missions");
-  await expect(agent.getByTestId("space-nav")).toHaveCount(0);
+  await expect(agent.getByTestId("manager-nav")).toHaveCount(0);
   await expect(agent.getByTestId("bottom-bar")).toHaveCount(0);
-  await agent.goto("/fr/app/team");
-  await expect(agent).toHaveURL(/\/fr\/app\/missions$/);
+  for (const url of ["/fr/app/team", "/fr/app/linen", "/fr/app/planning"]) {
+    await agent.goto(url);
+    await expect(agent, url).toHaveURL(/\/fr\/app\/missions$/);
+  }
   for (const c of [m, agent]) await c.context().close();
 });
 

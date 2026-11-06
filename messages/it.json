@@ -1338,7 +1338,8 @@
       "members": "Membri e assenze",
       "toValidate": "Da convalidare",
       "account": "Account",
-      "spaceTabs": "Sezioni dello spazio"
+      "spaceTabs": "Sezioni dello spazio",
+      "guestGroup": "Soggiorni e ospiti"
     },
     "env": {
       "demo": "Demo",
@@ -1544,15 +1545,18 @@
         "arrivals": "Arrivi di oggi",
         "departures": "Partenze di oggi",
         "missions": "Missioni di oggi",
-        "unassigned": "Senza agente"
+        "unassigned": "Senza agente",
+        "turnovers": "Pulizie di oggi"
       },
       "todoTitle": "Da gestire",
       "kpiShort": {
         "arrivals": "Arrivi",
         "departures": "Partenze",
         "missions": "Missioni",
-        "unassigned": "Senza agente"
-      }
+        "unassigned": "Senza agente",
+        "turnovers": "Pulizie"
+      },
+      "dayTitle": "Giornata"
     },
     "onb": {
       "progress": "Passo {n} di {total}",
@@ -2077,7 +2081,7 @@
       "unassigned": "Non assegnata",
       "start": "Inizia",
       "finish": "Termina",
-      "title": "Missioni",
+      "title": "Attività",
       "subtitle": "Generate automaticamente dai soggiorni.",
       "mineTitle": "Le mie missioni",
       "mineSubtitle": "Solo le missioni assegnate a te.",
@@ -2221,7 +2225,7 @@
       "scenarioContinue": "Entra come manager"
     },
     "incidents": {
-      "title": "Incidenti e blocchi",
+      "title": "Avvisi",
       "subtitle": "Segnalati da agenti o ospiti, fino alla risoluzione.",
       "loadError": "Impossibile caricare gli incidenti.",
       "empty": "Nessun incidente.",
@@ -3806,6 +3810,81 @@
         "assignSoon": "Da assegnare"
       },
       "count": "{count, plural, =0 {Nessuna missione} one {# missione} other {# missioni}}"
+    },
+    "planningPage": {
+      "subtitle": "{count, plural, =0 {Nessuna attività oggi} one {# attività in questo giorno} other {# attività in questo giorno}}",
+      "previous": "Giorno precedente",
+      "next": "Giorno successivo",
+      "today": "Oggi",
+      "loadError": "Impossibile caricare il planning.",
+      "unassigned": "{count, plural, one {# attività da assegnare} other {# attività da assegnare}}",
+      "assignHint": "Apri un'attività per scegliere l'agente: assenze e conflitti vengono verificati lì.",
+      "empty": "Nessuna attività in questo giorno",
+      "emptyText": "Le attività si creano dai soggiorni o dall'elenco attività.",
+      "count": "{count, plural, one {# attività} other {# attività}}",
+      "all": "Tutti",
+      "noAgent": "Senza agente",
+      "noName": "Senza nome",
+      "nothingForAgent": "Niente in programma"
+    },
+    "linenPage": {
+      "subtitle": "Consegne, ritiri e incidenti biancheria, sui tuoi dati reali.",
+      "loadError": "Impossibile caricare le attività biancheria.",
+      "kpi": {
+        "deliveries": "Consegne · 7 giorni",
+        "pickups": "Ritiri · 7 giorni",
+        "noAgent": "Attività biancheria senza agente",
+        "incidents": "Incidenti biancheria aperti"
+      },
+      "kpiShort": {
+        "deliveries": "Consegne",
+        "pickups": "Ritiri",
+        "noAgent": "Senza agente",
+        "incidents": "Incidenti"
+      },
+      "missionsTitle": "Consegne e ritiri · prossimi 7 giorni",
+      "missionsEmpty": "Nessuna consegna né ritiro previsto",
+      "missionsEmptyText": "Pianifica una consegna da un soggiorno («Pronto») o crea un'attività biancheria.",
+      "missionsHint": "Sono attività reali: seguono lo stesso percorso (assegnazione, foto, convalida).",
+      "noAgent": "Senza agente",
+      "incidentsTitle": "Incidenti biancheria aperti",
+      "incidentsEmpty": "Nessun incidente biancheria aperto.",
+      "modelTitle": "Organizzazione biancheria",
+      "modelUnset": "Non impostata",
+      "turnaround": "Tempo di rotazione: {days, plural, one {# giorno} other {# giorni}}",
+      "readinessOn": "La biancheria è verificata in «Pronto» a ogni arrivo.",
+      "readinessOff": "La biancheria non rientra nel controllo «Pronto» (nessuna lavanderia dichiarata).",
+      "modelEdit": "Modifica nella configurazione",
+      "demoOnly": {
+        "title": "Non ancora disponibile qui",
+        "text": "Queste funzioni esistono solo nella demo, con dati fittizi. Non sono mostrate qui finché non usano i tuoi dati.",
+        "items": {
+          "stock": {
+            "name": "Scorte per luogo",
+            "build": "Da costruire: catalogo articoli (lenzuola, copripiumini, asciugamani) e movimenti di scorta pulito / sporco / lavanderia / alloggio."
+          },
+          "kits": {
+            "name": "Fabbisogni e kit per alloggio",
+            "build": "Da costruire: kit di ogni alloggio (letti, bagni) e calcolo dei fabbisogni dai soggiorni reali."
+          },
+          "shortage": {
+            "name": "Avvisi di carenza",
+            "build": "Da costruire: scorte disponibili vs fabbisogni a 7 giorni, quando esistono scorte e kit."
+          },
+          "laundry": {
+            "name": "Ordini lavanderia",
+            "build": "Da costruire: ordini (capi inviati, rientro previsto, costo) con stati e riconciliazione alla consegna."
+          },
+          "partner": {
+            "name": "Accesso lavanderia esterna",
+            "build": "Da costruire: ruolo partner limitato ai propri ordini, isolato per organizzazione (regole di accesso nel database) e testato."
+          },
+          "journal": {
+            "name": "Registro e costi",
+            "build": "Da costruire: storico movimenti e costo per rotazione, alimentati dagli ordini reali."
+          }
+        }
+      }
     }
   },
   "email": {
