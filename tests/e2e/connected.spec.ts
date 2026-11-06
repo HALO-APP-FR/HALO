@@ -2697,6 +2697,7 @@ test("37 · brief du 4/11 : linge préparé puis réalisé, règles de démarrag
   await m.goto(`/fr/app/missions/${lin!.id}`);
   await m.getByTestId("correction-reason").fill("Ajouter les serviettes (fictif)");
   await m.getByTestId("mission-correction").click();
+  await expect(m.locator("[data-testid=history-event][data-kind=correction_requested]")).toBeVisible();
   await agent.reload();
   await expect(agent.getByTestId("correction-reason-shown")).toContainText("Ajouter les serviettes");
   await agent.getByTestId("mission-start").click();
