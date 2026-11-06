@@ -83,7 +83,7 @@ export default async function PlanningPage({ params, searchParams }: PageProps<"
   const list = all;
   // Plage horaire de la démo (7 h–22 h), élargie si une mission en sort
   const START_H = Math.min(7, ...timed.map((k) => Math.floor(k.startMin / 60)));
-  const END_H = Math.min(25, Math.max(22, ...timed.map((k) => Math.ceil(k.endMin / 60))));
+  const END_H = Math.min(25, Math.max(22, ...timed.map((k) => Math.ceil(Math.max(k.endMin, k.startMin + 45) / 60))));
   const agents = people.filter((p) => timed.some((k) => k.assignee_id === p.id));
   const hm = (d: Date | number) => f.dateTime(new Date(d), { hour: "2-digit", minute: "2-digit", timeZone: tz });
   const dhm = (d: number) => (d >= dayS && d < dayE ? hm(d) : f.dateTime(new Date(d), { weekday: "short", hour: "2-digit", minute: "2-digit", timeZone: tz }));
@@ -161,11 +161,11 @@ export default async function PlanningPage({ params, searchParams }: PageProps<"
               const who = people.find((p) => p.id === k.assignee_id);
               return (
                 <li key={k.id} className="shrink-0">
-                  <Link href={`/app/missions/${k.id}`} className="relative flex w-64 items-center gap-3 overflow-hidden rounded-md border border-dashed border-line-strong bg-surface px-3 py-2 hover:shadow-float" data-testid="planning-to-plan" data-kind={k.pl.kind} data-assigned={k.assignee_id ? "1" : "0"}>
+                  <Link href={`/app/missions/${k.id}`} className="relative flex w-[min(18rem,calc(100vw-5.5rem))] items-center gap-3 overflow-hidden rounded-md border border-dashed border-line-strong bg-surface px-3 py-2 hover:shadow-float" data-testid="planning-to-plan" data-kind={k.pl.kind} data-assigned={k.assignee_id ? "1" : "0"}>
                     <span className={cn("absolute inset-y-0 start-0 w-1", TASK_TYPE_META[k.type as TaskType]?.bar)} aria-hidden />
                     <span className="min-w-0 flex-1 ps-1">
                       <span className="block truncate text-[14px] font-semibold">{k.property}</span>
-                      <span className="block truncate text-caption text-muted tabular" data-testid="planning-when">{when(k)}</span>
+                      <span className="line-clamp-2 text-caption text-muted tabular" data-testid="planning-when">{when(k)}</span>
                       <span className="block truncate text-caption text-muted">{tt(k.type)}</span>
                     </span>
                     {who ? <Avatar name={who.name} id={who.id} size="sm" /> : <UserRoundX className="size-4 shrink-0 text-danger" aria-label={t("noAgent")} />}
