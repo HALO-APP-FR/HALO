@@ -18,7 +18,7 @@ import { TaskTypeIcon, TASK_TYPE_META } from "@/components/halo/task-type";
 import { EmptyState } from "@/components/halo/empty-state";
 import { Avatar } from "@/components/connected/avatar";
 import { MissionFilters } from "@/components/connected/mission-filters";
-import { PERIODS, STATUS_FILTERS, TYPES } from "@/lib/connected/mission-filters";
+import { PERIODS, STATUS_FILTERS, TYPE_FILTERS, periodBounds, statusesOf, typesOf } from "@/lib/connected/mission-filters";
 import type { TaskStatus, TaskType } from "@/lib/domain/types";
 import { cn } from "@/lib/utils";
 import { overrunDueAt } from "@/lib/engine/overrun";
@@ -39,13 +39,14 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
   const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
   const period = (PERIODS as readonly string[]).includes(one(sp.period)) ? one(sp.period) : "upcoming";
   const statusF = onlyToValidate ? "done" : (STATUS_FILTERS as readonly string[]).includes(one(sp.status)) ? one(sp.status) : "todo";
-  const typeF = (TYPES as readonly string[]).includes(one(sp.type)) ? one(sp.type) : "";
+  const typeF = TYPE_FILTERS.includes(one(sp.type)) ? one(sp.type) : "";
   const propertyF = /^[0-9a-f-]{36}$/.test(one(sp.property)) ? one(sp.property) : "";
   const search = one(sp.q).trim().slice(0, 80);
   const now0 = nowDate();
-  const dayStart = new Date(now0);
-  dayStart.setHours(0, 0, 0, 0);
   const since = isoFromNow(-86_400_000);
+  // Journée et semaine dans le fuseau de l'organisation (jamais celui du serveur)
+  const { data: tzRow } = await supabase.from("organizations").select("timezone").eq("id", org!.id).single();
+  const orgTz = (tzRow?.timezone as string | undefined) ?? "Europe/Paris";
   let q = supabase
     .from("tasks")
     .select("*, properties(name, address_line, city, timezone), next:reservations!tasks_organization_id_next_reservation_id_fkey(check_in_at)")
@@ -55,17 +56,18 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
   // Agent : uniquement les siennes (la base l'impose déjà ; ce filtre évite d'afficher des missions passées d'autres)
   if (!manager) q = q.eq("assignee_id", user!.id).neq("status", "cancelled").gte("window_end", since);
   else {
-    if (statusF === "todo") q = q.in("status", ["unassigned", "assigned", "in_progress", "to_redo", "done"]);
-    else if (statusF !== "all") q = q.eq("status", statusF);
-    else q = q.neq("status", "cancelled");
+    // Même règle que les compteurs (accueil, linge) : statuts, types et période partagés
+    const st = statusesOf(statusF);
+    q = st ? q.in("status", st) : q.neq("status", "cancelled");
     // « À valider » : toutes les missions terminées, quelle que soit la date
     if (!onlyToValidate) {
-      if (period === "today") q = q.lt("window_start", new Date(dayStart.getTime() + 86_400_000).toISOString()).gte("window_end", dayStart.toISOString());
-      else if (period === "week") q = q.lt("window_start", new Date(dayStart.getTime() + 7 * 86_400_000).toISOString()).gte("window_end", dayStart.toISOString());
-      else if (period === "past") q = q.lt("window_end", now0.toISOString());
-      else q = q.gte("window_end", since);
+      const b = periodBounds(period, now0, orgTz);
+      if (b.to) q = q.lt("window_start", b.to.toISOString());
+      if (b.from) q = q.gt("window_end", b.from.toISOString());
+      if (b.endedBefore) q = q.lt("window_end", b.endedBefore.toISOString());
     }
-    if (typeF) q = q.eq("type", typeF);
+    const ty = typesOf(typeF);
+    if (ty.length) q = q.in("type", ty);
     if (propertyF) q = q.eq("property_id", propertyF);
   }
   const now = nowDate();
@@ -137,7 +139,21 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
       )}
       {tasks.length === 0 ? (
         <Card>
-          <EmptyState icon={ListChecks} title={manager ? t("empty") : t("mineEmpty")} text={manager ? tm("emptyText") : tm("mineEmptyText")} />
+          {manager && (statusF !== "todo" || typeF || propertyF || search || period !== "upcoming") ? (
+            // Écran ouvert depuis un compteur (accueil, linge) : on rappelle exactement ce qui a été cherché
+            <EmptyState
+              icon={ListChecks}
+              title={tm("emptyFilteredTitle")}
+              text={tm("emptyFiltered", {
+                period: tm(`periods.${period}`),
+                status: statusF === "todo" ? tm("todo") : statusF === "all" ? tm("allStatuses") : statusF === "done" ? tm("toValidate") : tts(statusF),
+                type: typeF ? (typeF === "linen" ? tm("linenGroup") : tt(typeF)) : tm("allTypes"),
+              })}
+              data-testid="missions-empty-filtered"
+            />
+          ) : (
+            <EmptyState icon={ListChecks} title={manager ? t("empty") : t("mineEmpty")} text={manager ? tm("emptyText") : tm("mineEmptyText")} />
+          )}
         </Card>
       ) : manager ? (
         <Card className="overflow-hidden">
@@ -168,6 +184,8 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
               if (k.assignee_id && awayNow[k.assignee_id] && ["assigned", "to_redo"].includes(k.status)) alerts.push({ key: "away", tone: "danger" });
               if (k.status === "in_progress" && k.started_at && k.duration_min > 0 && now.getTime() > Date.parse(k.started_at) + k.duration_min * 60_000) alerts.push({ key: "overrun", tone: "warning" });
               if (k.status === "unassigned" && Date.parse(k.window_start) - now.getTime() < 24 * 3_600_000) alerts.push({ key: "assignSoon", tone: "danger" });
+              // Fin régularisée par un responsable (migration 23) : jamais confondue avec une fin normale
+              if ((k as { regularized_at?: string | null }).regularized_at) alerts.push({ key: "regularized", tone: "warning" });
               const editable = ["unassigned", "assigned"].includes(k.status);
               return (
                 <li

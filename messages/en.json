@@ -1443,7 +1443,8 @@
       "use_timing_decision": "An arrival or departure time is confirmed or cancelled with the dedicated decision, which checks preparation.",
       "timing_window": "A linked mission couldn't follow this new time. Nothing was changed; reload the page to see the planned effect on each mission.",
       "missing_requirements": "Required proof is missing (checklist, photos or comment): ask for a correction instead of approving.",
-      "invalid_end": "The time must be between the mission start and now."
+      "invalid_end": "The time must be between the mission start and now.",
+      "migration_missing": "Not available: the database update (migration 23) has not been applied yet."
     },
     "home": {
       "subtitle": "what needs your attention",
@@ -2047,7 +2048,7 @@
       "edit": "Change date or number of people",
       "when": "Date and time",
       "people": "People",
-      "editHint": "Optional: explain the change. The guest is notified.",
+      "editHint": "Optional: explain the change. The guest sees it in their space (and by e-mail if sending is configured).",
       "cancelEdit": "Cancel",
       "saveEdit": "Save and notify"
     },
@@ -2106,7 +2107,7 @@
       "conflictTitle": "{name} is away during this mission's slot",
       "conflictActions": "HALO reassigns nothing on its own: choose someone else, change the time slot or cancel the mission.",
       "cancelTask": "Cancel the mission",
-      "cancelConfirm": "Cancel for good? The assigned agent will be notified.",
+      "cancelConfirm": "Cancel for good? The assigned agent is notified in HALO (and by e-mail per their preferences, if sending is configured).",
       "cancelYes": "Yes, cancel",
       "localTime": "local time: {zone}",
       "suggestTitle": "People with no known absence on this slot",
@@ -2189,7 +2190,7 @@
       "correctionNext": "Fix what's requested, then tap “Finish”: the mission goes back to the manager.",
       "sentTitle": "Sent to the manager",
       "resentTitle": "Correction sent to the manager",
-      "sentText": "They'll approve it or ask for a correction; you'll be notified according to your preferences.",
+      "sentText": "They will validate or request a correction; you will see it in HALO (and by e-mail per your preferences, if sending is configured).",
       "validatedTitle": "Mission approved by the manager.",
       "reqTitle": "To finish",
       "reqChecklist": "Checklist: {done} / {total} ticked",
@@ -2269,7 +2270,7 @@
       "confirmResolve": "Mark as resolved",
       "reportTitle": "A problem on site?",
       "report": "Report",
-      "reported": "Reported: your manager has been notified.",
+      "reported": "Reported: your manager sees it in HALO (and by e-mail per their preferences, if sending is configured).",
       "categoryLabel": "Problem type",
       "description": "What's happening",
       "urgentLabel": "Urgent: prevents finishing or the guest's arrival",
@@ -2285,7 +2286,10 @@
       "planConfirm": "Create the intervention",
       "openIntervention": "See the intervention",
       "interventionStatus": "intervention: {status}",
-      "resolvePromptText": "The linked intervention has been approved. Resolve the incident or keep it open."
+      "resolvePromptText": "The linked intervention has been approved. Resolve the incident or keep it open.",
+      "filterOpen": "open",
+      "filterAll": "Show all",
+      "emptyFiltered": "No incident for this filter: the counter that brought you here was zero."
     },
     "notifications": {
       "title": "Notifications sent",
@@ -2425,7 +2429,8 @@
         "overrun_continue": "“Yes, I'm continuing” (estimated duration exceeded)",
         "end_proposed": "Actual end time proposed",
         "end_accepted": "Proposed end time accepted",
-        "end_rejected": "Proposed end time refused"
+        "end_rejected": "Proposed end time refused",
+        "end_regularized": "End regularised by a manager (to validate)"
       },
       "bySystem": "automatic",
       "byYou": "you",
@@ -3541,7 +3546,7 @@
       },
       "unverified": "Unknown to HALO: linen stock, access and keys, owner rules, agents' travel. To be confirmed by the team.",
       "effectsEarly": "When confirming: the stay's arrival moves to the requested time; each mission and action follows the effect shown above (nothing else); no planned slot is moved; assigned agents whose mission changes are notified according to their preferences; the guest sees the new time; other time confirmations for the stay are marked “superseded”.",
-      "effectsLate": "When confirming: the stay's departure moves to the requested time; the cleaning window start follows; an already planned slot is never moved; the assigned agent is notified; the guest sees the new time.",
+      "effectsLate": "When confirming: the stay's departure moves to the requested time; the cleaning window start follows; an already planned slot is never moved; the assigned agent is notified in HALO (e-mail per their preferences, if sending is configured); the guest sees the new time.",
       "ack": "I confirm knowingly: preparation isn't guaranteed at this time (decision recorded).",
       "ackNeeded": "Tick the box to confirm despite these points.",
       "message": "Message to the guest",
@@ -3710,7 +3715,8 @@
       "proposal": {
         "pending": "End time proposed by the agent: {when}",
         "accepted": "End time kept: {when} (accepted by a manager)",
-        "rejected": "Proposed end time ({when}) refused by a manager"
+        "rejected": "Proposed end time ({when}) refused by a manager",
+        "superseded": "Proposed end time ({when}) no longer applies: end regularised or task cancelled by a manager"
       },
       "accept": "Accept this time",
       "reject": "Refuse",
@@ -3731,7 +3737,9 @@
       },
       "stale": "This mission is no longer in progress (finished, cancelled or reassigned): nothing was saved.",
       "declaredAt": "Declared on {at}",
-      "refresh": "Refresh"
+      "refresh": "Refresh",
+      "question": "Are you still on this job?",
+      "channel": "Reminder shown in HALO only: no notification is sent to the phone."
     },
     "incidentResolve": {
       "title": "Intervention approved: is the incident resolved?",
@@ -3807,9 +3815,13 @@
         "late": "Out of time",
         "away": "Person absent",
         "overrun": "Over time",
-        "assignSoon": "To assign"
+        "assignSoon": "To assign",
+        "regularized": "End regularised"
       },
-      "count": "{count, plural, =0 {No mission} one {# mission} other {# missions}}"
+      "count": "{count, plural, =0 {No mission} one {# mission} other {# missions}}",
+      "emptyFilteredTitle": "No task for these filters",
+      "emptyFiltered": "Period: {period} · status: {status} · type: {type}. The counter that brought you here was therefore zero.",
+      "linenGroup": "Linen (deliveries and pickups)"
     },
     "planningPage": {
       "subtitle": "{count, plural, =0 {No tasks this day} one {# task this day} other {# tasks this day}}",
@@ -3825,7 +3837,17 @@
       "all": "All",
       "noAgent": "No agent",
       "noName": "No name",
-      "nothingForAgent": "Nothing planned"
+      "nothingForAgent": "Nothing planned",
+      "toPlan": "{count, plural, one {# task to schedule} other {# tasks to schedule}}",
+      "toPlanShort": "To plan",
+      "toPlanHint": "No fixed time or no agent: only the allowed window is known. Open the task to choose the agent and time.",
+      "legend": "Only actually planned times and real times occupy the grid.",
+      "when": {
+        "window": "To plan · window {from} → {to} · {duration}",
+        "scheduled": "Planned {from} → {to}",
+        "running": "In progress since {from}",
+        "actual": "Done {from} → {to}"
+      }
     },
     "linenPage": {
       "subtitle": "Deliveries, pickups and linen incidents, from your real data.",
@@ -3885,6 +3907,27 @@
           }
         }
       }
+    },
+    "forgotten": {
+      "title": "Task still in progress?",
+      "text": "If the agent forgot to finish and cannot answer, regularise the end; if the job is no longer needed, cancel it. Reason required, everything stays in the history.",
+      "regularize": "Regularise the end",
+      "cancel": "Cancel the task",
+      "endLabel": "End time retained",
+      "endHint": "Between the actual start and now (property time).",
+      "reasonLabel": "Reason (required)",
+      "reasonHintEnd": "E.g. agent unreachable, end confirmed on site at 11:00.",
+      "reasonHintCancel": "E.g. job no longer needed, stay cancelled.",
+      "missingWarning": "Required proof missing: {items}. The task will be marked \"end regularised, proof missing\" and stay to validate: validation will still require this proof (request a correction from the agent if needed).",
+      "effectsEnd": "Effect: the task becomes \"to validate\" with this end time; it is never validated automatically. A late answer from the agent will no longer change it.",
+      "effectsCancel": "Effect: the task leaves the schedule and alerts. If it prepared an arrival, the stay will show no linked task. The agent is notified in HALO (and by e-mail per their preferences, if sending is configured).",
+      "confirmEnd": "Confirm regularisation",
+      "confirmCancel": "Confirm cancellation",
+      "regularizedTitle": "End regularised by a manager",
+      "regularizedText": "End time retained: {end}. Decision of {at}. This is not an end declared by the agent.",
+      "regularizedMissing": "Proof missing at regularisation: {items}. Validation still requires it.",
+      "regularizedComplete": "No required proof was missing at regularisation.",
+      "cancelledTitle": "Cancelled on {at}"
     }
   },
   "email": {
@@ -4143,7 +4186,7 @@
     "linkValid": "This personal link is valid until {until}. Don't share it.",
     "problem": {
       "title": "A problem in the property?",
-      "text": "Report it here: the team is notified and you can follow how it's handled.",
+      "text": "Report it here: the team sees it in HALO and you follow its handling on this page.",
       "category": "Problem type",
       "description": "Describe the problem",
       "urgent": "Urgent (water, heating, access, safety)",

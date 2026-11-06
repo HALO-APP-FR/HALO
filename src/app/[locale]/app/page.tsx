@@ -11,8 +11,10 @@ import { loadPlanning } from "@/lib/connected/planning";
 import { unreadThreads } from "@/lib/connected/chat";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
-import { windowText, zonedMidnight } from "@/lib/connected/format";
+import { durationText, windowText, zonedMidnight } from "@/lib/connected/format";
 import { KpiCard } from "@/components/halo/kpi-card";
+import { placement, type PlacementTask } from "@/lib/engine/placement";
+import { periodBounds } from "@/lib/connected/mission-filters";
 import { StatusPill } from "@/components/halo/status-pill";
 import { TaskTypeIcon } from "@/components/halo/task-type";
 import { Avatar } from "@/components/connected/avatar";
@@ -36,7 +38,8 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     // E-mails voyageurs non remis (échec ou aucun fournisseur) ; les e-mails d'équipe sont comptés à part, les « non envoyés par préférence » jamais
     supabase.from("notification_outbox").select("id", { count: "exact", head: true }).eq("organization_id", org.id).in("status", ["failed", "not_configured"]).or("last_error.is.null,last_error.neq.undeliverable_test_address").not("template", "like", "team_%").not("template", "like", "agent_%").not("template", "like", "chat_%"),
     supabase.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "confirmed").gte("check_in_at", now.toISOString()).lte("check_in_at", in7),
-    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "unassigned").gte("window_end", now.toISOString()),
+    // Même règle que la liste ouverte (« À venir » : plage non terminée depuis plus de 24 h)
+    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "unassigned").gt("window_end", periodBounds("upcoming", now, "UTC").from!.toISOString()),
     supabase.from("incidents").select("id", { count: "exact", head: true }).eq("organization_id", org.id).neq("status", "resolved"),
     loadPlanning(supabase, org.id, now),
     // Missions terminées qui attendent un responsable (statut « À valider ») : disparaissent dès validation ou correction
@@ -53,7 +56,7 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
   const [arrToday, depToday, tasksToday] = await Promise.all([
     supabase.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "confirmed").gte("check_in_at", d0.toISOString()).lt("check_in_at", d1.toISOString()),
     supabase.from("reservations").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("status", "confirmed").gte("check_out_at", d0.toISOString()).lt("check_out_at", d1.toISOString()),
-    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("type", "turnover").neq("status", "cancelled").lt("window_start", d1.toISOString()).gte("window_end", d0.toISOString()),
+    supabase.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", org.id).eq("type", "turnover").neq("status", "cancelled").lt("window_start", d1.toISOString()).gt("window_end", d0.toISOString()),
   ]);
   const [urgentInc, followInc, running, soon, keptRes, alertRes, ackRes] = await Promise.all([
     supabase.from("incidents").select("id", { count: "exact", head: true }).eq("organization_id", org.id).neq("status", "resolved").eq("urgent", true),
@@ -62,7 +65,7 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     // Missions en cours : dépassement = durée estimée écoulée depuis le démarrage réel (aucune qualification de faute)
     supabase.from("tasks").select("id, type, title, started_at, duration_min, assignee_id, properties(name)").eq("organization_id", org.id).eq("status", "in_progress").not("started_at", "is", null).limit(100),
     // Missions prévues dans les 24 h (ou en cours)
-    supabase.from("tasks").select("id, type, title, status, window_start, window_end, scheduled_start, duration_min, assignee_id, properties(name, timezone)").eq("organization_id", org.id).in("status", ["unassigned", "assigned", "in_progress", "to_redo", "done"]).lte("window_start", in24).gte("window_end", now.toISOString()).order("window_start").limit(10),
+    supabase.from("tasks").select("id, type, title, status, window_start, window_end, scheduled_start, duration_min, assignee_id, started_at, completed_at, properties(name, timezone)").eq("organization_id", org.id).in("status", ["unassigned", "assigned", "in_progress", "to_redo", "done"]).lte("window_start", in24).gt("window_end", now.toISOString()).order("window_start").limit(10),
     // Migration 21 (lu à part : sans elle, réglages par défaut et aucune réponse connue)
     supabase.from("incidents").select("id, kept_open_at").eq("organization_id", org.id).neq("status", "resolved").not("kept_open_at", "is", null).limit(50),
     supabase.from("organizations").select("overrun_alert_min").eq("id", org.id).maybeSingle(),
@@ -231,6 +234,15 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     );
   };
   const tnav = await getTranslations("nav");
+  const tpl = await getTranslations("connected.planningPage");
+  /** Même règle que le planning : créneau fixé, heures réelles, ou plage autorisée « à planifier » (jamais un horaire inventé). */
+  const whenText = (k: Record<string, unknown>, tz?: string) => {
+    const p = placement(k as unknown as PlacementTask, now.getTime());
+    const at = (x: number) => fmt.dateTime(new Date(x), { weekday: "short", hour: "2-digit", minute: "2-digit", ...(tz ? { timeZone: tz } : {}) });
+    if (p.kind === "unscheduled") return tpl("when.window", { from: at(p.windowStart), to: at(p.windowEnd), duration: durationText(k.duration_min as number) });
+    if (p.kind === "scheduled") return tpl("when.scheduled", { from: at(p.start), to: at(p.end) });
+    return p.running ? tpl("when.running", { from: at(p.start) }) : tpl("when.actual", { from: at(p.start), to: at(p.end) });
+  };
   const fmtDay = fmt.dateTime(now, { weekday: "long", day: "numeric", month: "long", timeZone: orgTz });
   const nameFor = (id: string | null) => (id ? planning.members.find((m) => m.id === id)?.name ?? "" : "");
 
@@ -302,10 +314,10 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
                     <span className="block truncate text-[15px] font-semibold">{pname(k.properties)}</span>
                     <span className="block truncate text-[13px] text-muted">
                       {(k.title as string) || tt(k.type as string)}
-                      <span className="md:hidden"> · {windowText(fmt, k.window_start as string, k.window_end as string, false, tz)}</span>
+                      <span className="md:hidden"> · {whenText(k, tz)}</span>
                     </span>
                   </span>
-                  <span className="hidden truncate text-[14px] text-muted md:block">{windowText(fmt, k.window_start as string, k.window_end as string, false, tz)}</span>
+                  <span className="hidden truncate text-[14px] text-muted md:block" data-testid="home-soon-when">{whenText(k, tz)}</span>
                   <span className="hidden min-w-0 items-center gap-2 text-[14px] md:flex">
                     {who ? (
                       <>

@@ -1443,7 +1443,8 @@
       "use_timing_decision": "Um horário de chegada ou saída confirma-se ou cancela-se com a decisão dedicada, que verifica a preparação.",
       "timing_window": "Uma missão ligada não podia acompanhar este novo horário. Nada foi alterado; recarregue a página para ver o efeito previsto em cada missão.",
       "missing_requirements": "Faltam provas exigidas (checklist, fotos ou comentário): peça uma correção em vez de validar.",
-      "invalid_end": "A hora deve estar entre o início da missão e agora."
+      "invalid_end": "A hora deve estar entre o início da missão e agora.",
+      "migration_missing": "Indisponível: a atualização da base (migração 23) ainda não foi aplicada."
     },
     "home": {
       "subtitle": "o que requer a sua atenção",
@@ -2047,7 +2048,7 @@
       "edit": "Alterar data ou pessoas",
       "when": "Data e hora",
       "people": "Pessoas",
-      "editHint": "Opcional: explique a alteração. O hóspede é avisado.",
+      "editHint": "Opcional: explique a alteração. O hóspede vê-a no seu espaço (e por e-mail se o envio estiver configurado).",
       "cancelEdit": "Cancelar",
       "saveEdit": "Guardar e avisar"
     },
@@ -2106,7 +2107,7 @@
       "conflictTitle": "{name} está ausente no horário desta missão",
       "conflictActions": "O HALO não reatribui nada sozinho: escolha outra pessoa, altere o horário ou cancele a missão.",
       "cancelTask": "Cancelar a missão",
-      "cancelConfirm": "Cancelar definitivamente? O agente atribuído será avisado.",
+      "cancelConfirm": "Anular definitivamente? O agente atribuído é notificado no HALO (e por e-mail segundo as preferências, se o envio estiver configurado).",
       "cancelYes": "Sim, cancelar",
       "localTime": "hora local: {zone}",
       "suggestTitle": "Pessoas sem ausência conhecida neste horário",
@@ -2189,7 +2190,7 @@
       "correctionNext": "Corrija o que é pedido e toque em «Terminar»: a missão volta ao responsável.",
       "sentTitle": "Enviada ao responsável",
       "resentTitle": "Correção enviada ao responsável",
-      "sentText": "Vai validar ou pedir uma correção; será avisado segundo as suas preferências.",
+      "sentText": "Vai validar ou pedir uma correção; verá no HALO (e por e-mail segundo as suas preferências, se o envio estiver configurado).",
       "validatedTitle": "Missão validada pelo responsável.",
       "reqTitle": "Para terminar",
       "reqChecklist": "Checklist: {done} / {total} marcadas",
@@ -2269,7 +2270,7 @@
       "confirmResolve": "Marcar como resolvido",
       "reportTitle": "Um problema no local?",
       "report": "Comunicar",
-      "reported": "Comunicado: o responsável foi avisado.",
+      "reported": "Assinalado: o seu responsável vê-o no HALO (e por e-mail segundo as preferências, se o envio estiver configurado).",
       "categoryLabel": "Tipo de problema",
       "description": "O que se passa",
       "urgentLabel": "Urgente: impede terminar ou a chegada",
@@ -2285,7 +2286,10 @@
       "planConfirm": "Criar a intervenção",
       "openIntervention": "Ver a intervenção",
       "interventionStatus": "intervenção: {status}",
-      "resolvePromptText": "A intervenção ligada foi validada. Resolva o incidente ou deixe-o aberto."
+      "resolvePromptText": "A intervenção ligada foi validada. Resolva o incidente ou deixe-o aberto.",
+      "filterOpen": "abertos",
+      "filterAll": "Mostrar tudo",
+      "emptyFiltered": "Nenhum incidente para este filtro: o contador que o trouxe aqui estava a zero."
     },
     "notifications": {
       "title": "Envios e notificações",
@@ -2425,7 +2429,8 @@
         "overrun_continue": "«Sim, continuo» (duração estimada excedida)",
         "end_proposed": "Hora real de fim proposta",
         "end_accepted": "Hora de fim proposta aceite",
-        "end_rejected": "Hora de fim proposta recusada"
+        "end_rejected": "Hora de fim proposta recusada",
+        "end_regularized": "Fim regularizado por um responsável (por validar)"
       },
       "bySystem": "automático",
       "byYou": "você",
@@ -3541,7 +3546,7 @@
       },
       "unverified": "Desconhecido para o HALO: stock de roupa, acesso e chaves, regras do proprietário, deslocações dos agentes. A confirmar pela equipa.",
       "effectsEarly": "Ao confirmar: a chegada passa para a hora pedida; cada missão e ação segue o efeito indicado (nada mais); nenhum horário planeado é alterado; os agentes cuja missão muda são avisados segundo as suas preferências; o hóspede vê a nova hora; as outras confirmações de horário ficam «substituídas».",
-      "effectsLate": "Ao confirmar: a saída passa para a hora pedida; o início da janela da limpeza acompanha; um horário já planeado nunca é alterado; o agente atribuído é avisado; o hóspede vê a nova hora.",
+      "effectsLate": "Ao confirmar: a saída passa para a hora pedida; o início da janela da limpeza acompanha; um horário já planeado nunca é alterado; o agente atribuído é avisado no HALO (e-mail segundo as preferências, se o envio estiver configurado); o hóspede vê a nova hora.",
       "ack": "Confirmo com conhecimento de causa: a preparação não está garantida a esta hora (decisão registada).",
       "ackNeeded": "Assinale a caixa para confirmar apesar destes pontos.",
       "message": "Mensagem ao hóspede",
@@ -3710,7 +3715,8 @@
       "proposal": {
         "pending": "Hora de fim proposta pelo agente: {when}",
         "accepted": "Hora de fim aceite: {when} (por um responsável)",
-        "rejected": "Hora de fim proposta ({when}) recusada por um responsável"
+        "rejected": "Hora de fim proposta ({when}) recusada por um responsável",
+        "superseded": "Hora de fim proposta ({when}) sem efeito: fim regularizado ou tarefa anulada por um responsável"
       },
       "accept": "Aceitar esta hora",
       "reject": "Recusar",
@@ -3731,7 +3737,9 @@
       },
       "stale": "Esta missão já não está em curso (terminada, cancelada ou reatribuída): nada foi guardado.",
       "declaredAt": "Declarada em {at}",
-      "refresh": "Atualizar"
+      "refresh": "Atualizar",
+      "question": "Ainda está na tarefa?",
+      "channel": "Lembrete mostrado apenas no HALO: nenhuma notificação é enviada para o telemóvel."
     },
     "incidentResolve": {
       "title": "Intervenção validada: o incidente está resolvido?",
@@ -3807,9 +3815,13 @@
         "late": "Fora de prazo",
         "away": "Pessoa ausente",
         "overrun": "Duração excedida",
-        "assignSoon": "A atribuir"
+        "assignSoon": "A atribuir",
+        "regularized": "Fim regularizado"
       },
-      "count": "{count, plural, =0 {Nenhuma missão} one {# missão} other {# missões}}"
+      "count": "{count, plural, =0 {Nenhuma missão} one {# missão} other {# missões}}",
+      "emptyFilteredTitle": "Nenhuma tarefa para estes filtros",
+      "emptyFiltered": "Período: {period} · estado: {status} · tipo: {type}. O contador que o trouxe aqui estava portanto a zero.",
+      "linenGroup": "Roupa (entregas e recolhas)"
     },
     "planningPage": {
       "subtitle": "{count, plural, =0 {Nenhuma tarefa neste dia} one {# tarefa neste dia} other {# tarefas neste dia}}",
@@ -3825,7 +3837,17 @@
       "all": "Todos",
       "noAgent": "Sem agente",
       "noName": "Sem nome",
-      "nothingForAgent": "Nada previsto"
+      "nothingForAgent": "Nada previsto",
+      "toPlan": "{count, plural, one {# tarefa por planear} other {# tarefas por planear}}",
+      "toPlanShort": "Por planear",
+      "toPlanHint": "Sem hora fixa ou sem agente: só se conhece o intervalo permitido. Abra a tarefa para escolher o agente e a hora.",
+      "legend": "Só as horas planeadas e as reais ocupam a grelha.",
+      "when": {
+        "window": "Por planear · intervalo {from} → {to} · {duration}",
+        "scheduled": "Planeada {from} → {to}",
+        "running": "Em curso desde {from}",
+        "actual": "Realizada {from} → {to}"
+      }
     },
     "linenPage": {
       "subtitle": "Entregas, recolhas e incidentes de roupa, com os seus dados reais.",
@@ -3885,6 +3907,27 @@
           }
         }
       }
+    },
+    "forgotten": {
+      "title": "Tarefa ainda em curso?",
+      "text": "Se o agente se esqueceu de terminar e não pode responder, regularize o fim; se a intervenção já não se justifica, anule-a. Motivo obrigatório, tudo fica no histórico.",
+      "regularize": "Regularizar o fim",
+      "cancel": "Anular a tarefa",
+      "endLabel": "Hora de fim considerada",
+      "endHint": "Entre o início real e agora (hora do alojamento).",
+      "reasonLabel": "Motivo (obrigatório)",
+      "reasonHintEnd": "Ex.: agente incontactável, fim confirmado no local às 11h.",
+      "reasonHintCancel": "Ex.: intervenção desnecessária, estadia anulada.",
+      "missingWarning": "Provas obrigatórias em falta: {items}. A tarefa ficará marcada «fim regularizado, provas em falta» e por validar: a validação continuará a exigir estas provas (peça uma correção ao agente se necessário).",
+      "effectsEnd": "Efeito: a tarefa passa a «por validar» com esta hora de fim; nunca é validada automaticamente. Uma resposta tardia do agente já não a altera.",
+      "effectsCancel": "Efeito: a tarefa sai do planeamento e dos alertas. Se preparava uma chegada, a estadia indicará que não há tarefa ligada. O agente é notificado no HALO (e por e-mail segundo as preferências, se o envio estiver configurado).",
+      "confirmEnd": "Confirmar a regularização",
+      "confirmCancel": "Confirmar a anulação",
+      "regularizedTitle": "Fim regularizado por um responsável",
+      "regularizedText": "Hora de fim considerada: {end}. Decisão de {at}. Não é um fim declarado pelo agente.",
+      "regularizedMissing": "Provas em falta na regularização: {items}. A validação continua a exigi-las.",
+      "regularizedComplete": "Nenhuma prova obrigatória faltava na regularização.",
+      "cancelledTitle": "Anulada em {at}"
     }
   },
   "email": {
@@ -4143,7 +4186,7 @@
     "linkValid": "Este link pessoal é válido até {until}. Não o partilhe.",
     "problem": {
       "title": "Um problema no alojamento?",
-      "text": "Comunique aqui: a equipa é avisada e acompanha o tratamento.",
+      "text": "Assinale-o aqui: a equipa vê-o no HALO e acompanha o tratamento nesta página.",
       "category": "Tipo de problema",
       "description": "Descreva o problema",
       "urgent": "Urgente (água, aquecimento, acesso, segurança)",

@@ -10,6 +10,8 @@ import { devices, expect, test, type Browser, type Page } from "@playwright/test
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync, readdirSync } from "node:fs";
 import { createServer, type Server } from "node:http";
+import { addDays, dayKey } from "../../src/lib/connected/days";
+import { zonedTime } from "../../src/lib/connected/format";
 
 test.skip(!process.env.HALO_E2E_CONNECTED, "préproduction locale non démarrée");
 test.describe.configure({ mode: "serial", timeout: 90_000 });
@@ -636,7 +638,7 @@ test("14 · logement prêt ? arrivées réelles, ménage manquant, incidents age
   await agent.getByTestId("report-description").fill("Plus de produit vaisselle");
   await agent.getByTestId("report-urgent").check();
   await agent.getByTestId("report-send").click();
-  await expect(agent.getByText("Signalé : votre responsable est prévenu.")).toBeVisible();
+  await expect(agent.getByText("Signalé : votre responsable le voit dans HALO", { exact: false })).toBeVisible();
   await expect(agent.getByTestId("reported-incident")).toContainText("Manque de matériel");
 
   // Manager : le voit, le prend en charge, le résout
@@ -708,7 +710,7 @@ test("15 · linge (blanchisserie) et maintenance comptent dans « logement prêt
   await agent.getByLabel("Type de problème").selectOption("leak");
   await agent.getByTestId("report-description").fill("Fuite sous l'évier");
   await agent.getByTestId("report-send").click();
-  await expect(agent.getByText("Signalé : votre responsable est prévenu.")).toBeVisible();
+  await expect(agent.getByText("Signalé : votre responsable le voit dans HALO", { exact: false })).toBeVisible();
   await m.goto("/fr/app/incidents");
   const inc = m.getByTestId("incident-row").filter({ hasText: "Fuite sous l'évier" });
   await inc.getByTestId("incident-plan-open").click();
@@ -2963,7 +2965,7 @@ test("42 · urgence de bout en bout : fuite urgente → tableau de bord → inte
   await agent.getByTestId("report-description").fill("Fuite sous l'évier, eau au sol (fictif)");
   await agent.getByTestId("report-urgent").check();
   await agent.getByTestId("report-send").click();
-  await expect(agent.getByText("Signalé : votre responsable est prévenu.")).toBeVisible();
+  await expect(agent.getByText("Signalé : votre responsable le voit dans HALO", { exact: false })).toBeVisible();
 
   // Tableau de bord : en « Urgent ou bloquant », avec l'étiquette Urgent et un lien direct vers l'incident
   await m.goto("/fr/app");
@@ -3474,4 +3476,206 @@ test("47 · refonte visuelle : liste des missions (filtres réels, statut, perso
     await ctx.close();
   }
   await m.context().close();
+});
+
+/** Heure locale « AAAA-MM-JJ HH:mm » d'un fuseau → instant ISO (tests du planning). */
+function at(tz: string, day: string, hm: string) {
+  return zonedTime(`${day}T${hm}`, tz).toISOString();
+}
+
+test("48 · planning fiable : plage ≠ créneau, « à planifier », bonne date (minuit, veille), réalisé, cohérence accueil / fiche / agent", async ({ browser }) => {
+  const m = await newPage(browser);
+  const name = `plan ${run}`;
+  const { org, agentId } = await testScenario(m, name);
+  const { data: o } = await admin.from("organizations").select("timezone").eq("id", org).single();
+  const tz = (o!.timezone as string) ?? "Europe/Paris";
+  const today = dayKey(new Date(), tz);
+  const yesterday = addDays(today, -1);
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+  const base = { organization_id: org, property_id: prop!.id, is_auto_generated: false };
+  // Nettoyage : seules les missions de ce test occupent le planning
+  await admin.from("tasks").update({ status: "cancelled" }).eq("organization_id", org).neq("status", "cancelled");
+  const rows = [
+    // QA Carte : plage 10:41–16:00, 1 h 30, AUCUN horaire planifié
+    { ...base, title: "P-plage", type: "turnover", status: "assigned", assignee_id: agentId, window_start: at(tz, today, "10:41"), window_end: at(tz, today, "16:00"), duration_min: 90 },
+    // Créneau confirmé 14:00
+    { ...base, title: "P-creneau", type: "maintenance", status: "assigned", assignee_id: agentId, window_start: at(tz, today, "09:00"), window_end: at(tz, today, "18:00"), duration_min: 90, scheduled_start: at(tz, today, "14:00") },
+    // À cheval sur minuit : la veille 22:30 → aujourd'hui 00:30
+    { ...base, title: "P-minuit", type: "inspection", status: "assigned", assignee_id: agentId, window_start: at(tz, yesterday, "20:00"), window_end: at(tz, today, "06:00"), duration_min: 120, scheduled_start: at(tz, yesterday, "22:30") },
+    // Mission de la veille dont la plage se termine exactement à minuit : jamais aujourd'hui
+    { ...base, title: "P-veille", type: "maintenance", status: "assigned", assignee_id: agentId, window_start: at(tz, yesterday, "10:00"), window_end: at(tz, today, "00:00"), duration_min: 60, scheduled_start: at(tz, yesterday, "13:00") },
+    // Terminée : heures réelles 08:00 → 09:30
+    { ...base, title: "P-fait", type: "turnover", status: "done", assignee_id: agentId, window_start: at(tz, today, "07:00"), window_end: at(tz, today, "12:00"), duration_min: 60, started_at: at(tz, today, "08:00"), completed_at: at(tz, today, "09:30") },
+  ];
+  const { data: made, error } = await admin.from("tasks").insert(rows).select("id, title");
+  expect(error).toBeNull();
+  const id = (t: string) => made!.find((x) => x.title === t)!.id as string;
+
+  await m.goto("/fr/app/planning");
+  // Sans créneau : dans « À planifier », avec la plage et la durée — jamais sur la grille
+  const plage = m.locator(`[data-testid=planning-to-plan][href$="${id("P-plage")}"]`);
+  await expect(plage).toHaveAttribute("data-kind", "unscheduled");
+  await expect(plage).toContainText("À planifier · plage");
+  await expect(plage).toContainText("10:41");
+  await expect(plage).toContainText("1 h 30");
+  await expect(m.locator(`[data-testid=planning-task][href$="${id("P-plage")}"]`)).toHaveCount(0);
+  await expect(m.getByTestId("planning-grid")).not.toContainText("10:41 → 12:11");
+  // Créneau confirmé : sur la grille, libellé « Planifié »
+  const cr = m.locator(`[data-testid=planning-task][href$="${id("P-creneau")}"]`);
+  await expect(cr).toHaveAttribute("data-kind", "scheduled");
+  await expect(cr).toContainText("Planifié");
+  await expect(cr).toContainText("14:00");
+  // À cheval sur minuit : visible aujourd'hui (suite) ET la veille ; la mission de la veille n'apparaît pas aujourd'hui
+  await expect(m.locator(`[data-testid=planning-task][href$="${id("P-minuit")}"]`)).toBeVisible();
+  await expect(m.locator(`[href$="${id("P-veille")}"]`)).toHaveCount(0);
+  // Terminée : heures réelles
+  const fait = m.locator(`[data-testid=planning-task][href$="${id("P-fait")}"]`);
+  await expect(fait).toHaveAttribute("data-kind", "actual");
+  await expect(fait).toContainText("Réalisé");
+  await expect(fait).toContainText("08:00");
+  await m.goto(`/fr/app/planning?d=${yesterday}`);
+  await expect(m.locator(`[data-testid=planning-task][href$="${id("P-minuit")}"]`)).toBeVisible();
+  await expect(m.locator(`[data-testid=planning-task][href$="${id("P-veille")}"]`)).toBeVisible();
+  await expect(m.locator(`[href$="${id("P-plage")}"]`)).toHaveCount(0);
+
+  // Fiche mission : plage, durée et créneau distincts
+  await m.goto(`/fr/app/missions/${id("P-plage")}`);
+  await expect(m.getByTestId("mission-slot")).toContainText("Pas d'horaire planifié");
+  await expect(m.getByTestId("mission-duration")).toContainText("1 h 30");
+  // Accueil : même règle (jamais un horaire inventé) — si la plage est dans les prochaines 24 h
+  await m.goto("/fr/app");
+  const soon = m.locator(`[data-testid=home-soon-row][href$="${id("P-plage")}"]`);
+  if (Date.parse(rows[0].window_end) > Date.now()) await expect(soon.getByTestId("home-soon-when")).toContainText("À planifier");
+  // Vue agent : aucune heure de créneau pour la mission sans créneau
+  const agent = await scenarioAgent(browser, name);
+  await agent.goto("/fr/app/missions");
+  const card = agent.getByTestId("mission-row").filter({ hasText: "P-plage" });
+  if (Date.parse(rows[0].window_end) > Date.now() - 86_400_000) await expect(card.getByTestId("mission-timing-compact")).toContainText("créneau");
+  // Téléphone 375 px : la liste horaire place la mission sans créneau en « À planifier »
+  const phone = await browser.newContext({ ...devices["iPhone SE"], locale: "fr-FR", timezoneId: "Europe/Paris", storageState: await m.context().storageState() });
+  const p = await phone.newPage();
+  await p.goto("/fr/app/planning");
+  const row = p.locator(`[data-testid=planning-row][href$="${id("P-plage")}"]`);
+  await expect(row).toHaveAttribute("data-kind", "unscheduled");
+  await expect(row).toContainText("À planifier");
+  expect(await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+  for (const c of [m.context(), agent.context(), phone]) await c.close();
+});
+
+test("49 · linge : chaque compteur ouvre exactement la liste correspondante (type, statut, période), zéro expliqué", async ({ browser }) => {
+  const m = await newPage(browser);
+  const name = `linf ${run}`;
+  const { org } = await testScenario(m, name);
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+  const base = { organization_id: org, property_id: prop!.id, is_auto_generated: false, status: "unassigned", window_start: new Date(Date.now() + 3_600_000).toISOString(), window_end: new Date(Date.now() + 30 * 3_600_000).toISOString(), duration_min: 30 };
+  await admin.from("tasks").insert([
+    { ...base, type: "linen_delivery", title: "L-sans-agent" },
+    { ...base, type: "turnover", title: "M-sans-agent" },
+  ]);
+  await m.goto("/fr/app/linen");
+  const kpi = m.getByTestId("linen-kpis").locator("a").nth(2);
+  const n = Number((await kpi.innerText()).match(/\d+/g)!.pop());
+  expect(n).toBeGreaterThanOrEqual(1);
+  await kpi.click();
+  await expect(m).toHaveURL(/period=week/);
+  await expect(m).toHaveURL(/status=unassigned/);
+  await expect(m).toHaveURL(/type=linen/);
+  await expect(m.getByTestId("mission-row")).toHaveCount(n);
+  await expect(m.getByTestId("mission-row").filter({ hasText: "L-sans-agent" })).toHaveCount(1);
+  await expect(m.getByTestId("mission-row").filter({ hasText: "M-sans-agent" })).toHaveCount(0);
+  for (const r of await m.getByTestId("mission-row").all()) await expect(r).toContainText(/Livraison linge|Collecte linge/);
+  // Livraisons / collectes : même période et mêmes statuts que le compteur
+  for (const [i, label] of [[0, "Livraison linge"], [1, "Collecte linge"]] as const) {
+    await m.goto("/fr/app/linen");
+    const k = m.getByTestId("linen-kpis").locator("a").nth(i);
+    const v = Number((await k.innerText()).match(/\d+/g)!.pop());
+    await k.click();
+    await expect(m).toHaveURL(/status=all/);
+    if (v === 0) await expect(m.getByTestId("missions-empty-filtered")).toContainText("compteur");
+    else {
+      await expect(m.getByTestId("mission-row")).toHaveCount(v);
+      for (const r of await m.getByTestId("mission-row").all()) await expect(r).toContainText(label);
+    }
+  }
+  // Incidents linge ouverts : filtre visible, même règle
+  await m.goto("/fr/app/linen");
+  await m.getByTestId("linen-kpis").locator("a").nth(3).click();
+  await expect(m).toHaveURL(/\/fr\/app\/incidents\?category=linen&open=1$/);
+  await expect(m.getByTestId("incidents-filter")).toBeVisible();
+  await expect(m.getByTestId("incidents-empty")).toContainText("compteur");
+  await expect(m.getByTestId("nav-linen")).toBeVisible();
+  await m.context().close();
+});
+
+test("50 · mission oubliée : « toujours en mission ? », heure proposée, régularisation motivée sans validation, réponse tardive sans effet, annulation d'une mission commencée", async ({ browser }) => {
+  const m = await newPage(browser);
+  const name = `forg ${run}`;
+  const { org, agentId } = await testScenario(m, name);
+  await admin.from("organizations").update({ validation_task_types: ["turnover", "maintenance"] }).eq("id", org);
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+  const base = { organization_id: org, property_id: prop!.id, is_auto_generated: false, status: "in_progress", assignee_id: agentId, window_start: new Date(Date.now() - 6 * 3_600_000).toISOString(), window_end: new Date(Date.now() + 2 * 3_600_000).toISOString(), duration_min: 60, started_at: new Date(Date.now() - 4 * 3_600_000).toISOString() };
+  const { data: made } = await admin.from("tasks").insert([{ ...base, type: "turnover", title: "Oubli-menage" }, { ...base, type: "maintenance", title: "Oubli-annule" }]).select("id, title");
+  const fid = made!.find((x) => x.title === "Oubli-menage")!.id as string;
+  const cid = made!.find((x) => x.title === "Oubli-annule")!.id as string;
+
+  // Agent : rappel honnête (dans HALO uniquement), puis heure de fin proposée
+  const agent = await scenarioAgent(browser, name);
+  await agent.goto(`/fr/app/missions/${fid}`);
+  await expect(agent.getByTestId("overrun-prompt")).toContainText("Êtes-vous toujours en mission ?");
+  await expect(agent.getByTestId("overrun-channel")).toContainText("aucune notification n'est envoyée sur le téléphone");
+  // « Terminer » depuis la liste (raccourci) : refusé sans la photo obligatoire, la mission reste en cours
+  const { data: room } = await admin.from("checklist_rooms").insert({ organization_id: org, property_id: prop!.id, name: "Salle de bain (fictif)", sort: 99 }).select("id").single();
+  await admin.from("checklist_items").insert({ organization_id: org, room_id: room!.id, label: "Photo de la douche (fictif)", photo_required: true, sort: 1 });
+  await agent.goto("/fr/app/missions");
+  await agent.getByTestId("mission-row").filter({ hasText: "Oubli-menage" }).getByTestId("task-finish").click();
+  await expect(agent.getByTestId("mission-row").filter({ hasText: "Oubli-menage" })).toContainText(/photo/i);
+  expect((await admin.from("tasks").select("status").eq("id", fid).single()).data!.status).toBe("in_progress");
+  await agent.goto(`/fr/app/missions/${fid}`);
+  await agent.getByTestId("overrun-forgot").click();
+  await agent.getByTestId("overrun-propose").click();
+  await expect(agent.getByTestId("overrun-proposed")).toBeVisible();
+
+  // Responsable : heure de déclaration ET heure proposée distinctes ; il régularise (agent injoignable)
+  await m.goto(`/fr/app/missions/${fid}`);
+  await expect(m.getByTestId("end-proposal")).toHaveAttribute("data-status", "pending");
+  await expect(m.getByTestId("end-declared")).toContainText("Déclarée le");
+  await m.getByTestId("regularize-open").click();
+  await expect(m.getByTestId("regularize-missing")).toContainText("photos");
+  await expect(m.getByTestId("regularize-confirm")).toBeDisabled(); // motif obligatoire
+  await m.getByTestId("regularize-reason").fill("Agent injoignable, fin constatée (mission fictive de test, aucune intervention réelle)");
+  await m.getByTestId("regularize-confirm").click();
+  await expect(m.getByTestId("task-regularized")).toContainText("Fin régularisée par un responsable");
+  await expect(m.getByTestId("task-regularized-missing")).toContainText("photos");
+  await expect(m.getByTestId("history-event").filter({ hasText: "Fin régularisée" })).toContainText("mission fictive de test");
+  await expect(m.getByTestId("end-proposal")).toHaveAttribute("data-status", "superseded");
+  const after = (await admin.from("tasks").select("status, validated_at, regularized_by, completed_at").eq("id", fid).single()).data!;
+  expect(after.status).toBe("done");
+  expect(after.validated_at).toBeNull();
+  // Jamais validée sans les preuves : la validation reste refusée
+  await m.getByTestId("mission-validate").click();
+  await expect(m.getByRole("alert").filter({ hasText: /photo/i }).first()).toBeVisible();
+  expect((await admin.from("tasks").select("status").eq("id", fid).single()).data!.status).toBe("done");
+  // Liste : distinguée d'une fin normale
+  await m.goto("/fr/app/missions?status=done");
+  await expect(m.getByTestId("mission-row").filter({ hasText: "Oubli-menage" }).getByTestId("mission-alert-regularized")).toBeVisible();
+  // Réponse tardive de l'agent : sans effet
+  const late = (await admin.rpc("task_overrun_continue", { org, task: fid })).data;
+  expect(late === null || late === "stale").toBeTruthy();
+  await agent.goto(`/fr/app/missions/${fid}`);
+  await expect(agent.getByTestId("overrun-prompt")).toHaveCount(0);
+  await expect(agent.getByTestId("task-regularized")).toBeVisible();
+
+  // Annulation d'une mission commencée : motif obligatoire, historique, sort du planning et des alertes
+  await m.goto(`/fr/app/missions/${cid}`);
+  await m.getByTestId("cancel-started-open").click();
+  await expect(m.getByTestId("cancel-started-confirm")).toBeDisabled();
+  await m.getByTestId("regularize-reason").fill("Intervention inutile (mission fictive de test)");
+  await m.getByTestId("cancel-started-confirm").click();
+  await expect(m.getByTestId("task-cancel-reason")).toContainText("Intervention inutile");
+  await expect(m.getByTestId("history-event").filter({ hasText: "Annulée" })).toContainText("Intervention inutile");
+  await m.goto("/fr/app/planning");
+  await expect(m.locator(`[href$="${cid}"]`)).toHaveCount(0);
+  await m.goto("/fr/app");
+  await expect(m.locator(`[href$="${cid}"]`)).toHaveCount(0);
+  for (const c of [m, agent]) await c.context().close();
 });

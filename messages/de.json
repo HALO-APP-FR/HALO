@@ -1443,7 +1443,8 @@
       "use_timing_decision": "Eine An- oder Abreisezeit wird mit der eigenen Entscheidung bestätigt oder storniert, die die Vorbereitung prüft.",
       "timing_window": "Ein verknüpfter Einsatz konnte der neuen Uhrzeit nicht folgen. Nichts wurde geändert; laden Sie die Seite neu, um die geplante Wirkung je Einsatz zu sehen.",
       "missing_requirements": "Erforderliche Nachweise fehlen (Checkliste, Fotos oder Kommentar): Korrektur anfordern statt freigeben.",
-      "invalid_end": "Die Uhrzeit muss zwischen Beginn des Einsatzes und jetzt liegen."
+      "invalid_end": "Die Uhrzeit muss zwischen Beginn des Einsatzes und jetzt liegen.",
+      "migration_missing": "Nicht verfügbar: Das Datenbank-Update (Migration 23) ist noch nicht eingespielt."
     },
     "home": {
       "subtitle": "was Ihre Aufmerksamkeit braucht",
@@ -2047,7 +2048,7 @@
       "edit": "Datum oder Personenzahl ändern",
       "when": "Datum und Uhrzeit",
       "people": "Personen",
-      "editHint": "Optional: Änderung erklären. Der Gast wird informiert.",
+      "editHint": "Optional: Erklären Sie die Änderung. Der Gast sieht sie in seinem Bereich (und per E-Mail, falls der Versand eingerichtet ist).",
       "cancelEdit": "Abbrechen",
       "saveEdit": "Speichern und informieren"
     },
@@ -2106,7 +2107,7 @@
       "conflictTitle": "{name} ist im Zeitfenster dieses Einsatzes abwesend",
       "conflictActions": "HALO weist nichts selbst neu zu: Wählen Sie eine andere Person, ändern Sie das Zeitfenster oder stornieren Sie den Einsatz.",
       "cancelTask": "Einsatz stornieren",
-      "cancelConfirm": "Endgültig stornieren? Der zugewiesene Agent wird benachrichtigt.",
+      "cancelConfirm": "Endgültig stornieren? Die zugewiesene Person wird in HALO benachrichtigt (und per E-Mail gemäß Einstellungen, falls der Versand eingerichtet ist).",
       "cancelYes": "Ja, stornieren",
       "localTime": "Ortszeit: {zone}",
       "suggestTitle": "Personen ohne bekannte Abwesenheit in diesem Zeitraum",
@@ -2189,7 +2190,7 @@
       "correctionNext": "Korrigieren Sie das Gewünschte und tippen Sie auf „Abschließen“: der Einsatz geht zurück an die Leitung.",
       "sentTitle": "An die Leitung gesendet",
       "resentTitle": "Korrektur an die Leitung gesendet",
-      "sentText": "Sie wird freigeben oder eine Korrektur anfordern; Sie werden gemäß Ihren Einstellungen informiert.",
+      "sentText": "Es wird freigegeben oder eine Korrektur angefordert; Sie sehen es in HALO (und per E-Mail gemäß Ihren Einstellungen, falls der Versand eingerichtet ist).",
       "validatedTitle": "Einsatz von der Leitung freigegeben.",
       "reqTitle": "Zum Abschließen",
       "reqChecklist": "Checkliste: {done} / {total} abgehakt",
@@ -2269,7 +2270,7 @@
       "confirmResolve": "Als gelöst markieren",
       "reportTitle": "Ein Problem vor Ort?",
       "report": "Melden",
-      "reported": "Gemeldet: Ihr Verantwortlicher ist informiert.",
+      "reported": "Gemeldet: Ihre verantwortliche Person sieht es in HALO (und per E-Mail gemäß Einstellungen, falls der Versand eingerichtet ist).",
       "categoryLabel": "Art des Problems",
       "description": "Was ist los",
       "urgentLabel": "Dringend: verhindert Abschluss oder Anreise",
@@ -2285,7 +2286,10 @@
       "planConfirm": "Einsatz erstellen",
       "openIntervention": "Einsatz ansehen",
       "interventionStatus": "Einsatz: {status}",
-      "resolvePromptText": "Der verknüpfte Einsatz wurde freigegeben. Beheben Sie den Vorfall oder lassen Sie ihn offen."
+      "resolvePromptText": "Der verknüpfte Einsatz wurde freigegeben. Beheben Sie den Vorfall oder lassen Sie ihn offen.",
+      "filterOpen": "offen",
+      "filterAll": "Alle anzeigen",
+      "emptyFiltered": "Kein Vorfall für diesen Filter: Der Zähler, der Sie hierher geführt hat, stand auf null."
     },
     "notifications": {
       "title": "Versand und Benachrichtigungen",
@@ -2425,7 +2429,8 @@
         "overrun_continue": "„Ja, ich mache weiter“ (geschätzte Dauer überschritten)",
         "end_proposed": "Tatsächliches Ende vorgeschlagen",
         "end_accepted": "Vorgeschlagenes Ende angenommen",
-        "end_rejected": "Vorgeschlagenes Ende abgelehnt"
+        "end_rejected": "Vorgeschlagenes Ende abgelehnt",
+        "end_regularized": "Ende nachgetragen (zur Freigabe)"
       },
       "bySystem": "automatisch",
       "byYou": "Sie",
@@ -3541,7 +3546,7 @@
       },
       "unverified": "HALO unbekannt: Wäschebestand, Zugang und Schlüssel, Regeln des Eigentümers, Anfahrten der Mitarbeiter. Vom Team zu bestätigen.",
       "effectsEarly": "Bei Bestätigung: Anreise auf die gewünschte Uhrzeit; jeder Einsatz und jede Aufgabe folgt der angezeigten Wirkung (sonst nichts); kein geplanter Termin wird verschoben; betroffene Mitarbeiter werden gemäß ihren Einstellungen informiert; der Gast sieht die neue Uhrzeit; andere Uhrzeit-Bestätigungen werden als „ersetzt“ markiert.",
-      "effectsLate": "Bei Bestätigung: Die Abreise wird auf die gewünschte Uhrzeit gesetzt; Beginn des Reinigungsfensters folgt; ein geplanter Termin wird nie verschoben; der zugewiesene Mitarbeiter wird informiert; der Gast sieht die neue Uhrzeit.",
+      "effectsLate": "Bei Bestätigung: Die Abreise wird auf die gewünschte Uhrzeit gesetzt; Beginn des Reinigungsfensters folgt; ein geplanter Termin wird nie verschoben; der zugewiesene Mitarbeiter wird in HALO informiert (E-Mail gemäß Einstellungen, falls der Versand eingerichtet ist); der Gast sieht die neue Uhrzeit.",
       "ack": "Ich bestätige bewusst: Die Vorbereitung ist zu dieser Uhrzeit nicht garantiert (Entscheidung protokolliert).",
       "ackNeeded": "Kreuzen Sie das Feld an, um trotzdem zu bestätigen.",
       "message": "Nachricht an den Gast",
@@ -3710,7 +3715,8 @@
       "proposal": {
         "pending": "Von der Person vorgeschlagenes Ende: {when}",
         "accepted": "Übernommenes Ende: {when} (von der Leitung angenommen)",
-        "rejected": "Vorgeschlagenes Ende ({when}) von der Leitung abgelehnt"
+        "rejected": "Vorgeschlagenes Ende ({when}) von der Leitung abgelehnt",
+        "superseded": "Vorgeschlagenes Ende ({when}) hinfällig: Ende nachgetragen oder Aufgabe storniert"
       },
       "accept": "Uhrzeit annehmen",
       "reject": "Ablehnen",
@@ -3731,7 +3737,9 @@
       },
       "stale": "Dieser Einsatz läuft nicht mehr (abgeschlossen, storniert oder neu zugewiesen): nichts wurde gespeichert.",
       "declaredAt": "Gemeldet am {at}",
-      "refresh": "Aktualisieren"
+      "refresh": "Aktualisieren",
+      "question": "Sind Sie noch im Einsatz?",
+      "channel": "Erinnerung nur in HALO: Es wird keine Benachrichtigung ans Telefon gesendet."
     },
     "incidentResolve": {
       "title": "Einsatz freigegeben: ist der Vorfall behoben?",
@@ -3807,9 +3815,13 @@
         "late": "Verspätet",
         "away": "Person abwesend",
         "overrun": "Zeit überschritten",
-        "assignSoon": "Zuzuweisen"
+        "assignSoon": "Zuzuweisen",
+        "regularized": "Ende nachgetragen"
       },
-      "count": "{count, plural, =0 {Kein Einsatz} one {# Einsatz} other {# Einsätze}}"
+      "count": "{count, plural, =0 {Kein Einsatz} one {# Einsatz} other {# Einsätze}}",
+      "emptyFilteredTitle": "Keine Aufgabe für diese Filter",
+      "emptyFiltered": "Zeitraum: {period} · Status: {status} · Typ: {type}. Der Zähler, der Sie hierher geführt hat, stand also auf null.",
+      "linenGroup": "Wäsche (Lieferungen und Abholungen)"
     },
     "planningPage": {
       "subtitle": "{count, plural, =0 {Keine Aufgaben an diesem Tag} one {# Aufgabe an diesem Tag} other {# Aufgaben an diesem Tag}}",
@@ -3825,7 +3837,17 @@
       "all": "Alle",
       "noAgent": "Ohne Person",
       "noName": "Ohne Namen",
-      "nothingForAgent": "Nichts geplant"
+      "nothingForAgent": "Nichts geplant",
+      "toPlan": "{count, plural, one {# Aufgabe zu planen} other {# Aufgaben zu planen}}",
+      "toPlanShort": "Zu planen",
+      "toPlanHint": "Ohne feste Uhrzeit oder ohne Person: Nur das erlaubte Zeitfenster ist bekannt. Öffnen Sie die Aufgabe, um Person und Uhrzeit zu wählen.",
+      "legend": "Nur tatsächlich geplante und echte Zeiten belegen das Raster.",
+      "when": {
+        "window": "Zu planen · Fenster {from} → {to} · {duration}",
+        "scheduled": "Geplant {from} → {to}",
+        "running": "Läuft seit {from}",
+        "actual": "Erledigt {from} → {to}"
+      }
     },
     "linenPage": {
       "subtitle": "Lieferungen, Abholungen und Wäsche-Vorfälle aus Ihren echten Daten.",
@@ -3885,6 +3907,27 @@
           }
         }
       }
+    },
+    "forgotten": {
+      "title": "Aufgabe noch offen?",
+      "text": "Hat die Person vergessen abzuschließen und ist nicht erreichbar, tragen Sie das Ende nach; wird der Einsatz nicht mehr benötigt, stornieren Sie ihn. Begründung Pflicht, alles bleibt im Verlauf.",
+      "regularize": "Ende nachtragen",
+      "cancel": "Aufgabe stornieren",
+      "endLabel": "Festgelegtes Ende",
+      "endHint": "Zwischen tatsächlichem Start und jetzt (Ortszeit der Unterkunft).",
+      "reasonLabel": "Begründung (Pflicht)",
+      "reasonHintEnd": "Z. B. Person nicht erreichbar, Ende vor Ort um 11 Uhr festgestellt.",
+      "reasonHintCancel": "Z. B. Einsatz unnötig, Aufenthalt storniert.",
+      "missingWarning": "Pflichtnachweise fehlen: {items}. Die Aufgabe wird als „Ende nachgetragen, Nachweise fehlen“ markiert und bleibt zur Freigabe: Die Freigabe verlangt diese Nachweise weiterhin (bei Bedarf Korrektur anfordern).",
+      "effectsEnd": "Wirkung: Die Aufgabe wird mit diesem Ende „zur Freigabe“; sie wird nie automatisch freigegeben. Eine späte Antwort der Person ändert sie nicht mehr.",
+      "effectsCancel": "Wirkung: Die Aufgabe verschwindet aus Plan und Meldungen. Bereitete sie eine Anreise vor, zeigt der Aufenthalt keine verknüpfte Aufgabe mehr. Die Person wird in HALO benachrichtigt (und per E-Mail gemäß Einstellungen, falls der Versand eingerichtet ist).",
+      "confirmEnd": "Nachtrag bestätigen",
+      "confirmCancel": "Stornierung bestätigen",
+      "regularizedTitle": "Ende von einer verantwortlichen Person nachgetragen",
+      "regularizedText": "Festgelegtes Ende: {end}. Entscheidung vom {at}. Kein von der Person gemeldetes Ende.",
+      "regularizedMissing": "Fehlende Nachweise beim Nachtrag: {items}. Die Freigabe verlangt sie weiterhin.",
+      "regularizedComplete": "Beim Nachtrag fehlte kein Pflichtnachweis.",
+      "cancelledTitle": "Storniert am {at}"
     }
   },
   "email": {
@@ -4143,7 +4186,7 @@
     "linkValid": "Dieser persönliche Link gilt bis {until}. Bitte nicht teilen.",
     "problem": {
       "title": "Ein Problem in der Unterkunft?",
-      "text": "Hier melden: Das Team wird informiert, Sie verfolgen die Bearbeitung.",
+      "text": "Melden Sie es hier: Das Team sieht es in HALO, und Sie verfolgen die Bearbeitung auf dieser Seite.",
       "category": "Art des Problems",
       "description": "Problem beschreiben",
       "urgent": "Dringend (Wasser, Heizung, Zugang, Sicherheit)",

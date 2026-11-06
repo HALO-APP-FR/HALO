@@ -10,7 +10,9 @@ import { EmptyState } from "@/components/halo/empty-state";
 import { Avatar } from "@/components/connected/avatar";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { nowDate } from "@/lib/connected/time";
-import { dayKey, dayRange } from "@/lib/connected/days";
+import { periodBounds, typesOf } from "@/lib/connected/mission-filters";
+import { placement, type PlacementTask } from "@/lib/engine/placement";
+import { durationText } from "@/lib/connected/format";
 import type { TaskStatus, TaskType } from "@/lib/domain/types";
 
 /** Fonctions présentes uniquement dans la démo : listées avec ce qu'il faut construire, jamais simulées. */
@@ -30,20 +32,22 @@ export default async function LinenPage({ params }: PageProps<"/[locale]/app/lin
   const tn = await getTranslations("nav");
   const tm = await getTranslations("connected.onb.linen");
   const tt = await getTranslations("taskType");
+  const tpl = await getTranslations("connected.planningPage");
   const f = await getFormatter();
   const now = nowDate();
   const { data: o } = await supabase.from("organizations").select("timezone, linen_model, linen_turnaround_days").eq("id", org!.id).single();
   const tz = (o?.timezone as string | undefined) ?? "Europe/Paris";
-  const { start, end } = dayRange(dayKey(now, tz), 7, tz);
+  // Même période et mêmes règles que la liste des missions ouverte par chaque compteur (periodBounds « week »)
+  const b = periodBounds("week", now, tz);
   const [{ data: tasks, error }, { data: members }, { data: incidents }] = await Promise.all([
     supabase
       .from("tasks")
-      .select("id, type, status, title, window_start, window_end, scheduled_start, assignee_id, properties(name, timezone)")
+      .select("id, type, status, title, window_start, window_end, scheduled_start, duration_min, started_at, completed_at, assignee_id, properties(name, timezone)")
       .eq("organization_id", org!.id)
-      .in("type", ["linen_delivery", "linen_pickup"])
+      .in("type", typesOf("linen"))
       .neq("status", "cancelled")
-      .lt("window_start", end.toISOString())
-      .gte("window_end", start.toISOString())
+      .lt("window_start", b.to!.toISOString())
+      .gt("window_end", b.from!.toISOString())
       .order("window_start")
       .limit(200),
     supabase.from("memberships").select("user_id, profiles(full_name)").eq("organization_id", org!.id).eq("is_active", true),
@@ -52,7 +56,7 @@ export default async function LinenPage({ params }: PageProps<"/[locale]/app/lin
   const list = tasks ?? [];
   const deliveries = list.filter((k) => k.type === "linen_delivery").length;
   const pickups = list.filter((k) => k.type === "linen_pickup").length;
-  const noAgent = list.filter((k) => !k.assignee_id).length;
+  const noAgent = list.filter((k) => k.status === "unassigned").length;
   const nameOf = (id: string | null) => {
     const m = (members ?? []).find((x: { user_id: string }) => x.user_id === id) as { profiles: unknown } | undefined;
     return ((Array.isArray(m?.profiles) ? m?.profiles[0] : m?.profiles) as { full_name: string } | null)?.full_name || null;
@@ -64,10 +68,10 @@ export default async function LinenPage({ params }: PageProps<"/[locale]/app/lin
       <PageHeader title={tn("linen")} subtitle={t("subtitle")} />
       {error && <p role="alert" className="mb-4 text-danger">{t("loadError")}</p>}
       <div className="mb-6 grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4 md:gap-4" data-testid="linen-kpis">
-        <KpiCard label={t("kpi.deliveries")} shortLabel={t("kpiShort.deliveries")} value={deliveries} icon={ArrowDownToLine} href="/app/missions?period=week&type=linen_delivery" />
-        <KpiCard label={t("kpi.pickups")} shortLabel={t("kpiShort.pickups")} value={pickups} icon={ArrowUpFromLine} href="/app/missions?period=week&type=linen_pickup" />
-        <KpiCard label={t("kpi.noAgent")} shortLabel={t("kpiShort.noAgent")} value={noAgent} icon={UserRoundX} tone="danger" href="/app/missions?period=week&status=unassigned" />
-        <KpiCard label={t("kpi.incidents")} shortLabel={t("kpiShort.incidents")} value={incidents?.length ?? 0} icon={PackageX} tone="danger" href="/app/incidents" />
+        <KpiCard label={t("kpi.deliveries")} shortLabel={t("kpiShort.deliveries")} value={deliveries} icon={ArrowDownToLine} href="/app/missions?period=week&status=all&type=linen_delivery" />
+        <KpiCard label={t("kpi.pickups")} shortLabel={t("kpiShort.pickups")} value={pickups} icon={ArrowUpFromLine} href="/app/missions?period=week&status=all&type=linen_pickup" />
+        <KpiCard label={t("kpi.noAgent")} shortLabel={t("kpiShort.noAgent")} value={noAgent} icon={UserRoundX} tone="danger" href="/app/missions?period=week&status=unassigned&type=linen" />
+        <KpiCard label={t("kpi.incidents")} shortLabel={t("kpiShort.incidents")} value={incidents?.length ?? 0} icon={PackageX} tone="danger" href="/app/incidents?category=linen&open=1" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -84,7 +88,9 @@ export default async function LinenPage({ params }: PageProps<"/[locale]/app/lin
                   {list.map((k) => {
                     const p = one(k.properties as { name: string; timezone: string | null } | { name: string; timezone: string | null }[] | null);
                     const ptz = p?.timezone ?? tz;
-                    const anchor = (k.scheduled_start as string | null) ?? (k.window_start as string);
+                    const pl = placement(k as unknown as PlacementTask, now.getTime());
+                    const at = (x: number) => f.dateTime(new Date(x), { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: ptz });
+                    const whenTxt = pl.kind === "unscheduled" ? tpl("when.window", { from: at(pl.windowStart), to: at(pl.windowEnd), duration: durationText(k.duration_min as number) }) : pl.kind === "scheduled" ? tpl("when.scheduled", { from: at(pl.start), to: at(pl.end) }) : pl.running ? tpl("when.running", { from: at(pl.start) }) : tpl("when.actual", { from: at(pl.start), to: at(pl.end) });
                     const who = nameOf(k.assignee_id as string | null);
                     return (
                       <li key={k.id} className="relative flex items-center gap-3 px-4 py-3 hover:bg-surface-hover md:px-5" data-testid="linen-mission">
@@ -94,7 +100,7 @@ export default async function LinenPage({ params }: PageProps<"/[locale]/app/lin
                             {p?.name}
                           </Link>
                           <p className="truncate text-[13px] text-muted first-letter:uppercase">
-                            {f.dateTime(new Date(anchor), { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: ptz })} · {tt(k.type)}
+                            {tt(k.type)} · <span data-testid="linen-when">{whenTxt}</span>
                           </p>
                         </div>
                         {who ? (

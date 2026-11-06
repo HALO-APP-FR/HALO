@@ -1404,6 +1404,33 @@ export async function decideTaskEnd(taskId: string, accept: boolean): Promise<Re
   return { ok: true, data: { result: data as string } };
 }
 
+/**
+ * Mission oubliée : le responsable régularise la fin (heure retenue + motif obligatoires).
+ * Jamais une validation : la mission passe « à valider » et garde ses exigences (photos, liste, commentaire).
+ */
+export async function regularizeTaskEnd(taskId: string, endedAtIso: string, reason: string): Promise<Result<{ result: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  if (reason.trim().length < 3) return fail("reason_required");
+  const { data, error: e } = await ctx.supabase.rpc("regularize_task_end", { org: ctx.org!.id, task: taskId, ended_at: endedAtIso, reason });
+  if (e) return fail(e.code === "PGRST202" ? "migration_missing" : dbCode(e, ["reason_required", "invalid_end"]));
+  if (data === "stale") return fail("stale");
+  revalidatePath("/", "layout");
+  return { ok: true, data: { result: data as string } };
+}
+
+/** Annulation d'une mission commencée (responsable) : motif obligatoire, historique conservé. */
+export async function cancelStartedTask(taskId: string, reason: string): Promise<Result<{ result: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  if (reason.trim().length < 3) return fail("reason_required");
+  const { data, error: e } = await ctx.supabase.rpc("cancel_task", { org: ctx.org!.id, task: taskId, reason });
+  if (e) return fail(e.code === "PGRST202" ? "migration_missing" : dbCode(e, ["reason_required"]));
+  if (typeof data === "string" && data.startsWith("conflict")) return fail("conflict");
+  revalidatePath("/", "layout");
+  return { ok: true, data: { result: data as string } };
+}
+
 export async function setOverrunAlert(minutes: number): Promise<Result> {
   const { ctx, error } = await manager();
   if (error) return fail(error);

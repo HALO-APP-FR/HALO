@@ -21,7 +21,7 @@ import { MissionTiming } from "@/components/connected/mission-timing";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { MissionDirections } from "@/components/connected/directions";
 import { ChatThread } from "@/components/connected/chat";
-import { EndProposal, IncidentResolvePrompt, OverrunPrompt } from "@/components/connected/overrun";
+import { EndProposal, ForgottenMissionPanel, IncidentResolvePrompt, OverrunPrompt } from "@/components/connected/overrun";
 import { loadThreadMessages, loadThreads } from "@/lib/connected/chat";
 import { toChatMessages } from "@/lib/connected/chat-view";
 import type { MapsApp } from "@/lib/engine/directions";
@@ -63,15 +63,20 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
   ]);
   // Dépassement, heure de fin proposée, incident laissé ouvert (migration 21) : lus à part, la fiche reste
   // affichable tant que la migration n'est pas appliquée (colonnes absentes → informations simplement non affichées)
-  const [{ data: extra }, { data: kept }] = await Promise.all([
+  const [{ data: extra }, { data: kept }, { data: extra23 }] = await Promise.all([
     supabase.from("tasks").select("overrun_ack_at, end_proposed_at, end_proposed_note, end_proposal_status, reported_end_at").eq("organization_id", o).eq("id", id).maybeSingle(),
     source ? supabase.from("incidents").select("kept_open_at").eq("organization_id", o).eq("id", source.id).maybeSingle() : Promise.resolve({ data: null }),
+    // Régularisation / annulation avec motif (migration 23) : lues à part pour la même raison
+    supabase.from("tasks").select("regularized_at, regularized_by, regularized_reason, regularized_missing, cancel_reason, cancelled_at, cancelled_by").eq("organization_id", o).eq("id", id).maybeSingle(),
   ]);
+  const x23 = (extra23 ?? null) as { regularized_at: string | null; regularized_by: string | null; regularized_reason: string | null; regularized_missing: string[] | null; cancel_reason: string | null; cancelled_at: string | null; cancelled_by: string | null } | null;
   const ex = (extra ?? null) as { overrun_ack_at: string | null; end_proposed_at: string | null; end_proposed_note: string | null; end_proposal_status: string | null; reported_end_at: string | null } | null;
   const keptOpenAt = ((kept ?? null) as { kept_open_at: string | null } | null)?.kept_open_at ?? null;
   const askResolve = Boolean(source && source.status !== "resolved" && task.status === "validated" && (!keptOpenAt || (task.validated_at && keptOpenAt < task.validated_at)));
   const overrunMin = task.status === "in_progress" && task.started_at && task.duration_min > 0 ? Math.round((nowDate().getTime() - Date.parse(task.started_at)) / 60_000) - task.duration_min : null;
   const tov = await getTranslations("connected.overrun");
+  const tfg = await getTranslations("connected.forgotten");
+  const tsm = await getTranslations("connected.taskStep.missing");
   const taskTz = ((Array.isArray(task.properties) ? task.properties[0] : task.properties) as { timezone?: string | null } | null)?.timezone ?? null;
   const hm = (x: string) => f.dateTime(new Date(x), { hour: "2-digit", minute: "2-digit", ...(taskTz ? { timeZone: taskTz } : {}) });
   // Règle et exigences réellement appliquées par la base (démarrage, fin)
@@ -292,6 +297,32 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
           <p className="mt-1 text-[13px] text-muted">{tov("managerHint")}</p>
         </div>
       )}
+      {manager && task.status === "in_progress" && task.started_at && (
+        <ForgottenMissionPanel taskId={task.id} startedAt={task.started_at} durationMin={task.duration_min} proposedAt={ex?.end_proposal_status === "pending" ? ex.end_proposed_at : null} missing={(requirements ? ([requirements.photos_missing > 0 ? "photos" : null, requirements.checklist.required && requirements.checklist.done < requirements.checklist.total ? "checklist" : null, requirements.comment.required && !requirements.comment.present ? "comment" : null].filter(Boolean) as string[]) : []).map((k) => tsm(k))} timeZone={p?.timezone ?? undefined} />
+      )}
+      {x23?.regularized_at && (manager || mine) && (
+        <div className="mb-4 rounded-xl border border-warning bg-warning-soft p-4 text-[15px]" role="status" data-testid="task-regularized">
+          <p className="font-semibold">{tfg("regularizedTitle")}</p>
+          <p className="mt-1 text-[14px]">
+            {tfg("regularizedText", {
+              end: f.dateTime(new Date(task.completed_at ?? x23.regularized_at), { dateStyle: "medium", timeStyle: "short", ...(p?.timezone ? { timeZone: p.timezone } : {}) }),
+              at: f.dateTime(new Date(x23.regularized_at), { dateStyle: "medium", timeStyle: "short", ...(p?.timezone ? { timeZone: p.timezone } : {}) }),
+            })}
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-[14px]" data-testid="task-regularized-reason">« {x23.regularized_reason} »</p>
+          {(x23.regularized_missing ?? []).length > 0 ? (
+            <p className="mt-1 text-[14px] font-medium text-danger" data-testid="task-regularized-missing">{tfg("regularizedMissing", { items: (x23.regularized_missing ?? []).map((k) => (tsm.has(k) ? tsm(k) : k)).join(", ") })}</p>
+          ) : (
+            <p className="mt-1 text-[14px]">{tfg("regularizedComplete")}</p>
+          )}
+        </div>
+      )}
+      {task.status === "cancelled" && x23?.cancel_reason && (manager || mine) && (
+        <div className="mb-4 rounded-xl border border-line bg-surface p-4 text-[15px]" role="status" data-testid="task-cancel-reason">
+          <p className="font-semibold">{tfg("cancelledTitle", { at: f.dateTime(new Date(x23.cancelled_at ?? task.window_start), { dateStyle: "medium", timeStyle: "short", ...(p?.timezone ? { timeZone: p.timezone } : {}) }) })}</p>
+          <p className="mt-1 whitespace-pre-wrap text-[14px]">« {x23.cancel_reason} »</p>
+        </div>
+      )}
       {ex?.end_proposal_status && ex.end_proposed_at && (manager || mine) && (
         <EndProposal taskId={task.id} declaredAt={((events ?? []).find((e: { kind: string }) => e.kind === "end_proposed") as { at: string } | undefined)?.at ?? null} proposedAt={ex.end_proposed_at} note={ex.end_proposed_note} status={ex.end_proposal_status} canDecide={manager} timeZone={p?.timezone ?? undefined} />
       )}
@@ -419,7 +450,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
                 } catch {
                   extra = "";
                 }
-              } else if ((e.kind === "correction_requested" || e.kind === "early_start_allowed") && e.note) extra = ` — « ${e.note} »`;
+              } else if (["correction_requested", "early_start_allowed", "end_regularized", "cancelled"].includes(e.kind) && e.note) extra = ` — « ${e.note} »`;
               else if (["end_proposed", "end_accepted", "end_rejected"].includes(e.kind) && e.note) extra = ` — ${f.dateTime(new Date(e.note), { dateStyle: "short", timeStyle: "short", ...(p?.timezone ? { timeZone: p.timezone } : {}) })}`;
               // Auteur : l'agent affecté, un responsable, ou le système (synchronisation)
               const who = !e.actor_id ? th("bySystem") : e.actor_id === user!.id ? th("byYou") : e.actor_id === task.assignee_id ? th("byAgent", { name: assigneeName ?? th("agent") }) : th("byManager");

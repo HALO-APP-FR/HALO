@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Timer } from "lucide-react";
-import { decideTaskEnd, keepIncidentOpen, overrunContinue, proposeTaskEnd, resolveIncident, setOverrunAlert } from "@/lib/connected/actions";
+import { cancelStartedTask, decideTaskEnd, keepIncidentOpen, overrunContinue, proposeTaskEnd, regularizeTaskEnd, resolveIncident, setOverrunAlert } from "@/lib/connected/actions";
 import { durationText, fromLocalInput, localInputIn } from "@/lib/connected/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,9 +56,12 @@ export function OverrunPrompt({ taskId, startedAt, durationMin, ackAt, timeZone 
     <div className="mb-4 rounded-xl border border-warning bg-warning-soft p-4 text-[15px]" role="alert" data-testid="overrun-prompt">
       <p className="flex items-center gap-2 font-semibold">
         <Timer className="size-5 shrink-0" />
-        {t("title", { duration: durationText(durationMin) })}
+        {t("question")}
       </p>
-      <p className="mt-1 text-[14px]">{t("text", { since: at(Date.parse(startedAt)), elapsed: durationText(elapsed) })}</p>
+      <p className="mt-1 text-[14px]" data-testid="overrun-detail">
+        {t("title", { duration: durationText(durationMin) })} · {t("text", { since: at(Date.parse(startedAt)), elapsed: durationText(elapsed) })}
+      </p>
+      <p className="mt-1 text-[12px] text-muted" data-testid="overrun-channel">{t("channel")}</p>
       {!sent && (
         <div className="mt-3 flex flex-wrap gap-2">
           <Button
@@ -233,5 +236,68 @@ export function OverrunAlertSetting({ initial, available }: { initial: number; a
       {saved && <p role="status" className="text-[14px] text-success" data-testid="overrun-saved">{t("saved")}</p>}
       {error && <p role="alert" className="text-[14px] text-danger">{error}</p>}
     </form>
+  );
+}
+
+/**
+ * Mission oubliée (responsable) : régulariser la fin quand l'agent n'est pas disponible, ou annuler la mission commencée.
+ * Motif obligatoire ; ni l'une ni l'autre ne valide le travail. Les preuves manquantes sont annoncées avant de confirmer.
+ */
+export function ForgottenMissionPanel({ taskId, startedAt, durationMin, proposedAt, missing, timeZone }: { taskId: string; startedAt: string; durationMin: number; proposedAt: string | null; missing: string[]; timeZone?: string }) {
+  const t = useTranslations("connected.forgotten");
+  const { pending, error, run } = useRun();
+  const [mode, setMode] = useState<"" | "end" | "cancel">("");
+  const [end, setEnd] = useState("");
+  const [reason, setReason] = useState("");
+  const open = (m: "end" | "cancel") => {
+    setMode((x) => (x === m ? "" : m));
+    setReason("");
+    if (m === "end" && !end) {
+      const guess = proposedAt ? Date.parse(proposedAt) : Math.min(Date.parse(startedAt) + durationMin * 60_000, Date.now());
+      setEnd(localInputIn(new Date(guess), timeZone));
+    }
+  };
+  return (
+    <div className="mb-4 rounded-xl border border-line bg-surface p-4 text-[15px] shadow-card" data-testid="forgotten-panel">
+      <p className="font-semibold">{t("title")}</p>
+      <p className="mt-1 text-[14px] text-muted">{t("text")}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button variant={mode === "end" ? "primary" : "outline"} onClick={() => open("end")} data-testid="regularize-open">
+          {t("regularize")}
+        </Button>
+        <Button variant={mode === "cancel" ? "danger" : "outline"} onClick={() => open("cancel")} data-testid="cancel-started-open">
+          {t("cancel")}
+        </Button>
+      </div>
+      {mode !== "" && (
+        <form
+          className="mt-4 space-y-3 border-t border-line pt-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (mode === "end") run(() => regularizeTaskEnd(taskId, fromLocalInput(end, timeZone).toISOString(), reason));
+            else run(() => cancelStartedTask(taskId, reason));
+          }}
+        >
+          {mode === "end" && (
+            <Field label={t("endLabel")} htmlFor={`reg-end-${taskId}`} hint={t("endHint")}>
+              <Input id={`reg-end-${taskId}`} type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} required data-testid="regularize-end" />
+            </Field>
+          )}
+          <Field label={t("reasonLabel")} htmlFor={`reg-why-${taskId}`} hint={mode === "end" ? t("reasonHintEnd") : t("reasonHintCancel")}>
+            <Textarea id={`reg-why-${taskId}`} value={reason} onChange={(e) => setReason(e.target.value)} minLength={3} maxLength={1000} rows={2} required data-testid="regularize-reason" />
+          </Field>
+          {mode === "end" && missing.length > 0 && (
+            <p className="rounded-md border border-warning bg-warning-soft p-3 text-[14px]" role="alert" data-testid="regularize-missing">
+              {t("missingWarning", { items: missing.join(", ") })}
+            </p>
+          )}
+          <p className="text-[13px] text-muted">{mode === "end" ? t("effectsEnd") : t("effectsCancel")}</p>
+          <Button type="submit" variant={mode === "cancel" ? "danger" : "primary"} disabled={pending || reason.trim().length < 3 || (mode === "end" && !end)} data-testid={mode === "end" ? "regularize-confirm" : "cancel-started-confirm"}>
+            {mode === "end" ? t("confirmEnd") : t("confirmCancel")}
+          </Button>
+        </form>
+      )}
+      {error && <p role="alert" className="mt-2 text-[14px] text-danger">{error}</p>}
+    </div>
   );
 }

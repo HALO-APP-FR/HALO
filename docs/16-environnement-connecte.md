@@ -531,3 +531,23 @@ La navigation en quatre espaces est abandonnée. Le responsable retrouve les **n
 4. Commandes blanchisserie → commandes (pièces, retour prévu, coût), statuts, rapprochement à la livraison.
 5. Accès blanchisseur externe → rôle partenaire limité à ses commandes, cloisonné par organisation, testé.
 6. Journal et coûts → historique et coût par rotation alimentés par les commandes.
+
+## Fiabilisation : planning, linge, mission oubliée (migration 23)
+
+**Planning — causes et règle unique** (`src/lib/engine/placement.ts`, partagée par Planning, Aujourd'hui et Linge)
+- Cause 1 : le planning plaçait toute mission à `scheduled_start ?? window_start` → une mission sans créneau (plage 10:41–16:00, 1 h 30) apparaissait comme un créneau 10:41–12:11.
+- Cause 2 : sélection par recoupement de plage avec borne `>=` et placement « en haut de journée » des missions commencées la veille → une mission du 5 apparaissait le 6 (plage se terminant le 6, ou exactement à minuit).
+- Cause 3 (liste des missions) : « Aujourd'hui / 7 jours » calculés sur le minuit du serveur (UTC sur Vercel), pas celui de l'organisation.
+- Règle : plage autorisée, durée estimée et créneau planifié sont distincts. Sur la grille : uniquement un créneau fixé (« Planifié ») ou des heures réelles (« En cours depuis », « Réalisé », fin retenue prioritaire). Sans créneau ou sans agent : bandeau « À planifier » avec la plage et la durée. Appartenance à un jour : intervalle réel `[début, fin)` recoupant la journée du fuseau de l'organisation (bornes strictes, découpe à minuit, changement d'heure géré). HALO ne propose pas encore d'horaire suggéré.
+
+**Linge — cause et correction** : « Missions linge sans agent » ouvrait `/app/missions?status=unassigned` sans filtre de type (et période/statut différents du compteur). Les compteurs Linge, Accueil et la liste partagent désormais `periodBounds` / `statusesOf` / `typesOf` (`src/lib/connected/mission-filters.ts`) ; filtre « Linge (livraisons et collectes) » ajouté ; liens : `period=week&status=all&type=linen_delivery|linen_pickup`, `period=week&status=unassigned&type=linen`, `/app/incidents?category=linen&open=1`. Zéro résultat : écran qui rappelle la période, le statut et le type.
+
+**Mission oubliée (migration 23 `20261118000001_regularisation_annulation_en_cours.sql`)**
+- Agent : « Êtes-vous toujours en mission ? » à la durée estimée (dans HALO uniquement, mention explicite : aucune notification téléphone) ; « Oui, je continue » ou heure de fin proposée.
+- Responsable : heure de déclaration et heure proposée distinctes ; accepter / refuser (historique).
+- `regularize_task_end(org, task, ended_at, reason)` : responsable, mission en cours, motif obligatoire ; statut « Terminée, à valider » (jamais validée, même si le type est clôturé sans validation) ; auteur, date, motif ; preuves manquantes figées (`regularized_missing`) et toujours exigées par la validation ; proposition en attente → « sans objet ».
+- `cancel_task(org, task, reason)` : annulation y compris d'une mission en cours (motif obligatoire dans ce cas), jamais d'une mission terminée.
+- Réponses tardives (rappel, heure proposée, décision, « Terminer ») : sans effet sur une mission régularisée, annulée ou réattribuée (`stale` / `already`).
+- Historique : `end_regularized` et `cancelled` portent le motif.
+
+**Notifications** : pas de push ni de SMS. Les textes « prévenu » indiquent désormais « dans HALO (et par e-mail selon les préférences, si l'envoi est configuré) ».

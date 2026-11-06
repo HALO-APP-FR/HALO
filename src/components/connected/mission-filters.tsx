@@ -74,6 +74,7 @@ export function MissionFilters({ properties, period, status, type, property, q }
               {tt(x)}
             </option>
           ))}
+          <option value="linen">{t("linenGroup")}</option>
         </Select>
         <Select aria-label={t("property")} value={property} onChange={(e) => push({ property: e.target.value || null })} className="col-span-2 md:col-span-1" data-testid="mission-filter-property">
           <option value="">{t("allProperties")}</option>

@@ -7,15 +7,17 @@ export function EmptyState({
   text,
   action,
   className,
+  "data-testid": testId,
 }: {
   icon: LucideIcon;
   title: string;
   text?: string;
   action?: React.ReactNode;
   className?: string;
+  "data-testid"?: string;
 }) {
   return (
-    <div className={cn("flex flex-col items-center px-6 py-14 text-center", className)}>
+    <div className={cn("flex flex-col items-center px-6 py-14 text-center", className)} data-testid={testId}>
       <span className="grid size-14 place-items-center rounded-full bg-subtle text-muted dark:bg-surface-hover">
         <Icon className="size-7" strokeWidth={1.6} />
       </span>

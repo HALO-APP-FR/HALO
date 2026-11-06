@@ -1443,7 +1443,8 @@
       "use_timing_decision": "Un orario di arrivo o partenza si conferma o annulla con la decisione dedicata, che verifica la preparazione.",
       "timing_window": "Una missione collegata non poteva seguire questo nuovo orario. Nulla è stato modificato; ricarica la pagina per vedere l'effetto previsto su ogni missione.",
       "missing_requirements": "Mancano prove richieste (checklist, foto o commento): chiedi una correzione invece di convalidare.",
-      "invalid_end": "L'ora deve essere tra l'inizio della missione e adesso."
+      "invalid_end": "L'ora deve essere tra l'inizio della missione e adesso.",
+      "migration_missing": "Non disponibile: l'aggiornamento del database (migrazione 23) non è ancora applicato."
     },
     "home": {
       "subtitle": "ciò che richiede la tua attenzione",
@@ -2047,7 +2048,7 @@
       "edit": "Modifica data o persone",
       "when": "Data e ora",
       "people": "Persone",
-      "editHint": "Facoltativo: spiega la modifica. L'ospite viene avvisato.",
+      "editHint": "Facoltativo: spiega la modifica. L'ospite la vede nel suo spazio (e via e-mail se l'invio è configurato).",
       "cancelEdit": "Annulla",
       "saveEdit": "Salva e avvisa"
     },
@@ -2106,7 +2107,7 @@
       "conflictTitle": "{name} è assente nella fascia di questa missione",
       "conflictActions": "HALO non riassegna nulla da solo: scegli un'altra persona, modifica la fascia o annulla la missione.",
       "cancelTask": "Annulla la missione",
-      "cancelConfirm": "Annullare definitivamente? L'agente assegnato sarà avvisato.",
+      "cancelConfirm": "Annullare definitivamente? L'agente assegnato riceve un avviso in HALO (e via e-mail secondo le preferenze, se l'invio è configurato).",
       "cancelYes": "Sì, annulla",
       "localTime": "ora locale: {zone}",
       "suggestTitle": "Persone senza assenze note in questa fascia",
@@ -2189,7 +2190,7 @@
       "correctionNext": "Correggi quanto richiesto, poi premi «Termina»: la missione torna al responsabile.",
       "sentTitle": "Inviata al responsabile",
       "resentTitle": "Correzione inviata al responsabile",
-      "sentText": "La convaliderà o chiederà una correzione; sarai avvisato secondo le tue preferenze.",
+      "sentText": "Convaliderà o chiederà una correzione; lo vedrai in HALO (e via e-mail secondo le tue preferenze, se l'invio è configurato).",
       "validatedTitle": "Missione convalidata dal responsabile.",
       "reqTitle": "Per terminare",
       "reqChecklist": "Checklist: {done} / {total} spuntate",
@@ -2269,7 +2270,7 @@
       "confirmResolve": "Segna come risolto",
       "reportTitle": "Un problema sul posto?",
       "report": "Segnala",
-      "reported": "Segnalato: il responsabile è avvisato.",
+      "reported": "Segnalato: il tuo responsabile lo vede in HALO (e via e-mail secondo le preferenze, se l'invio è configurato).",
       "categoryLabel": "Tipo di problema",
       "description": "Cosa succede",
       "urgentLabel": "Urgente: impedisce di finire o l'arrivo",
@@ -2285,7 +2286,10 @@
       "planConfirm": "Crea l'intervento",
       "openIntervention": "Vedi l'intervento",
       "interventionStatus": "intervento: {status}",
-      "resolvePromptText": "L'intervento collegato è stato convalidato. Risolvi l'incidente o lascialo aperto."
+      "resolvePromptText": "L'intervento collegato è stato convalidato. Risolvi l'incidente o lascialo aperto.",
+      "filterOpen": "aperti",
+      "filterAll": "Mostra tutto",
+      "emptyFiltered": "Nessun incidente per questo filtro: il contatore che ti ha portato qui era a zero."
     },
     "notifications": {
       "title": "Invii e notifiche",
@@ -2425,7 +2429,8 @@
         "overrun_continue": "«Sì, continuo» (durata stimata superata)",
         "end_proposed": "Ora di fine effettiva proposta",
         "end_accepted": "Ora di fine proposta accettata",
-        "end_rejected": "Ora di fine proposta rifiutata"
+        "end_rejected": "Ora di fine proposta rifiutata",
+        "end_regularized": "Fine regolarizzata da un responsabile (da convalidare)"
       },
       "bySystem": "automatico",
       "byYou": "tu",
@@ -3541,7 +3546,7 @@
       },
       "unverified": "Non noto a HALO: scorta di biancheria, accessi e chiavi, regole del proprietario, spostamenti degli operatori. Da confermare dal team.",
       "effectsEarly": "Confermando: l'arrivo passa all'orario richiesto; ogni missione e azione segue l'effetto indicato (nient'altro); nessuna fascia pianificata viene spostata; gli operatori la cui missione cambia vengono avvisati secondo le preferenze; l'ospite vede il nuovo orario; le altre conferme di orario risultano «sostituite».",
-      "effectsLate": "Confermando: la partenza passa all'orario richiesto; l'inizio della finestra di pulizia segue; una fascia già pianificata non viene mai spostata; l'operatore assegnato viene avvisato; l'ospite vede il nuovo orario.",
+      "effectsLate": "Confermando: la partenza passa all'orario richiesto; l'inizio della finestra di pulizia segue; una fascia già pianificata non viene mai spostata; l'operatore assegnato viene avvisato in HALO (e-mail secondo le preferenze, se l'invio è configurato); l'ospite vede il nuovo orario.",
       "ack": "Confermo consapevolmente: la preparazione non è garantita a quest'ora (decisione registrata).",
       "ackNeeded": "Spunta la casella per confermare nonostante questi punti.",
       "message": "Messaggio all'ospite",
@@ -3710,7 +3715,8 @@
       "proposal": {
         "pending": "Ora di fine proposta dall'agente: {when}",
         "accepted": "Ora di fine accettata: {when} (da un responsabile)",
-        "rejected": "Ora di fine proposta ({when}) rifiutata da un responsabile"
+        "rejected": "Ora di fine proposta ({when}) rifiutata da un responsabile",
+        "superseded": "Orario di fine proposto ({when}) superato: fine regolarizzata o attività annullata da un responsabile"
       },
       "accept": "Accetta quest'ora",
       "reject": "Rifiuta",
@@ -3731,7 +3737,9 @@
       },
       "stale": "Questa missione non è più in corso (terminata, annullata o riassegnata): nulla è stato salvato.",
       "declaredAt": "Dichiarata il {at}",
-      "refresh": "Aggiorna"
+      "refresh": "Aggiorna",
+      "question": "Sei ancora in missione?",
+      "channel": "Promemoria mostrato solo in HALO: nessuna notifica viene inviata al telefono."
     },
     "incidentResolve": {
       "title": "Intervento convalidato: l'incidente è risolto?",
@@ -3807,9 +3815,13 @@
         "late": "Fuori tempo",
         "away": "Persona assente",
         "overrun": "Tempo superato",
-        "assignSoon": "Da assegnare"
+        "assignSoon": "Da assegnare",
+        "regularized": "Fine regolarizzata"
       },
-      "count": "{count, plural, =0 {Nessuna missione} one {# missione} other {# missioni}}"
+      "count": "{count, plural, =0 {Nessuna missione} one {# missione} other {# missioni}}",
+      "emptyFilteredTitle": "Nessuna attività per questi filtri",
+      "emptyFiltered": "Periodo: {period} · stato: {status} · tipo: {type}. Il contatore che ti ha portato qui era quindi a zero.",
+      "linenGroup": "Biancheria (consegne e ritiri)"
     },
     "planningPage": {
       "subtitle": "{count, plural, =0 {Nessuna attività oggi} one {# attività in questo giorno} other {# attività in questo giorno}}",
@@ -3825,7 +3837,17 @@
       "all": "Tutti",
       "noAgent": "Senza agente",
       "noName": "Senza nome",
-      "nothingForAgent": "Niente in programma"
+      "nothingForAgent": "Niente in programma",
+      "toPlan": "{count, plural, one {# attività da pianificare} other {# attività da pianificare}}",
+      "toPlanShort": "Da pianificare",
+      "toPlanHint": "Senza orario fissato o senza agente: è nota solo la fascia consentita. Apri l'attività per scegliere agente e orario.",
+      "legend": "Solo gli orari pianificati e quelli reali occupano la griglia.",
+      "when": {
+        "window": "Da pianificare · fascia {from} → {to} · {duration}",
+        "scheduled": "Pianificata {from} → {to}",
+        "running": "In corso da {from}",
+        "actual": "Svolta {from} → {to}"
+      }
     },
     "linenPage": {
       "subtitle": "Consegne, ritiri e incidenti biancheria, sui tuoi dati reali.",
@@ -3885,6 +3907,27 @@
           }
         }
       }
+    },
+    "forgotten": {
+      "title": "Attività ancora in corso?",
+      "text": "Se l'agente ha dimenticato di terminare e non può rispondere, regolarizza la fine; se l'intervento non serve più, annullalo. Motivo obbligatorio, tutto resta nella cronologia.",
+      "regularize": "Regolarizza la fine",
+      "cancel": "Annulla l'attività",
+      "endLabel": "Orario di fine considerato",
+      "endHint": "Tra l'inizio reale e adesso (ora dell'alloggio).",
+      "reasonLabel": "Motivo (obbligatorio)",
+      "reasonHintEnd": "Es.: agente irraggiungibile, fine constatata sul posto alle 11.",
+      "reasonHintCancel": "Es.: intervento inutile, soggiorno annullato.",
+      "missingWarning": "Prove obbligatorie mancanti: {items}. L'attività sarà segnata «fine regolarizzata, prove mancanti» e resterà da convalidare: la convalida richiederà sempre queste prove (chiedi una correzione all'agente se serve).",
+      "effectsEnd": "Effetto: l'attività passa a «da convalidare» con questo orario di fine; non è mai convalidata automaticamente. Una risposta tardiva dell'agente non la modificherà più.",
+      "effectsCancel": "Effetto: l'attività esce dal planning e dagli avvisi. Se preparava un arrivo, il soggiorno indicherà che nessuna attività è collegata. L'agente riceve un avviso in HALO (e via e-mail secondo le preferenze, se l'invio è configurato).",
+      "confirmEnd": "Conferma la regolarizzazione",
+      "confirmCancel": "Conferma l'annullamento",
+      "regularizedTitle": "Fine regolarizzata da un responsabile",
+      "regularizedText": "Orario di fine considerato: {end}. Decisione del {at}. Non è una fine dichiarata dall'agente.",
+      "regularizedMissing": "Prove mancanti alla regolarizzazione: {items}. La convalida le richiede sempre.",
+      "regularizedComplete": "Nessuna prova obbligatoria mancava alla regolarizzazione.",
+      "cancelledTitle": "Annullata il {at}"
     }
   },
   "email": {
@@ -4143,7 +4186,7 @@
     "linkValid": "Questo link personale è valido fino al {until}. Non condividerlo.",
     "problem": {
       "title": "Un problema nell'alloggio?",
-      "text": "Segnalalo qui: il team è avvisato e ne segui la gestione.",
+      "text": "Segnalalo qui: il team lo vede in HALO e segui la presa in carico su questa pagina.",
       "category": "Tipo di problema",
       "description": "Descrivi il problema",
       "urgent": "Urgente (acqua, riscaldamento, accesso, sicurezza)",

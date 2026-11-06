@@ -8,8 +8,12 @@ import { IncidentResolvePrompt } from "@/components/connected/overrun";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { cn } from "@/lib/utils";
 
-export default async function IncidentsPage({ params }: PageProps<"/[locale]/app/incidents">) {
+export default async function IncidentsPage({ params, searchParams }: PageProps<"/[locale]/app/incidents">) {
   const { locale } = await params;
+  const sp = await searchParams;
+  // Filtre ouvert depuis un compteur (ex. Linge → incidents linge ouverts) : même règle que le compteur
+  const catF = typeof sp.category === "string" && /^[a-z_]{2,30}$/.test(sp.category) ? sp.category : "";
+  const openOnly = sp.open === "1";
   setRequestLocale(locale);
   const t = await getTranslations("connected.incidents");
   const tt = await getTranslations("taskType");
@@ -32,14 +36,24 @@ export default async function IncidentsPage({ params }: PageProps<"/[locale]/app
   // Incidents laissés ouverts après une intervention validée (migration 21 ; absent avant son application)
   const { data: keptRows } = await supabase.from("incidents").select("id, kept_open_at").eq("organization_id", org!.id).not("kept_open_at", "is", null).limit(200);
   const keptOf = new Map(((keptRows ?? []) as { id: string; kept_open_at: string }[]).map((k) => [k.id, k.kept_open_at]));
-  const rows = (data ?? []).sort((a, b) => Number(a.status === "resolved") - Number(b.status === "resolved") || Number(b.urgent) - Number(a.urgent));
+  const rows = (data ?? []).filter((i) => (!catF || i.category === catF) && (!openOnly || i.status !== "resolved")).sort((a, b) => Number(a.status === "resolved") - Number(b.status === "resolved") || Number(b.urgent) - Number(a.urgent));
   const one = <T,>(x: T | T[] | null) => (Array.isArray(x) ? x[0] : x);
   return (
     <>
       <PageHeader title={t("title")} subtitle={t("subtitle")} />
       {error && <p role="alert" className="mb-4 text-danger">{t("loadError")}</p>}
       <div className="space-y-3">
-        {rows.length === 0 && <Card className="p-5 text-[15px] text-muted">{t("empty")}</Card>}
+        {(catF || openOnly) && (
+          <p className="flex flex-wrap items-center gap-2 text-[14px]" data-testid="incidents-filter">
+            <span className="rounded-full bg-accent-soft px-3 py-1 font-medium text-accent-text">
+              {[catF ? t(`category.${catF}`) : null, openOnly ? t("filterOpen") : null].filter(Boolean).join(" · ")}
+            </span>
+            <Link href="/app/incidents" className="font-medium text-accent-text hover:underline">
+              {t("filterAll")}
+            </Link>
+          </p>
+        )}
+        {rows.length === 0 && <Card className="p-5 text-[15px] text-muted" data-testid="incidents-empty">{catF || openOnly ? t("emptyFiltered") : t("empty")}</Card>}
         {rows.map((i) => {
           const r = one(i.reservations) as { guest_name: string | null; guest_email: string | null } | null;
           const task = one(i.tasks) as { type: string } | null;

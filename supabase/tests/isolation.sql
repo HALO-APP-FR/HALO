@@ -1986,6 +1986,52 @@ select t.is('incident laissé ouvert : décision enregistrée', t.keep('a_manage
 select t.is('incident laissé ouvert : toujours ouvert, décision datée', (select status || '/' || (kept_open_at is not null)::text || '/' || (kept_open_by = t.id('a_manager'))::text from public.incidents where id = t.id('I21')), 'in_progress/true/true');
 select t.err('incident : aucune écriture directe de la décision', t.dml('a_manager', format('update public.incidents set kept_open_at = null where id = %L', t.id('I21'))), '42501');
 
+-- =====================================================================
+-- 23. Mission oubliée : régularisation par un responsable, annulation d'une mission commencée (migration 23)
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['T23', 'T23C', 'T23U', 'T23D']) k;
+insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, is_auto_generated, window_start, window_end, duration_min, started_at) values
+  (t.id('T23'), t.id('A'), t.id('P20'), 'turnover', 'in_progress', t.id('a_agent'), false, now() - interval '6 hours', now() + interval '2 hours', 60, now() - interval '5 hours'),
+  (t.id('T23C'), t.id('A'), t.id('P20'), 'maintenance', 'in_progress', t.id('a_agent'), false, now() - interval '6 hours', now() + interval '2 hours', 60, now() - interval '4 hours');
+insert into public.tasks (id, organization_id, property_id, type, status, is_auto_generated, window_start, window_end, duration_min) values
+  (t.id('T23U'), t.id('A'), t.id('P20'), 'maintenance', 'unassigned', false, now() + interval '1 day', now() + interval '2 days', 60);
+insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, is_auto_generated, window_start, window_end, duration_min, started_at, completed_at) values
+  (t.id('T23D'), t.id('A'), t.id('P20'), 'maintenance', 'done', t.id('a_agent'), false, now() - interval '6 hours', now() + interval '2 hours', 60, now() - interval '4 hours', now() - interval '3 hours');
+select t.keep('a_agent', format('select public.propose_task_end(%L, %L, now() - interval ''4 hours'', ''Oubli (fictif)'')', t.id('A'), t.id('T23')));
+select t.err('régularisation : l''agent ne régularise pas', t.q('a_agent', format('select public.regularize_task_end(%L, %L, now() - interval ''4 hours'', ''motif'')', t.id('A'), t.id('T23'))), '42501');
+select t.err('régularisation : une autre organisation non plus', t.q('b_manager', format('select public.regularize_task_end(%L, %L, now() - interval ''4 hours'', ''motif'')', t.id('A'), t.id('T23'))), '42501');
+select t.err('régularisation : motif obligatoire', t.q('a_manager', format('select public.regularize_task_end(%L, %L, now() - interval ''4 hours'', ''  '')', t.id('A'), t.id('T23'))), '22023');
+select t.err('régularisation : heure avant le démarrage refusée', t.q('a_manager', format('select public.regularize_task_end(%L, %L, now() - interval ''6 hours'', ''motif'')', t.id('A'), t.id('T23'))), '22023');
+select t.err('régularisation : heure future refusée', t.q('a_manager', format('select public.regularize_task_end(%L, %L, now() + interval ''1 hour'', ''motif'')', t.id('A'), t.id('T23'))), '22023');
+select t.is('régularisation : appliquée', t.keep('a_manager', format('select public.regularize_task_end(%L, %L, now() - interval ''3 hours 50 minutes'', ''Agent injoignable, fin constatée (fictif)'')', t.id('A'), t.id('T23'))), 'applied');
+select t.is('régularisation : « à valider », jamais validée ; fin retenue ; auteur, motif, date ; proposition sans objet',
+  (select status::text || '/' || (validated_at is null)::text || '/' || (completed_at = reported_end_at)::text || '/' || (regularized_by = t.id('a_manager'))::text || '/' || regularized_reason || '/' || (regularized_at is not null)::text || '/' || end_proposal_status || '/' || (regularized_missing is not null)::text from public.tasks where id = t.id('T23')),
+  'done/true/true/true/Agent injoignable, fin constatée (fictif)/true/superseded/true');
+select t.is('régularisation : historique explicite (motif, auteur), pas de « terminée par l''agent »',
+  (select count(*) filter (where kind = 'end_regularized' and note = 'Agent injoignable, fin constatée (fictif)' and actor_id = t.id('a_manager'))::text || '/' || count(*) filter (where kind in ('submitted', 'resubmitted'))::text from public.task_events where task_id = t.id('T23')), '1/0');
+select t.is('régularisation : réponse tardive au rappel sans effet', t.keep('a_agent', format('select public.task_overrun_continue(%L, %L)', t.id('A'), t.id('T23'))), 'stale');
+select t.is('régularisation : heure proposée après coup sans effet', t.keep('a_agent', format('select public.propose_task_end(%L, %L, now() - interval ''2 hours'', null)', t.id('A'), t.id('T23'))), 'stale');
+select t.is('régularisation : décision tardive sur l''ancienne proposition sans effet', t.keep('a_manager', format('select public.decide_task_end(%L, %L, true)', t.id('A'), t.id('T23'))), 'stale');
+select t.is('régularisation : « Terminer » de l''agent ne change rien', t.keep('a_agent', format('select public.finish_task(%L, %L, gen_random_uuid(), now())', t.id('A'), t.id('T23'))), 'already');
+select t.is('régularisation : seconde régularisation sans effet', t.keep('a_manager', format('select public.regularize_task_end(%L, %L, now() - interval ''1 hour'', ''autre'')', t.id('A'), t.id('T23'))), 'stale');
+select t.is('régularisation : fin retenue inchangée par les réponses tardives', (select (reported_end_at < now() - interval '3 hours 45 minutes')::text || '/' || status::text from public.tasks where id = t.id('T23')), 'true/done');
+select t.is('régularisation : la validation exige toujours les preuves manquantes',
+  (select case when cardinality(regularized_missing) > 0 then 'preuves manquantes' else 'complet' end from public.tasks where id = t.id('T23')) || '/' ||
+  (select case when r like 'missing:%' then 'preuves manquantes' else 'complet' end from (select t.keep('a_manager', format('select public.validate_task(%L, %L)', t.id('A'), t.id('T23'))) r) x),
+  (select case when cardinality(regularized_missing) > 0 then 'preuves manquantes' else 'complet' end from public.tasks where id = t.id('T23')) || '/' || (select case when cardinality(regularized_missing) > 0 then 'preuves manquantes' else 'complet' end from public.tasks where id = t.id('T23')));
+select t.err('annulation commencée : l''agent ne peut pas', t.q('a_agent', format('select public.cancel_task(%L, %L, ''motif'')', t.id('A'), t.id('T23C'))), '42501');
+select t.err('annulation commencée : une autre organisation non plus', t.q('b_manager', format('select public.cancel_task(%L, %L, ''motif'')', t.id('A'), t.id('T23C'))), '42501');
+select t.err('annulation commencée : motif obligatoire', t.q('a_manager', format('select public.cancel_task(%L, %L, null)', t.id('A'), t.id('T23C'))), '22023');
+select t.is('annulation commencée : appliquée', t.keep('a_manager', format('select public.cancel_task(%L, %L, ''Intervention inutile, logement non loué (fictif)'')', t.id('A'), t.id('T23C'))), 'applied');
+select t.is('annulation commencée : statut, motif, auteur, historique',
+  (select status::text || '/' || cancel_reason || '/' || (cancelled_by = t.id('a_manager'))::text from public.tasks where id = t.id('T23C')) || '/' ||
+  (select count(*)::text from public.task_events where task_id = t.id('T23C') and kind = 'cancelled' and note = 'Intervention inutile, logement non loué (fictif)'),
+  'cancelled/Intervention inutile, logement non loué (fictif)/true/1');
+select t.is('annulation commencée : réponse tardive de l''agent sans effet', t.keep('a_agent', format('select public.task_overrun_continue(%L, %L)', t.id('A'), t.id('T23C'))), 'stale');
+select t.err('annulation commencée : « Terminer » refusé (mission annulée, plus accessible à l''agent)', t.q('a_agent', format('select public.finish_task(%L, %L, gen_random_uuid(), now())', t.id('A'), t.id('T23C'))), '42501');
+select t.is('annulation : mission non commencée sans motif', t.keep('a_manager', format('select public.cancel_task(%L, %L, null)', t.id('A'), t.id('T23U'))), 'applied');
+select t.is('annulation : jamais une mission terminée', t.keep('a_manager', format('select public.cancel_task(%L, %L, ''motif'')', t.id('A'), t.id('T23D'))), 'conflict:done');
+
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);
 do $$ declare n int; begin
