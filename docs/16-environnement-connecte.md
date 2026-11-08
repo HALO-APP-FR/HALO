@@ -551,3 +551,22 @@ La navigation en quatre espaces est abandonnée. Le responsable retrouve les **n
 - Historique : `end_regularized` et `cancelled` portent le motif.
 
 **Notifications** : pas de push ni de SMS. Les textes « prévenu » indiquent désormais « dans HALO (et par e-mail selon les préférences, si l'envoi est configuré) ».
+
+## Brief du 8/11 : régularisation, calcul automatique, alentours avant l'arrivée, linge opérationnel (migrations 24 à 26)
+
+**Étape 1 — fiabilité (migration 24 `20261119000001_retour_calcul_automatique.sql`)**
+- Fin régularisée : `placement()` / `whenLabel()` (`src/lib/engine/placement.ts`) distinguent « Réalisé » (fin déclarée par l'agent) de « Fin régularisée par un responsable … · preuves manquantes ». Planning, accueil (« Journée », « À valider »), Linge et liste (pastilles « Fin régularisée », « Preuves manquantes ») appliquent la même règle.
+- « Revenir au calcul automatique » (fiche mission, plage fixée par un responsable, mission non démarrée liée à un séjour) : aperçu calculé par le même moteur que la synchronisation (`previewAutoWindow`), avertissements (mission impossible, agent absent — confirmation bloquée —, absence partielle ou demande en attente), confirmation recalculée côté serveur (`restoreAutoWindow` → `restore_auto_window`), historique `auto_restored` + `window_changed` d'origine `auto_restore`.
+- Libellés d'urgence : « e-mail même si coupé, si l'envoi est configuré · pas de notification téléphone ».
+
+**Étape 2 — alentours avant l'arrivée (migration 25 `20261120000001_alentours_avant_arrivee.sql`)**
+- Avant l'échéance : zone = centre de la maille de 0,015° contenant le logement (`public.zone_center`, `src/lib/engine/zone.ts`), cercle sur la carte, aucun point « logement ». Lieux récupérés autour du centre de zone (`scope = 'zone'`, `src/lib/connected/zone-places.ts`, après la première ouverture du lien ou à l'actualisation des suggestions), distances depuis ce centre arrondies à 100 m. Test SQL : déplacer le logement dans sa maille ne change rien à la réponse.
+- Recommandations de l'équipe avant l'échéance : comme avant (≥ 300 m, sans coordonnées), distance depuis la zone. Compromis signalé.
+- Horaires transmis seulement s'ils sont vérifiés par l'équipe depuis moins de 6 mois.
+- Après l'échéance : lieux du logement + lieux de zone non doublés ; favoris choisis avant l'arrivée retrouvés.
+
+**Étape 3 — linge opérationnel (migration 26 `20261121000001_linge_operationnel.sql`)**
+- Tables `linen_items`, `property_linen_kits`, `linen_movements` (responsables uniquement ; mouvements écrits seulement par fonctions). Fonctions `linen_stock`, `linen_count`, `linen_move` (jamais de stock négatif), `linen_apply_task` (kit sorti du propre / entré au sale, une fois par mission), `plan_linen_pickup`.
+- Calcul `linenPlan` (`src/lib/engine/linen-plan.ts`) : besoins 14 jours = kits × arrivées confirmées ; alertes manque potentiel (date et logement), kit non défini, stock non renseigné, catalogue vide ; jamais « tout est prêt » sans données complètes.
+- Page Linge : « Ce qui manque · où et quand agir » (alertes, livraisons et collectes à planifier avec la composition du kit, missions terminées à reporter au stock), missions, stock et besoins, inventaire, mouvements, kits, catalogue (liste de départ), historique.
+- Étape 2 (blanchisseur externe) non construite.
