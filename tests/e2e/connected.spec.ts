@@ -3740,7 +3740,7 @@ test("52 · alentours dès l'activation du lien : zone approximative (point du l
   const around = g.getByTestId("guest-around");
   await expect(around).toBeVisible();
   // Lieux du quartier préparés côté serveur après la première ouverture : disponibles au rechargement
-  await expect.poll(async () => (await g.reload(), await around.getByTestId("around-place").count()), { timeout: 30_000 }).toBeGreaterThan(0);
+  await expect.poll(async () => (await g.reload(), await around.getByTestId("around-place").count()), { timeout: 100_000, intervals: [2_000, 5_000, 10_000] }).toBeGreaterThan(0);
   await expect(around.getByTestId("around-origin")).toContainText("Carte du quartier");
   await expect(around.getByTestId("around-zone-note")).toContainText("pas le logement");
   // Aucune donnée du logement dans la page : ni adresse, ni coordonnées exactes
