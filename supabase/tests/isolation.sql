@@ -2032,6 +2032,25 @@ select t.err('annulation commencée : « Terminer » refusé (mission annulée, 
 select t.is('annulation : mission non commencée sans motif', t.keep('a_manager', format('select public.cancel_task(%L, %L, null)', t.id('A'), t.id('T23U'))), 'applied');
 select t.is('annulation : jamais une mission terminée', t.keep('a_manager', format('select public.cancel_task(%L, %L, ''motif'')', t.id('A'), t.id('T23D'))), 'conflict:done');
 
+-- =====================================================================
+-- 24. Revenir au calcul automatique (migration 24)
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['T24', 'T24S']) k;
+insert into public.tasks (id, organization_id, property_id, type, status, is_auto_generated, window_start, window_end, duration_min) values
+  (t.id('T24'), t.id('A'), t.id('P20'), 'turnover', 'unassigned', false, now() + interval '3 days', now() + interval '3 days 5 hours', 90);
+insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, is_auto_generated, window_start, window_end, duration_min, started_at) values
+  (t.id('T24S'), t.id('A'), t.id('P20'), 'turnover', 'in_progress', t.id('a_agent'), false, now() - interval '1 hour', now() + interval '3 hours', 60, now() - interval '30 minutes');
+select t.err('calcul automatique : l''agent ne peut pas', t.q('a_agent', format('select public.restore_auto_window(%L, %L, now() + interval ''3 days'', now() + interval ''3 days 4 hours'', 90)', t.id('A'), t.id('T24'))), '42501');
+select t.err('calcul automatique : une autre organisation non plus', t.q('b_manager', format('select public.restore_auto_window(%L, %L, now() + interval ''3 days'', now() + interval ''3 days 4 hours'', 90)', t.id('A'), t.id('T24'))), '42501');
+select t.err('calcul automatique : plage plus courte que la durée refusée', t.q('a_manager', format('select public.restore_auto_window(%L, %L, now() + interval ''3 days'', now() + interval ''3 days 1 hour'', 90)', t.id('A'), t.id('T24'))), '22023');
+select t.is('calcul automatique : appliqué', t.keep('a_manager', format('select public.restore_auto_window(%L, %L, now() + interval ''3 days 1 hour'', now() + interval ''3 days 4 hours'', 90)', t.id('A'), t.id('T24'))), 'applied');
+select t.is('calcul automatique : mode automatique, plage retenue',
+  (select is_auto_generated::text || '/' || (window_end - window_start)::text from public.tasks where id = t.id('T24')), 'true/03:00:00');
+select t.is('calcul automatique : historisé avec son auteur et l''origine',
+  (select count(*) filter (where kind = 'auto_restored' and actor_id = t.id('a_manager'))::text || '/' ||
+          count(*) filter (where kind = 'window_changed' and note::jsonb ->> 'origin' = 'auto_restore')::text from public.task_events where task_id = t.id('T24')), '1/1');
+select t.is('calcul automatique : jamais sur une mission commencée', t.keep('a_manager', format('select public.restore_auto_window(%L, %L, now(), now() + interval ''3 hours'', 60)', t.id('A'), t.id('T24S'))), 'stale');
+
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);
 do $$ declare n int; begin

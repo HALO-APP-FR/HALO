@@ -11,7 +11,7 @@ import { Avatar } from "@/components/connected/avatar";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { nowDate } from "@/lib/connected/time";
 import { periodBounds, typesOf } from "@/lib/connected/mission-filters";
-import { placement, type PlacementTask } from "@/lib/engine/placement";
+import { placement, whenLabel, type PlacementTask } from "@/lib/engine/placement";
 import { durationText } from "@/lib/connected/format";
 import type { TaskStatus, TaskType } from "@/lib/domain/types";
 
@@ -42,7 +42,7 @@ export default async function LinenPage({ params }: PageProps<"/[locale]/app/lin
   const [{ data: tasks, error }, { data: members }, { data: incidents }] = await Promise.all([
     supabase
       .from("tasks")
-      .select("id, type, status, title, window_start, window_end, scheduled_start, duration_min, started_at, completed_at, assignee_id, properties(name, timezone)")
+      .select("id, type, status, title, window_start, window_end, scheduled_start, duration_min, started_at, completed_at, regularized_at, regularized_missing, assignee_id, properties(name, timezone)")
       .eq("organization_id", org!.id)
       .in("type", typesOf("linen"))
       .neq("status", "cancelled")
@@ -90,7 +90,7 @@ export default async function LinenPage({ params }: PageProps<"/[locale]/app/lin
                     const ptz = p?.timezone ?? tz;
                     const pl = placement(k as unknown as PlacementTask, now.getTime());
                     const at = (x: number) => f.dateTime(new Date(x), { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: ptz });
-                    const whenTxt = pl.kind === "unscheduled" ? tpl("when.window", { from: at(pl.windowStart), to: at(pl.windowEnd), duration: durationText(k.duration_min as number) }) : pl.kind === "scheduled" ? tpl("when.scheduled", { from: at(pl.start), to: at(pl.end) }) : pl.running ? tpl("when.running", { from: at(pl.start) }) : tpl("when.actual", { from: at(pl.start), to: at(pl.end) });
+                    const whenTxt = whenLabel(pl, tpl as unknown as Parameters<typeof whenLabel>[1], at, durationText(k.duration_min as number));
                     const who = nameOf(k.assignee_id as string | null);
                     return (
                       <li key={k.id} className="relative flex items-center gap-3 px-4 py-3 hover:bg-surface-hover md:px-5" data-testid="linen-mission">

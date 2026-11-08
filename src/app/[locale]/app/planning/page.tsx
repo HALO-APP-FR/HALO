@@ -11,7 +11,7 @@ import { getContext, isManagerRole } from "@/lib/connected/context";
 import { nowDate } from "@/lib/connected/time";
 import { addDays, dayKey, dayRange } from "@/lib/connected/days";
 import { durationText } from "@/lib/connected/format";
-import { clip, occupies, placement, type Placement, type PlacementTask } from "@/lib/engine/placement";
+import { clip, occupies, placement, whenLabel, type Placement, type PlacementTask } from "@/lib/engine/placement";
 import type { TaskStatus, TaskType } from "@/lib/domain/types";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +42,7 @@ export default async function PlanningPage({ params, searchParams }: PageProps<"
   const now = nowDate();
   const dayS = start.getTime();
   const dayE = end.getTime();
-  const cols = "id, type, status, title, window_start, window_end, scheduled_start, duration_min, assignee_id, started_at, completed_at, properties(name)";
+  const cols = "id, type, status, title, window_start, window_end, scheduled_start, duration_min, assignee_id, started_at, completed_at, regularized_at, regularized_missing, properties(name)";
   // Plages proches du jour + toutes les missions en cours (une mission oubliée peut avoir démarré il y a plusieurs jours)
   const [{ data: near, error }, { data: running }, { data: members }, { data: stays }, { data: endRows }] = await Promise.all([
     supabase.from("tasks").select(cols).eq("organization_id", org!.id).neq("status", "cancelled")
@@ -98,12 +98,7 @@ export default async function PlanningPage({ params, searchParams }: PageProps<"
   const arrivals = (stays ?? []).filter((s) => Date.parse(s.check_in_at as string) >= dayS && Date.parse(s.check_in_at as string) < dayE);
   const departures = (stays ?? []).filter((s) => Date.parse(s.check_out_at as string) >= dayS && Date.parse(s.check_out_at as string) < dayE);
   /** Libellé horaire honnête : créneau fixé, heures réelles ou plage autorisée « à planifier ». */
-  const when = (k: (typeof all)[number]) => {
-    const p = k.pl;
-    if (p.kind === "unscheduled") return t("when.window", { from: dhm(p.windowStart), to: dhm(p.windowEnd), duration: durationText(k.duration_min as number) });
-    if (p.kind === "scheduled") return t("when.scheduled", { from: dhm(p.start), to: dhm(p.end) });
-    return p.running ? t("when.running", { from: dhm(p.start) }) : t("when.actual", { from: dhm(p.start), to: dhm(p.end) });
-  };
+  const when = (k: (typeof all)[number]) => whenLabel(k.pl, t as unknown as Parameters<typeof whenLabel>[1], dhm, durationText(k.duration_min as number));
   const sortKey = (k: (typeof all)[number]) => (k.pl.kind === "unscheduled" ? k.pl.windowStart : k.pl.start);
   const mobile = (agentF === "none" ? list.filter((k) => !k.assignee_id) : agentF ? list.filter((k) => k.assignee_id === agentF) : list).sort((x, y) => sortKey(x) - sortKey(y));
   const top = (min: number) => ((Math.min(Math.max(min, START_H * 60), END_H * 60 - 30) - START_H * 60) / 60) * HOUR_PX;
@@ -224,6 +219,7 @@ export default async function PlanningPage({ params, searchParams }: PageProps<"
                               style={{ top: top(k.startMin) + 2, height }}
                               data-testid="planning-task"
                               data-kind={k.pl.kind}
+                              data-regularized={k.pl.kind === "actual" && k.pl.regularized ? (k.pl.missingProofs ? "missing" : "1") : undefined}
                             >
                               <span className={cn("absolute inset-y-0 start-0 w-1", TASK_TYPE_META[k.type as TaskType]?.bar)} aria-hidden />
                               <span className="block truncate text-[13px] font-semibold">{k.property}</span>

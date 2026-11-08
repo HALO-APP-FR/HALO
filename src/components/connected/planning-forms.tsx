@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
-import { cancelAbsence, decideAbsence, saveAbsence, setTaskTypeRule, setTaskWindow, setValidationTypes, updateMyProfile } from "@/lib/connected/actions";
+import { cancelAbsence, decideAbsence, previewAutoWindow, restoreAutoWindow, saveAbsence, setTaskTypeRule, setTaskWindow, setValidationTypes, updateMyProfile, type AutoWindowPreview } from "@/lib/connected/actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Select } from "@/components/ui/field";
@@ -10,7 +10,7 @@ import { Link } from "@/i18n/navigation";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useRun } from "./use-run";
-import { fromLocalInput, localInputIn, periodText } from "@/lib/connected/format";
+import { durationText, fromLocalInput, localInputIn, periodText } from "@/lib/connected/format";
 
 const TYPES = ["turnover", "maintenance", "linen_delivery", "linen_pickup", "inspection", "check_in", "check_out", "other"] as const;
 const POSITIONS = ["housekeeper", "inspector", "maintenance", "laundry", "concierge", "driver", "chef", "other"] as const;
@@ -447,3 +447,53 @@ function AbsenceItem({ r, t, period }: { r: AbsenceRow; t: ReturnType<typeof use
   );
 }
 
+
+/**
+ * Revenir au calcul automatique : aperçu de la plage qui sera retenue (même moteur que la synchronisation
+ * des séjours), avertissements, puis confirmation. Historisé avec son auteur ; ensuite, une modification
+ * du séjour recalcule la plage.
+ */
+export function AutoWindowRestore({ taskId, timeZone }: { taskId: string; timeZone?: string }) {
+  const t = useTranslations("connected.autoWindow");
+  const f = useFormatter();
+  const { pending, error, run } = useRun();
+  const [preview, setPreview] = useState<AutoWindowPreview | null>(null);
+  const fmt = (s: string) => f.dateTime(new Date(s), { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", ...(timeZone ? { timeZone } : {}) });
+  const range = (w: { start: string; end: string; duration: number }) => t("range", { from: fmt(w.start), to: fmt(w.end), duration: durationText(w.duration) });
+  return (
+    <div className="mt-3 rounded-md border border-line p-3" data-testid="auto-window">
+      {!preview ? (
+        <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => previewAutoWindow(taskId), (d) => setPreview(d))} data-testid="auto-window-preview">
+          {t("open")}
+        </Button>
+      ) : !preview.possible ? (
+        <p className="text-[14px]" role="status" data-testid="auto-window-impossible">{t("impossible")}</p>
+      ) : (
+        <div className="space-y-2 text-[14px]">
+          <p>
+            <span className="block text-[13px] text-muted">{t("current")}</span>
+            <span data-testid="auto-window-current">{range(preview.current)}</span>
+          </p>
+          <p>
+            <span className="block text-[13px] text-muted">{t("next")}</span>
+            <span className="font-semibold" data-testid="auto-window-next">{range(preview.next!)}</span>
+            {preview.same && <span className="block text-[13px] text-muted" data-testid="auto-window-same">{t("same")}</span>}
+          </p>
+          {preview.infeasible && <p className="rounded-md bg-danger-soft p-2 text-danger" role="alert" data-testid="auto-window-infeasible">{t("infeasible")}</p>}
+          {preview.assigneeUnavailable && <p className="rounded-md bg-danger-soft p-2 text-danger" role="alert" data-testid="auto-window-unavailable">{t("unavailable")}</p>}
+          {preview.assigneeAtRisk && <p className="rounded-md bg-warning-soft p-2" role="alert" data-testid="auto-window-risk">{t("risk")}</p>}
+          <p className="text-[13px] text-muted">{t("effect")}</p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" disabled={pending || preview.assigneeUnavailable} onClick={() => run(() => restoreAutoWindow(taskId, preview.next!))} data-testid="auto-window-confirm">
+              {t("confirm")}
+            </Button>
+            <Button size="sm" variant="outline" disabled={pending} onClick={() => setPreview(null)}>
+              {t("cancel")}
+            </Button>
+          </div>
+        </div>
+      )}
+      {error && <p role="alert" className="mt-2 text-[14px] text-danger">{error}</p>}
+    </div>
+  );
+}

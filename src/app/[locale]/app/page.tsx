@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { durationText, windowText, zonedMidnight } from "@/lib/connected/format";
 import { KpiCard } from "@/components/halo/kpi-card";
-import { placement, type PlacementTask } from "@/lib/engine/placement";
+import { placement, whenLabel, type PlacementTask } from "@/lib/engine/placement";
 import { periodBounds } from "@/lib/connected/mission-filters";
 import { StatusPill } from "@/components/halo/status-pill";
 import { TaskTypeIcon } from "@/components/halo/task-type";
@@ -65,7 +65,7 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     // Missions en cours : dépassement = durée estimée écoulée depuis le démarrage réel (aucune qualification de faute)
     supabase.from("tasks").select("id, type, title, started_at, duration_min, assignee_id, properties(name)").eq("organization_id", org.id).eq("status", "in_progress").not("started_at", "is", null).limit(100),
     // Missions prévues dans les 24 h (ou en cours)
-    supabase.from("tasks").select("id, type, title, status, window_start, window_end, scheduled_start, duration_min, assignee_id, started_at, completed_at, properties(name, timezone)").eq("organization_id", org.id).in("status", ["unassigned", "assigned", "in_progress", "to_redo", "done"]).lte("window_start", in24).gt("window_end", now.toISOString()).order("window_start").limit(10),
+    supabase.from("tasks").select("id, type, title, status, window_start, window_end, scheduled_start, duration_min, assignee_id, started_at, completed_at, regularized_at, regularized_missing, properties(name, timezone)").eq("organization_id", org.id).in("status", ["unassigned", "assigned", "in_progress", "to_redo", "done"]).lte("window_start", in24).gt("window_end", now.toISOString()).order("window_start").limit(10),
     // Migration 21 (lu à part : sans elle, réglages par défaut et aucune réponse connue)
     supabase.from("incidents").select("id, kept_open_at").eq("organization_id", org.id).neq("status", "resolved").not("kept_open_at", "is", null).limit(50),
     supabase.from("organizations").select("overrun_alert_min").eq("id", org.id).maybeSingle(),
@@ -162,6 +162,9 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
     ? await supabase.from("task_events").select("task_id").eq("organization_id", org.id).eq("kind", "resubmitted").in("task_id", doneIds)
     : { data: [] as { task_id: string }[] };
   const resubmitted = new Set((resub ?? []).map((r) => r.task_id as string));
+  // Fins régularisées par un responsable (migration 23) : jamais confondues avec une fin déclarée par l'agent
+  const { data: regRows } = doneIds.length ? await supabase.from("tasks").select("id, regularized_at, regularized_missing").eq("organization_id", org.id).in("id", doneIds) : { data: [] as never[] };
+  const regOf = new Map(((regRows ?? []) as { id: string; regularized_at: string | null; regularized_missing: string[] | null }[]).filter((r) => r.regularized_at).map((r) => [r.id, (r.regularized_missing ?? []).length > 0]));
   const tt = await getTranslations("taskType");
   const tts = await getTranslations("taskStatus");
   const pname = (x: unknown) => ((Array.isArray(x) ? x[0] : x) as { name: string } | null)?.name ?? "";
@@ -174,7 +177,7 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
       id: k.id,
       text: t("home.detail.toValidate", { mission: k.title || tt(k.type), property: pname(k.properties), date: k.completed_at ? when(k.completed_at) : "—" }),
       href: `/app/missions/${k.id}`,
-      tag: resubmitted.has(k.id) ? t("home.resubmitted") : undefined,
+      tag: regOf.has(k.id) ? (regOf.get(k.id) ? t("home.regularizedMissing") : t("home.regularized")) : resubmitted.has(k.id) ? t("home.resubmitted") : undefined,
     })),
     incidents: (urgentList ?? []).map((i: { id: string; description: string; urgent: boolean; created_at: string; properties: unknown }) => ({
       id: i.id,
@@ -239,9 +242,7 @@ export default async function AppHome({ params }: PageProps<"/[locale]/app">) {
   const whenText = (k: Record<string, unknown>, tz?: string) => {
     const p = placement(k as unknown as PlacementTask, now.getTime());
     const at = (x: number) => fmt.dateTime(new Date(x), { weekday: "short", hour: "2-digit", minute: "2-digit", ...(tz ? { timeZone: tz } : {}) });
-    if (p.kind === "unscheduled") return tpl("when.window", { from: at(p.windowStart), to: at(p.windowEnd), duration: durationText(k.duration_min as number) });
-    if (p.kind === "scheduled") return tpl("when.scheduled", { from: at(p.start), to: at(p.end) });
-    return p.running ? tpl("when.running", { from: at(p.start) }) : tpl("when.actual", { from: at(p.start), to: at(p.end) });
+    return whenLabel(p, tpl as unknown as Parameters<typeof whenLabel>[1], at, durationText(k.duration_min as number));
   };
   const fmtDay = fmt.dateTime(now, { weekday: "long", day: "numeric", month: "long", timeZone: orgTz });
   const nameFor = (id: string | null) => (id ? planning.members.find((m) => m.id === id)?.name ?? "" : "");

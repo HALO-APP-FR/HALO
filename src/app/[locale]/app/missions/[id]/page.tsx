@@ -8,7 +8,7 @@ import { TaskTypeIcon, TASK_TYPE_META } from "@/components/halo/task-type";
 import type { TaskStatus, TaskType } from "@/lib/domain/types";
 import { MissionReport, type ReportRoom } from "@/components/connected/mission-report";
 import { ReportIncident } from "@/components/connected/report-incident";
-import { WindowEditor } from "@/components/connected/planning-forms";
+import { AutoWindowRestore, WindowEditor } from "@/components/connected/planning-forms";
 import { AssignSelect, CancelTaskButton, EarlyStartForm } from "@/components/connected/mission-controls";
 import { loadPlanning } from "@/lib/connected/planning";
 import { absenceLevel } from "@/lib/engine/availability";
@@ -41,7 +41,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
   // La base ne renvoie la mission qu'à un manager ou à son agent assigné
   const { data: task } = await supabase
     .from("tasks")
-    .select("id, type, title, status, window_start, window_end, duration_min, scheduled_start, is_auto_generated, assignee_id, next_reservation_id, correction_reason, notes, property_id, early_start_allowed_at, early_start_reason, started_at, completed_at, validated_at, properties(name, address_line, postal_code, city, country_code, latitude, longitude, timezone, instructions)")
+    .select("id, type, title, status, window_start, window_end, duration_min, scheduled_start, is_auto_generated, assignee_id, reservation_id, next_reservation_id, correction_reason, notes, property_id, early_start_allowed_at, early_start_reason, started_at, completed_at, validated_at, properties(name, address_line, postal_code, city, country_code, latitude, longitude, timezone, instructions)")
     .eq("organization_id", o)
     .eq("id", id)
     .maybeSingle();
@@ -350,6 +350,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
           <div className="basis-full">
             <WindowEditor taskId={task.id} start={task.window_start} end={task.window_end} durationMin={task.duration_min} timeZone={p?.timezone ?? undefined} />
             {!task.is_auto_generated && <p className="mt-1 text-[13px] text-muted" data-testid="mission-window-edited">{t("manualWindow")}</p>}
+            {!task.is_auto_generated && ["unassigned", "assigned"].includes(task.status) && (task.reservation_id || task.next_reservation_id) && <AutoWindowRestore taskId={task.id} timeZone={p?.timezone ?? undefined} />}
             {startRule === "firm" && ["unassigned", "assigned"].includes(task.status) && !task.early_start_allowed_at && notYetOpen && (
               <EarlyStartForm taskId={task.id} />
             )}
@@ -446,11 +447,17 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
               if (e.kind === "window_changed" && e.note) {
                 try {
                   const n = JSON.parse(e.note) as { to: [string, string, number]; reason: string | null; origin?: string };
-                  extra = ` — ${th(`origin.${["sync", "timing", "manual"].includes(n.origin ?? "") ? n.origin : "unknown"}`)} · ${windowText(f, n.to[0], n.to[1])} · ${durationText(n.to[2])}${n.reason ? ` · « ${n.reason} »` : ""}`;
+                  extra = ` — ${th(`origin.${["sync", "timing", "manual", "auto_restore"].includes(n.origin ?? "") ? n.origin : "unknown"}`)} · ${windowText(f, n.to[0], n.to[1])} · ${durationText(n.to[2])}${n.reason ? ` · « ${n.reason} »` : ""}`;
                 } catch {
                   extra = "";
                 }
               } else if (["correction_requested", "early_start_allowed", "end_regularized", "cancelled"].includes(e.kind) && e.note) extra = ` — « ${e.note} »`;
+              else if (e.kind === "auto_restored" && e.note) {
+                try {
+                  const n = JSON.parse(e.note) as { to: [string, string, number] };
+                  extra = ` — ${windowText(f, n.to[0], n.to[1])} · ${durationText(n.to[2])}`;
+                } catch {}
+              }
               else if (["end_proposed", "end_accepted", "end_rejected"].includes(e.kind) && e.note) extra = ` — ${f.dateTime(new Date(e.note), { dateStyle: "short", timeStyle: "short", ...(p?.timezone ? { timeZone: p.timezone } : {}) })}`;
               // Auteur : l'agent affecté, un responsable, ou le système (synchronisation)
               const who = !e.actor_id ? th("bySystem") : e.actor_id === user!.id ? th("byYou") : e.actor_id === task.assignee_id ? th("byAgent", { name: assigneeName ?? th("agent") }) : th("byManager");

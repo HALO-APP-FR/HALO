@@ -1444,7 +1444,9 @@
       "timing_window": "Ein verknüpfter Einsatz konnte der neuen Uhrzeit nicht folgen. Nichts wurde geändert; laden Sie die Seite neu, um die geplante Wirkung je Einsatz zu sehen.",
       "missing_requirements": "Erforderliche Nachweise fehlen (Checkliste, Fotos oder Kommentar): Korrektur anfordern statt freigeben.",
       "invalid_end": "Die Uhrzeit muss zwischen Beginn des Einsatzes und jetzt liegen.",
-      "migration_missing": "Nicht verfügbar: Das Datenbank-Update (Migration 23) ist noch nicht eingespielt."
+      "migration_missing": "Nicht verfügbar: Das nötige Datenbank-Update ist noch nicht eingespielt.",
+      "no_auto_window": "Kein Aufenthalt erlaubt eine automatische Berechnung.",
+      "auto_window_changed": "Die Aufenthalte haben sich seit der Vorschau geändert: Vorschau erneut öffnen."
     },
     "home": {
       "subtitle": "was Ihre Aufmerksamkeit braucht",
@@ -1557,7 +1559,9 @@
         "unassigned": "Ohne Person",
         "turnovers": "Reinigungen"
       },
-      "dayTitle": "Tagesablauf"
+      "dayTitle": "Tagesablauf",
+      "regularized": "Ende nachgetragen",
+      "regularizedMissing": "Ende nachgetragen · Nachweise fehlen"
     },
     "onb": {
       "progress": "Schritt {n} von {total}",
@@ -2430,7 +2434,8 @@
         "end_proposed": "Tatsächliches Ende vorgeschlagen",
         "end_accepted": "Vorgeschlagenes Ende angenommen",
         "end_rejected": "Vorgeschlagenes Ende abgelehnt",
-        "end_regularized": "Ende nachgetragen (zur Freigabe)"
+        "end_regularized": "Ende nachgetragen (zur Freigabe)",
+        "auto_restored": "Zurück zur automatischen Berechnung"
       },
       "bySystem": "automatisch",
       "byYou": "Sie",
@@ -2441,7 +2446,8 @@
         "sync": "automatische Neuberechnung (Aufenthalte geändert)",
         "timing": "durch eine Uhrzeit-Entscheidung angepasst",
         "manual": "von der Leitung geändert",
-        "unknown": "Ursprung nicht erfasst (ältere Änderung)"
+        "unknown": "Ursprung nicht erfasst (ältere Änderung)",
+        "auto_restore": "zurück zur automatischen Berechnung"
       }
     },
     "schedule": {
@@ -2555,7 +2561,7 @@
       "retry": "Erneut versuchen",
       "empty": "Keine Nachricht.",
       "write": "Nachricht schreiben…",
-      "markUrgent": "Dringend (immer benachrichtigt)",
+      "markUrgent": "Dringend (E-Mail auch wenn stummgeschaltet, falls Versand eingerichtet · keine Telefon-Benachrichtigung)",
       "send": "Senden",
       "newTitle": "Neue Unterhaltung",
       "newText": "An eine oder mehrere Personen, verknüpft mit einem Einsatz, einer Unterkunft oder einem Aufenthalt.",
@@ -2601,7 +2607,7 @@
         "push": "Push-Benachrichtigungen: nicht verfügbar (kein Anbieter eingerichtet)"
       },
       "byEmail": "E-Mail",
-      "alwaysSent": "Notfall: immer gesendet",
+      "alwaysSent": "Notfall: in HALO sichtbar, E-Mail immer gesendet (falls eingerichtet) · keine Telefon-Benachrichtigung",
       "urgentAlwaysSent": "Notfälle (Zugang, Leck, Schaden, Blockade, dringende Nachricht) werden immer gesendet",
       "event": {
         "team_task_to_validate": "Einsatz beendet, zu prüfen",
@@ -3816,7 +3822,8 @@
         "away": "Person abwesend",
         "overrun": "Zeit überschritten",
         "assignSoon": "Zuzuweisen",
-        "regularized": "Ende nachgetragen"
+        "regularized": "Ende nachgetragen",
+        "missingProofs": "Nachweise fehlen"
       },
       "count": "{count, plural, =0 {Kein Einsatz} one {# Einsatz} other {# Einsätze}}",
       "emptyFilteredTitle": "Keine Aufgabe für diese Filter",
@@ -3846,7 +3853,9 @@
         "window": "Zu planen · Fenster {from} → {to} · {duration}",
         "scheduled": "Geplant {from} → {to}",
         "running": "Läuft seit {from}",
-        "actual": "Erledigt {from} → {to}"
+        "actual": "Erledigt {from} → {to}",
+        "regularized": "Ende nachgetragen {from} → {to}",
+        "regularizedMissing": "Ende nachgetragen {from} → {to} · Nachweise fehlen"
       }
     },
     "linenPage": {
@@ -3928,6 +3937,20 @@
       "regularizedMissing": "Fehlende Nachweise beim Nachtrag: {items}. Die Freigabe verlangt sie weiterhin.",
       "regularizedComplete": "Beim Nachtrag fehlte kein Pflichtnachweis.",
       "cancelledTitle": "Storniert am {at}"
+    },
+    "autoWindow": {
+      "open": "Zur automatischen Berechnung zurück",
+      "impossible": "Automatische Berechnung nicht möglich: Kein bestätigter Aufenthalt erlaubt die Berechnung. Das Fenster bleibt manuell festgelegt.",
+      "current": "Aktuelles Fenster (manuell festgelegt)",
+      "next": "Aus den Aufenthalten berechnetes Fenster",
+      "same": "Gleich wie das aktuelle Fenster: Nur der Modus ändert sich (Neuberechnung bei Änderung eines Aufenthalts).",
+      "infeasible": "Achtung: Die Aufgabe wird in diesem Fenster unmöglich (zu spät oder zu kurz).",
+      "unavailable": "Konflikt: Die zugewiesene Person ist im ganzen Fenster abwesend (bestätigt). Ändern Sie zuerst die Zuweisung.",
+      "risk": "Zu prüfen: Eine teilweise oder beantragte Abwesenheit überschneidet sich mit diesem Fenster.",
+      "effect": "Nach Bestätigung folgt das Fenster automatisch den Aufenthalten. Änderung und Urheber werden protokolliert.",
+      "confirm": "Automatische Berechnung bestätigen",
+      "cancel": "Abbrechen",
+      "range": "{from} → {to} · {duration}"
     }
   },
   "email": {

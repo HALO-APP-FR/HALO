@@ -185,7 +185,10 @@ export default async function MissionsPage({ params, searchParams }: PageProps<"
               if (k.status === "in_progress" && k.started_at && k.duration_min > 0 && now.getTime() > Date.parse(k.started_at) + k.duration_min * 60_000) alerts.push({ key: "overrun", tone: "warning" });
               if (k.status === "unassigned" && Date.parse(k.window_start) - now.getTime() < 24 * 3_600_000) alerts.push({ key: "assignSoon", tone: "danger" });
               // Fin régularisée par un responsable (migration 23) : jamais confondue avec une fin normale
-              if ((k as { regularized_at?: string | null }).regularized_at) alerts.push({ key: "regularized", tone: "warning" });
+              if ((k as { regularized_at?: string | null }).regularized_at) {
+                alerts.push({ key: "regularized", tone: "warning" });
+                if (((k as { regularized_missing?: string[] | null }).regularized_missing ?? []).length > 0) alerts.push({ key: "missingProofs", tone: "danger" });
+              }
               const editable = ["unassigned", "assigned"].includes(k.status);
               return (
                 <li

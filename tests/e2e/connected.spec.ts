@@ -3656,9 +3656,26 @@ test("50 · mission oubliée : « toujours en mission ? », heure proposée, ré
   await m.getByTestId("mission-validate").click();
   await expect(m.getByRole("alert").filter({ hasText: /photo/i }).first()).toBeVisible();
   expect((await admin.from("tasks").select("status").eq("id", fid).single()).data!.status).toBe("done");
-  // Liste : distinguée d'une fin normale
+  // Liste : distinguée d'une fin normale, preuves manquantes affichées
   await m.goto("/fr/app/missions?status=done");
   await expect(m.getByTestId("mission-row").filter({ hasText: "Oubli-menage" }).getByTestId("mission-alert-regularized")).toBeVisible();
+  await expect(m.getByTestId("mission-row").filter({ hasText: "Oubli-menage" }).getByTestId("mission-alert-missingProofs")).toBeVisible();
+  // Planning : jamais « Réalisé » pour une fin régularisée
+  await m.goto("/fr/app/planning");
+  const pt = m.locator(`[data-testid=planning-task][href$="${fid}"]`);
+  await expect(pt).toHaveAttribute("data-regularized", "missing");
+  await expect(pt).toContainText("Fin régularisée par un responsable");
+  await expect(pt).toContainText("preuves manquantes");
+  await expect(pt).not.toContainText("Réalisé");
+  // Accueil : « Journée » et « À valider » disent la même chose
+  await m.goto("/fr/app");
+  await expect(m.locator(`[data-testid=home-soon-row][href$="${fid}"]`).getByTestId("home-soon-when")).toContainText("preuves manquantes");
+  await expect(m.getByTestId("home-toValidate").getByTestId("home-details")).toContainText("Fin régularisée · preuves manquantes");
+  // Après rechargement : décision, motif et auteur toujours visibles
+  await m.goto(`/fr/app/missions/${fid}`);
+  await m.reload();
+  await expect(m.getByTestId("task-regularized-reason")).toContainText("mission fictive de test");
+  await expect(m.getByTestId("task-regularized-missing")).toBeVisible();
   // Réponse tardive de l'agent : sans effet
   const late = (await admin.rpc("task_overrun_continue", { org, task: fid })).data;
   expect(late === null || late === "stale").toBeTruthy();
@@ -3679,4 +3696,35 @@ test("50 · mission oubliée : « toujours en mission ? », heure proposée, ré
   await m.goto("/fr/app");
   await expect(m.locator(`[href$="${cid}"]`)).toHaveCount(0);
   for (const c of [m, agent]) await c.context().close();
+});
+
+test("51 · revenir au calcul automatique : aperçu, confirmation historisée, puis recalcul quand les séjours changent", async ({ browser }) => {
+  const m = await newPage(browser);
+  const name = `auto ${run}`;
+  const { org } = await testScenario(m, name);
+  const { stayId } = await prepStay(m, browser, "Voyageur auto", 5);
+  const { data: turn } = await admin.from("tasks").select("id, window_start, window_end").eq("organization_id", org).eq("reservation_id", stayId).eq("type", "turnover").neq("status", "cancelled").single();
+  // Cas du test d'absence : plage modifiée puis remise à ses dates d'origine, mais restée « fixée par un responsable »
+  await admin.from("tasks").update({ is_auto_generated: false }).eq("id", turn!.id);
+  await m.goto(`/fr/app/missions/${turn!.id}`);
+  await expect(m.getByTestId("mission-window-edited")).toBeVisible();
+  await m.getByTestId("auto-window-preview").click();
+  await expect(m.getByTestId("auto-window-next")).toBeVisible();
+  await expect(m.getByTestId("auto-window-same")).toBeVisible();
+  await expect(m.getByTestId("auto-window-infeasible")).toHaveCount(0);
+  await m.getByTestId("auto-window-confirm").click();
+  await expect(m.getByTestId("mission-window-edited")).toHaveCount(0);
+  await m.reload();
+  await expect(m.locator("[data-testid=history-event][data-kind=auto_restored]")).toBeVisible();
+  expect((await admin.from("tasks").select("is_auto_generated").eq("id", turn!.id).single()).data!.is_auto_generated).toBe(true);
+  // Le séjour change (départ décalé de 2 h) : la prochaine synchronisation recalcule bien la plage
+  const { data: st } = await admin.from("reservations").select("check_out_at").eq("id", stayId).single();
+  const newOut = new Date(Date.parse(st!.check_out_at) + 2 * 3_600_000).toISOString();
+  await admin.from("reservations").update({ check_out_at: newOut }).eq("id", stayId);
+  await prepStay(m, browser, "Voyageur suivant", 14); // création d'un séjour sur le logement = synchronisation des missions
+  const after = (await admin.from("tasks").select("window_start").eq("id", turn!.id).single()).data!;
+  expect(Date.parse(after.window_start)).toBe(Date.parse(newOut));
+  await m.goto(`/fr/app/missions/${turn!.id}`);
+  await expect(m.getByTestId("history-event").filter({ hasText: "recalcul automatique" }).first()).toBeVisible();
+  await m.context().close();
 });

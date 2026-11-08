@@ -1444,7 +1444,9 @@
       "timing_window": "Una missione collegata non poteva seguire questo nuovo orario. Nulla è stato modificato; ricarica la pagina per vedere l'effetto previsto su ogni missione.",
       "missing_requirements": "Mancano prove richieste (checklist, foto o commento): chiedi una correzione invece di convalidare.",
       "invalid_end": "L'ora deve essere tra l'inizio della missione e adesso.",
-      "migration_missing": "Non disponibile: l'aggiornamento del database (migrazione 23) non è ancora applicato."
+      "migration_missing": "Non disponibile: l'aggiornamento del database necessario non è ancora applicato.",
+      "no_auto_window": "Nessun soggiorno permette di calcolare automaticamente questa fascia.",
+      "auto_window_changed": "I soggiorni sono cambiati dall'anteprima: riaprila."
     },
     "home": {
       "subtitle": "ciò che richiede la tua attenzione",
@@ -1557,7 +1559,9 @@
         "unassigned": "Senza agente",
         "turnovers": "Pulizie"
       },
-      "dayTitle": "Giornata"
+      "dayTitle": "Giornata",
+      "regularized": "Fine regolarizzata",
+      "regularizedMissing": "Fine regolarizzata · prove mancanti"
     },
     "onb": {
       "progress": "Passo {n} di {total}",
@@ -2430,7 +2434,8 @@
         "end_proposed": "Ora di fine effettiva proposta",
         "end_accepted": "Ora di fine proposta accettata",
         "end_rejected": "Ora di fine proposta rifiutata",
-        "end_regularized": "Fine regolarizzata da un responsabile (da convalidare)"
+        "end_regularized": "Fine regolarizzata da un responsabile (da convalidare)",
+        "auto_restored": "Ritorno al calcolo automatico"
       },
       "bySystem": "automatico",
       "byYou": "tu",
@@ -2441,7 +2446,8 @@
         "sync": "ricalcolo automatico (soggiorni modificati)",
         "timing": "adattata da una decisione d'orario",
         "manual": "modificata da un responsabile",
-        "unknown": "origine non registrata (modifica precedente)"
+        "unknown": "origine non registrata (modifica precedente)",
+        "auto_restore": "ritorno al calcolo automatico"
       }
     },
     "schedule": {
@@ -2555,7 +2561,7 @@
       "retry": "Riprova",
       "empty": "Nessun messaggio.",
       "write": "Scrivi un messaggio…",
-      "markUrgent": "Urgente (sempre notificato)",
+      "markUrgent": "Urgente (e-mail anche se disattivati, se l'invio è configurato · nessuna notifica sul telefono)",
       "send": "Invia",
       "newTitle": "Nuova conversazione",
       "newText": "A una o più persone, legata a una missione, un alloggio o un soggiorno.",
@@ -2601,7 +2607,7 @@
         "push": "Notifiche push: non disponibili (nessun fornitore configurato)"
       },
       "byEmail": "E-mail",
-      "alwaysSent": "Urgenza: sempre inviata",
+      "alwaysSent": "Urgenza: visibile in HALO ed e-mail sempre inviata (se configurato) · nessuna notifica sul telefono",
       "urgentAlwaysSent": "Le urgenze (accesso, perdita, danno, blocco, messaggio urgente) partono sempre",
       "event": {
         "team_task_to_validate": "Missione conclusa, da convalidare",
@@ -3816,7 +3822,8 @@
         "away": "Persona assente",
         "overrun": "Tempo superato",
         "assignSoon": "Da assegnare",
-        "regularized": "Fine regolarizzata"
+        "regularized": "Fine regolarizzata",
+        "missingProofs": "Prove mancanti"
       },
       "count": "{count, plural, =0 {Nessuna missione} one {# missione} other {# missioni}}",
       "emptyFilteredTitle": "Nessuna attività per questi filtri",
@@ -3846,7 +3853,9 @@
         "window": "Da pianificare · fascia {from} → {to} · {duration}",
         "scheduled": "Pianificata {from} → {to}",
         "running": "In corso da {from}",
-        "actual": "Svolta {from} → {to}"
+        "actual": "Svolta {from} → {to}",
+        "regularized": "Fine regolarizzata da un responsabile {from} → {to}",
+        "regularizedMissing": "Fine regolarizzata da un responsabile {from} → {to} · prove mancanti"
       }
     },
     "linenPage": {
@@ -3928,6 +3937,20 @@
       "regularizedMissing": "Prove mancanti alla regolarizzazione: {items}. La convalida le richiede sempre.",
       "regularizedComplete": "Nessuna prova obbligatoria mancava alla regolarizzazione.",
       "cancelledTitle": "Annullata il {at}"
+    },
+    "autoWindow": {
+      "open": "Torna al calcolo automatico",
+      "impossible": "Calcolo automatico impossibile: nessun soggiorno confermato permette di calcolare questa fascia. Resta fissata da un responsabile.",
+      "current": "Fascia attuale (fissata da un responsabile)",
+      "next": "Fascia calcolata dai soggiorni",
+      "same": "Identica alla fascia attuale: cambia solo la modalità (ricalcolo automatico se un soggiorno cambia).",
+      "infeasible": "Attenzione: l'attività diventa impossibile in questa fascia (troppo tardi o troppo breve).",
+      "unavailable": "Conflitto: l'agente assegnato è assente (assenza accettata) per tutta la fascia. Cambia agente prima.",
+      "risk": "Da verificare: un'assenza parziale o una richiesta in attesa si sovrappone a questa fascia per l'agente assegnato.",
+      "effect": "Dopo la conferma, la fascia seguirà automaticamente i soggiorni. La modifica e il suo autore sono registrati.",
+      "confirm": "Conferma il calcolo automatico",
+      "cancel": "Annulla",
+      "range": "{from} → {to} · {duration}"
     }
   },
   "email": {

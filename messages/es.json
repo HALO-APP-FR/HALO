@@ -1444,7 +1444,9 @@
       "timing_window": "Una misión vinculada no podía seguir este nuevo horario. No se modificó nada; recargue la página para ver el efecto previsto en cada misión.",
       "missing_requirements": "Faltan pruebas exigidas (lista, fotos o comentario): pida una corrección en lugar de validar.",
       "invalid_end": "La hora debe estar entre el inicio de la misión y ahora.",
-      "migration_missing": "No disponible: la actualización de la base (migración 23) aún no se ha aplicado."
+      "migration_missing": "No disponible: la actualización de base necesaria aún no se ha aplicado.",
+      "no_auto_window": "Ninguna estancia permite calcular esta franja automáticamente.",
+      "auto_window_changed": "Las estancias han cambiado desde la vista previa: vuelva a abrirla."
     },
     "home": {
       "subtitle": "lo que requiere su atención",
@@ -1557,7 +1559,9 @@
         "unassigned": "Sin agente",
         "turnovers": "Limpiezas"
       },
-      "dayTitle": "Jornada"
+      "dayTitle": "Jornada",
+      "regularized": "Fin regularizado",
+      "regularizedMissing": "Fin regularizado · pruebas ausentes"
     },
     "onb": {
       "progress": "Paso {n} de {total}",
@@ -2430,7 +2434,8 @@
         "end_proposed": "Hora real de fin propuesta",
         "end_accepted": "Hora de fin propuesta aceptada",
         "end_rejected": "Hora de fin propuesta rechazada",
-        "end_regularized": "Fin regularizada por un responsable (por validar)"
+        "end_regularized": "Fin regularizada por un responsable (por validar)",
+        "auto_restored": "Vuelta al cálculo automático"
       },
       "bySystem": "automático",
       "byYou": "usted",
@@ -2441,7 +2446,8 @@
         "sync": "recálculo automático (estancias modificadas)",
         "timing": "ajustada por una decisión de horario",
         "manual": "modificada por un responsable",
-        "unknown": "origen no registrado (cambio antiguo)"
+        "unknown": "origen no registrado (cambio antiguo)",
+        "auto_restore": "vuelta al cálculo automático"
       }
     },
     "schedule": {
@@ -2555,7 +2561,7 @@
       "retry": "Reintentar",
       "empty": "Ningún mensaje.",
       "write": "Escribir un mensaje…",
-      "markUrgent": "Urgente (siempre notificado)",
+      "markUrgent": "Urgente (e-mail aunque estén desactivados, si el envío está configurado · sin notificación al teléfono)",
       "send": "Enviar",
       "newTitle": "Nueva conversación",
       "newText": "A una o varias personas, vinculada a una misión, un alojamiento o una estancia.",
@@ -2601,7 +2607,7 @@
         "push": "Notificaciones push: no disponibles (ningún proveedor configurado)"
       },
       "byEmail": "Correo",
-      "alwaysSent": "Urgencia: siempre enviada",
+      "alwaysSent": "Urgencia: visible en HALO y e-mail siempre enviado (si está configurado) · sin notificación al teléfono",
       "urgentAlwaysSent": "Las urgencias (acceso, fuga, daño, bloqueo, mensaje urgente) siempre se envían",
       "event": {
         "team_task_to_validate": "Misión terminada, por validar",
@@ -3816,7 +3822,8 @@
         "away": "Persona ausente",
         "overrun": "Tiempo superado",
         "assignSoon": "Por asignar",
-        "regularized": "Fin regularizada"
+        "regularized": "Fin regularizada",
+        "missingProofs": "Pruebas ausentes"
       },
       "count": "{count, plural, =0 {Ninguna misión} one {# misión} other {# misiones}}",
       "emptyFilteredTitle": "Ninguna tarea para estos filtros",
@@ -3846,7 +3853,9 @@
         "window": "Por planificar · franja {from} → {to} · {duration}",
         "scheduled": "Planificada {from} → {to}",
         "running": "En curso desde {from}",
-        "actual": "Realizada {from} → {to}"
+        "actual": "Realizada {from} → {to}",
+        "regularized": "Fin regularizado por un responsable {from} → {to}",
+        "regularizedMissing": "Fin regularizado por un responsable {from} → {to} · pruebas ausentes"
       }
     },
     "linenPage": {
@@ -3928,6 +3937,20 @@
       "regularizedMissing": "Pruebas ausentes al regularizar: {items}. La validación las sigue exigiendo.",
       "regularizedComplete": "No faltaba ninguna prueba obligatoria al regularizar.",
       "cancelledTitle": "Anulada el {at}"
+    },
+    "autoWindow": {
+      "open": "Volver al cálculo automático",
+      "impossible": "Cálculo automático imposible: ninguna estancia confirmada permite calcular esta franja. Sigue fijada por un responsable.",
+      "current": "Franja actual (fijada por un responsable)",
+      "next": "Franja calculada a partir de las estancias",
+      "same": "Idéntica a la franja actual: solo cambia el modo (recálculo automático si cambia una estancia).",
+      "infeasible": "Atención: la tarea pasa a ser imposible en esta franja (demasiado tarde o demasiado corta).",
+      "unavailable": "Conflicto: el agente asignado está ausente (ausencia aceptada) en toda la franja. Cambie de agente antes.",
+      "risk": "A comprobar: una ausencia parcial o una solicitud pendiente se solapa con esta franja para el agente asignado.",
+      "effect": "Tras confirmar, la franja seguirá automáticamente las estancias. El cambio y su autor quedan registrados.",
+      "confirm": "Confirmar el cálculo automático",
+      "cancel": "Cancelar",
+      "range": "{from} → {to} · {duration}"
     }
   },
   "email": {

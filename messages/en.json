@@ -1444,7 +1444,9 @@
       "timing_window": "A linked mission couldn't follow this new time. Nothing was changed; reload the page to see the planned effect on each mission.",
       "missing_requirements": "Required proof is missing (checklist, photos or comment): ask for a correction instead of approving.",
       "invalid_end": "The time must be between the mission start and now.",
-      "migration_missing": "Not available: the database update (migration 23) has not been applied yet."
+      "migration_missing": "Not available: the required database update has not been applied yet.",
+      "no_auto_window": "No stay allows this window to be calculated automatically.",
+      "auto_window_changed": "The stays changed since the preview: reopen the preview to see the new window."
     },
     "home": {
       "subtitle": "what needs your attention",
@@ -1557,7 +1559,9 @@
         "unassigned": "Unassigned",
         "turnovers": "Cleanings"
       },
-      "dayTitle": "Day"
+      "dayTitle": "Day",
+      "regularized": "End regularised",
+      "regularizedMissing": "End regularised · proof missing"
     },
     "onb": {
       "progress": "Step {n} of {total}",
@@ -2430,7 +2434,8 @@
         "end_proposed": "Actual end time proposed",
         "end_accepted": "Proposed end time accepted",
         "end_rejected": "Proposed end time refused",
-        "end_regularized": "End regularised by a manager (to validate)"
+        "end_regularized": "End regularised by a manager (to validate)",
+        "auto_restored": "Back to automatic calculation"
       },
       "bySystem": "automatic",
       "byYou": "you",
@@ -2441,7 +2446,8 @@
         "sync": "automatic recalculation (stays changed)",
         "timing": "adjusted by a guest time decision",
         "manual": "changed by a manager",
-        "unknown": "origin not recorded (older change)"
+        "unknown": "origin not recorded (older change)",
+        "auto_restore": "back to automatic calculation"
       }
     },
     "schedule": {
@@ -2555,7 +2561,7 @@
       "retry": "Retry",
       "empty": "No message.",
       "write": "Write a message…",
-      "markUrgent": "Urgent (always notified)",
+      "markUrgent": "Urgent (e-mail even if muted, if sending is configured · no phone notification)",
       "send": "Send",
       "newTitle": "New conversation",
       "newText": "To one or several people, linked to a mission, a property or a stay.",
@@ -2601,7 +2607,7 @@
         "push": "Push notifications: unavailable (no provider configured)"
       },
       "byEmail": "Email",
-      "alwaysSent": "Emergency: always sent",
+      "alwaysSent": "Emergency: visible in HALO and e-mail always sent (if sending is configured) · no phone notification",
       "urgentAlwaysSent": "Emergencies (access, leak, damage, blocker, urgent message) are always sent",
       "event": {
         "team_task_to_validate": "Mission finished, to validate",
@@ -3816,7 +3822,8 @@
         "away": "Person absent",
         "overrun": "Over time",
         "assignSoon": "To assign",
-        "regularized": "End regularised"
+        "regularized": "End regularised",
+        "missingProofs": "Proof missing"
       },
       "count": "{count, plural, =0 {No mission} one {# mission} other {# missions}}",
       "emptyFilteredTitle": "No task for these filters",
@@ -3846,7 +3853,9 @@
         "window": "To plan · window {from} → {to} · {duration}",
         "scheduled": "Planned {from} → {to}",
         "running": "In progress since {from}",
-        "actual": "Done {from} → {to}"
+        "actual": "Done {from} → {to}",
+        "regularized": "End regularised by a manager {from} → {to}",
+        "regularizedMissing": "End regularised by a manager {from} → {to} · proof missing"
       }
     },
     "linenPage": {
@@ -3928,6 +3937,20 @@
       "regularizedMissing": "Proof missing at regularisation: {items}. Validation still requires it.",
       "regularizedComplete": "No required proof was missing at regularisation.",
       "cancelledTitle": "Cancelled on {at}"
+    },
+    "autoWindow": {
+      "open": "Back to automatic calculation",
+      "impossible": "Automatic calculation not possible: no confirmed stay allows this window to be calculated. It stays set by a manager.",
+      "current": "Current window (set by a manager)",
+      "next": "Window calculated from the stays",
+      "same": "Same as the current window: only the mode changes (automatic recalculation if a stay changes).",
+      "infeasible": "Warning: the task becomes impossible in this window (too late or too short for the estimated duration).",
+      "unavailable": "Conflict: the assigned agent is away (accepted absence) for the whole window. Change the agent before going back to automatic calculation.",
+      "risk": "To check: a partial absence or a pending absence request overlaps this window for the assigned agent.",
+      "effect": "After confirming, the window will follow the stays automatically (like a task created by HALO). The change and its author are logged.",
+      "confirm": "Confirm automatic calculation",
+      "cancel": "Cancel",
+      "range": "{from} → {to} · {duration}"
     }
   },
   "email": {

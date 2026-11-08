@@ -1444,7 +1444,9 @@
       "timing_window": "Une mission liée ne pouvait pas suivre ce nouvel horaire. Rien n'a été modifié ; rechargez la page pour voir l'effet prévu sur chaque mission.",
       "missing_requirements": "Des preuves exigées manquent (checklist, photos ou commentaire) : demandez une correction plutôt que de valider.",
       "invalid_end": "L'heure doit être entre le démarrage de la mission et maintenant.",
-      "migration_missing": "Fonction indisponible : la mise à jour de la base (migration 23) n'est pas encore appliquée."
+      "migration_missing": "Fonction indisponible : la mise à jour de la base nécessaire n'est pas encore appliquée.",
+      "no_auto_window": "Aucun séjour ne permet de calculer cette plage automatiquement.",
+      "auto_window_changed": "Les séjours ont changé depuis l'aperçu : rouvrez l'aperçu pour voir la nouvelle plage."
     },
     "home": {
       "subtitle": "ce qui demande votre attention",
@@ -1557,7 +1559,9 @@
         "unassigned": "Sans agent",
         "turnovers": "Ménages"
       },
-      "dayTitle": "Journée"
+      "dayTitle": "Journée",
+      "regularized": "Fin régularisée",
+      "regularizedMissing": "Fin régularisée · preuves manquantes"
     },
     "onb": {
       "progress": "Étape {n} sur {total}",
@@ -2430,7 +2434,8 @@
         "end_proposed": "Heure de fin réelle proposée",
         "end_accepted": "Heure de fin proposée acceptée",
         "end_rejected": "Heure de fin proposée refusée",
-        "end_regularized": "Fin régularisée par un responsable (à valider)"
+        "end_regularized": "Fin régularisée par un responsable (à valider)",
+        "auto_restored": "Retour au calcul automatique"
       },
       "bySystem": "automatique",
       "byYou": "vous",
@@ -2441,7 +2446,8 @@
         "sync": "recalcul automatique (séjours modifiés)",
         "timing": "ajustée par une décision d'horaire voyageur",
         "manual": "modifiée par un responsable",
-        "unknown": "origine non enregistrée (ancien changement)"
+        "unknown": "origine non enregistrée (ancien changement)",
+        "auto_restore": "retour au calcul automatique"
       }
     },
     "schedule": {
@@ -2555,7 +2561,7 @@
       "retry": "Réessayer",
       "empty": "Aucun message.",
       "write": "Écrire un message…",
-      "markUrgent": "Urgent (toujours notifié)",
+      "markUrgent": "Urgent (e-mail même si la personne les a coupés, si l'envoi est configuré · pas de notification téléphone)",
       "send": "Envoyer",
       "newTitle": "Nouvelle conversation",
       "newText": "À une ou plusieurs personnes, rattachée à une mission, un logement ou un séjour.",
@@ -2601,7 +2607,7 @@
         "push": "Notifications push : indisponibles (aucun fournisseur configuré)"
       },
       "byEmail": "E-mail",
-      "alwaysSent": "Urgence : toujours envoyée",
+      "alwaysSent": "Urgence : visible dans HALO et e-mail toujours envoyé (si l'envoi est configuré) · pas de notification téléphone",
       "urgentAlwaysSent": "Les urgences (accès, fuite, dégât, blocage, message urgent) partent toujours",
       "event": {
         "team_task_to_validate": "Mission terminée, à valider",
@@ -3816,7 +3822,8 @@
         "away": "Personne absente",
         "overrun": "Durée dépassée",
         "assignSoon": "À assigner",
-        "regularized": "Fin régularisée"
+        "regularized": "Fin régularisée",
+        "missingProofs": "Preuves manquantes"
       },
       "count": "{count, plural, =0 {Aucune mission} one {# mission} other {# missions}}",
       "emptyFilteredTitle": "Aucune mission pour ces filtres",
@@ -3846,7 +3853,9 @@
         "window": "À planifier · plage {from} → {to} · {duration}",
         "scheduled": "Planifié {from} → {to}",
         "running": "En cours depuis {from}",
-        "actual": "Réalisé {from} → {to}"
+        "actual": "Réalisé {from} → {to}",
+        "regularized": "Fin régularisée par un responsable {from} → {to}",
+        "regularizedMissing": "Fin régularisée par un responsable {from} → {to} · preuves manquantes"
       }
     },
     "linenPage": {
@@ -3928,6 +3937,20 @@
       "regularizedMissing": "Preuves manquantes au moment de la régularisation : {items}. La validation les exige toujours.",
       "regularizedComplete": "Aucune preuve obligatoire ne manquait au moment de la régularisation.",
       "cancelledTitle": "Annulée le {at}"
+    },
+    "autoWindow": {
+      "open": "Revenir au calcul automatique",
+      "impossible": "Calcul automatique impossible : aucun séjour confirmé ne permet de calculer cette plage. Elle reste fixée par un responsable.",
+      "current": "Plage actuelle (fixée par un responsable)",
+      "next": "Plage calculée à partir des séjours",
+      "same": "Identique à la plage actuelle : seul le mode change (recalcul automatique si un séjour est modifié).",
+      "infeasible": "Attention : la mission devient impossible dans cette plage (trop tard ou trop courte pour la durée estimée).",
+      "unavailable": "Conflit : l'agent affecté est absent (absence acceptée) sur toute cette plage. Changez d'agent avant de revenir au calcul automatique.",
+      "risk": "À vérifier : une absence partielle ou une demande d'absence en attente recoupe cette plage pour l'agent affecté.",
+      "effect": "Après confirmation, la plage suivra automatiquement les séjours (comme une mission créée par HALO). Le changement et son auteur sont historisés.",
+      "confirm": "Confirmer le calcul automatique",
+      "cancel": "Annuler",
+      "range": "{from} → {to} · {duration}"
     }
   },
   "email": {
