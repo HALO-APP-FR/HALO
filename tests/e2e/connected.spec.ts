@@ -3270,7 +3270,7 @@ test("45 · Découvrir les alentours : carte/liste, envies, rayon, fiche lieu, f
   // Fiche lieu : dépliée, itinéraire, horaires absents indiqués, adresse absente indiquée
   const cafe = around.getByTestId("around-place").first();
   await cafe.locator("summary").click();
-  await expect(cafe.getByTestId("around-hours")).toContainText("Horaires non communiqués");
+  await expect(cafe.getByTestId("around-hours")).toContainText("Horaires non vérifiés"); // horaires OpenStreetMap jamais présentés comme fiables
   await expect(cafe.getByTestId("around-detail")).toContainText("Adresse non communiquée");
   expect(await cafe.getByTestId("around-go-google").getAttribute("href")).toContain("48.872600");
   // Favori : enregistré avec le séjour, retrouvé sur un autre appareil
@@ -3727,4 +3727,81 @@ test("51 · revenir au calcul automatique : aperçu, confirmation historisée, p
   await m.goto(`/fr/app/missions/${turn!.id}`);
   await expect(m.getByTestId("history-event").filter({ hasText: "recalcul automatique" }).first()).toBeVisible();
   await m.context().close();
+});
+
+test("52 · alentours dès l'activation du lien : zone approximative (point du logement jamais transmis), filtres, rayon, favoris, carte indisponible, lien révoqué", async ({ browser }) => {
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `zone ${run}`);
+  const { data: prop } = await admin.from("properties").select("id, address_line").eq("organization_id", org).single();
+  await admin.from("properties").update({ latitude: 48.8606, longitude: 2.3376, auto_places: true, address_line: "7 rue Confidentielle" }).eq("id", prop!.id);
+  const { url } = await prepStay(m, browser, "Voyageur zone", 20); // arrivée dans 20 jours : bien avant les 72 h
+  const g = await newPage(browser);
+  await g.goto(url);
+  const around = g.getByTestId("guest-around");
+  await expect(around).toBeVisible();
+  // Lieux du quartier préparés côté serveur après la première ouverture : disponibles au rechargement
+  await expect.poll(async () => (await g.reload(), await around.getByTestId("around-place").count()), { timeout: 30_000 }).toBeGreaterThan(0);
+  await expect(around.getByTestId("around-origin")).toContainText("Carte du quartier");
+  await expect(around.getByTestId("around-zone-note")).toContainText("pas le logement");
+  // Aucune donnée du logement dans la page : ni adresse, ni coordonnées exactes
+  const html = await g.content();
+  expect(html).not.toContain("7 rue Confidentielle");
+  expect(html).not.toContain("48.8606");
+  expect(html).not.toContain("2.3376");
+  // Carte : un cercle de zone, aucun marqueur « logement » (un marqueur par lieu seulement)
+  await expect(around.getByTestId("places-map")).toBeVisible();
+  await expect(around.locator(".leaflet-overlay-pane path")).toHaveCount(1);
+  await expect(around.locator(".leaflet-marker-icon")).toHaveCount(await around.getByTestId("around-place").count());
+  // Envies, fiche lieu (horaires non vérifiés, pas de promesse d'ouverture), rayon
+  await around.getByTestId("around-filter-pharmacies").click();
+  await expect(around.getByTestId("around-place")).toHaveCount(1);
+  await expect(around.getByTestId("around-health-note")).toBeVisible();
+  const ph = around.getByTestId("around-place").first();
+  await ph.locator("summary").click();
+  await expect(ph.getByTestId("around-hours")).toContainText("Horaires non vérifiés");
+  await expect(ph.getByTestId("around-go-google")).toBeVisible();
+  // Favori : conservé après rechargement et sur un autre appareil
+  await ph.getByTestId("around-fav").click();
+  await expect(ph.getByTestId("around-fav")).toHaveAttribute("aria-pressed", "true");
+  await g.reload();
+  await g.getByTestId("around-filter-favorites").click();
+  await expect(g.getByTestId("around-place")).toHaveCount(1);
+  const g2 = await newPage(browser);
+  await g2.goto(url);
+  await g2.getByTestId("around-filter-favorites").click();
+  await expect(g2.getByTestId("around-place")).toHaveCount(1);
+  // Aucun résultat : expliqué, avec retour aux filtres
+  await g2.getByTestId("around-filter-all").click();
+  await g2.getByTestId("around-radius-500").click();
+  await g2.getByTestId("around-filter-favorites").click();
+  const n = await g2.getByTestId("around-place").count();
+  if (n === 0) await expect(g2.getByTestId("around-no-result")).toBeVisible();
+  // Téléphone 375 px : carte lisible, filtres accessibles, fiche refermable, rien ne déborde
+  const phone = await browser.newContext({ ...devices["iPhone SE"], locale: "fr-FR", timezoneId: "Europe/Paris" });
+  const p = await phone.newPage();
+  await p.route("https://tile.openstreetmap.org/**", (r) => r.fulfill({ status: 200, contentType: "image/png", body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64") }));
+  await p.goto(url);
+  await expect(p.getByTestId("places-map")).toBeVisible();
+  await expect(p.getByTestId("around-filter-all")).toBeVisible();
+  const card = p.getByTestId("around-place").first();
+  await card.locator("summary").click();
+  await expect(card.getByTestId("around-detail")).toBeVisible();
+  await card.locator("summary").click();
+  await expect(card.getByTestId("around-detail")).toBeHidden();
+  expect(await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+  await phone.close();
+  // Fond de carte indisponible : message clair, liste utilisable
+  const gb = await newPage(browser, "blocked");
+  await gb.goto(url);
+  await expect(gb.getByTestId("around-map-offline")).toBeVisible();
+  await expect(gb.getByTestId("around-place").first()).toBeVisible();
+  await gb.context().close();
+  // Lien révoqué : inutilisable
+  const stayId = (await admin.from("reservations").select("id").eq("organization_id", org).eq("guest_name", "Voyageur zone").single()).data!.id;
+  await m.goto(`/fr/app/stays/${stayId}`);
+  await m.getByTestId("link-revoke").click();
+  await expect(m.getByTestId("link-revoke")).toHaveCount(0);
+  await g2.reload();
+  await expect(g2.getByTestId("guest-unavailable")).toBeVisible();
+  for (const c of [m, g, g2]) await c.context().close();
 });

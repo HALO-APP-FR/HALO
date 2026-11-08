@@ -5,6 +5,8 @@ import { LogoMark } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
 import { Card } from "@/components/ui/card";
 import { GuestAround, type Place } from "@/components/connected/places";
+import { after } from "next/server";
+import { ensureZonePlacesForToken } from "@/lib/connected/zone-places";
 import { GuestMessageForm, GuestPrepForm, GuestProblemForm, GuestReply, GuestRequestForm, GuestVip } from "@/components/connected/guest-forms";
 import { supabaseAnon } from "@/lib/supabase/server";
 import { isConnected } from "@/lib/supabase/config";
@@ -51,7 +53,7 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
 
   let data: GStay | { status: string } | null = null;
   let problems: GProblem[] = [];
-  type Around = { full?: boolean; near_hidden?: number; auto_hidden?: number; favorites?: string[]; property: { name: string; address: string | null; postal_code: string | null; city: string | null; lat: number | null; lng: number | null }; places: Place[] };
+  type Around = { zone?: { lat: number; lng: number; radius_m: number; ready: boolean } | null; full?: boolean; near_hidden?: number; auto_hidden?: number; favorites?: string[]; property: { name: string; address: string | null; postal_code: string | null; city: string | null; lat: number | null; lng: number | null }; places: Place[] };
   let around = null as Around | null;
   let failed = false;
   if (isConnected()) {
@@ -67,6 +69,8 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
       // Lieux du logement de CE séjour uniquement (la base le garantit à partir du lien)
       const { data: pl } = await anon.rpc("guest_places", { token });
       if ((pl as { status?: string } | null)?.status === "ok") around = pl as Around;
+      // Alentours de la zone pas encore préparés : récupérés côté serveur APRÈS la réponse (le voyageur n'attend pas)
+      if (around && around.full === false && around.zone && !around.zone.ready) after(() => ensureZonePlacesForToken(token));
     }
   }
 
@@ -229,6 +233,7 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
             token={token}
             favorites={around.favorites ?? []}
             favoritesAvailable={Array.isArray(around.favorites)}
+            zone={around.zone ?? null}
           />
         )}
 

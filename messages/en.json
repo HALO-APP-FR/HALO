@@ -1806,7 +1806,9 @@
         "sourcesSummary": "{count, plural, =0 {No calendar linked} one {# calendar linked} other {# calendars linked}}",
         "places": "Area and recommendations",
         "placesSummary": "{count, plural, =0 {No place visible to guests} one {# place visible to guests} other {# places visible to guests}}"
-      }
+      },
+      "zonePlaces": "Before arrival, guests see {count} places around an approximate point in the neighbourhood (prepared on {date}), never around the property.",
+      "zonePlacesPending": "Neighbourhood places for guests before arrival: prepared automatically when a link is first opened or when suggestions are refreshed."
     },
     "guide": {
       "title": "Guest guide",
@@ -4314,7 +4316,12 @@
       "resetFilters": "Show everything",
       "noAddress": "Address not provided by the source",
       "healthNote": "Health: HALO doesn't know whether these places are open or handle emergencies. In an emergency, call 112.",
-      "mapUnavailableTitle": "Map unavailable right now"
+      "mapUnavailableTitle": "Map unavailable right now",
+      "originZone": "Neighbourhood map (an area of about 1 km around an approximate point): the exact address will appear from {date}.",
+      "zoneNote": "The circle shows the neighbourhood, not the property. Approximate distances from the centre of this area.",
+      "zonePreparing": "Neighbourhood places are being prepared: come back in a few minutes.",
+      "hoursVerifiedOn": "hours checked by the team on {date}",
+      "hoursUnverified": "Hours not checked: confirm with the place (website or phone)."
     },
     "prepBanner": "Your stay is coming up. Practical details (address, access, guide) will appear here from {date}. Meanwhile you can prepare your stay and message the team.",
     "prepared": {

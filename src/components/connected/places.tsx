@@ -44,7 +44,7 @@ export interface Place {
  * Si les tuiles ne chargent pas (réseau), la liste reste complète et utilisable.
  * Toucher un marqueur ouvre la fiche du lieu dans la liste.
  */
-function PlacesMap({ center, places, selected, onSelect, onTilesFailed, homeLabel }: { center: { lat: number; lng: number }; places: Place[]; selected?: string | null; onSelect?: (id: string) => void; onTilesFailed: () => void; homeLabel?: string }) {
+function PlacesMap({ center, places, selected, onSelect, onTilesFailed, homeLabel, zoneRadius }: { center: { lat: number; lng: number }; places: Place[]; selected?: string | null; onSelect?: (id: string) => void; onTilesFailed: () => void; homeLabel?: string; /** Avant l'ouverture : zone approximative (aucun point de logement) */ zoneRadius?: number }) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<import("leaflet").Map | null>(null);
   const layer = useRef<import("leaflet").LayerGroup | null>(null);
@@ -101,7 +101,9 @@ function PlacesMap({ center, places, selected, onSelect, onTilesFailed, homeLabe
     layer.current.clearLayers();
     const dot = (color: string, size: number, ring = false) =>
       L.divIcon({ className: "", html: `<span style="display:block;width:${size}px;height:${size}px;border-radius:50%;background:${color};border:${ring ? 3 : 2}px solid #fff;box-shadow:0 1px ${ring ? 6 : 3}px rgba(0,0,0,.45)"></span>`, iconSize: [size, size] });
-    L.marker([center.lat, center.lng], { icon: dot("#0055FF", 20), zIndexOffset: 1000, title: homeLabel }).bindTooltip(homeLabel ?? "").addTo(layer.current);
+    // Zone approximative : un cercle (jamais de point « logement ») ; sinon le logement
+    if (zoneRadius) L.circle([center.lat, center.lng], { radius: zoneRadius, color: "#0055FF", weight: 1.5, dashArray: "6 6", fillOpacity: 0.06, interactive: false }).addTo(layer.current);
+    else L.marker([center.lat, center.lng], { icon: dot("#0055FF", 20), zIndexOffset: 1000, title: homeLabel }).bindTooltip(homeLabel ?? "").addTo(layer.current);
     const pts: [number, number][] = [[center.lat, center.lng]];
     for (const p of places) {
       if (p.lat == null || p.lng == null) continue;
@@ -113,7 +115,7 @@ function PlacesMap({ center, places, selected, onSelect, onTilesFailed, homeLabe
       pts.push([p.lat, p.lng]);
     }
     if (pts.length > 1 && !selected) map.current.fitBounds(L.latLngBounds(pts), { padding: [24, 24], maxZoom: 16 });
-  }, [L, places, center.lat, center.lng, selected, homeLabel]);
+  }, [L, places, center.lat, center.lng, selected, homeLabel, zoneRadius]);
   return <div ref={el} className="h-72 w-full overflow-hidden rounded-xl border border-line bg-subtle md:h-96" data-testid="places-map" role="region" aria-label="Carte" />;
 }
 
@@ -138,8 +140,11 @@ export function GuestAround({
   token,
   favorites: initialFavorites = [],
   favoritesAvailable = false,
+  zone = null,
 }: {
   property: { name: string; lat: number | null; lng: number | null; address: string };
+  /** Avant l'ouverture : centre de la zone approximative (jamais le logement) et état de préparation des lieux */
+  zone?: { lat: number; lng: number; radius_m: number; ready: boolean } | null;
   places: Place[];
   /** Lieux très proches retenus jusqu'à l'ouverture (seul leur nombre est connu) */ nearHidden?: number;
   /** Suggestions automatiques retenues jusqu'à l'ouverture */ autoHidden?: number;
@@ -151,7 +156,8 @@ export function GuestAround({
   const t = useTranslations("guestSpace.around");
   const tc = useTranslations("places.category");
   const f = useFormatter();
-  const center = property.lat != null && property.lng != null ? { lat: property.lat, lng: property.lng } : null;
+  const center = property.lat != null && property.lng != null ? { lat: property.lat, lng: property.lng } : zone ? { lat: zone.lat, lng: zone.lng } : null;
+  const isZone = property.lat == null && Boolean(zone);
   const [view, setView] = useState<"map" | "list">(center ? "map" : "list");
   const [filter, setFilter] = useState<GuestFilter | "all" | "favorites">("all");
   const [radius, setRadius] = useState<number | null>(null);
@@ -204,7 +210,7 @@ export function GuestAround({
         <div className="min-w-0 flex-1">
           <h2 className="text-title-3">{t("discover")}</h2>
           <p className="text-[14px] text-muted" data-testid="around-origin">
-            {center ? t("originHome", { address: property.address || property.name }) : hiddenUntil ? t("mapLater", { date: hiddenUntil }) : t("noCoordinates")}
+            {isZone ? t("originZone", { date: hiddenUntil ?? "" }) : center ? t("originHome", { address: property.address || property.name }) : hiddenUntil ? t("mapLater", { date: hiddenUntil }) : t("noCoordinates")}
           </p>
         </div>
         {center && places.length > 0 && (
@@ -219,7 +225,7 @@ export function GuestAround({
       </div>
       {places.length === 0 && nearHidden === 0 && autoHidden === 0 ? (
         <Card className="p-5 text-[15px] text-muted" data-testid="around-empty">
-          {t("empty")}
+          {isZone && !zone!.ready ? t("zonePreparing") : t("empty")}
         </Card>
       ) : (
         <>
@@ -263,7 +269,8 @@ export function GuestAround({
               ))}
             </div>
           )}
-          {center && view === "map" && !tilesFailed && <PlacesMap center={center} places={shown} selected={selected} onSelect={pick} onTilesFailed={() => setTilesFailed(true)} homeLabel={property.name} />}
+          {center && view === "map" && !tilesFailed && <PlacesMap center={center} places={shown} selected={selected} onSelect={pick} onTilesFailed={() => setTilesFailed(true)} homeLabel={property.name} zoneRadius={isZone ? zone!.radius_m : undefined} />}
+          {isZone && <p className="text-[12px] text-muted" data-testid="around-zone-note">{t("zoneNote")}</p>}
           {tilesFailed && view === "map" && (
             // Fond de carte refusé ou inaccessible : pas de carte trompeuse, la liste reste complète
             <div className="rounded-xl border border-line bg-surface p-4 text-[14px]" role="status" data-testid="around-map-offline">
@@ -348,12 +355,13 @@ export function GuestAround({
                         </p>
                         <p className="flex gap-1.5" data-testid="around-hours">
                           <Clock className="mt-0.5 size-4 shrink-0" />
-                          {p.opening_hours ? (
+                          {/* Horaires transmis par la base seulement s'ils sont vérifiés par l'équipe depuis moins de 6 mois ; jamais « ouvert » */}
+                          {p.opening_hours && p.verified_at ? (
                             <span>
-                              {p.opening_hours} <span className="text-[12px]">({p.source === "openstreetmap" ? t("hoursAsPublished") : p.verified_at ? t("hoursVerified") : t("hoursToConfirm")})</span>
+                              {p.opening_hours} <span className="text-[12px]">({t("hoursVerifiedOn", { date: f.dateTime(new Date(p.verified_at), { dateStyle: "medium" }) })})</span>
                             </span>
                           ) : (
-                            <span className="text-[13px]">{t("noHours")}</span>
+                            <span className="text-[13px]" data-testid="around-hours-unverified">{t("hoursUnverified")}</span>
                           )}
                         </p>
                         {p.phone && (

@@ -54,7 +54,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
     supabase.from("stay_guest_items").select("id, kind, title, body, url, place_id, published_at").eq("organization_id", o).eq("reservation_id", id).order("created_at"),
     supabase.from("stay_prep_events").select("id, kind, actor_id, note, at").eq("organization_id", o).eq("reservation_id", id).order("at", { ascending: false }).limit(40),
     supabase.from("memberships").select("user_id, role, profiles(full_name)").eq("organization_id", o).eq("is_active", true),
-    supabase.from("property_places").select("id, name").eq("organization_id", o).eq("property_id", s.property_id).eq("hidden", false).order("name").limit(200),
+    supabase.from("property_places").select("*").eq("organization_id", o).eq("property_id", s.property_id).eq("hidden", false).order("name").limit(400),
     supabase.from("vip_criteria").select("id, label, kind, min_stays, validity_days").eq("organization_id", o).eq("active", true).order("label"),
     supabase.from("vip_requests").select("id, status, note, criterion_id, guest_message, created_at").eq("organization_id", o).eq("reservation_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("stay_vip").select("status, criterion_id, reason, granted_by, granted_at, expires_at").eq("organization_id", o).eq("reservation_id", id).maybeSingle(),
@@ -250,7 +250,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
             </div>
             <h3 className="mt-5 text-[15px] font-semibold">{tp("forGuest")}</h3>
             <p className="mb-2 text-[13px] text-muted">{tp("forGuestText")}</p>
-            <GuestItems reservationId={s.id} items={(items ?? []) as GuestItemRow[]} places={(places ?? []) as { id: string; name: string }[]} timeZone={tz} />
+            <GuestItems reservationId={s.id} items={(items ?? []) as GuestItemRow[]} places={((places ?? []) as { id: string; name: string; scope?: string }[]).filter((x) => (x.scope ?? "property") === "property").map((x) => ({ id: x.id, name: x.name }))} timeZone={tz} />
             <details className="mt-5">
               <summary className="cursor-pointer text-[15px] font-semibold">{tp("history")}</summary>
               <ol className="mt-2 space-y-1 border-s border-line ps-3 text-[13px]" data-testid="prep-history">

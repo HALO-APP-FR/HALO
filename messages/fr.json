@@ -1806,7 +1806,9 @@
         "sourcesSummary": "{count, plural, =0 {Aucun calendrier relié} one {# calendrier relié} other {# calendriers reliés}}",
         "places": "Alentours et recommandations",
         "placesSummary": "{count, plural, =0 {Aucun lieu visible par le voyageur} one {# lieu visible par le voyageur} other {# lieux visibles par le voyageur}}"
-      }
+      },
+      "zonePlaces": "Avant l'arrivée, les voyageurs voient {count} lieux autour d'un point approximatif du quartier (préparés le {date}), jamais autour du logement.",
+      "zonePlacesPending": "Lieux du quartier pour les voyageurs avant l'arrivée : préparés automatiquement à la première ouverture d'un lien ou en actualisant les suggestions."
     },
     "guide": {
       "title": "Livret voyageur",
@@ -4314,7 +4316,12 @@
       "resetFilters": "Tout afficher",
       "noAddress": "Adresse non communiquée par la source",
       "healthNote": "Santé : HALO ne sait pas si ces lieux sont ouverts ni s'ils prennent en charge une urgence. En cas d'urgence, appelez le 112 (ou le 15 en France).",
-      "mapUnavailableTitle": "Carte indisponible pour le moment"
+      "mapUnavailableTitle": "Carte indisponible pour le moment",
+      "originZone": "Carte du quartier (zone d'environ 1 km autour d'un point approximatif) : l'adresse exacte du logement s'affichera à partir du {date}.",
+      "zoneNote": "Le cercle indique le quartier, pas le logement. Distances approximatives depuis le centre de ce quartier.",
+      "zonePreparing": "Les adresses du quartier sont en cours de préparation : revenez dans quelques minutes.",
+      "hoursVerifiedOn": "horaires vérifiés par l'équipe le {date}",
+      "hoursUnverified": "Horaires non vérifiés : à confirmer auprès du lieu (site ou téléphone)."
     },
     "prepBanner": "Votre séjour approche. Les informations pratiques (adresse, accès, guide) seront visibles ici à partir du {date}. En attendant, vous pouvez préparer votre séjour et écrire à l'équipe.",
     "prepared": {

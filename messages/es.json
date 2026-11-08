@@ -1806,7 +1806,9 @@
         "sourcesSummary": "{count, plural, =0 {Ningún calendario vinculado} one {# calendario vinculado} other {# calendarios vinculados}}",
         "places": "Alrededores y recomendaciones",
         "placesSummary": "{count, plural, =0 {Ningún lugar visible para el huésped} one {# lugar visible para el huésped} other {# lugares visibles para el huésped}}"
-      }
+      },
+      "zonePlaces": "Antes de la llegada, los huéspedes ven {count} lugares alrededor de un punto aproximado del barrio (preparados el {date}), nunca alrededor del alojamiento.",
+      "zonePlacesPending": "Lugares del barrio para huéspedes antes de la llegada: se preparan automáticamente al abrir un enlace por primera vez o al actualizar las sugerencias."
     },
     "guide": {
       "title": "Guía del huésped",
@@ -4314,7 +4316,12 @@
       "resetFilters": "Mostrar todo",
       "noAddress": "Dirección no facilitada por la fuente",
       "healthNote": "Salud: HALO no sabe si estos lugares están abiertos ni si atienden urgencias. En caso de urgencia, llame al 112.",
-      "mapUnavailableTitle": "Mapa no disponible por ahora"
+      "mapUnavailableTitle": "Mapa no disponible por ahora",
+      "originZone": "Mapa del barrio (zona de aproximadamente 1 km alrededor de un punto aproximado): la dirección exacta aparecerá a partir del {date}.",
+      "zoneNote": "El círculo indica el barrio, no el alojamiento. Distancias aproximadas desde el centro de esta zona.",
+      "zonePreparing": "Los lugares del barrio se están preparando: vuelva en unos minutos.",
+      "hoursVerifiedOn": "horario verificado por el equipo el {date}",
+      "hoursUnverified": "Horario no verificado: confírmelo con el lugar (web o teléfono)."
     },
     "prepBanner": "Su estancia se acerca. La información práctica (dirección, acceso, guía) aparecerá aquí a partir del {date}. Mientras tanto puede preparar su estancia y escribir al equipo.",
     "prepared": {

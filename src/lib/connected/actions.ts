@@ -979,10 +979,14 @@ export async function importNearbyPlaces(propertyId: string): Promise<Result<{ c
   if (rows.length) {
     const keep = rows.map((x) => x.external_id);
     let del = ctx.supabase.from("property_places").delete().eq("organization_id", o).eq("property_id", propertyId).eq("source", "openstreetmap").eq("hidden", false);
+    if (await placesScoped(ctx.supabase)) del = del.eq("scope", "property");
     if (covered) del = del.in("category", covered);
     const { error: de } = await del.not("external_id", "in", `(${keep.map((k) => `"${k}"`).join(",")})`);
     if (de) return fail(errCode(de));
   }
+  // Lieux de la zone approximative (voyageurs avant l'ouverture) : rafraîchis en même temps, sans bloquer
+  const { ensureZonePlaces } = await import("./zone-places");
+  await ensureZonePlaces(propertyId, true).catch(() => null);
   revalidatePath("/", "layout");
   const { PLACE_CATEGORIES } = await import("@/lib/engine/places");
   return { ok: true, data: { count: rows.length, dataDate: r.dataDate, missing: covered ? PLACE_CATEGORIES.filter((c) => !covered.includes(c)) : [] } };
@@ -1030,9 +1034,12 @@ export async function addPlace(propertyId: string, input: PlaceInput): Promise<R
 export async function setPlaceHidden(placeId: string, hidden: boolean): Promise<Result> {
   const { ctx, error } = await manager();
   if (error) return fail(error);
-  const { data, error: e } = await ctx.supabase.from("property_places").update({ hidden }).eq("organization_id", ctx.org!.id).eq("id", placeId).select("id");
+  const { data, error: e } = await ctx.supabase.from("property_places").update({ hidden }).eq("organization_id", ctx.org!.id).eq("id", placeId).select("id, property_id, source, external_id");
   if (e) return fail(errCode(e));
   if (!data?.length) return fail("not_found");
+  // Même lieu public dans la zone approximative : masqué (ou réaffiché) lui aussi
+  const x = data[0];
+  if (x.external_id) await ctx.supabase.from("property_places").update({ hidden }).eq("organization_id", ctx.org!.id).eq("property_id", x.property_id).eq("source", x.source).eq("external_id", x.external_id);
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
@@ -1163,15 +1170,9 @@ export async function storeImportedPlaces(propertyId: string, places: ImportedPl
   if (rows.length && cats.length) {
     // Rafraîchissement : lieux automatiques non masqués, des catégories obtenues, absents de la nouvelle liste
     const keep = rows.map((x) => x.external_id);
-    const { error: de } = await ctx.supabase
-      .from("property_places")
-      .delete()
-      .eq("organization_id", o)
-      .eq("property_id", propertyId)
-      .eq("source", "openstreetmap")
-      .eq("hidden", false)
-      .in("category", cats)
-      .not("external_id", "in", `(${keep.map((k) => `"${k}"`).join(",")})`);
+    let del = ctx.supabase.from("property_places").delete().eq("organization_id", o).eq("property_id", propertyId).eq("source", "openstreetmap").eq("hidden", false).in("category", cats);
+    if (await placesScoped(ctx.supabase)) del = del.eq("scope", "property");
+    const { error: de } = await del.not("external_id", "in", `(${keep.map((k) => `"${k}"`).join(",")})`);
     if (de) return fail(errCode(de));
   }
   revalidatePath("/", "layout");
@@ -1182,6 +1183,9 @@ export async function storeImportedPlaces(propertyId: string, places: ImportedPl
  * tant que la migration n'est pas appliquée, l'enregistrement se fait sans lui (rien n'est perdu d'autre).
  */
 async function upsertPlaces(supabase: Awaited<ReturnType<typeof getContext>>["supabase"], rows: Record<string, unknown>[]) {
+  // Migration 25 : périmètre (logement / zone) dans la clé ; sinon, ancienne clé (rien n'est perdu)
+  const scoped = await supabase.from("property_places").upsert(rows.map((r) => ({ ...r, scope: "property" })), { onConflict: "property_id,scope,source,external_id" });
+  if (!scoped.error) return null;
   const first = await supabase.from("property_places").upsert(rows, { onConflict: "property_id,source,external_id" });
   if (!first.error) return null;
   if (first.error.code === "PGRST204" || /kind/.test(first.error.message ?? "")) {
@@ -1189,6 +1193,12 @@ async function upsertPlaces(supabase: Awaited<ReturnType<typeof getContext>>["su
     return again.error;
   }
   return first.error;
+}
+
+/** Périmètre « zone » présent (migration 25) : les suppressions et listes du logement s'y limitent. */
+async function placesScoped(supabase: Awaited<ReturnType<typeof getContext>>["supabase"]) {
+  const { error } = await supabase.from("property_places").select("scope").limit(1);
+  return !error;
 }
 
 export interface ImportedPlaceInput {

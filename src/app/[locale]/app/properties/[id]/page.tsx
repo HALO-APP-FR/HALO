@@ -40,8 +40,9 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
   const { supabase, org } = await getContext();
   if (!org) redirect({ href: "/app", locale });
   if (!isManagerRole(org!.role)) redirect({ href: "/app/missions", locale });
-  const [{ data: p }, { data: g }, { data: rooms }, { data: placeRows }, { data: sources }, { data: conflicts }] = await Promise.all([
+  const [{ data: p }, { data: zoneRow }, { data: g }, { data: rooms }, { data: placeRows }, { data: sources }, { data: conflicts }] = await Promise.all([
     supabase.from("properties").select("id, name, city, address_line, timezone, default_check_in, default_check_out, latitude, longitude, geo_source, auto_places").eq("organization_id", org!.id).eq("id", id).maybeSingle(),
+    supabase.from("properties").select("zone_places_at").eq("organization_id", org!.id).eq("id", id).maybeSingle(),
     supabase.from("guest_guides").select("*").eq("organization_id", org!.id).eq("property_id", id).maybeSingle(),
     supabase.from("checklist_rooms").select("id, name, checklist_items(label, photo_required)").eq("organization_id", org!.id).eq("property_id", id).order("sort"),
     supabase.from("property_places").select("*").eq("organization_id", org!.id).eq("property_id", id).order("source").order("name"),
@@ -63,7 +64,9 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
   // Rubriques du livret réellement remplies (résumé de la section repliée)
   const guideFilled = Object.entries((g ?? {}) as Record<string, unknown>).filter(([k, v]) => !["id", "organization_id", "property_id", "created_at", "updated_at"].includes(k) && typeof v === "string" && v.trim()).length;
   const coords = p.latitude != null && p.longitude != null ? { lat: p.latitude as number, lng: p.longitude as number } : null;
-  const places: Place[] = (placeRows ?? []).map((x) => ({
+  // Lieux de la zone approximative (voyageurs avant l'ouverture, migration 25) : comptés à part, jamais mélangés
+  const zoneCount = (placeRows ?? []).filter((x) => x.scope === "zone" && !x.hidden).length;
+  const places: Place[] = (placeRows ?? []).filter((x) => (x.scope ?? "property") === "property").map((x) => ({
     id: x.id,
     source: x.source,
     category: x.category,
@@ -154,6 +157,11 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
           />
           </Section>
           <Section id="places" title={t("sections.places")} summary={t("sections.placesSummary", { count: places.filter((x) => !x.hidden).length })}>
+          {zoneRow && (
+            <p className="mb-3 text-[13px] text-muted" data-testid="zone-places-status">
+              {zoneRow.zone_places_at ? t("zonePlaces", { count: zoneCount, date: f.dateTime(new Date(zoneRow.zone_places_at as string), { dateStyle: "medium" }) }) : t("zonePlacesPending")}
+            </p>
+          )}
           <PlacesManager propertyId={p.id} coords={coords} geoSource={p.geo_source} autoPlaces={p.auto_places} places={places} overpassUrls={process.env.OVERPASS_URL ? [process.env.OVERPASS_URL] : ["https://overpass-api.de/api/interpreter"]} photonUrl={process.env.PHOTON_URL ?? "https://photon.komoot.io/reverse"} />
           </Section>
         </div>

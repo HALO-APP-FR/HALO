@@ -1492,7 +1492,7 @@ insert into public.property_places (id, organization_id, property_id, source, ca
   (t.id('PL16N'), t.id('A'), t.id('P16'), 'manager', 'activities', 'Lieu public au même endroit', 48.8584, 2.2945),
   (t.id('PL16F'), t.id('A'), t.id('P16'), 'manager', 'food', 'Bistrot à 1,5 km', 48.8710, 2.2995);
 select t.is('avant ouverture : lieu au même endroit retenu, compté', t.q(null, format('select (public.guest_places(%L) ->> ''near_hidden'') || ''/'' || jsonb_array_length(public.guest_places(%L) -> ''places'')', (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'))), '1/1');
-select t.is('avant ouverture : ni distance exacte ni coordonnées du logement', t.q(null, format('select coalesce(public.guest_places(%L) #>> ''{places,0,distance_m}'', ''-'') || ''/'' || (public.guest_places(%L) #>> ''{places,0,distance_band}'') || ''/'' || coalesce(public.guest_places(%L) #>> ''{property,lat}'', ''-'')', (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'))), '-/2/-');
+select t.is('avant ouverture (migration 25) : distance depuis le centre de zone (multiple de 100 m), sans tranche ni coordonnées du logement', t.q(null, format('select ((public.guest_places(%L) #>> ''{places,0,distance_m}'')::numeric %% 100 = 0)::text || ''/'' || coalesce(public.guest_places(%L) #>> ''{places,0,distance_band}'', ''-'') || ''/'' || coalesce(public.guest_places(%L) #>> ''{property,lat}'', ''-'')', (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'))), 'true/-/-');
 -- Dans la fenêtre habituelle (lien de séjour en cours) : tout est visible
 insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values (t.id('R16Z'), t.id('A'), t.id('P16'), 'En cours 16', now() - interval '1 day', now() + interval '1 day');
 insert into t_tok values ('g16z', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R16Z'))));
@@ -1584,10 +1584,10 @@ insert into public.property_places (organization_id, property_id, source, catego
   (t.id('A'), t.id('P17'), 'manager', 'food', 'Choix équipe sans coordonnées', null, null, null);
 update public.properties set auto_places = true where id = t.id('P17');
 insert into t_tok values ('g17', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R17'))));
-select t.is('avant ouverture (Toulouse) : seulement la sélection de l''équipe, suggestions comptées',
-  t.q(null, format('select jsonb_array_length(public.guest_places(%L) -> ''places'') || ''/'' || (public.guest_places(%L) ->> ''auto_hidden'')', (select v from t_tok where k = 'g17'), (select v from t_tok where k = 'g17'))), '2/2');
-select t.check('avant ouverture : aucune coordonnée ni distance exacte dans les données transmises', '',
-  not exists (select 1 from jsonb_array_elements(public.guest_places((select v from t_tok where k = 'g17')) -> 'places') e where (e ->> 'lat') is not null or (e ->> 'lng') is not null or (e ->> 'distance_m') is not null)
+select t.is('avant ouverture (Toulouse, migration 25) : sélection de l''équipe ; suggestions du logement jamais montrées (lieux de zone pas encore préparés)',
+  t.q(null, format('select jsonb_array_length(public.guest_places(%L) -> ''places'') || ''/'' || (public.guest_places(%L) ->> ''auto_hidden'')', (select v from t_tok where k = 'g17'), (select v from t_tok where k = 'g17'))), '2/0');
+select t.check('avant ouverture : aucune coordonnée de lieu proche du logement ; distances seulement depuis le centre de zone (multiples de 100 m)', '',
+  not exists (select 1 from jsonb_array_elements(public.guest_places((select v from t_tok where k = 'g17')) -> 'places') e where (e ->> 'lat') is not null or (e ->> 'lng') is not null or ((e ->> 'distance_m') is not null and (e ->> 'distance_m')::numeric % 100 <> 0))
   and (public.guest_places((select v from t_tok where k = 'g17')) #>> '{property,lat}') is null);
 select t.check('avant ouverture : les coordonnées du logement n''apparaissent nulle part', '',
   position('43.6045' in public.guest_places((select v from t_tok where k = 'g17'))::text) = 0 and position('1.444' in public.guest_places((select v from t_tok where k = 'g17'))::text) = 0);
@@ -1758,9 +1758,9 @@ insert into public.property_places (id, organization_id, property_id, source, ca
 insert into public.stay_guest_items (organization_id, reservation_id, kind, place_id, title, published_at) values
   (t.id('A'), t.id('R18'), 'recommendation', t.id('PL18H'), 'Le musée en bas', now()),
   (t.id('A'), t.id('R18'), 'recommendation', t.id('PL18F'), 'Le bistrot', now());
-select t.is('dense : lieu sur le logement retenu, lieu sans coordonnées listé sans adresse, lieu à 1,2 km avec adresse et tranche',
-  t.q(null, format('select (public.guest_places(%L) ->> ''near_hidden'') || ''|'' || (select string_agg((e ->> ''name'') || '':'' || coalesce(e ->> ''address'', ''-'') || '':'' || coalesce(e ->> ''distance_band'', ''-''), '','' order by e ->> ''name'') from jsonb_array_elements(public.guest_places(%L) -> ''places'') e)', (select v from t_tok where k = 'g18'), (select v from t_tok where k = 'g18'))),
-  '1|Bistrot du propriétaire:20 rue Fictive, Paris:2,Boulangerie (sans coordonnées):-:-');
+select t.is('dense (migration 25) : lieu sur le logement retenu, lieu sans coordonnées listé sans adresse, lieu à 1,2 km avec adresse et distance depuis la zone',
+  t.q(null, format('select (public.guest_places(%L) ->> ''near_hidden'') || ''|'' || (select string_agg((e ->> ''name'') || '':'' || coalesce(e ->> ''address'', ''-'') || '':'' || case when e ->> ''distance_m'' is null then ''-'' else ''z'' end, '','' order by e ->> ''name'') from jsonb_array_elements(public.guest_places(%L) -> ''places'') e)', (select v from t_tok where k = 'g18'), (select v from t_tok where k = 'g18'))),
+  '1|Bistrot du propriétaire:20 rue Fictive, Paris:z,Boulangerie (sans coordonnées):-:-');
 select t.is('recommandations publiées avant ouverture : ni coordonnées, ni adresse du lieu au pied du logement',
   (select string_agg(coalesce(e #>> '{place,address}', '-') || ':' || coalesce(e #>> '{place,lat}', '-'), ',' order by e ->> 'title') from jsonb_array_elements(public.get_guest_stay((select v from t_tok where k = 'g18')) -> 'prepared') e),
   '20 rue Fictive, Paris:-,-:-');
@@ -1775,7 +1775,7 @@ insert into public.property_places (id, organization_id, property_id, source, ca
   (t.id('PL18R1'), t.id('A'), t.id('P18R'), 'manager', 'food', 'Auberge à 2,5 km', 45.9225, 6.1000, 'Le Bourg'),
   (t.id('PL18R2'), t.id('A'), t.id('P18R'), 'manager', 'food', 'Ville à 5 km', 45.9450, 6.1000, 'Centre');
 insert into t_tok values ('g18r', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R18R'))));
-select t.is('rural : seul le lieu à 2,5 km (tranche 3), sans coordonnées', t.q(null, format('select string_agg((e ->> ''name'') || '':'' || (e ->> ''distance_band'') || '':'' || coalesce(e ->> ''lat'', ''-''), '','') from jsonb_array_elements(public.guest_places(%L) -> ''places'') e', (select v from t_tok where k = 'g18r'))), 'Auberge à 2,5 km:3:-');
+select t.is('rural (migration 25) : seul le lieu à 2,5 km, sans coordonnées, distance depuis la zone', t.q(null, format('select string_agg((e ->> ''name'') || '':'' || case when (e ->> ''distance_m'')::numeric %% 100 = 0 then ''z'' else ''?'' end || '':'' || coalesce(e ->> ''lat'', ''-''), '','') from jsonb_array_elements(public.guest_places(%L) -> ''places'') e', (select v from t_tok where k = 'g18r'))), 'Auberge à 2,5 km:z:-');
 -- Logement sans coordonnées : lieux listés sans adresse ni distance
 insert into public.properties (id, organization_id, name) values (t.id('P18X'), t.id('A'), 'Sans position 18');
 insert into public.guest_guides (organization_id, property_id, enabled) values (t.id('A'), t.id('P18X'), true);
@@ -2050,6 +2050,64 @@ select t.is('calcul automatique : historisé avec son auteur et l''origine',
   (select count(*) filter (where kind = 'auto_restored' and actor_id = t.id('a_manager'))::text || '/' ||
           count(*) filter (where kind = 'window_changed' and note::jsonb ->> 'origin' = 'auto_restore')::text from public.task_events where task_id = t.id('T24')), '1/1');
 select t.is('calcul automatique : jamais sur une mission commencée', t.keep('a_manager', format('select public.restore_auto_window(%L, %L, now(), now() + interval ''3 hours'', 60)', t.id('A'), t.id('T24S'))), 'stale');
+
+-- =====================================================================
+-- 25. Alentours avant l'arrivée : zone approximative, aucun point du logement déductible (migration 25)
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['PZ', 'RZ', 'ZP1', 'ZP2', 'ZP3', 'ZTWIN', 'PTWIN', 'POSM', 'TNEAR', 'TFAR']) k;
+insert into public.properties (id, organization_id, name, address_line, latitude, longitude) values (t.id('PZ'), t.id('A'), 'Logement zone', '12 rue Secrète', 48.8601, 2.3501);
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values
+  (t.id('RZ'), t.id('A'), t.id('PZ'), 'Voyageur zone', now() + interval '20 days', now() + interval '23 days');
+insert into public.guest_links (organization_id, reservation_id, token_hash, valid_from, valid_until)
+values (t.id('A'), t.id('RZ'), encode(extensions.digest(repeat('e', 64), 'sha256'), 'hex'), now() + interval '17 days', now() + interval '24 days');
+insert into public.property_places (id, organization_id, property_id, scope, source, category, name, address, latitude, longitude, external_id, opening_hours, verified_at) values
+  (t.id('ZP1'), t.id('A'), t.id('PZ'), 'zone', 'openstreetmap', 'food', 'Zone resto', '1 place publique', 48.8630, 2.3600, 'node/801', 'Mo-Su 10:00-22:00', null),
+  (t.id('ZP2'), t.id('A'), t.id('PZ'), 'zone', 'openstreetmap', 'shops', 'Zone épicerie', null, 48.8580, 2.3550, 'node/802', null, null),
+  (t.id('ZP3'), t.id('A'), t.id('PZ'), 'zone', 'openstreetmap', 'food', 'Zone trop loin', null, 48.8800, 2.3600, 'node/803', null, null),
+  (t.id('ZTWIN'), t.id('A'), t.id('PZ'), 'zone', 'openstreetmap', 'food', 'Café jumeau', null, 48.8610, 2.3560, 'node/900', null, null),
+  (t.id('PTWIN'), t.id('A'), t.id('PZ'), 'property', 'openstreetmap', 'food', 'Café jumeau', null, 48.8610, 2.3560, 'node/900', null, null),
+  (t.id('POSM'), t.id('A'), t.id('PZ'), 'property', 'openstreetmap', 'food', 'Au pied du logement', null, 48.8602, 2.3502, 'node/901', null, null),
+  (t.id('TNEAR'), t.id('A'), t.id('PZ'), 'property', 'manager', 'food', 'Boulangerie en bas', 'rue Secrète', 48.8606, 2.3506, null, null, null),
+  (t.id('TFAR'), t.id('A'), t.id('PZ'), 'property', 'manager', 'activities', 'Musée du quartier', '3 avenue publique', 48.8680, 2.3600, null, 'Tu-Su 10:00-18:00', now() - interval '10 days');
+create table t.zone (k text primary key, v jsonb);
+insert into t.zone select 'before', public.guest_places(repeat('e', 64));
+select t.is('alentours avant l''arrivée : accessibles dès l''activation du lien (avant 72 h)', (select (v ->> 'status') || '/' || (v ->> 'full') from t.zone where k = 'before'), 'ok/false');
+select t.is('alentours avant l''arrivée : ni adresse ni coordonnées du logement', (select coalesce(v -> 'property' ->> 'address', '∅') || '/' || coalesce(v -> 'property' ->> 'lat', '∅') || '/' || coalesce(v -> 'property' ->> 'lng', '∅') from t.zone where k = 'before'), '∅/∅/∅');
+select t.is('alentours avant l''arrivée : carte centrée sur la maille (et non sur le logement)',
+  (select round((v -> 'zone' ->> 'lat')::numeric, 6)::text || ',' || round((v -> 'zone' ->> 'lng')::numeric, 6)::text from t.zone where k = 'before'), '48.862500,2.359895');
+select t.is('alentours avant l''arrivée : lieux de zone + recommandation lointaine, rien de proche du logement',
+  (select string_agg(x ->> 'name', ',' order by x ->> 'name') from t.zone, jsonb_array_elements(v -> 'places') x where k = 'before'), 'Café jumeau,Musée du quartier,Zone resto,Zone épicerie');
+select t.is('alentours avant l''arrivée : distances depuis le centre de zone (arrondies à 100 m), jamais depuis le logement',
+  (select string_agg(x ->> 'name' || '=' || coalesce(x ->> 'distance_m', '∅'), ',' order by x ->> 'name') from t.zone, jsonb_array_elements(v -> 'places') x where k = 'before'),
+  (select string_agg(n || '=' || d, ',' order by n) from (values ('Café jumeau', round(public.distance_m(48.8625, 2.3598947903880942, 48.8610, 2.3560) / 100) * 100),
+     ('Musée du quartier', round(public.distance_m(48.8625, 2.3598947903880942, 48.8680, 2.3600) / 100) * 100), ('Zone resto', round(public.distance_m(48.8625, 2.3598947903880942, 48.8630, 2.3600) / 100) * 100),
+     ('Zone épicerie', round(public.distance_m(48.8625, 2.3598947903880942, 48.8580, 2.3550) / 100) * 100)) v(n, d0) cross join lateral (select coalesce(d0::bigint::text, '∅') d) z));
+select t.is('alentours avant l''arrivée : horaires seulement si vérifiés par l''équipe (jamais ceux d''OpenStreetMap)',
+  (select string_agg(x ->> 'name' || '=' || coalesce(x ->> 'opening_hours', '∅'), ',' order by x ->> 'name') from t.zone, jsonb_array_elements(v -> 'places') x where k = 'before'),
+  'Café jumeau=∅,Musée du quartier=Tu-Su 10:00-18:00,Zone resto=∅,Zone épicerie=∅');
+-- Preuve concrète : déplacer le logement dans la même maille ne change RIEN à ce que reçoit le voyageur
+update public.properties set latitude = 48.8612, longitude = 2.3512 where id = t.id('PZ');
+insert into t.zone select 'moved', public.guest_places(repeat('e', 64));
+select t.is('alentours avant l''arrivée : réponse identique si le logement bouge dans la maille (point exact non déductible)',
+  (select md5((v - 'favorites')::text) from t.zone where k = 'moved'), (select md5((v - 'favorites')::text) from t.zone where k = 'before'));
+update public.properties set latitude = 48.8601, longitude = 2.3501 where id = t.id('PZ');
+select t.is('alentours avant l''arrivée : favori sur un lieu de zone', t.keep(null, format('select public.guest_place_favorite(%L, %L, true) ->> ''status''', repeat('e', 64), t.id('ZTWIN'))), 'ok');
+select t.is('alentours avant l''arrivée : pas de favori sur un lieu proche du logement', t.keep(null, format('select public.guest_place_favorite(%L, %L, true) ->> ''status''', repeat('e', 64), t.id('POSM'))), 'not_found');
+select t.is('alentours avant l''arrivée : favori retrouvé (rechargement / autre appareil)', t.q(null, format('select public.guest_places(%L) -> ''favorites'' ->> 0', repeat('e', 64))), t.id('ZTWIN')::text);
+update public.property_places set hidden = true where id = t.id('PTWIN');
+select t.is('alentours avant l''arrivée : un lieu masqué par l''équipe l''est aussi dans la zone',
+  t.q(null, format('select count(*) from jsonb_array_elements(public.guest_places(%L) -> ''places'') x where x ->> ''name'' = ''Café jumeau''', repeat('e', 64))), '0');
+update public.property_places set hidden = false where id = t.id('PTWIN');
+-- Ouverture des informations pratiques : lieux du logement + lieux de zone non doublés ; favori conservé (même lieu)
+update public.guest_links set valid_from = now() - interval '1 hour' where reservation_id = t.id('RZ');
+select t.is('alentours ouverts : adresse et position du logement', t.q(null, format('select (public.guest_places(%L) -> ''property'' ->> ''address'') || ''/'' || (public.guest_places(%L) ->> ''full'')', repeat('e', 64), repeat('e', 64))), '12 rue Secrète/true');
+select t.is('alentours ouverts : un même lieu n''apparaît qu''une fois',
+  t.q(null, format('select count(*) from jsonb_array_elements(public.guest_places(%L) -> ''places'') x where x ->> ''name'' = ''Café jumeau''', repeat('e', 64))), '1');
+select t.is('alentours ouverts : favori choisi avant l''arrivée retrouvé sur le lieu affiché', t.q(null, format('select public.guest_places(%L) -> ''favorites'' ->> 0', repeat('e', 64))), t.id('PTWIN')::text);
+update public.guest_links set revoked_at = now() where reservation_id = t.id('RZ');
+select t.is('alentours : lien révoqué inutilisable', t.q(null, format('select public.guest_places(%L) ->> ''status''', repeat('e', 64))), 'unavailable');
+select t.is('alentours : favori refusé avec un lien révoqué', t.q(null, format('select public.guest_place_favorite(%L, %L, true) ->> ''status''', repeat('e', 64), t.id('ZTWIN'))), 'unavailable');
+select t.is('zone : même centre en base et dans l''application', (select array_to_string(array[round(z[1]::numeric, 9), round(z[2]::numeric, 9)], ',') from (select public.zone_center(48.8612, 2.3512) z) q), '48.862500000,2.359894790');
 
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);
