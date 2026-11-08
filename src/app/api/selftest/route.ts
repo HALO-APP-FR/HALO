@@ -297,6 +297,34 @@ export async function GET(request: NextRequest) {
     check("guest_sees_places_of_own_property", names.includes(`Café ${run}`));
     const { data: forgedPlaces } = await guest.rpc("guest_places", { token: "f".repeat(64) });
     check("forged_link_sees_no_places", (forgedPlaces as { status: string })?.status === "unavailable");
+    // 6f. Linge opérationnel (migration 26) : réservé aux responsables de l'organisation, stock par mouvements
+    {
+      const { data: li, error: lie } = await a1.from("linen_items").insert({ organization_id: orgA, label: `Drap ${run}`, unit: "pièce" }).select("id").single();
+      if (lie) check("linen_stock_by_movements", false, lie.code === "PGRST205" || lie.code === "42P01" ? "migration 26 absente" : `${lie.code}:${lie.message}`);
+      else {
+        await a1.rpc("linen_count", { org: orgA, item: li!.id, loc: "clean", counted: 10, note: "selftest" });
+        const { error: over } = await a1.rpc("linen_move", { org: orgA, item: li!.id, from_loc: "clean", to_loc: "laundry", qty: 50, kind: "to_laundry", note: null, property: null, task: null });
+        await a1.rpc("linen_move", { org: orgA, item: li!.id, from_loc: "clean", to_loc: "laundry", qty: 4, kind: "to_laundry", note: null, property: null, task: null });
+        const { data: st } = await a1.rpc("linen_stock", { org: orgA });
+        const mine = ((st ?? []) as { item_id: string; location: string; qty: number }[]).filter((r) => r.item_id === li!.id).map((r) => `${r.location}=${r.qty}`).sort().join(",");
+        check("linen_stock_by_movements", mine === "clean=6,laundry=4" && Boolean(over), mine);
+        const { data: agItems } = await ag.from("linen_items").select("id").eq("organization_id", orgA);
+        const { error: agCount } = await ag.rpc("linen_count", { org: orgA, item: li!.id, loc: "clean", counted: 99, note: null });
+        check("agent_cannot_read_or_change_linen", (agItems ?? []).length === 0 && Boolean(agCount));
+        const { data: bItems } = await b.from("linen_items").select("id").eq("organization_id", orgA);
+        const { error: bMove } = await b.rpc("linen_move", { org: orgA, item: li!.id, from_loc: "clean", to_loc: null, qty: 1, kind: "loss", note: null, property: null, task: null });
+        check("other_org_cannot_read_or_change_linen", (bItems ?? []).length === 0 && Boolean(bMove));
+      }
+    }
+    // 6g. Alentours avant l'arrivée (migration 25) : ni adresse ni coordonnées du logement transmises
+    {
+      const { data: zr } = await a1.from("reservations").insert({ organization_id: orgA, property_id: pA!.id, guest_name: `Zone ${run}`, check_in_at: soon(60 * 24 * 30), check_out_at: soon(60 * 24 * 33) }).select("id").single();
+      const { data: zt } = zr ? await a1.rpc("create_guest_link", { org: orgA, reservation: zr.id }) : { data: null };
+      const { data: zp } = zt ? await guest.rpc("guest_places", { token: zt as string }) : { data: null };
+      const z = zp as { full?: boolean; zone?: { lat: number } | null; property?: { lat: unknown; address: unknown } } | null;
+      const raw = JSON.stringify(zp ?? {});
+      check("guest_zone_before_arrival_hides_property", z?.full === false && z.property?.lat == null && z.property?.address == null && !raw.includes("48.8606") && !raw.includes("2.3376"), z?.zone ? "zone" : "sans zone (migration 25 absente ?)");
+    }
     // 6e bis. Favoris du voyageur (migration 22) : liés au séjour, refusés avec un lien inventé
     {
       const { data: pl } = await a1.from("property_places").select("id").eq("property_id", pA!.id).eq("name", `Café ${run}`).single();

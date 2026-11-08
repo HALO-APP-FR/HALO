@@ -1446,7 +1446,9 @@
       "invalid_end": "The time must be between the mission start and now.",
       "migration_missing": "Not available: the required database update has not been applied yet.",
       "no_auto_window": "No stay allows this window to be calculated automatically.",
-      "auto_window_changed": "The stays changed since the preview: reopen the preview to see the new window."
+      "auto_window_changed": "The stays changed since the preview: reopen the preview to see the new window.",
+      "insufficient_stock": "Not enough stock at the source location: nothing was saved. Count the stock if the figure shown is wrong.",
+      "no_kit": "Property kit not set: set it in Linen → Kits per property."
     },
     "home": {
       "subtitle": "what needs your attention",
@@ -3673,7 +3675,14 @@
       "cancel": "Cancel",
       "created": "Delivery created.",
       "existed": "A linen delivery already exists for this stay: nothing was duplicated.",
-      "open": "Open the mission"
+      "open": "Open the mission",
+      "pickupTitle": "Linen pickup · {property} · {guest}",
+      "pickupDeadline": "To collect after the guest leaves: {date}.",
+      "pickupEndHint": "At the latest (24 h after departure by default).",
+      "pickupUnknown": "Not known to HALO: property access after departure. Check before confirming.",
+      "pickupConfirm": "Create pickup",
+      "pickupCreated": "Pickup created.",
+      "pickupExisted": "A pickup already exists for this stay: nothing was duplicated."
     },
     "taskRules": {
       "title": "Rules by mission type",
@@ -3889,8 +3898,8 @@
       "readinessOff": "Linen is not part of the \"Ready\" check (no laundry declared).",
       "modelEdit": "Change in set-up",
       "demoOnly": {
-        "title": "Not available here yet",
-        "text": "These functions only exist in the demo, with fictitious data. They are not shown here until they rely on your data.",
+        "title": "Next step: external laundry",
+        "text": "Not built yet (only in the demo, with fictitious data). Nothing is shown here until partner access rights are verified.",
         "items": {
           "stock": {
             "name": "Stock by location",
@@ -3915,9 +3924,14 @@
           "journal": {
             "name": "Log and costs",
             "build": "To build: movement history and cost per turnover, fed by real orders."
+          },
+          "costs": {
+            "name": "Costs",
+            "build": "To build: cost per item and per turnover, fed by real orders."
           }
         }
-      }
+      },
+      "openMission": "Open"
     },
     "forgotten": {
       "title": "Task still in progress?",
@@ -3953,6 +3967,109 @@
       "confirm": "Confirm automatic calculation",
       "cancel": "Cancel",
       "range": "{from} → {to} · {duration}"
+    },
+    "linenOps": {
+      "unavailableTitle": "Linen operations: database update required",
+      "unavailableText": "Catalogue, kits, stock and needs will appear once migration 26 is applied. The linen tasks below are real.",
+      "todoTitle": "What's missing · where and when to act",
+      "alert": {
+        "shortageTitle": "Potential shortage: {item}",
+        "shortage": "{need} needed over the next 14 days, {available} clean in stock: short from the arrival on {date} ({property}).",
+        "noKitTitle": "Kit not set: {property}",
+        "noKit": "{count, plural, one {One arrival} other {# arrivals}} within 14 days (first on {date}): HALO cannot calculate the linen needed.",
+        "noStockTitle": "Stock not recorded: {item}",
+        "noStock": "No count recorded: impossible to know whether any is missing.",
+        "noItemsTitle": "Linen catalogue empty",
+        "noItems": "Add your items (sheets, covers, towels…) to calculate needs and track stock.",
+        "action": {
+          "shortage": "See stock",
+          "no_kit": "Set the kit",
+          "no_stock": "Count stock",
+          "no_items": "Add items"
+        }
+      },
+      "deliveryToPlan": "Delivery to plan: {property}",
+      "pickupToPlan": "Pickup to plan: {property}",
+      "arrival": "Arrival {date}",
+      "departure": "Departure {date}",
+      "kitUnknown": "kit not set",
+      "kitNote": "Kit to bring: {kit}",
+      "knownKit": "Contents taken from the property kit. Not known to HALO: property access; check before confirming.",
+      "planDelivery": "Plan delivery",
+      "planPickup": "Plan pickup",
+      "toApplyDelivery": "Completed delivery to record in stock: {property}",
+      "toApplyPickup": "Completed pickup to record in stock: {property}",
+      "toApplyDeliveryHint": "The property kit will leave clean stock (once only).",
+      "toApplyPickupHint": "The property kit will enter dirty stock (once only).",
+      "toApplyNoKit": "Set the property kit to record this task in stock.",
+      "apply": "Record in stock",
+      "allGood": "No shortage detected from the data entered (last count: {date}). Count regularly: HALO only sees what is recorded.",
+      "notEnoughData": "No arrival to prepare in the next 14 days.",
+      "stockTitle": "Stock and needs",
+      "lastCount": "Last count: {date}",
+      "neverCounted": "No count yet",
+      "item": "Item",
+      "need14": "Need 14 d",
+      "loc": {
+        "clean": "Clean",
+        "dirty": "Dirty",
+        "laundry": "At the laundry"
+      },
+      "notCounted": "not counted",
+      "needHint": "Need = property kits for confirmed arrivals over the next 14 days. Linen at the laundry is not counted as available (return date unknown).",
+      "countTitle": "Stock count",
+      "moveTitle": "Movement",
+      "location": "Location",
+      "counted": "Counted",
+      "countSave": "Save",
+      "countOk": "Count saved (difference logged).",
+      "note": "Note",
+      "notePlaceholder": "Note (optional)",
+      "movement": "Movement",
+      "qty": "Quantity",
+      "moveSave": "Save",
+      "moveOk": "Movement saved.",
+      "from": "From",
+      "kind": {
+        "to_laundry": "Send to laundry (dirty → laundry)",
+        "from_laundry": "Back from laundry (→ clean)",
+        "purchase": "Purchase (→ clean)",
+        "loss": "Loss or discard"
+      },
+      "kindHint": {
+        "to_laundry": "Removes from dirty stock, adds at the laundry.",
+        "from_laundry": "Removes from the laundry, adds to clean.",
+        "purchase": "Adds to clean stock.",
+        "loss": "Removes from the chosen location."
+      },
+      "kindLabel": {
+        "count": "Count",
+        "purchase": "Purchase",
+        "to_laundry": "Sent to laundry",
+        "from_laundry": "Back from laundry",
+        "delivery": "Property delivery",
+        "pickup": "Property pickup",
+        "loss": "Loss",
+        "adjust": "Correction"
+      },
+      "kitsTitle": "Kits per property",
+      "kitsSummary": "{done} / {total} properties",
+      "property": "Property",
+      "kitSave": "Save kit",
+      "kitOk": "Kit saved.",
+      "kitNeedsCatalogue": "Add items to the catalogue first.",
+      "catalogueTitle": "Item catalogue",
+      "catalogueSummary": "{count, plural, =0 {Empty} one {# item} other {# items}}",
+      "catalogueEmpty": "No items. Start from a common list (editable) or add your own.",
+      "seed": "Use the common list",
+      "remove": "Remove",
+      "newItem": "New item",
+      "newItemPlaceholder": "E.g. Fitted sheet 160",
+      "unit": "Unit",
+      "add": "Add",
+      "historyTitle": "Movement history",
+      "historySummary": "{count, plural, =0 {None} one {# recent} other {# recent}}",
+      "historyEmpty": "No movement recorded."
     }
   },
   "email": {

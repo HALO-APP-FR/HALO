@@ -2109,6 +2109,49 @@ select t.is('alentours : lien révoqué inutilisable', t.q(null, format('select 
 select t.is('alentours : favori refusé avec un lien révoqué', t.q(null, format('select public.guest_place_favorite(%L, %L, true) ->> ''status''', repeat('e', 64), t.id('ZTWIN'))), 'unavailable');
 select t.is('zone : même centre en base et dans l''application', (select array_to_string(array[round(z[1]::numeric, 9), round(z[2]::numeric, 9)], ',') from (select public.zone_center(48.8612, 2.3512) z) q), '48.862500000,2.359894790');
 
+-- =====================================================================
+-- 26. Linge opérationnel : catalogue, kits, stock par mouvements, missions (migration 26)
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['LDRAP', 'LSERV', 'RL1', 'TLD', 'TLP', 'TLX']) k;
+select t.is('linge : le responsable crée un article', t.dml('a_manager', format('insert into public.linen_items (id, organization_id, label, unit) values (%L, %L, ''Drap 140'', ''pièce'')', t.id('LDRAP'), t.id('A'))), '1');
+insert into public.linen_items (id, organization_id, label, unit) values (t.id('LDRAP'), t.id('A'), 'Drap 140', 'pièce'), (t.id('LSERV'), t.id('A'), 'Serviette', 'pièce');
+select t.deny('linge : un agent ne crée pas d''article', t.dml('a_agent', format('insert into public.linen_items (organization_id, label) values (%L, ''x'')', t.id('A'))));
+select t.is('linge : un agent ne voit pas le catalogue', t.q('a_agent', 'select count(*) from public.linen_items'), '0');
+select t.is('linge : une autre organisation ne voit pas le catalogue', t.q('b_manager', format('select count(*) from public.linen_items where organization_id = %L', t.id('A'))), '0');
+select t.deny('linge : une autre organisation ne définit pas de kit chez A', t.dml('b_manager', format('insert into public.property_linen_kits (organization_id, property_id, item_id, qty) values (%L, %L, %L, 2)', t.id('A'), t.id('PA1'), t.id('LDRAP'))));
+select t.is('linge : kit défini par le responsable', t.dml('a_manager', format('insert into public.property_linen_kits (organization_id, property_id, item_id, qty) values (%L, %L, %L, 2), (%L, %L, %L, 4)', t.id('A'), t.id('PA1'), t.id('LDRAP'), t.id('A'), t.id('PA1'), t.id('LSERV'))), '2');
+insert into public.property_linen_kits (organization_id, property_id, item_id, qty) values (t.id('A'), t.id('PA1'), t.id('LDRAP'), 2), (t.id('A'), t.id('PA1'), t.id('LSERV'), 4);
+select t.deny('linge : le stock ne s''écrit jamais directement', t.dml('a_manager', format('insert into public.linen_movements (organization_id, item_id, location, delta, kind, group_id) values (%L, %L, ''clean'', 100, ''adjust'', gen_random_uuid())', t.id('A'), t.id('LDRAP'))));
+select t.err('linge : un agent ne fait pas d''inventaire', t.q('a_agent', format('select public.linen_count(%L, %L, ''clean'', 10)', t.id('A'), t.id('LDRAP'))), '42501');
+select t.err('linge : une autre organisation non plus', t.q('b_manager', format('select public.linen_count(%L, %L, ''clean'', 10)', t.id('A'), t.id('LDRAP'))), '42501');
+select t.is('linge : inventaire du propre', t.keep('a_manager', format('select public.linen_count(%L, %L, ''clean'', 10, ''Inventaire (fictif)'') ->> ''after''', t.id('A'), t.id('LDRAP'))), '10');
+select t.is('linge : inventaire identique encore tracé (date du comptage)', t.keep('a_manager', format('select public.linen_count(%L, %L, ''clean'', 10) ->> ''before''', t.id('A'), t.id('LDRAP'))), '10');
+select t.is('linge : envoi au blanchisseur (propre → blanchisseur)', t.keep('a_manager', format('select public.linen_move(%L, %L, ''clean'', ''laundry'', 4, ''to_laundry'', ''Lot fictif'') ->> ''status''', t.id('A'), t.id('LDRAP'))), 'applied');
+select t.err('linge : jamais de stock négatif', t.q('a_manager', format('select public.linen_move(%L, %L, ''clean'', ''laundry'', 50, ''to_laundry'')', t.id('A'), t.id('LDRAP'))), '22023');
+select t.is('linge : stock par emplacement = somme des mouvements', t.q('a_manager', format('select string_agg(location || ''='' || qty, '','' order by location) from public.linen_stock(%L) where item_id = %L', t.id('A'), t.id('LDRAP'))), 'clean=6,laundry=4');
+select t.is('linge : un agent ne lit pas le stock', t.q('a_agent', format('select count(*) from public.linen_stock(%L)', t.id('A'))), '0');
+select t.is('linge : historique avec auteur', t.q('a_manager', format('select count(*) filter (where actor_id = %L)::text || ''/'' || count(*) from public.linen_movements where item_id = %L', t.id('a_manager'), t.id('LDRAP'))), '4/4');
+select t.is('linge : un agent ne lit pas l''historique', t.q('a_agent', 'select count(*) from public.linen_movements'), '0');
+-- Missions linge → stock (une fois, kit du logement)
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values (t.id('RL1'), t.id('A'), t.id('PA1'), 'Linge fictif', now() + interval '30 days', now() + interval '33 days');
+select t.is('linge : collecte planifiée après le départ', t.keep('a_manager', format('select public.plan_linen_pickup(%L, %L, now() + interval ''33 days'', now() + interval ''34 days'', 20) ->> ''status''', t.id('A'), t.id('RL1'))), 'created');
+select t.is('linge : collecte sans doublon', t.keep('a_manager', format('select public.plan_linen_pickup(%L, %L, now() + interval ''33 days'', now() + interval ''34 days'', 20) ->> ''status''', t.id('A'), t.id('RL1'))), 'exists');
+select t.err('linge : collecte avant le départ refusée', t.q('a_manager', format('select public.plan_linen_pickup(%L, %L, now() + interval ''11 days'', now() + interval ''14 days'', 20)', t.id('A'), t.id('RA3'))), '22023');
+select t.err('linge : un agent ne planifie pas de collecte', t.q('a_agent', format('select public.plan_linen_pickup(%L, %L, now() + interval ''33 days'', now() + interval ''34 days'', 20)', t.id('A'), t.id('RL1'))), '42501');
+insert into public.tasks (id, organization_id, property_id, type, status, window_start, window_end, duration_min, completed_at) values
+  (t.id('TLD'), t.id('A'), t.id('PA1'), 'linen_delivery', 'done', now() - interval '3 hours', now() + interval '1 hour', 20, now() - interval '1 hour'),
+  (t.id('TLP'), t.id('A'), t.id('PA1'), 'linen_pickup', 'validated', now() - interval '3 hours', now() + interval '1 hour', 20, now() - interval '1 hour'),
+  (t.id('TLX'), t.id('A'), t.id('PA1'), 'linen_delivery', 'assigned', now() + interval '3 hours', now() + interval '5 hours', 20, null);
+select t.is('linge : mission non terminée sans effet sur le stock', t.keep('a_manager', format('select public.linen_apply_task(%L, %L) ->> ''status''', t.id('A'), t.id('TLX'))), 'not_done');
+select t.err('linge : livraison refusée si le propre ne suffit pas (aucune serviette comptée)', t.q('a_manager', format('select public.linen_apply_task(%L, %L)', t.id('A'), t.id('TLD'))), '22023');
+select t.is('linge : inventaire des serviettes', t.keep('a_manager', format('select public.linen_count(%L, %L, ''clean'', 20) ->> ''after''', t.id('A'), t.id('LSERV'))), '20');
+select t.is('linge : livraison terminée → kit sorti du propre', t.keep('a_manager', format('select public.linen_apply_task(%L, %L) ->> ''status''', t.id('A'), t.id('TLD'))), 'applied');
+select t.is('linge : une seule fois par mission', t.keep('a_manager', format('select public.linen_apply_task(%L, %L) ->> ''status''', t.id('A'), t.id('TLD'))), 'already');
+select t.is('linge : collecte → kit entré au sale', t.keep('a_manager', format('select public.linen_apply_task(%L, %L) ->> ''status''', t.id('A'), t.id('TLP'))), 'applied');
+select t.is('linge : stock après livraison et collecte', t.q('a_manager', format('select string_agg(item || '':'' || location || ''='' || qty, '','' order by item, location) from (select case when item_id = %L then ''drap'' else ''serv'' end item, location, qty from public.linen_stock(%L)) s', t.id('LDRAP'), t.id('A'))),
+  'drap:clean=4,drap:dirty=2,drap:laundry=4,serv:clean=16,serv:dirty=4');
+select t.err('linge : un agent n''applique pas une mission au stock', t.q('a_agent', format('select public.linen_apply_task(%L, %L)', t.id('A'), t.id('TLP'))), '42501');
+
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);
 do $$ declare n int; begin

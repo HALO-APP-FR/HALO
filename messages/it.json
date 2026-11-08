@@ -1446,7 +1446,9 @@
       "invalid_end": "L'ora deve essere tra l'inizio della missione e adesso.",
       "migration_missing": "Non disponibile: l'aggiornamento del database necessario non è ancora applicato.",
       "no_auto_window": "Nessun soggiorno permette di calcolare automaticamente questa fascia.",
-      "auto_window_changed": "I soggiorni sono cambiati dall'anteprima: riaprila."
+      "auto_window_changed": "I soggiorni sono cambiati dall'anteprima: riaprila.",
+      "insufficient_stock": "Scorta insufficiente nel luogo di partenza: nulla è stato registrato. Fai l'inventario se il dato è errato.",
+      "no_kit": "Kit dell'alloggio non definito: definiscilo in Biancheria → Kit per alloggio."
     },
     "home": {
       "subtitle": "ciò che richiede la tua attenzione",
@@ -3673,7 +3675,14 @@
       "cancel": "Annulla",
       "created": "Consegna creata.",
       "existed": "Esiste già una consegna di biancheria per questo soggiorno: nulla è stato duplicato.",
-      "open": "Apri la missione"
+      "open": "Apri la missione",
+      "pickupTitle": "Ritiro biancheria · {property} · {guest}",
+      "pickupDeadline": "Da ritirare dopo la partenza dell'ospite: {date}.",
+      "pickupEndHint": "Al più tardi (24 h dopo la partenza per impostazione).",
+      "pickupUnknown": "HALO non conosce l'accesso dopo la partenza: verificare prima di confermare.",
+      "pickupConfirm": "Crea il ritiro",
+      "pickupCreated": "Ritiro creato.",
+      "pickupExisted": "Esiste già un ritiro per questo soggiorno: nulla è stato duplicato."
     },
     "taskRules": {
       "title": "Regole per tipo di missione",
@@ -3889,8 +3898,8 @@
       "readinessOff": "La biancheria non rientra nel controllo «Pronto» (nessuna lavanderia dichiarata).",
       "modelEdit": "Modifica nella configurazione",
       "demoOnly": {
-        "title": "Non ancora disponibile qui",
-        "text": "Queste funzioni esistono solo nella demo, con dati fittizi. Non sono mostrate qui finché non usano i tuoi dati.",
+        "title": "Prossimo passo: lavanderia esterna",
+        "text": "Non ancora costruito (solo nella demo, con dati fittizi). Nulla è mostrato qui finché i diritti del partner non sono verificati.",
         "items": {
           "stock": {
             "name": "Scorte per luogo",
@@ -3915,9 +3924,14 @@
           "journal": {
             "name": "Registro e costi",
             "build": "Da costruire: storico movimenti e costo per rotazione, alimentati dagli ordini reali."
+          },
+          "costs": {
+            "name": "Costi",
+            "build": "Da costruire: costo per articolo e per rotazione, dagli ordini reali."
           }
         }
-      }
+      },
+      "openMission": "Apri"
     },
     "forgotten": {
       "title": "Attività ancora in corso?",
@@ -3953,6 +3967,109 @@
       "confirm": "Conferma il calcolo automatico",
       "cancel": "Annulla",
       "range": "{from} → {to} · {duration}"
+    },
+    "linenOps": {
+      "unavailableTitle": "Biancheria operativa: aggiornamento del database necessario",
+      "unavailableText": "Catalogo, kit, scorte e fabbisogni appariranno quando la migrazione 26 sarà applicata. Le attività biancheria restano reali.",
+      "todoTitle": "Cosa manca · dove e quando agire",
+      "alert": {
+        "shortageTitle": "Possibile carenza: {item}",
+        "shortage": "Servono {need} nei prossimi 14 giorni, {available} puliti in scorta: insufficiente dall'arrivo del {date} ({property}).",
+        "noKitTitle": "Kit non definito: {property}",
+        "noKit": "{count, plural, one {Un arrivo} other {# arrivi}} entro 14 giorni (il primo il {date}): HALO non può calcolare la biancheria necessaria.",
+        "noStockTitle": "Scorta non registrata: {item}",
+        "noStock": "Nessun inventario registrato: impossibile sapere se manca.",
+        "noItemsTitle": "Catalogo biancheria vuoto",
+        "noItems": "Aggiungi i tuoi articoli (lenzuola, copripiumini, asciugamani…) per calcolare fabbisogni e scorte.",
+        "action": {
+          "shortage": "Vedi scorte",
+          "no_kit": "Definisci il kit",
+          "no_stock": "Fai l'inventario",
+          "no_items": "Aggiungi articoli"
+        }
+      },
+      "deliveryToPlan": "Consegna da pianificare: {property}",
+      "pickupToPlan": "Ritiro da pianificare: {property}",
+      "arrival": "Arrivo {date}",
+      "departure": "Partenza {date}",
+      "kitUnknown": "kit non definito",
+      "kitNote": "Kit da prevedere: {kit}",
+      "knownKit": "Composizione ripresa dal kit dell'alloggio. HALO non conosce l'accesso all'alloggio: verificare prima di confermare.",
+      "planDelivery": "Pianifica la consegna",
+      "planPickup": "Pianifica il ritiro",
+      "toApplyDelivery": "Consegna completata da registrare in scorta: {property}",
+      "toApplyPickup": "Ritiro completato da registrare: {property}",
+      "toApplyDeliveryHint": "Il kit dell'alloggio uscirà dalla scorta pulita (una sola volta).",
+      "toApplyPickupHint": "Il kit dell'alloggio entrerà nella scorta sporca (una sola volta).",
+      "toApplyNoKit": "Definisci il kit dell'alloggio per registrare questa attività.",
+      "apply": "Registra in scorta",
+      "allGood": "Nessuna carenza rilevata in base ai dati inseriti (ultimo inventario: {date}). Conta regolarmente: HALO vede solo ciò che è registrato.",
+      "notEnoughData": "Nessun arrivo da preparare nei prossimi 14 giorni.",
+      "stockTitle": "Scorte e fabbisogni",
+      "lastCount": "Ultimo inventario: {date}",
+      "neverCounted": "Nessun inventario",
+      "item": "Articolo",
+      "need14": "Fabbisogno 14 g",
+      "loc": {
+        "clean": "Pulito",
+        "dirty": "Sporco",
+        "laundry": "In lavanderia"
+      },
+      "notCounted": "non contato",
+      "needHint": "Fabbisogno = kit degli alloggi per gli arrivi confermati dei prossimi 14 giorni. La biancheria in lavanderia non è contata come disponibile.",
+      "countTitle": "Inventario",
+      "moveTitle": "Movimento",
+      "location": "Luogo",
+      "counted": "Quantità contata",
+      "countSave": "Salva",
+      "countOk": "Inventario registrato (differenza registrata).",
+      "note": "Nota",
+      "notePlaceholder": "Nota (facoltativa)",
+      "movement": "Movimento",
+      "qty": "Quantità",
+      "moveSave": "Salva",
+      "moveOk": "Movimento registrato.",
+      "from": "Da",
+      "kind": {
+        "to_laundry": "Invio in lavanderia (sporco → lavanderia)",
+        "from_laundry": "Ritorno dalla lavanderia (→ pulito)",
+        "purchase": "Acquisto (→ pulito)",
+        "loss": "Perdita o scarto"
+      },
+      "kindHint": {
+        "to_laundry": "Toglie dallo sporco, aggiunge in lavanderia.",
+        "from_laundry": "Toglie dalla lavanderia, aggiunge al pulito.",
+        "purchase": "Aggiunge al pulito.",
+        "loss": "Toglie dal luogo scelto."
+      },
+      "kindLabel": {
+        "count": "Inventario",
+        "purchase": "Acquisto",
+        "to_laundry": "Invio lavanderia",
+        "from_laundry": "Ritorno lavanderia",
+        "delivery": "Consegna alloggio",
+        "pickup": "Ritiro alloggio",
+        "loss": "Perdita",
+        "adjust": "Correzione"
+      },
+      "kitsTitle": "Kit per alloggio",
+      "kitsSummary": "{done} / {total} alloggi",
+      "property": "Alloggio",
+      "kitSave": "Salva il kit",
+      "kitOk": "Kit salvato.",
+      "kitNeedsCatalogue": "Aggiungi prima articoli al catalogo.",
+      "catalogueTitle": "Catalogo articoli",
+      "catalogueSummary": "{count, plural, =0 {Vuoto} one {# articolo} other {# articoli}}",
+      "catalogueEmpty": "Nessun articolo. Parti da un elenco comune (modificabile) o aggiungi i tuoi.",
+      "seed": "Usa l'elenco comune",
+      "remove": "Rimuovi",
+      "newItem": "Nuovo articolo",
+      "newItemPlaceholder": "Es. Lenzuolo con angoli 160",
+      "unit": "Unità",
+      "add": "Aggiungi",
+      "historyTitle": "Storico movimenti",
+      "historySummary": "{count, plural, =0 {Nessuno} one {# recente} other {# recenti}}",
+      "historyEmpty": "Nessun movimento registrato."
     }
   },
   "email": {

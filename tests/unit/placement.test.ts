@@ -67,7 +67,12 @@ describe("placement des missions", () => {
 
   it("mission terminée : placée sur ses heures réelles (fin retenue prioritaire)", () => {
     const k = { ...qa, status: "done", started_at: "2026-11-06T08:00:00Z", completed_at: "2026-11-06T14:00:00Z", reported_end_at: "2026-11-06T09:30:00Z" };
-    expect(placement(k, now)).toEqual({ kind: "actual", start: Date.parse("2026-11-06T08:00:00Z"), end: Date.parse("2026-11-06T09:30:00Z"), running: false });
+    expect(placement(k, now)).toMatchObject({ kind: "actual", start: Date.parse("2026-11-06T08:00:00Z"), end: Date.parse("2026-11-06T09:30:00Z"), running: false, regularized: false });
+  });
+
+  it("fin régularisée par un responsable : jamais présentée comme une fin normale, preuves manquantes signalées", () => {
+    const k = { ...qa, status: "done", started_at: "2026-11-06T08:00:00Z", completed_at: "2026-11-06T10:00:00Z", reported_end_at: "2026-11-06T10:00:00Z", regularized_at: "2026-11-06T14:00:00Z", regularized_missing: ["photos"] };
+    expect(placement(k, now)).toMatchObject({ kind: "actual", regularized: true, missingProofs: true });
   });
 
   it("mission en cours oubliée : s'étend jusqu'à maintenant", () => {

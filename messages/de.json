@@ -1446,7 +1446,9 @@
       "invalid_end": "Die Uhrzeit muss zwischen Beginn des Einsatzes und jetzt liegen.",
       "migration_missing": "Nicht verfügbar: Das nötige Datenbank-Update ist noch nicht eingespielt.",
       "no_auto_window": "Kein Aufenthalt erlaubt eine automatische Berechnung.",
-      "auto_window_changed": "Die Aufenthalte haben sich seit der Vorschau geändert: Vorschau erneut öffnen."
+      "auto_window_changed": "Die Aufenthalte haben sich seit der Vorschau geändert: Vorschau erneut öffnen.",
+      "insufficient_stock": "Nicht genug Bestand am Ausgangsort: nichts gespeichert. Zählen Sie nach, wenn die Zahl falsch ist.",
+      "no_kit": "Set der Unterkunft fehlt: unter Wäsche → Sets pro Unterkunft festlegen."
     },
     "home": {
       "subtitle": "was Ihre Aufmerksamkeit braucht",
@@ -3673,7 +3675,14 @@
       "cancel": "Abbrechen",
       "created": "Lieferung angelegt.",
       "existed": "Für diesen Aufenthalt gibt es bereits eine Wäschelieferung: nichts wurde doppelt angelegt.",
-      "open": "Einsatz öffnen"
+      "open": "Einsatz öffnen",
+      "pickupTitle": "Wäscheabholung · {property} · {guest}",
+      "pickupDeadline": "Nach der Abreise abzuholen: {date}.",
+      "pickupEndHint": "Spätestens (standardmäßig 24 h nach Abreise).",
+      "pickupUnknown": "Zugang nach Abreise ist HALO nicht bekannt: vor Bestätigung prüfen.",
+      "pickupConfirm": "Abholung erstellen",
+      "pickupCreated": "Abholung erstellt.",
+      "pickupExisted": "Für diesen Aufenthalt existiert bereits eine Abholung: nichts doppelt erstellt."
     },
     "taskRules": {
       "title": "Regeln je Einsatztyp",
@@ -3889,8 +3898,8 @@
       "readinessOff": "Wäsche ist nicht Teil der Prüfung „Bereit“ (keine Wäscherei angegeben).",
       "modelEdit": "In der Einrichtung ändern",
       "demoOnly": {
-        "title": "Hier noch nicht verfügbar",
-        "text": "Diese Funktionen gibt es nur in der Demo mit fiktiven Daten. Sie erscheinen hier erst, wenn sie auf Ihren Daten beruhen.",
+        "title": "Nächster Schritt: externe Wäscherei",
+        "text": "Noch nicht gebaut (nur in der Demo, mit fiktiven Daten). Hier erscheint nichts, bis die Partnerrechte geprüft sind.",
         "items": {
           "stock": {
             "name": "Bestand nach Ort",
@@ -3915,9 +3924,14 @@
           "journal": {
             "name": "Protokoll und Kosten",
             "build": "Zu bauen: Bewegungsverlauf und Kosten pro Wechsel aus echten Aufträgen."
+          },
+          "costs": {
+            "name": "Kosten",
+            "build": "Zu bauen: Kosten je Artikel und Wechsel aus echten Aufträgen."
           }
         }
-      }
+      },
+      "openMission": "Öffnen"
     },
     "forgotten": {
       "title": "Aufgabe noch offen?",
@@ -3953,6 +3967,109 @@
       "confirm": "Automatische Berechnung bestätigen",
       "cancel": "Abbrechen",
       "range": "{from} → {to} · {duration}"
+    },
+    "linenOps": {
+      "unavailableTitle": "Wäsche-Betrieb: Datenbank-Update nötig",
+      "unavailableText": "Katalog, Sets, Bestand und Bedarf erscheinen nach Migration 26. Die Wäsche-Aufgaben unten sind echt.",
+      "todoTitle": "Was fehlt · wo und wann handeln",
+      "alert": {
+        "shortageTitle": "Möglicher Engpass: {item}",
+        "shortage": "{need} in den nächsten 14 Tagen nötig, {available} sauber vorrätig: knapp ab der Anreise am {date} ({property}).",
+        "noKitTitle": "Set nicht festgelegt: {property}",
+        "noKit": "{count, plural, one {Eine Anreise} other {# Anreisen}} in 14 Tagen (erste am {date}): HALO kann den Wäschebedarf nicht berechnen.",
+        "noStockTitle": "Bestand nicht erfasst: {item}",
+        "noStock": "Keine Zählung erfasst: Fehlbestand nicht feststellbar.",
+        "noItemsTitle": "Wäschekatalog leer",
+        "noItems": "Fügen Sie Ihre Artikel hinzu (Laken, Bezüge, Handtücher…), um Bedarf und Bestand zu verfolgen.",
+        "action": {
+          "shortage": "Bestand ansehen",
+          "no_kit": "Set festlegen",
+          "no_stock": "Bestand zählen",
+          "no_items": "Artikel hinzufügen"
+        }
+      },
+      "deliveryToPlan": "Lieferung zu planen: {property}",
+      "pickupToPlan": "Abholung zu planen: {property}",
+      "arrival": "Anreise {date}",
+      "departure": "Abreise {date}",
+      "kitUnknown": "Set nicht festgelegt",
+      "kitNote": "Mitzubringendes Set: {kit}",
+      "knownKit": "Inhalt aus dem Set der Unterkunft. Zugang zur Unterkunft ist HALO nicht bekannt: vor Bestätigung prüfen.",
+      "planDelivery": "Lieferung planen",
+      "planPickup": "Abholung planen",
+      "toApplyDelivery": "Erledigte Lieferung im Bestand erfassen: {property}",
+      "toApplyPickup": "Erledigte Abholung im Bestand erfassen: {property}",
+      "toApplyDeliveryHint": "Das Set verlässt den sauberen Bestand (nur einmal).",
+      "toApplyPickupHint": "Das Set kommt in den Schmutzwäsche-Bestand (nur einmal).",
+      "toApplyNoKit": "Legen Sie das Set fest, um diese Aufgabe zu erfassen.",
+      "apply": "Im Bestand erfassen",
+      "allGood": "Kein Engpass laut erfassten Daten (letzte Zählung: {date}). Zählen Sie regelmäßig: HALO sieht nur Erfasstes.",
+      "notEnoughData": "Keine Anreise in den nächsten 14 Tagen vorzubereiten.",
+      "stockTitle": "Bestand und Bedarf",
+      "lastCount": "Letzte Zählung: {date}",
+      "neverCounted": "Noch keine Zählung",
+      "item": "Artikel",
+      "need14": "Bedarf 14 T",
+      "loc": {
+        "clean": "Sauber",
+        "dirty": "Schmutzig",
+        "laundry": "In der Wäscherei"
+      },
+      "notCounted": "nicht gezählt",
+      "needHint": "Bedarf = Sets der Unterkünfte für bestätigte Anreisen der nächsten 14 Tage. Wäsche in der Wäscherei gilt nicht als verfügbar.",
+      "countTitle": "Zählung",
+      "moveTitle": "Bewegung",
+      "location": "Ort",
+      "counted": "Gezählt",
+      "countSave": "Speichern",
+      "countOk": "Zählung gespeichert (Differenz protokolliert).",
+      "note": "Notiz",
+      "notePlaceholder": "Notiz (optional)",
+      "movement": "Bewegung",
+      "qty": "Menge",
+      "moveSave": "Speichern",
+      "moveOk": "Bewegung gespeichert.",
+      "from": "Von",
+      "kind": {
+        "to_laundry": "An Wäscherei (schmutzig → Wäscherei)",
+        "from_laundry": "Zurück aus Wäscherei (→ sauber)",
+        "purchase": "Kauf (→ sauber)",
+        "loss": "Verlust oder Aussortierung"
+      },
+      "kindHint": {
+        "to_laundry": "Vom Schmutzbestand in die Wäscherei.",
+        "from_laundry": "Aus der Wäscherei in den sauberen Bestand.",
+        "purchase": "Zum sauberen Bestand.",
+        "loss": "Vom gewählten Ort entfernen."
+      },
+      "kindLabel": {
+        "count": "Zählung",
+        "purchase": "Kauf",
+        "to_laundry": "An Wäscherei",
+        "from_laundry": "Aus Wäscherei",
+        "delivery": "Lieferung Unterkunft",
+        "pickup": "Abholung Unterkunft",
+        "loss": "Verlust",
+        "adjust": "Korrektur"
+      },
+      "kitsTitle": "Sets pro Unterkunft",
+      "kitsSummary": "{done} / {total} Unterkünfte",
+      "property": "Unterkunft",
+      "kitSave": "Set speichern",
+      "kitOk": "Set gespeichert.",
+      "kitNeedsCatalogue": "Fügen Sie zuerst Artikel hinzu.",
+      "catalogueTitle": "Artikelkatalog",
+      "catalogueSummary": "{count, plural, =0 {Leer} one {# Artikel} other {# Artikel}}",
+      "catalogueEmpty": "Keine Artikel. Starten Sie mit einer üblichen Liste (bearbeitbar) oder fügen Sie eigene hinzu.",
+      "seed": "Übliche Liste verwenden",
+      "remove": "Entfernen",
+      "newItem": "Neuer Artikel",
+      "newItemPlaceholder": "Z. B. Spannbettlaken 160",
+      "unit": "Einheit",
+      "add": "Hinzufügen",
+      "historyTitle": "Bewegungsverlauf",
+      "historySummary": "{count, plural, =0 {Keine} one {# neue} other {# neue}}",
+      "historyEmpty": "Keine Bewegung erfasst."
     }
   },
   "email": {

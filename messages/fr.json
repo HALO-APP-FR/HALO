@@ -1446,7 +1446,9 @@
       "invalid_end": "L'heure doit être entre le démarrage de la mission et maintenant.",
       "migration_missing": "Fonction indisponible : la mise à jour de la base nécessaire n'est pas encore appliquée.",
       "no_auto_window": "Aucun séjour ne permet de calculer cette plage automatiquement.",
-      "auto_window_changed": "Les séjours ont changé depuis l'aperçu : rouvrez l'aperçu pour voir la nouvelle plage."
+      "auto_window_changed": "Les séjours ont changé depuis l'aperçu : rouvrez l'aperçu pour voir la nouvelle plage.",
+      "insufficient_stock": "Stock insuffisant à l'emplacement de départ : rien n'a été enregistré. Faites l'inventaire si le stock affiché est faux.",
+      "no_kit": "Kit du logement non défini : définissez-le dans Linge → Kits par logement."
     },
     "home": {
       "subtitle": "ce qui demande votre attention",
@@ -3673,7 +3675,14 @@
       "cancel": "Annuler",
       "created": "Livraison créée.",
       "existed": "Une livraison de linge existe déjà pour ce séjour : rien n'a été créé en double.",
-      "open": "Ouvrir la mission"
+      "open": "Ouvrir la mission",
+      "pickupTitle": "Collecte de linge · {property} · {guest}",
+      "pickupDeadline": "À collecter après le départ du voyageur : {date}.",
+      "pickupEndHint": "Au plus tard (par défaut 24 h après le départ).",
+      "pickupUnknown": "Non connu de HALO : accès au logement après le départ. À vérifier avant de confirmer.",
+      "pickupConfirm": "Créer la collecte",
+      "pickupCreated": "Collecte créée.",
+      "pickupExisted": "Une collecte existe déjà pour ce séjour : rien n'a été créé en double."
     },
     "taskRules": {
       "title": "Règles par type de mission",
@@ -3889,8 +3898,8 @@
       "readinessOff": "Le linge n'entre pas dans le contrôle « Logement prêt » (pas de blanchisserie déclarée).",
       "modelEdit": "Modifier dans la configuration",
       "demoOnly": {
-        "title": "Pas encore disponible ici",
-        "text": "Ces fonctions n'existent que dans la démo, avec des données fictives. Elles ne sont pas affichées ici tant qu'elles ne reposent pas sur vos données.",
+        "title": "Prochaine étape : blanchisseur externe",
+        "text": "Pas encore construit (présent seulement dans la démo, avec des données fictives). Rien n'est affiché ici tant que les droits du partenaire ne sont pas vérifiés.",
         "items": {
           "stock": {
             "name": "Stocks par emplacement",
@@ -3915,9 +3924,14 @@
           "journal": {
             "name": "Journal et coûts",
             "build": "À construire : historique des mouvements et coût par rotation, alimentés par les commandes réelles."
+          },
+          "costs": {
+            "name": "Coûts",
+            "build": "À construire : coût par article et par rotation, alimenté par les commandes réelles."
           }
         }
-      }
+      },
+      "openMission": "Ouvrir"
     },
     "forgotten": {
       "title": "Mission restée en cours ?",
@@ -3953,6 +3967,109 @@
       "confirm": "Confirmer le calcul automatique",
       "cancel": "Annuler",
       "range": "{from} → {to} · {duration}"
+    },
+    "linenOps": {
+      "unavailableTitle": "Linge opérationnel : mise à jour de la base nécessaire",
+      "unavailableText": "Catalogue, kits, stock et besoins s'afficheront dès que la migration 26 sera appliquée. Les missions linge ci-dessous restent réelles.",
+      "todoTitle": "Ce qui manque · où et quand agir",
+      "alert": {
+        "shortageTitle": "Manque potentiel : {item}",
+        "shortage": "Besoin de {need} d'ici les 14 prochains jours, {available} en stock propre : insuffisant dès l'arrivée du {date} ({property}).",
+        "noKitTitle": "Kit non défini : {property}",
+        "noKit": "{count, plural, one {Une arrivée} other {# arrivées}} d'ici 14 jours (première le {date}) : HALO ne peut pas calculer le linge nécessaire.",
+        "noStockTitle": "Stock non renseigné : {item}",
+        "noStock": "Aucun inventaire enregistré : impossible de savoir s'il en manque.",
+        "noItemsTitle": "Catalogue de linge vide",
+        "noItems": "Ajoutez vos articles (draps, housses, serviettes…) pour calculer les besoins et suivre le stock.",
+        "action": {
+          "shortage": "Voir le stock",
+          "no_kit": "Définir le kit",
+          "no_stock": "Faire l'inventaire",
+          "no_items": "Ajouter des articles"
+        }
+      },
+      "deliveryToPlan": "Livraison à planifier : {property}",
+      "pickupToPlan": "Collecte à planifier : {property}",
+      "arrival": "Arrivée {date}",
+      "departure": "Départ {date}",
+      "kitUnknown": "kit non défini",
+      "kitNote": "Kit à prévoir : {kit}",
+      "knownKit": "Composition reprise du kit du logement. Non connu de HALO : accès au logement ; à vérifier avant de confirmer.",
+      "planDelivery": "Planifier la livraison",
+      "planPickup": "Planifier la collecte",
+      "toApplyDelivery": "Livraison terminée à reporter au stock : {property}",
+      "toApplyPickup": "Collecte terminée à reporter au stock : {property}",
+      "toApplyDeliveryHint": "Le kit du logement sortira du stock propre (une seule fois).",
+      "toApplyPickupHint": "Le kit du logement entrera dans le stock sale (une seule fois).",
+      "toApplyNoKit": "Définissez le kit du logement pour reporter cette mission au stock.",
+      "apply": "Reporter au stock",
+      "allGood": "Aucun manque détecté d'après les données saisies (dernier inventaire : {date}). Recomptez régulièrement : HALO ne voit que ce qui est enregistré.",
+      "notEnoughData": "Pas d'arrivée à préparer dans les 14 prochains jours.",
+      "stockTitle": "Stock et besoins",
+      "lastCount": "Dernier inventaire : {date}",
+      "neverCounted": "Aucun inventaire",
+      "item": "Article",
+      "need14": "Besoin 14 j",
+      "loc": {
+        "clean": "Propre",
+        "dirty": "Sale",
+        "laundry": "Chez le blanchisseur"
+      },
+      "notCounted": "non compté",
+      "needHint": "Besoin = kits des logements pour les arrivées confirmées des 14 prochains jours. Le linge chez le blanchisseur n'est pas compté comme disponible (date de retour inconnue).",
+      "countTitle": "Inventaire",
+      "moveTitle": "Mouvement",
+      "location": "Emplacement",
+      "counted": "Quantité comptée",
+      "countSave": "Enregistrer",
+      "countOk": "Inventaire enregistré (écart historisé).",
+      "note": "Note",
+      "notePlaceholder": "Note (facultatif)",
+      "movement": "Mouvement",
+      "qty": "Quantité",
+      "moveSave": "Enregistrer",
+      "moveOk": "Mouvement enregistré.",
+      "from": "Depuis",
+      "kind": {
+        "to_laundry": "Envoi au blanchisseur (sale → blanchisseur)",
+        "from_laundry": "Retour du blanchisseur (→ propre)",
+        "purchase": "Achat (→ propre)",
+        "loss": "Perte ou mise au rebut"
+      },
+      "kindHint": {
+        "to_laundry": "Retire du stock sale, ajoute chez le blanchisseur.",
+        "from_laundry": "Retire de chez le blanchisseur, ajoute au propre.",
+        "purchase": "Ajoute au stock propre.",
+        "loss": "Retire de l'emplacement choisi."
+      },
+      "kindLabel": {
+        "count": "Inventaire",
+        "purchase": "Achat",
+        "to_laundry": "Envoi blanchisseur",
+        "from_laundry": "Retour blanchisseur",
+        "delivery": "Livraison logement",
+        "pickup": "Collecte logement",
+        "loss": "Perte",
+        "adjust": "Correction"
+      },
+      "kitsTitle": "Kits par logement",
+      "kitsSummary": "{done} / {total} logements",
+      "property": "Logement",
+      "kitSave": "Enregistrer le kit",
+      "kitOk": "Kit enregistré.",
+      "kitNeedsCatalogue": "Ajoutez d'abord des articles au catalogue.",
+      "catalogueTitle": "Catalogue des articles",
+      "catalogueSummary": "{count, plural, =0 {Vide} one {# article} other {# articles}}",
+      "catalogueEmpty": "Aucun article. Partez d'une liste courante (modifiable) ou ajoutez les vôtres.",
+      "seed": "Utiliser la liste courante",
+      "remove": "Retirer",
+      "newItem": "Nouvel article",
+      "newItemPlaceholder": "Ex. Drap housse 160",
+      "unit": "Unité",
+      "add": "Ajouter",
+      "historyTitle": "Historique des mouvements",
+      "historySummary": "{count, plural, =0 {Aucun} one {# récent} other {# récents}}",
+      "historyEmpty": "Aucun mouvement enregistré."
     }
   },
   "email": {

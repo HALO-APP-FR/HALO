@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { createCleaningForStay, planLinenDelivery } from "@/lib/connected/actions";
+import { planLinenPickup } from "@/lib/connected/linen-actions";
 import { Button } from "@/components/ui/button";
 import { Field, Select, Textarea } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -36,10 +37,19 @@ export function PlanLinenForm({
   guestName,
   members,
   timeZone,
+  kind = "delivery",
+  defaultNote = "",
+  unknown,
 }: {
   stayId: string;
   label: string;
+  /** Livraison : arrivée du voyageur (échéance). Collecte : départ du voyageur (début possible). */
   checkInAt: string;
+  kind?: "delivery" | "pickup";
+  /** Consigne préremplie (ex. composition du kit du logement) */
+  defaultNote?: string;
+  /** Ce que HALO ne sait pas (remplace le texte par défaut quand le kit est connu) */
+  unknown?: string;
   propertyName: string;
   guestName: string;
   members: { id: string; name: string }[];
@@ -50,18 +60,19 @@ export function PlanLinenForm({
   const { pending, error, run } = useRun();
   const [open, setOpen] = useState(false);
   const arrival = new Date(checkInAt);
-  const [start, setStart] = useState(() => localInputIn(new Date(Math.max(Date.now(), arrival.getTime() - 24 * 3_600_000)), timeZone));
-  const [end, setEnd] = useState(() => localInputIn(arrival, timeZone));
+  const pickup = kind === "pickup";
+  const [start, setStart] = useState(() => localInputIn(pickup ? arrival : new Date(Math.max(Date.now(), arrival.getTime() - 24 * 3_600_000)), timeZone));
+  const [end, setEnd] = useState(() => localInputIn(pickup ? new Date(arrival.getTime() + 24 * 3_600_000) : arrival, timeZone));
   const [duration, setDuration] = useState(20);
   const [assignee, setAssignee] = useState("");
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState(defaultNote);
   const [done, setDone] = useState<{ id: string; existed: boolean } | null>(null);
   const sending = useRef(false);
   const at = (d: Date) => f.dateTime(d, { weekday: "short", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", ...(timeZone ? { timeZone } : {}) });
   if (done)
     return (
       <p className="text-[13px]" role="status" data-testid="linen-planned">
-        {t(done.existed ? "existed" : "created")}{" "}
+        {t(done.existed ? (pickup ? "pickupExisted" : "existed") : pickup ? "pickupCreated" : "created")}{" "}
         <Link href={`/app/missions/${done.id}`} className="font-medium text-accent-text underline">
           {t("open")}
         </Link>
@@ -69,19 +80,19 @@ export function PlanLinenForm({
     );
   if (!open)
     return (
-      <Button size="sm" onClick={() => setOpen(true)} data-testid="plan-linen">
+      <Button size="sm" onClick={() => setOpen(true)} data-testid={pickup ? "plan-pickup" : "plan-linen"}>
         {label}
       </Button>
     );
   return (
     <div className="w-full basis-full space-y-3 rounded-md border border-line bg-subtle p-3 text-[14px] dark:bg-surface-hover" data-testid="linen-form">
-      <p className="font-semibold">{t("title", { property: propertyName, guest: guestName || "—" })}</p>
-      <p data-testid="linen-deadline">{t("deadline", { date: at(arrival) })}</p>
+      <p className="font-semibold">{t(pickup ? "pickupTitle" : "title", { property: propertyName, guest: guestName || "—" })}</p>
+      <p data-testid="linen-deadline">{t(pickup ? "pickupDeadline" : "deadline", { date: at(arrival) })}</p>
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label={t("startLabel")} htmlFor={`ls-${stayId}`} hint={t("startHint")}>
           <Input id={`ls-${stayId}`} type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} data-testid="linen-start" />
         </Field>
-        <Field label={t("endLabel")} htmlFor={`le-${stayId}`} hint={t("endHint")}>
+        <Field label={t("endLabel")} htmlFor={`le-${stayId}`} hint={t(pickup ? "pickupEndHint" : "endHint")}>
           <Input id={`le-${stayId}`} type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} data-testid="linen-end" />
         </Field>
         <Field label={t("durationLabel")} htmlFor={`ld-${stayId}`} hint={t("durationHint")}>
@@ -101,7 +112,7 @@ export function PlanLinenForm({
       <Field label={t("noteLabel")} htmlFor={`ln-${stayId}`}>
         <Textarea id={`ln-${stayId}`} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} />
       </Field>
-      <p className="text-[13px] text-muted" data-testid="linen-unknown">{t("unknown")}</p>
+      <p className="text-[13px] text-muted" data-testid="linen-unknown">{unknown ?? t(pickup ? "pickupUnknown" : "unknown")}</p>
       <div className="flex flex-wrap gap-2">
         <Button
           size="sm"
@@ -111,7 +122,7 @@ export function PlanLinenForm({
             sending.current = true;
             run(
               () =>
-                planLinenDelivery(stayId, { start: fromLocalInput(start, timeZone).toISOString(), end: fromLocalInput(end, timeZone).toISOString(), durationMin: duration, assigneeId: assignee || null, note }).finally(() => {
+                (pickup ? planLinenPickup : planLinenDelivery)(stayId, { start: fromLocalInput(start, timeZone).toISOString(), end: fromLocalInput(end, timeZone).toISOString(), durationMin: duration, assigneeId: assignee || null, note }).finally(() => {
                   sending.current = false;
                 }),
               (d) => setDone(d),
@@ -119,7 +130,7 @@ export function PlanLinenForm({
           }}
           data-testid="linen-confirm"
         >
-          {t("confirm")}
+          {t(pickup ? "pickupConfirm" : "confirm")}
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
           {t("cancel")}

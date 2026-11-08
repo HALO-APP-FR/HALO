@@ -3058,8 +3058,8 @@ test("43 · navigation de la démo : neuf entrées, Linge et Planning réels, an
   await m.goto("/fr/app/linen");
   await expect(m.getByTestId("linen-kpis")).toBeVisible();
   await expect(m.getByTestId("linen-model")).toContainText("Blanchisserie externe");
-  await expect(m.getByTestId("linen-demo-only")).toContainText("Pas encore disponible ici");
-  for (const k of ["stock", "kits", "shortage", "laundry", "partner", "journal"]) await expect(m.getByTestId(`linen-demo-only-${k}`)).toBeVisible();
+  await expect(m.getByTestId("linen-demo-only")).toContainText("Prochaine étape : blanchisseur externe");
+  for (const k of ["laundry", "partner", "costs"]) await expect(m.getByTestId(`linen-demo-only-${k}`)).toBeVisible();
   const linenDb = await admin.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", navOrg).in("type", ["linen_delivery", "linen_pickup"]).neq("status", "cancelled").gte("window_end", new Date().toISOString()).lt("window_start", new Date(Date.now() + 6 * 86_400_000).toISOString());
   expect(await m.getByTestId("linen-mission").count()).toBeGreaterThanOrEqual(linenDb.count ?? 0);
   // Planning : jour réel, navigation jour par jour, chaque mission ouvre sa fiche
@@ -3804,4 +3804,114 @@ test("52 · alentours dès l'activation du lien : zone approximative (point du l
   await g2.reload();
   await expect(g2.getByTestId("guest-unavailable")).toBeVisible();
   for (const c of [m, g, g2]) await c.context().close();
+});
+
+test("53 · linge opérationnel : catalogue, kit, inventaire, besoins et manques datés, livraison et collecte planifiées, report au stock, historique", async ({ browser }) => {
+  const m = await newPage(browser);
+  const name = `lops ${run}`;
+  const { org, agentId } = await testScenario(m, name);
+  const { data: prop } = await admin.from("properties").insert({ organization_id: org, name: "Appartement linge (fictif)" }).select("id, name").single();
+  // Deuxième logement sans kit, avec une arrivée : besoin inconnu, signalé
+  const { data: p2, error: pe } = await admin.from("properties").insert({ organization_id: org, name: "Studio sans kit (fictif)" }).select("id").single();
+  expect(pe).toBeNull();
+  const inDays = (d: number, h = 15) => { const x = new Date(); x.setDate(x.getDate() + d); x.setHours(h, 0, 0, 0); return x.toISOString(); };
+  await admin.from("reservations").insert([
+    { organization_id: org, property_id: prop!.id, guest_name: "Linge A (fictif)", check_in_at: inDays(3), check_out_at: inDays(5, 10) },
+    { organization_id: org, property_id: prop!.id, guest_name: "Linge B (fictif)", check_in_at: inDays(6), check_out_at: inDays(8, 10) },
+    { organization_id: org, property_id: p2!.id, guest_name: "Linge C (fictif)", check_in_at: inDays(4), check_out_at: inDays(6, 10) },
+  ]).then(({ error }) => expect(error).toBeNull());
+  await m.goto("/fr/app/linen");
+  // Rien n'est « prêt » sans données : catalogue vide signalé
+  await expect(m.locator("[data-testid=linen-alert][data-kind=no_items]")).toBeVisible();
+  await expect(m.getByTestId("linen-ok")).toHaveCount(0);
+  await m.getByTestId("linen-seed").click();
+  await expect(m.getByTestId("linen-item")).toHaveCount(9);
+  // Articles jamais comptés : « stock non renseigné », toujours pas de « tout est prêt »
+  await expect(m.locator("[data-testid=linen-alert][data-kind=no_kit]").first()).toBeVisible();
+  await expect(m.getByTestId("linen-ok")).toHaveCount(0);
+  // Kit du logement principal : 2 draps housse 140, 4 serviettes de bain
+  await m.locator("[data-testid=linen-kits] summary").click();
+  await m.getByTestId("linen-kit-property").selectOption(prop!.id);
+  await m.getByLabel("Drap housse 140").fill("2");
+  await m.getByLabel("Serviette de bain").fill("4");
+  await m.getByTestId("linen-kit-save").click();
+  await expect(m.getByTestId("linen-kit-ok")).toBeVisible();
+  await m.reload();
+  // Le studio sans kit reste signalé, avec sa date
+  await expect(m.locator("[data-testid=linen-alert][data-kind=no_kit]").filter({ hasText: "Studio sans kit" })).toBeVisible();
+  await expect(m.locator("[data-testid=linen-alert][data-kind=no_kit]").filter({ hasText: "Appartement linge" })).toHaveCount(0);
+  await expect(m.locator("[data-testid=linen-alert][data-kind=no_stock]").first()).toBeVisible();
+  // Inventaire : 3 draps propres (besoin 4 sur 14 jours → manque daté), 20 serviettes
+  const count = async (label: string, loc: string, qty: string) => {
+    await m.getByTestId("linen-count-item").selectOption({ label });
+    await m.getByTestId("linen-count-location").selectOption(loc);
+    await m.getByTestId("linen-count-qty").fill(qty);
+    await m.getByTestId("linen-count-save").click();
+    await expect(m.getByTestId("linen-count-ok")).toBeVisible();
+  };
+  await count("Drap housse 140", "clean", "3");
+  await count("Serviette de bain", "clean", "20");
+  await count("Drap housse 140", "dirty", "4");
+  await m.reload();
+  const short = m.locator("[data-testid=linen-alert][data-kind=shortage]");
+  await expect(short).toContainText("Manque potentiel : Drap housse 140");
+  await expect(short).toContainText("Besoin de 4");
+  await expect(short).toContainText("3 en stock propre");
+  await expect(m.locator("[data-testid=linen-stock-row][data-item='Drap housse 140'] [data-testid=linen-need]")).toHaveText("4");
+  // Mouvement : envoi au blanchisseur, jamais plus que le stock
+  await m.getByTestId("linen-move-item").selectOption({ label: "Drap housse 140" });
+  await m.getByTestId("linen-move-kind").selectOption("to_laundry");
+  await m.getByTestId("linen-move-qty").fill("10");
+  await m.getByTestId("linen-move-save").click();
+  await expect(m.getByTestId("linen-move-error")).toContainText(/stock/i);
+  await m.getByTestId("linen-move-qty").fill("4");
+  await m.getByTestId("linen-move-save").click();
+  await expect(m.getByTestId("linen-move-ok")).toBeVisible();
+  await m.reload();
+  await expect(m.locator("[data-testid=linen-stock-row][data-item='Drap housse 140'] [data-testid=linen-laundry]")).toHaveText("4");
+  // Livraison à planifier depuis l'écran Linge, avec la composition du kit
+  const deliv = m.getByTestId("linen-delivery-to-plan").filter({ hasText: prop!.name }).first();
+  await deliv.getByTestId("plan-linen").click();
+  await expect(deliv.locator("textarea")).toHaveValue(/2 × Drap housse 140/);
+  await deliv.getByTestId("linen-assignee").selectOption(agentId);
+  await deliv.getByTestId("linen-confirm").click();
+  await expect(deliv.getByTestId("linen-planned")).toBeVisible();
+  const { data: lt } = await admin.from("tasks").select("id, status, notes").eq("organization_id", org).eq("type", "linen_delivery").eq("property_id", prop!.id).order("window_end").limit(1).single();
+  expect(lt!.status).toBe("assigned");
+  // Collecte après le départ
+  const pick = m.getByTestId("linen-pickup-to-plan").filter({ hasText: prop!.name }).first();
+  await pick.getByTestId("plan-pickup").click();
+  await pick.getByTestId("linen-confirm").click();
+  await expect(pick.getByTestId("linen-planned")).toBeVisible();
+  // Livraison terminée (simulée : agent fictif) → à reporter au stock ; le kit sort du propre une seule fois
+  await admin.from("tasks").update({ status: "done", started_at: new Date(Date.now() - 3_600_000).toISOString(), completed_at: new Date().toISOString() }).eq("id", lt!.id);
+  await m.reload();
+  const apply = m.getByTestId("linen-to-apply").first();
+  await expect(apply).toContainText("Livraison terminée à reporter au stock");
+  await apply.getByTestId("linen-apply-task").click();
+  await expect(m.getByTestId("linen-to-apply")).toHaveCount(0);
+  await expect(m.locator("[data-testid=linen-stock-row][data-item='Drap housse 140'] [data-testid=linen-clean]")).toHaveText("1");
+  await expect(m.locator("[data-testid=linen-stock-row][data-item='Serviette de bain'] [data-testid=linen-clean]")).toHaveText("16");
+  // Historique : auteur, type, quantité
+  await m.locator("[data-testid=linen-history] summary").click();
+  await expect(m.locator("[data-testid=linen-movement][data-kind=delivery]").first()).toBeVisible();
+  await expect(m.locator("[data-testid=linen-movement][data-kind=to_laundry]").filter({ hasText: "Sale" })).toContainText("-4");
+  await expect(m.locator("[data-testid=linen-movement][data-kind=to_laundry]").filter({ hasText: "Chez le blanchisseur" })).toContainText("+4");
+  // Téléphone 375 px : lisible, rien ne déborde
+  const phone = await browser.newContext({ ...devices["iPhone SE"], locale: "fr-FR", timezoneId: "Europe/Paris", storageState: await m.context().storageState() });
+  const p = await phone.newPage();
+  await p.goto("/fr/app/linen");
+  await expect(p.getByTestId("linen-todo")).toBeVisible();
+  if (process.env.HALO_SHOTS) {
+    await p.screenshot({ path: `${process.env.HALO_SHOTS}/linge-375.png`, fullPage: true });
+    await m.goto("/fr/app/linen");
+    await m.screenshot({ path: `${process.env.HALO_SHOTS}/linge-desk.png`, fullPage: true });
+  }
+  expect(await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+  await phone.close();
+  // Agent : aucun accès au linge (page ni données)
+  const agent = await scenarioAgent(browser, name);
+  await agent.goto("/fr/app/linen");
+  await expect(agent).toHaveURL(/\/fr\/app\/missions$/);
+  for (const c of [m, agent]) await c.context().close();
 });

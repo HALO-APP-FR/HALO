@@ -1446,7 +1446,9 @@
       "invalid_end": "La hora debe estar entre el inicio de la misión y ahora.",
       "migration_missing": "No disponible: la actualización de base necesaria aún no se ha aplicado.",
       "no_auto_window": "Ninguna estancia permite calcular esta franja automáticamente.",
-      "auto_window_changed": "Las estancias han cambiado desde la vista previa: vuelva a abrirla."
+      "auto_window_changed": "Las estancias han cambiado desde la vista previa: vuelva a abrirla.",
+      "insufficient_stock": "Existencias insuficientes en el origen: no se ha registrado nada. Haga inventario si la cifra es errónea.",
+      "no_kit": "Kit del alojamiento sin definir: defínalo en Ropa → Kits por alojamiento."
     },
     "home": {
       "subtitle": "lo que requiere su atención",
@@ -3673,7 +3675,14 @@
       "cancel": "Cancelar",
       "created": "Entrega creada.",
       "existed": "Ya existe una entrega de ropa para esta estancia: no se ha creado nada en doble.",
-      "open": "Abrir la misión"
+      "open": "Abrir la misión",
+      "pickupTitle": "Recogida de ropa · {property} · {guest}",
+      "pickupDeadline": "A recoger tras la salida del huésped: {date}.",
+      "pickupEndHint": "A más tardar (24 h tras la salida por defecto).",
+      "pickupUnknown": "HALO no conoce el acceso tras la salida: compruébelo antes de confirmar.",
+      "pickupConfirm": "Crear la recogida",
+      "pickupCreated": "Recogida creada.",
+      "pickupExisted": "Ya existe una recogida para esta estancia: no se ha duplicado nada."
     },
     "taskRules": {
       "title": "Reglas por tipo de misión",
@@ -3889,8 +3898,8 @@
       "readinessOff": "La ropa no forma parte del control «Listo» (sin lavandería declarada).",
       "modelEdit": "Cambiar en la configuración",
       "demoOnly": {
-        "title": "Aún no disponible aquí",
-        "text": "Estas funciones solo existen en la demo, con datos ficticios. No se muestran aquí hasta que usen sus datos.",
+        "title": "Siguiente paso: lavandería externa",
+        "text": "Aún no construido (solo en la demo, con datos ficticios). Nada se muestra aquí hasta verificar los derechos del socio.",
         "items": {
           "stock": {
             "name": "Existencias por ubicación",
@@ -3915,9 +3924,14 @@
           "journal": {
             "name": "Registro y costes",
             "build": "Por construir: historial de movimientos y coste por rotación, a partir de pedidos reales."
+          },
+          "costs": {
+            "name": "Costes",
+            "build": "Por construir: coste por artículo y rotación, a partir de pedidos reales."
           }
         }
-      }
+      },
+      "openMission": "Abrir"
     },
     "forgotten": {
       "title": "¿Tarea aún en curso?",
@@ -3953,6 +3967,109 @@
       "confirm": "Confirmar el cálculo automático",
       "cancel": "Cancelar",
       "range": "{from} → {to} · {duration}"
+    },
+    "linenOps": {
+      "unavailableTitle": "Ropa operativa: actualización de la base necesaria",
+      "unavailableText": "Catálogo, kits, existencias y necesidades aparecerán cuando se aplique la migración 26. Las tareas de ropa siguen siendo reales.",
+      "todoTitle": "Lo que falta · dónde y cuándo actuar",
+      "alert": {
+        "shortageTitle": "Falta potencial: {item}",
+        "shortage": "Se necesitan {need} en los próximos 14 días, {available} limpias en stock: insuficiente desde la llegada del {date} ({property}).",
+        "noKitTitle": "Kit sin definir: {property}",
+        "noKit": "{count, plural, one {Una llegada} other {# llegadas}} en 14 días (la primera el {date}): HALO no puede calcular la ropa necesaria.",
+        "noStockTitle": "Existencias sin registrar: {item}",
+        "noStock": "Ningún inventario registrado: imposible saber si falta.",
+        "noItemsTitle": "Catálogo de ropa vacío",
+        "noItems": "Añada sus artículos (sábanas, fundas, toallas…) para calcular necesidades y seguir existencias.",
+        "action": {
+          "shortage": "Ver existencias",
+          "no_kit": "Definir el kit",
+          "no_stock": "Hacer inventario",
+          "no_items": "Añadir artículos"
+        }
+      },
+      "deliveryToPlan": "Entrega por planificar: {property}",
+      "pickupToPlan": "Recogida por planificar: {property}",
+      "arrival": "Llegada {date}",
+      "departure": "Salida {date}",
+      "kitUnknown": "kit sin definir",
+      "kitNote": "Kit previsto: {kit}",
+      "knownKit": "Composición tomada del kit del alojamiento. HALO no conoce el acceso al alojamiento: compruébelo antes de confirmar.",
+      "planDelivery": "Planificar la entrega",
+      "planPickup": "Planificar la recogida",
+      "toApplyDelivery": "Entrega terminada por registrar en existencias: {property}",
+      "toApplyPickup": "Recogida terminada por registrar: {property}",
+      "toApplyDeliveryHint": "El kit del alojamiento saldrá de las existencias limpias (una sola vez).",
+      "toApplyPickupHint": "El kit del alojamiento entrará en las existencias sucias (una sola vez).",
+      "toApplyNoKit": "Defina el kit del alojamiento para registrar esta tarea.",
+      "apply": "Registrar en existencias",
+      "allGood": "Ninguna falta detectada según los datos introducidos (último inventario: {date}). Cuente con regularidad: HALO solo ve lo registrado.",
+      "notEnoughData": "Ninguna llegada que preparar en los próximos 14 días.",
+      "stockTitle": "Existencias y necesidades",
+      "lastCount": "Último inventario: {date}",
+      "neverCounted": "Ningún inventario",
+      "item": "Artículo",
+      "need14": "Necesidad 14 d",
+      "loc": {
+        "clean": "Limpio",
+        "dirty": "Sucio",
+        "laundry": "En la lavandería"
+      },
+      "notCounted": "sin contar",
+      "needHint": "Necesidad = kits de los alojamientos para las llegadas confirmadas de los próximos 14 días. La ropa en la lavandería no cuenta como disponible.",
+      "countTitle": "Inventario",
+      "moveTitle": "Movimiento",
+      "location": "Ubicación",
+      "counted": "Cantidad contada",
+      "countSave": "Guardar",
+      "countOk": "Inventario registrado (diferencia registrada).",
+      "note": "Nota",
+      "notePlaceholder": "Nota (opcional)",
+      "movement": "Movimiento",
+      "qty": "Cantidad",
+      "moveSave": "Guardar",
+      "moveOk": "Movimiento registrado.",
+      "from": "Desde",
+      "kind": {
+        "to_laundry": "Envío a lavandería (sucio → lavandería)",
+        "from_laundry": "Vuelta de lavandería (→ limpio)",
+        "purchase": "Compra (→ limpio)",
+        "loss": "Pérdida o descarte"
+      },
+      "kindHint": {
+        "to_laundry": "Retira del sucio, añade en lavandería.",
+        "from_laundry": "Retira de la lavandería, añade al limpio.",
+        "purchase": "Añade al limpio.",
+        "loss": "Retira de la ubicación elegida."
+      },
+      "kindLabel": {
+        "count": "Inventario",
+        "purchase": "Compra",
+        "to_laundry": "Envío lavandería",
+        "from_laundry": "Vuelta lavandería",
+        "delivery": "Entrega alojamiento",
+        "pickup": "Recogida alojamiento",
+        "loss": "Pérdida",
+        "adjust": "Corrección"
+      },
+      "kitsTitle": "Kits por alojamiento",
+      "kitsSummary": "{done} / {total} alojamientos",
+      "property": "Alojamiento",
+      "kitSave": "Guardar el kit",
+      "kitOk": "Kit guardado.",
+      "kitNeedsCatalogue": "Añada primero artículos al catálogo.",
+      "catalogueTitle": "Catálogo de artículos",
+      "catalogueSummary": "{count, plural, =0 {Vacío} one {# artículo} other {# artículos}}",
+      "catalogueEmpty": "Ningún artículo. Parta de una lista habitual (editable) o añada los suyos.",
+      "seed": "Usar la lista habitual",
+      "remove": "Quitar",
+      "newItem": "Nuevo artículo",
+      "newItemPlaceholder": "Ej. Bajera 160",
+      "unit": "Unidad",
+      "add": "Añadir",
+      "historyTitle": "Historial de movimientos",
+      "historySummary": "{count, plural, =0 {Ninguno} one {# reciente} other {# recientes}}",
+      "historyEmpty": "Ningún movimiento registrado."
     }
   },
   "email": {

@@ -55,10 +55,10 @@ export function clip(p: Exclude<Placement, { kind: "unscheduled" }>, dayStart: n
 }
 
 /** Libellé horaire honnête, identique partout (planning, accueil, linge). */
-export function whenLabel(p: Placement, t: (key: string, values?: Record<string, string>) => string, at: (ms: number) => string, duration: string): string {
-  if (p.kind === "unscheduled") return t("when.window", { from: at(p.windowStart), to: at(p.windowEnd), duration });
-  if (p.kind === "scheduled") return t("when.scheduled", { from: at(p.start), to: at(p.end) });
-  if (p.running) return t("when.running", { from: at(p.start) });
-  if (p.regularized) return t(p.missingProofs ? "when.regularizedMissing" : "when.regularized", { from: at(p.start), to: at(p.end) });
-  return t("when.actual", { from: at(p.start), to: at(p.end) });
+export function whenLabel(p: Placement, tr: (key: string, values?: Record<string, string>) => string, at: (ms: number) => string, duration: string): string {
+  if (p.kind === "unscheduled") return tr("when.window", { from: at(p.windowStart), to: at(p.windowEnd), duration });
+  if (p.kind === "scheduled") return tr("when.scheduled", { from: at(p.start), to: at(p.end) });
+  if (p.running) return tr("when.running", { from: at(p.start) });
+  if (p.regularized) return tr(p.missingProofs ? "when.regularizedMissing" : "when.regularized", { from: at(p.start), to: at(p.end) });
+  return tr("when.actual", { from: at(p.start), to: at(p.end) });
 }
