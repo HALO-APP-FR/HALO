@@ -989,14 +989,14 @@ test("18 · missions à valider, messages lus, messagerie interne, itinéraires,
   await expect(around.getByTestId("around-place").filter({ hasText: "Hors périmètre" })).toHaveCount(0);
   await expect(around.getByTestId("around-sources")).toContainText("Données OpenStreetMap du 28 oct. 2026");
   await expect(around.getByTestId("around-place").filter({ hasText: "Pharmacie Centrale" }).getByTestId("around-source")).toHaveText("Proposé automatiquement (OpenStreetMap)");
-  await expect(around.getByTestId("around-place").filter({ hasText: "Pharmacie Centrale" }).getByTestId("around-hours")).toContainText("Horaires non communiqués");
+  await expect(around.getByTestId("around-place").filter({ hasText: "Pharmacie Centrale" }).getByTestId("around-hours")).toContainText("Horaires non vérifiés");
   await expect(around.getByTestId("places-map")).toBeVisible();
   await around.getByTestId("around-filter-cafes").click();
   await expect(around.getByTestId("around-place")).toHaveCount(1);
   const cafe = around.getByTestId("around-place").first();
   await expect(cafe).toContainText("Café de l'Opéra");
   await expect(cafe.getByTestId("around-distance")).toContainText("< 100 m"); // distance arrondie, jamais une fausse précision
-  await expect(cafe.getByTestId("around-hours")).toContainText("Mo-Su 07:00-22:00");
+  await expect(cafe.getByTestId("around-hours")).toContainText("Horaires non vérifiés"); // horaires OpenStreetMap jamais présentés comme fiables
   expect(await cafe.getByTestId("around-go-google").getAttribute("href")).toContain("48.861100%2C2.338100");
   await expect(around.getByTestId("around-geolocate")).toHaveCount(0); // aucune position demandée au voyageur
   await guestCtx.close();
@@ -1508,7 +1508,7 @@ test("21 · recommandations : vérification explicite, import sans doublon, lieu
   await g.goto(href);
   const fromagerie = g.getByTestId("around-place").filter({ hasText: "Fromagerie du Coin" });
   await expect(fromagerie).toContainText("Ajouté par l'équipe le");
-  await expect(fromagerie.getByTestId("around-hours")).toContainText("horaires à confirmer");
+  await expect(fromagerie.getByTestId("around-hours")).toContainText("Horaires non vérifiés");
   await expect(g.getByTestId("around-place").filter({ hasText: "Gare Fictive" })).toHaveCount(0);
   // Vérification explicite : date et personne, puis visible comme telle
   await m.goto(`/fr/app/properties/${prop!.id}`);
@@ -1521,7 +1521,7 @@ test("21 · recommandations : vérification explicite, import sans doublon, lieu
   }).toBe(true);
   await g.reload();
   await expect(fromagerie).toContainText("Vérifié par l'équipe le");
-  await expect(fromagerie.getByTestId("around-hours")).toContainText("horaires vérifiés");
+  await expect(fromagerie.getByTestId("around-hours")).toContainText("horaires vérifiés par l'équipe le");
   // Overpass refuse (406, cas observé en préproduction) : repli automatique sur Photon, sans perte des lieux existants
   overpassDown = true;
   await m.getByTestId("places-import").click();
