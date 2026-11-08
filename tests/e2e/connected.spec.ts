@@ -1665,7 +1665,7 @@ test("23 · corrections : « Prêt » cohérent, mission issue d'une action avec
   await expect(g.getByTestId("guest-space")).not.toContainText("Note privée QA");
 
   // 1.4 / 1.5 Avant l'arrivée : carte expliquée, contact joignable, pas de renvoi vers un livret fermé
-  await expect(g.getByTestId("around-origin")).toContainText("La carte et l'adresse du logement s'afficheront à partir du");
+  await expect(g.getByTestId("around-origin")).toContainText("l'adresse exacte du logement s'affichera à partir du"); // carte du quartier avant l'échéance (migration 25)
   await expect(g.getByTestId("around-origin")).not.toContainText("pas encore localisé");
   await expect(g.getByTestId("guest-messages")).toContainText("En cas d'urgence, appelez le +33 1 23 45 67 89");
   await expect(g.getByTestId("guest-messages")).not.toContainText("indiqué dans le livret");
@@ -2439,9 +2439,8 @@ test("32 · lieux avant l'ouverture : aucune donnée qui localise le logement", 
   await expect(around.getByTestId("around-near-hidden")).toContainText("1 lieu tout proche du logement apparaîtra");
   await expect(around.getByTestId("around-place")).toHaveCount(1);
   await expect(around).not.toContainText("Monument au même endroit");
-  await expect(around.getByTestId("around-distance-band")).toContainText("1 à 2 km");
-  await expect(around.getByTestId("around-distance")).toHaveCount(0);
-  await expect(around.getByTestId("places-map")).toHaveCount(0);
+  await expect(around.getByTestId("around-distance")).toBeVisible(); // migration 25 : distance depuis le centre de zone, arrondie
+  await expect(around.getByTestId("around-zone-note")).toBeVisible(); // carte du quartier, jamais le point du logement
   for (const c of [m, g]) await c.context().close();
 });
 
@@ -2934,9 +2933,10 @@ test("34 · lieux avant l'ouverture : données transmises au navigateur sans coo
     expect(html).toContain("Choix de l");
     const g = await newPage(browser);
     await g.goto(url);
-    await expect(g.getByTestId("around-auto-hidden")).toContainText("1 suggestion automatique");
+    // Migration 25 : suggestions du logement jamais montrées avant l'échéance (seules celles de la zone le sont)
+    await expect(g.getByTestId("around-auto-hidden")).toHaveCount(0);
     await expect(g.getByTestId("around-near-hidden")).toBeVisible();
-    await expect(g.getByTestId("around-distance-band")).toContainText("1 à 2 km");
+    await expect(g.getByTestId("around-place").filter({ hasText: "Choix de l" }).getByTestId("around-distance")).toBeVisible(); // distance depuis le centre de zone
     await g.context().close();
   }
   await m.context().close();
