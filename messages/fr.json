@@ -1448,7 +1448,10 @@
       "no_auto_window": "Aucun séjour ne permet de calculer cette plage automatiquement.",
       "auto_window_changed": "Les séjours ont changé depuis l'aperçu : rouvrez l'aperçu pour voir la nouvelle plage.",
       "insufficient_stock": "Stock insuffisant à l'emplacement de départ : rien n'a été enregistré. Faites l'inventaire si le stock affiché est faux.",
-      "no_kit": "Kit du logement non défini : définissez-le dans Linge → Kits par logement."
+      "no_kit": "Kit du logement non défini : définissez-le dans Linge → Kits par logement.",
+      "push_permission_refused": "Autorisation refusée sur cet appareil : rien n'a été activé.",
+      "push_subscribe_failed": "L'appareil ou son service de notification a refusé l'inscription : rien n'a été enregistré.",
+      "no_device": "Aucun appareil inscrit : activez d'abord les notifications sur un appareil."
     },
     "home": {
       "subtitle": "ce qui demande votre attention",
@@ -1997,7 +2000,8 @@
       "skippedReason": "Le destinataire a désactivé cet e-mail ; l'événement reste visible dans HALO.",
       "inviteNotKept": "Le lien n'est plus conservé après un envoi : envoyez une nouvelle invitation depuis le séjour.",
       "inviteResend": "Pour réessayer, utilisez « Envoyer par e-mail » sur le séjour (nouveau lien).",
-      "skippedSuperseded": "Non envoyé : une décision plus récente sur l'horaire de ce séjour a été prise ; seul le dernier message est envoyé."
+      "skippedSuperseded": "Non envoyé : une décision plus récente sur l'horaire de ce séjour a été prise ; seul le dernier message est envoyé.",
+      "skippedEmailOff": "E-mail désactivé par le destinataire pour cet événement (push seul) ; l'événement reste visible dans HALO."
     },
     "services": {
       "title": "Prestations",
@@ -2608,7 +2612,9 @@
         "emailOk": "E-mail : service d'envoi configuré",
         "emailOff": "E-mail : indisponible, aucun service d'envoi configuré",
         "sms": "SMS : indisponible (aucun fournisseur configuré)",
-        "push": "Notifications push : indisponibles (aucun fournisseur configuré)"
+        "push": "Notifications push : pas encore activées pour HALO (aucun envoi)",
+        "pushNoDevice": "Notifications push : aucun appareil inscrit",
+        "pushOn": "{count, plural, one {Notifications push : actives sur # appareil} other {Notifications push : actives sur # appareils}}"
       },
       "byEmail": "E-mail",
       "alwaysSent": "Urgence : visible dans HALO et e-mail toujours envoyé (si l'envoi est configuré) · pas de notification téléphone",
@@ -2652,11 +2658,13 @@
       },
       "reset": "Rétablir les réglages par défaut",
       "resetHint": "Par défaut, tout est envoyé par e-mail.",
-      "resetDone": "Réglages par défaut rétablis."
+      "resetDone": "Réglages par défaut rétablis.",
+      "byPush": "Push",
+      "pushNeedsDevice": "Activez d'abord les notifications push sur un appareil"
     },
     "places": {
       "title": "Recommandations du logement (espace voyageur)",
-      "text": "Le voyageur de ce logement voit ces lieux avec leur origine, la distance depuis le logement et un itinéraire. Rien n'est inventé.",
+      "text": "Une fois les informations pratiques ouvertes, le voyageur voit ces lieux avec leur origine, la distance depuis le logement et un itinéraire. Avant, il ne voit que le quartier et les recommandations que vous rendez visibles dès la réservation.",
       "located": "Logement localisé : {lat}, {lng} ({source})",
       "sourceManual": "saisi par l'équipe",
       "notLocated": "Logement non localisé : localisez l'adresse ou saisissez les coordonnées.",
@@ -2704,7 +2712,21 @@
       "verified": "vérifié",
       "notVerified": "non vérifié",
       "verifyHint": "Confirme que nom, adresse, horaires et contact sont exacts aujourd'hui (date et nom enregistrés). Toute modification de ces informations retire la vérification.",
-      "importedPartial": "Certaines catégories n'ont pas pu être récupérées ({categories}) : les lieux existants de ces catégories sont conservés. Réessayez plus tard."
+      "importedPartial": "Certaines catégories n'ont pas pu être récupérées ({categories}) : les lieux existants de ces catégories sont conservés. Réessayez plus tard.",
+      "visibility": "Visible par le voyageur",
+      "visibilityAccess": "À l'ouverture des informations pratiques",
+      "visibilityBooking": "Dès la réservation",
+      "visibilityHint": "Dès la réservation : nom, catégorie, adresse et conseil, sans point sur la carte ni distance depuis le logement. Les textes qui situent le logement restent masqués jusqu'à l'ouverture.",
+      "visibilityUnavailable": "Choix « dès la réservation » disponible après la mise à jour de la base (migration 27). D'ici là, vos recommandations sont visibles à l'ouverture des informations pratiques.",
+      "textMasked": "Avant l'ouverture, ce texte sera masqué : il situe le logement.",
+      "sameStreetWarn": "Même rue que le logement : cette recommandation restera masquée jusqu'à l'ouverture.",
+      "badge": {
+        "booking": "visible dès la réservation",
+        "access": "visible à l'ouverture",
+        "near": "retenue jusqu'à l'ouverture : moins de 200 m du logement",
+        "same_street": "retenue jusqu'à l'ouverture : même rue que le logement",
+        "noPosition": "adresse non localisée : nom seul avant l'ouverture"
+      }
     },
     "prep": {
       "title": "Préparation du séjour",
@@ -4070,6 +4092,48 @@
       "historyTitle": "Historique des mouvements",
       "historySummary": "{count, plural, =0 {Aucun} one {# récent} other {# récents}}",
       "historyEmpty": "Aucun mouvement enregistré."
+    },
+    "push": {
+      "title": "Notifications push",
+      "text": "Une alerte sur votre téléphone pour ce qui demande une action : mission assignée ou modifiée, correction demandée, message urgent, incident, demande voyageur à traiter. Vous choisissez les événements plus bas.",
+      "status": {
+        "migration": "Indisponible : la mise à jour de la base nécessaire (migration 28) n'est pas encore appliquée. Aucun push ne part.",
+        "notConfigured": "Pas encore activées pour HALO : la configuration du serveur manque. Aucun push ne part ; vous pouvez déjà vérifier ci-dessous si cet appareil est compatible.",
+        "noDevice": "Disponibles, mais aucun de vos appareils n'est inscrit : rien ne vous sera envoyé en push.",
+        "active": "{count, plural, one {Actives sur # appareil.} other {Actives sur # appareils.}}"
+      },
+      "thisDevice": "Cet appareil",
+      "checking": "Vérification…",
+      "device": {
+        "on": "Inscrit : les notifications choisies arrivent sur cet appareil.",
+        "ready": "Compatible. Activez-les ici : votre téléphone vous demandera l'autorisation.",
+        "ios_install": "iPhone : installez d'abord HALO sur l'écran d'accueil (Safari → bouton Partager → « Sur l'écran d'accueil »), puis ouvrez HALO depuis cette icône et revenez ici.",
+        "ios_too_old": "Cet iPhone ou iPad est en version antérieure à iOS 16.4 : notifications push impossibles. Mettez-le à jour, ou utilisez l'e-mail.",
+        "denied": "Notifications refusées pour HALO. Réautorisez-les dans les réglages : iPhone → Réglages → Notifications → HALO ; Android → Paramètres → Applications → navigateur ou HALO → Notifications.",
+        "unsupported": "Ce navigateur ne permet pas les notifications push. Sur Android, utilisez Chrome, Edge, Firefox ou Samsung Internet ; sur iPhone, HALO installé sur l'écran d'accueil."
+      },
+      "activate": "Activer sur cet appareil",
+      "test": "Envoyer un essai à mes appareils",
+      "deactivate": "Désactiver sur cet appareil",
+      "result": {
+        "accepted": "Accepté par le service de notification du téléphone (l'affichage dépend ensuite du téléphone)",
+        "failed": "Échec : le service de notification a refusé l'envoi",
+        "expired": "Appareil expiré : réactivez les notifications sur cet appareil",
+        "not_configured": "Non envoyé : notifications push pas encore configurées pour HALO"
+      },
+      "unknownDevice": "Appareil",
+      "deviceExpired": "Expiré : à réactiver depuis l'appareil",
+      "deviceLastError": "Dernier essai en échec le {date} ({error})",
+      "deviceLastOk": "Dernier envoi accepté le {date}",
+      "deviceNever": "Inscrit, aucun envoi pour l'instant",
+      "help": {
+        "title": "iPhone, Android, ordinateur : ce qu'il faut savoir",
+        "iphone": "iPhone / iPad : iOS 16.4 ou plus récent, HALO installé sur l'écran d'accueil et ouvert depuis l'icône. Dans Safari seul, impossible.",
+        "android": "Android : Chrome, Edge, Firefox ou Samsung Internet, installé ou non. Le mode économie d'énergie peut retarder l'affichage.",
+        "computer": "Ordinateur : Chrome, Edge, Firefox, ou Safari sur macOS 13+, tant que le navigateur est ouvert.",
+        "content": "Contenu volontairement discret : type d'événement et logement, jamais le nom du voyageur ni le texte d'un message. Toucher la notification ouvre la bonne page de HALO.",
+        "limits": "« Accepté » signifie que le service de notification (Apple, Google, Mozilla) a pris l'envoi en charge : HALO ne peut pas savoir si la notification a été vue. Le mode Ne pas déranger ou Concentration peut la masquer. Les urgences restent aussi envoyées par e-mail."
+      }
     }
   },
   "email": {
@@ -4380,7 +4444,7 @@
       "showAll": "Voir les {count} suggestions",
       "showLess": "Afficher moins",
       "band": "{n, select, 1 {moins de 1 km} 2 {1 à 2 km} other {2 à 3 km}}",
-      "nearHidden": "{count, plural, one {# lieu tout proche du logement apparaîtra le {date}, avec l'adresse.} other {# lieux tout proches du logement apparaîtront le {date}, avec l'adresse.}}",
+      "nearHidden": "{count, plural, one {# autre recommandation de l'équipe sera visible le {date}.} other {# autres recommandations de l'équipe seront visibles le {date}.}}",
       "autoHidden": "{count, plural, one {# suggestion automatique à proximité sera visible le {date}.} other {# suggestions automatiques à proximité seront visibles le {date}.}}",
       "discover": "Découvrir les alentours",
       "discoverHint": "Restaurants, commerces, activités et services autour du logement",
@@ -4438,7 +4502,8 @@
       "zoneNote": "Le cercle indique le quartier, pas le logement. Distances approximatives depuis le centre de ce quartier.",
       "zonePreparing": "Les adresses du quartier sont en cours de préparation : revenez dans quelques minutes.",
       "hoursVerifiedOn": "horaires vérifiés par l'équipe le {date}",
-      "hoursUnverified": "Horaires non vérifiés : à confirmer auprès du lieu (site ou téléphone)."
+      "hoursUnverified": "Horaires non vérifiés : à confirmer auprès du lieu (site ou téléphone).",
+      "teamListed": "Les recommandations de l'équipe sont listées sans être placées sur la carte."
     },
     "prepBanner": "Votre séjour approche. Les informations pratiques (adresse, accès, guide) seront visibles ici à partir du {date}. En attendant, vous pouvez préparer votre séjour et écrire à l'équipe.",
     "prepared": {
@@ -4800,5 +4865,37 @@
     },
     "contact": "Contact",
     "withdraw": "Vous êtes l'auteur d'un témoignage et souhaitez le retirer ? Utilisez le lien d'avis reçu par e-mail, ou contactez l'équipe."
+  },
+  "push": {
+    "mission": {
+      "title": "Mission",
+      "body": "Une mission vous est assignée ou a changé.",
+      "bodyProperty": "Mission assignée ou modifiée · {property}"
+    },
+    "correction": {
+      "title": "Correction demandée",
+      "body": "Une correction est demandée sur une mission.",
+      "bodyProperty": "Correction demandée · {property}"
+    },
+    "urgent_message": {
+      "title": "Message urgent",
+      "body": "Un message urgent vous attend dans HALO.",
+      "bodyProperty": "Message urgent · {property}"
+    },
+    "incident": {
+      "title": "Incident",
+      "body": "Un incident vient d'être signalé.",
+      "bodyProperty": "Incident signalé · {property}"
+    },
+    "guest_request": {
+      "title": "Demande voyageur",
+      "body": "Une demande voyageur attend une réponse.",
+      "bodyProperty": "Demande à traiter · {property}"
+    },
+    "test": {
+      "title": "Essai HALO",
+      "body": "Les notifications push fonctionnent sur cet appareil.",
+      "bodyProperty": "Essai · {property}"
+    }
   }
 }

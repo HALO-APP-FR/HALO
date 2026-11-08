@@ -53,7 +53,7 @@ export function OutboxList({ items }: { items: OutboxItem[] }) {
             )}
             {o.status === "skipped" && (
               <span className="w-full text-[12px] text-muted" data-testid="outbox-skipped">
-                {o.last_error === "superseded_by_newer_decision" ? t("skippedSuperseded") : t("skippedReason")}
+                {o.last_error === "superseded_by_newer_decision" ? t("skippedSuperseded") : o.last_error === "email_off_by_user" ? t("skippedEmailOff") : t("skippedReason")}
               </span>
             )}
             {o.status === "failed" && o.last_error && (

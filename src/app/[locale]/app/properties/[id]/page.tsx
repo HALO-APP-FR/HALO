@@ -40,7 +40,7 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
   const { supabase, org } = await getContext();
   if (!org) redirect({ href: "/app", locale });
   if (!isManagerRole(org!.role)) redirect({ href: "/app/missions", locale });
-  const [{ data: p }, { data: zoneRow }, { data: g }, { data: rooms }, { data: placeRows }, { data: sources }, { data: conflicts }] = await Promise.all([
+  const [{ data: p }, { data: zoneRow }, { data: g }, { data: rooms }, { data: placeRows }, { data: sources }, { data: conflicts }, { error: visErr }] = await Promise.all([
     supabase.from("properties").select("id, name, city, address_line, timezone, default_check_in, default_check_out, latitude, longitude, geo_source, auto_places").eq("organization_id", org!.id).eq("id", id).maybeSingle(),
     supabase.from("properties").select("zone_places_at").eq("organization_id", org!.id).eq("id", id).maybeSingle(),
     supabase.from("guest_guides").select("*").eq("organization_id", org!.id).eq("property_id", id).maybeSingle(),
@@ -48,7 +48,10 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
     supabase.from("property_places").select("*").eq("organization_id", org!.id).eq("property_id", id).order("source").order("name"),
     supabase.from("data_sources").select("id, label, platform, url_hint, status, last_sync_at, last_success_at, last_error, last_counts").eq("organization_id", org!.id).eq("property_id", id).order("created_at"),
     supabase.from("source_events").select("source_id, uid, conflict, feed_start, feed_end, reservation_id, reservations(guest_name, check_in_at), data_sources!inner(property_id)").eq("organization_id", org!.id).eq("state", "conflict").eq("data_sources.property_id", id).limit(50),
+    // Choix « dès la réservation » (migration 27) proposé seulement si la colonne existe
+    supabase.from("property_places").select("guest_visibility").eq("organization_id", org!.id).limit(1),
   ]);
+  const visibilityReady = !visErr;
   if (!p) notFound();
   // Fiche logement centrale : ce qui arrive, ce qui est prévu, ce qui pose problème (mêmes données que les listes)
   const now = nowDate();
@@ -83,6 +86,7 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
     hidden: x.hidden,
     created_at: x.created_at,
     verified_at: x.verified_at,
+    guest_visibility: x.guest_visibility ?? null,
     distance_m: coords && x.latitude != null ? distanceM(coords.lat, coords.lng, x.latitude, x.longitude) : null,
   }));
   return (
@@ -162,7 +166,7 @@ export default async function PropertyPage({ params }: PageProps<"/[locale]/app/
               {zoneRow.zone_places_at ? t("zonePlaces", { count: zoneCount, date: f.dateTime(new Date(zoneRow.zone_places_at as string), { dateStyle: "medium" }) }) : t("zonePlacesPending")}
             </p>
           )}
-          <PlacesManager propertyId={p.id} coords={coords} geoSource={p.geo_source} autoPlaces={p.auto_places} places={places} overpassUrls={process.env.OVERPASS_URL ? [process.env.OVERPASS_URL] : ["https://overpass-api.de/api/interpreter"]} photonUrl={process.env.PHOTON_URL ?? "https://photon.komoot.io/reverse"} />
+          <PlacesManager homeAddress={p.address_line} visibilityReady={visibilityReady} propertyId={p.id} coords={coords} geoSource={p.geo_source} autoPlaces={p.auto_places} places={places} overpassUrls={process.env.OVERPASS_URL ? [process.env.OVERPASS_URL] : ["https://overpass-api.de/api/interpreter"]} photonUrl={process.env.PHOTON_URL ?? "https://photon.komoot.io/reverse"} />
           </Section>
         </div>
         <div className="self-start rounded-xl border border-line bg-surface p-5">

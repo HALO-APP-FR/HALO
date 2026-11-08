@@ -5,6 +5,7 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL, haloEnv, isConnected } from "@/lib/sup
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { processOutbox } from "@/lib/connected/outbox";
 import { geocode, nearbyPlaces } from "@/lib/connected/osm";
+import { pushConfigured, sendPush } from "@/lib/connected/push";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -297,6 +298,20 @@ export async function GET(request: NextRequest) {
     check("guest_sees_places_of_own_property", names.includes(`Café ${run}`));
     const { data: forgedPlaces } = await guest.rpc("guest_places", { token: "f".repeat(64) });
     check("forged_link_sees_no_places", (forgedPlaces as { status: string })?.status === "unavailable");
+    // 6e ter. Notifications push (migration 28) : appareil SIMULÉ (adresse injoignable) — jamais compté « accepté »,
+    // invisible pour une autre organisation ; aucun vrai téléphone n'est sollicité
+    {
+      const ep = `https://push.halo.invalid/selftest-${run}`;
+      const { error: se } = await a1.rpc("push_subscribe", { ep, key_p256dh: "B".repeat(87), key_auth: "A".repeat(22), device: "selftest" });
+      if (se) check("push_fake_device_never_accepted", false, se.code === "PGRST202" ? "migration 28 absente" : `${se.code}:${se.message}`);
+      else {
+        const { data: sub } = await admin.from("push_subscriptions").select("id, endpoint, p256dh, auth").eq("endpoint", ep).single();
+        const res = await sendPush(admin, [sub as { id: string; endpoint: string; p256dh: string; auth: string }], { title: "selftest", body: "selftest", url: "/", tag: "test", urgent: false });
+        const { data: seenByB } = await b.from("push_subscriptions").select("id").eq("id", sub!.id);
+        check("push_fake_device_never_accepted", res.every((r) => r.status !== "accepted") && (seenByB ?? []).length === 0, `${pushConfigured() ? "clés configurées" : "clés absentes"} : ${res.map((r) => r.status).join(",")}`);
+        await a1.rpc("push_unsubscribe", { ep });
+      }
+    }
     // 6f. Linge opérationnel (migration 26) : réservé aux responsables de l'organisation, stock par mouvements
     {
       const { data: li, error: lie } = await a1.from("linen_items").insert({ organization_id: orgA, label: `Drap ${run}`, unit: "pièce" }).select("id").single();
@@ -324,6 +339,20 @@ export async function GET(request: NextRequest) {
       const z = zp as { full?: boolean; zone?: { lat: number } | null; property?: { lat: unknown; address: unknown } } | null;
       const raw = JSON.stringify(zp ?? {});
       check("guest_zone_before_arrival_hides_property", z?.full === false && z.property?.lat == null && z.property?.address == null && !raw.includes("48.8606") && !raw.includes("2.3376"), z?.zone ? "zone" : "sans zone (migration 25 absente ?)");
+      // 6g bis. Recommandations avant l'arrivée (migration 27) : choix de l'équipe, texte qui situe le logement masqué, aucun point sur la carte
+      if (zt) {
+        const { error: ve } = await a1.from("property_places").insert([
+          { organization_id: orgA, property_id: pA!.id, source: "manager", category: "activities", name: `Visible ${run}`, address: "1 place publique", latitude: 48.8680, longitude: 2.3376, description: "à 5 min à pied du logement", note: "Gratuit le dimanche", guest_visibility: "booking" },
+          { organization_id: orgA, property_id: pA!.id, source: "manager", category: "food", name: `Arrivée ${run}`, address: "2 place publique", latitude: 48.8680, longitude: 2.3380, guest_visibility: "access" },
+        ]);
+        if (ve) check("guest_recommendations_before_arrival_follow_team_choice", false, ve.code === "PGRST204" || ve.code === "42703" ? "migration 27 absente" : `${ve.code}:${ve.message}`);
+        else {
+          const { data: vp } = await guest.rpc("guest_places", { token: zt as string });
+          const list = ((vp as { places?: { name: string; description: string | null; note: string | null; lat: number | null }[] } | null)?.places ?? []).filter((x) => x.name.endsWith(run));
+          const v = list.find((x) => x.name === `Visible ${run}`);
+          check("guest_recommendations_before_arrival_follow_team_choice", list.length === 1 && !!v && v.description == null && v.note === "Gratuit le dimanche" && v.lat == null, JSON.stringify(list.map((x) => x.name)));
+        }
+      }
     }
     // 6e bis. Favoris du voyageur (migration 22) : liés au séjour, refusés avec un lien inventé
     {

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Lock } from "lucide-react";
 import { resetNotificationPrefs, setNotificationPref } from "@/lib/connected/actions";
+import { setPushPref } from "@/lib/connected/push-actions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useRun } from "./use-run";
@@ -13,6 +14,8 @@ export interface PrefRow {
   /** Où l'événement reste visible dans HALO, quel que soit le réglage e-mail. */
   where: string;
   email: boolean;
+  /** Push : null = aucun push pour cet événement ; sinon préférence enregistrée (oui par défaut) */
+  push: boolean | null;
   /** Urgences : l'e-mail part toujours pour elles, même préférence coupée. */
   critical: "always" | "urgent_only" | null;
 }
@@ -22,7 +25,7 @@ export interface PrefRow {
  * Canaux : « Dans HALO » (compteurs et pages, toujours actif), e-mail (si un service d'envoi est configuré),
  * SMS et notifications push : indisponibles tant qu'aucun fournisseur n'est configuré.
  */
-export function NotificationPrefs({ rows, emailReady }: { rows: PrefRow[]; emailReady: boolean }) {
+export function NotificationPrefs({ rows, emailReady, push }: { rows: PrefRow[]; emailReady: boolean; /** État push réel : non configuré, aucun appareil, ou N appareils actifs */ push: { state: "migration" | "not_configured" | "no_device" | "active"; devices: number } }) {
   const t = useTranslations("connected.prefs");
   return (
     <Card className="p-5" data-testid="notification-prefs">
@@ -34,11 +37,13 @@ export function NotificationPrefs({ rows, emailReady }: { rows: PrefRow[]; email
           {emailReady ? t("channel.emailOk") : t("channel.emailOff")}
         </p>
         <p className="rounded-md bg-subtle px-3 py-2 text-muted dark:bg-surface-hover" data-testid="channel-sms">{t("channel.sms")}</p>
-        <p className="rounded-md bg-subtle px-3 py-2 text-muted dark:bg-surface-hover" data-testid="channel-push">{t("channel.push")}</p>
+        <p className={push.state === "active" ? "rounded-md bg-success-soft px-3 py-2 text-success" : "rounded-md bg-subtle px-3 py-2 text-muted dark:bg-surface-hover"} data-testid="channel-push" data-state={push.state}>
+          {push.state === "active" ? t("channel.pushOn", { count: push.devices }) : push.state === "no_device" ? t("channel.pushNoDevice") : t("channel.push")}
+        </p>
       </div>
       <ul className="mt-4 divide-y divide-line">
         {rows.map((r) => (
-          <PrefItem key={`${r.event}-${r.email}`} row={r} disabled={!emailReady} />
+          <PrefItem key={`${r.event}-${r.email}-${r.push}`} row={r} disabled={!emailReady} pushReady={push.state === "active"} />
         ))}
       </ul>
       <ResetPrefs />
@@ -61,10 +66,11 @@ function ResetPrefs() {
   );
 }
 
-function PrefItem({ row, disabled }: { row: PrefRow; disabled: boolean }) {
+function PrefItem({ row, disabled, pushReady }: { row: PrefRow; disabled: boolean; pushReady: boolean }) {
   const t = useTranslations("connected.prefs");
   const { pending, error, run } = useRun();
   const [on, setOn] = useState(row.email);
+  const [pushOn, setPushOn] = useState(row.push ?? false);
   const locked = row.critical === "always";
   return (
     <li className="flex flex-wrap items-center gap-3 py-3" data-testid="pref-row" data-event={row.event}>
@@ -97,6 +103,26 @@ function PrefItem({ row, disabled }: { row: PrefRow; disabled: boolean }) {
         />
         {t("byEmail")}
       </label>
+      {row.push !== null && (
+        <label className="flex items-center gap-2 text-[14px]" title={pushReady ? undefined : t("pushNeedsDevice")}>
+          <input
+            type="checkbox"
+            checked={pushReady && pushOn}
+            disabled={!pushReady || pending}
+            onChange={(e) => {
+              const v = e.target.checked;
+              setPushOn(v);
+              run(async () => {
+                const r = await setPushPref(row.event, v);
+                if (!r.ok) setPushOn(!v);
+                return r;
+              });
+            }}
+            data-testid="pref-push"
+          />
+          {t("byPush")}
+        </label>
+      )}
       {error && <p role="alert" className="basis-full text-[13px] text-danger">{error}</p>}
     </li>
   );

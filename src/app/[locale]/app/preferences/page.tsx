@@ -7,6 +7,8 @@ import { MapsAppSetting } from "@/components/connected/directions";
 import { NotificationPrefs, type PrefRow } from "@/components/connected/notification-prefs";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { emailConfigured } from "@/lib/connected/outbox";
+import { PUSH_EVENTS, pushPublicKey } from "@/lib/connected/push";
+import { PushSetup, type PushDevice } from "@/components/connected/push-setup";
 import type { MapsApp } from "@/lib/engine/directions";
 
 /** Événements réellement émis par HALO, par rôle ; « critical » : urgences toujours envoyées par e-mail. */
@@ -44,12 +46,22 @@ export default async function PreferencesPage({ params }: PageProps<"/[locale]/a
   const td = await getTranslations("directions");
   const { supabase, org, user, profile } = await getContext();
   if (!org) redirect({ href: "/app", locale });
-  const { data: prefs } = await supabase.from("notification_prefs").select("event, email").eq("organization_id", org!.id).eq("user_id", user!.id);
+  const [{ data: prefs, error: prefErr }, { data: devices, error: devErr }] = await Promise.all([
+    supabase.from("notification_prefs").select("event, email, push").eq("organization_id", org!.id).eq("user_id", user!.id),
+    supabase.from("push_subscriptions").select("id, label, created_at, last_success_at, last_error, last_error_at, disabled_at").eq("user_id", user!.id).order("created_at"),
+  ]);
+  // Migration 28 absente : préférences e-mail seules, push présenté comme indisponible (jamais promis)
+  const pushAvailable = !prefErr && !devErr;
+  const { data: prefsEmail } = pushAvailable ? { data: prefs } : await supabase.from("notification_prefs").select("event, email").eq("organization_id", org!.id).eq("user_id", user!.id);
+  const publicKey = pushPublicKey();
+  const activeDevices = (devices ?? []).filter((d) => !d.disabled_at).length;
+  const pushState = !pushAvailable ? "migration" : !publicKey ? "not_configured" : activeDevices ? "active" : "no_device";
   const rows: PrefRow[] = (isManagerRole(org!.role) ? MANAGER_EVENTS : AGENT_EVENTS).map(([event, critical, where]) => ({
     event,
     critical,
     where: t(`where.${where}`),
-    email: prefs?.find((p) => p.event === event)?.email ?? true,
+    email: prefsEmail?.find((p) => p.event === event)?.email ?? true,
+    push: PUSH_EVENTS.has(event) ? ((prefs as { event: string; push?: boolean }[] | null)?.find((p) => p.event === event)?.push ?? true) : null,
   }));
   return (
     <>
@@ -60,7 +72,8 @@ export default async function PreferencesPage({ params }: PageProps<"/[locale]/a
             <MapsAppSetting value={((profile as { maps_app?: string | null } | null)?.maps_app as MapsApp | null) ?? null} />
           </Field>
         </Card>
-        <NotificationPrefs rows={rows} emailReady={emailConfigured()} />
+        <PushSetup publicKey={pushAvailable ? publicKey : null} devices={(devices ?? []) as PushDevice[]} available={pushAvailable} />
+        <NotificationPrefs rows={rows} emailReady={emailConfigured()} push={{ state: pushState, devices: activeDevices }} />
       </div>
     </>
   );

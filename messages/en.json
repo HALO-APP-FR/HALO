@@ -1448,7 +1448,10 @@
       "no_auto_window": "No stay allows this window to be calculated automatically.",
       "auto_window_changed": "The stays changed since the preview: reopen the preview to see the new window.",
       "insufficient_stock": "Not enough stock at the source location: nothing was saved. Count the stock if the figure shown is wrong.",
-      "no_kit": "Property kit not set: set it in Linen → Kits per property."
+      "no_kit": "Property kit not set: set it in Linen → Kits per property.",
+      "push_permission_refused": "Permission refused on this device: nothing was turned on.",
+      "push_subscribe_failed": "The device or its notification service refused registration: nothing was saved.",
+      "no_device": "No device registered: turn notifications on for a device first."
     },
     "home": {
       "subtitle": "what needs your attention",
@@ -1997,7 +2000,8 @@
       "skippedReason": "The recipient disabled this email; the event remains visible in HALO.",
       "inviteNotKept": "The link is not kept after a send attempt: send a new invitation from the stay.",
       "inviteResend": "To retry, use “Send by e-mail” on the stay (new link).",
-      "skippedSuperseded": "Not sent: a more recent decision about this stay's time was made; only the latest message is sent."
+      "skippedSuperseded": "Not sent: a more recent decision about this stay's time was made; only the latest message is sent.",
+      "skippedEmailOff": "Email turned off by the recipient for this event (push only); the event stays visible in HALO."
     },
     "services": {
       "title": "Services",
@@ -2608,7 +2612,9 @@
         "emailOk": "Email: sending service configured",
         "emailOff": "Email: unavailable, no sending service configured",
         "sms": "SMS: unavailable (no provider configured)",
-        "push": "Push notifications: unavailable (no provider configured)"
+        "push": "Push notifications: not enabled for HALO yet (nothing sent)",
+        "pushNoDevice": "Push notifications: no device registered",
+        "pushOn": "{count, plural, one {Push notifications: active on # device} other {Push notifications: active on # devices}}"
       },
       "byEmail": "Email",
       "alwaysSent": "Emergency: visible in HALO and e-mail always sent (if sending is configured) · no phone notification",
@@ -2652,11 +2658,13 @@
       },
       "reset": "Restore default settings",
       "resetHint": "By default, everything is sent by email.",
-      "resetDone": "Default settings restored."
+      "resetDone": "Default settings restored.",
+      "byPush": "Push",
+      "pushNeedsDevice": "Turn on push on a device first"
     },
     "places": {
       "title": "Property recommendations (guest space)",
-      "text": "Guests of this property see these places with their origin, the distance from the property and directions. Nothing is invented.",
+      "text": "Once practical info opens, guests see these places with their source, distance from the property and directions. Before that, they only see the neighbourhood and the recommendations you make visible from booking.",
       "located": "Property located: {lat}, {lng} ({source})",
       "sourceManual": "entered by the team",
       "notLocated": "Property not located: locate the address or enter coordinates.",
@@ -2704,7 +2712,21 @@
       "verified": "verified",
       "notVerified": "not verified",
       "verifyHint": "Confirms name, address, hours and contact are correct today (date and name recorded). Any change to this information removes the verification.",
-      "importedPartial": "Some categories couldn't be retrieved ({categories}): existing places in those categories are kept. Try again later."
+      "importedPartial": "Some categories couldn't be retrieved ({categories}): existing places in those categories are kept. Try again later.",
+      "visibility": "Visible to guests",
+      "visibilityAccess": "When practical info opens",
+      "visibilityBooking": "From booking",
+      "visibilityHint": "From booking: name, category, address and tip, with no map pin and no distance from the property. Text that locates the property stays hidden until practical info opens.",
+      "visibilityUnavailable": "The “from booking” option will be available after the database update (migration 27). Until then, your recommendations are visible once practical info opens.",
+      "textMasked": "Before practical info opens, this text will be hidden: it locates the property.",
+      "sameStreetWarn": "Same street as the property: this recommendation stays hidden until practical info opens.",
+      "badge": {
+        "booking": "visible from booking",
+        "access": "visible when info opens",
+        "near": "held until info opens: under 200 m from the property",
+        "same_street": "held until info opens: same street as the property",
+        "noPosition": "address not located: name only before info opens"
+      }
     },
     "prep": {
       "title": "Stay preparation",
@@ -4070,6 +4092,48 @@
       "historyTitle": "Movement history",
       "historySummary": "{count, plural, =0 {None} one {# recent} other {# recent}}",
       "historyEmpty": "No movement recorded."
+    },
+    "push": {
+      "title": "Push notifications",
+      "text": "An alert on your phone for what needs action: mission assigned or changed, correction requested, urgent message, incident, guest request to handle. Choose the events below.",
+      "status": {
+        "migration": "Unavailable: the required database update (migration 28) is not applied yet. No push is sent.",
+        "notConfigured": "Not enabled for HALO yet: server configuration is missing. No push is sent; you can already check below whether this device is compatible.",
+        "noDevice": "Available, but none of your devices is registered: nothing will be pushed to you.",
+        "active": "{count, plural, one {Active on # device.} other {Active on # devices.}}"
+      },
+      "thisDevice": "This device",
+      "checking": "Checking…",
+      "device": {
+        "on": "Registered: the chosen notifications reach this device.",
+        "ready": "Compatible. Turn them on here: your phone will ask for permission.",
+        "ios_install": "iPhone: first add HALO to the Home Screen (Safari → Share → “Add to Home Screen”), then open HALO from that icon and come back here.",
+        "ios_too_old": "This iPhone or iPad runs a version older than iOS 16.4: push is not possible. Update it, or use email.",
+        "denied": "Notifications are blocked for HALO. Allow them again in settings: iPhone → Settings → Notifications → HALO; Android → Settings → Apps → browser or HALO → Notifications.",
+        "unsupported": "This browser does not support push. On Android use Chrome, Edge, Firefox or Samsung Internet; on iPhone, HALO installed on the Home Screen."
+      },
+      "activate": "Turn on for this device",
+      "test": "Send a test to my devices",
+      "deactivate": "Turn off for this device",
+      "result": {
+        "accepted": "Accepted by the phone's notification service (display then depends on the phone)",
+        "failed": "Failed: the notification service refused it",
+        "expired": "Device expired: turn notifications on again on this device",
+        "not_configured": "Not sent: push not configured for HALO yet"
+      },
+      "unknownDevice": "Device",
+      "deviceExpired": "Expired: turn on again from the device",
+      "deviceLastError": "Last attempt failed on {date} ({error})",
+      "deviceLastOk": "Last push accepted on {date}",
+      "deviceNever": "Registered, nothing sent yet",
+      "help": {
+        "title": "iPhone, Android, computer: what to know",
+        "iphone": "iPhone / iPad: iOS 16.4 or later, HALO added to the Home Screen and opened from its icon. Not possible in Safari alone.",
+        "android": "Android: Chrome, Edge, Firefox or Samsung Internet, installed or not. Battery saver may delay display.",
+        "computer": "Computer: Chrome, Edge, Firefox, or Safari on macOS 13+, while the browser is open.",
+        "content": "Deliberately discreet content: event type and property, never the guest's name or message text. Tapping opens the right HALO page.",
+        "limits": "“Accepted” means the notification service (Apple, Google, Mozilla) took the push: HALO cannot know whether it was seen. Do Not Disturb or Focus may hide it. Emergencies are also sent by email."
+      }
     }
   },
   "email": {
@@ -4380,7 +4444,7 @@
       "showAll": "See all {count} suggestions",
       "showLess": "Show less",
       "band": "{n, select, 1 {under 1 km} 2 {1 to 2 km} other {2 to 3 km}}",
-      "nearHidden": "{count, plural, one {# place right next to the home will appear on {date}, with the address.} other {# places right next to the home will appear on {date}, with the address.}}",
+      "nearHidden": "{count, plural, one {# more team recommendation will be visible on {date}.} other {# more team recommendations will be visible on {date}.}}",
       "autoHidden": "{count, plural, one {# automatic nearby suggestion will be visible on {date}.} other {# automatic nearby suggestions will be visible on {date}.}}",
       "discover": "Explore the area",
       "discoverHint": "Restaurants, shops, activities and services around the property",
@@ -4438,7 +4502,8 @@
       "zoneNote": "The circle shows the neighbourhood, not the property. Approximate distances from the centre of this area.",
       "zonePreparing": "Neighbourhood places are being prepared: come back in a few minutes.",
       "hoursVerifiedOn": "hours checked by the team on {date}",
-      "hoursUnverified": "Hours not checked: confirm with the place (website or phone)."
+      "hoursUnverified": "Hours not checked: confirm with the place (website or phone).",
+      "teamListed": "Team recommendations are listed but not pinned on the map."
     },
     "prepBanner": "Your stay is coming up. Practical details (address, access, guide) will appear here from {date}. Meanwhile you can prepare your stay and message the team.",
     "prepared": {
@@ -4800,5 +4865,37 @@
     },
     "contact": "Contact",
     "withdraw": "Are you the author of a testimonial and want it removed? Use the review link you received by email, or contact the team."
+  },
+  "push": {
+    "mission": {
+      "title": "Mission",
+      "body": "A mission was assigned to you or changed.",
+      "bodyProperty": "Mission assigned or changed · {property}"
+    },
+    "correction": {
+      "title": "Correction requested",
+      "body": "A correction is requested on a mission.",
+      "bodyProperty": "Correction requested · {property}"
+    },
+    "urgent_message": {
+      "title": "Urgent message",
+      "body": "An urgent message is waiting in HALO.",
+      "bodyProperty": "Urgent message · {property}"
+    },
+    "incident": {
+      "title": "Incident",
+      "body": "An incident was just reported.",
+      "bodyProperty": "Incident reported · {property}"
+    },
+    "guest_request": {
+      "title": "Guest request",
+      "body": "A guest request needs a reply.",
+      "bodyProperty": "Request to handle · {property}"
+    },
+    "test": {
+      "title": "HALO test",
+      "body": "Push notifications work on this device.",
+      "bodyProperty": "Test · {property}"
+    }
   }
 }

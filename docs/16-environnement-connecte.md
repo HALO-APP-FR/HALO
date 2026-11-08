@@ -570,3 +570,16 @@ La navigation en quatre espaces est abandonnée. Le responsable retrouve les **n
 - Calcul `linenPlan` (`src/lib/engine/linen-plan.ts`) : besoins 14 jours = kits × arrivées confirmées ; alertes manque potentiel (date et logement), kit non défini, stock non renseigné, catalogue vide ; jamais « tout est prêt » sans données complètes.
 - Page Linge : « Ce qui manque · où et quand agir » (alertes, livraisons et collectes à planifier avec la composition du kit, missions terminées à reporter au stock), missions, stock et besoins, inventaire, mouvements, kits, catalogue (liste de départ), historique.
 - Étape 2 (blanchisseur externe) non construite.
+
+## Recommandations avant l'arrivée et notifications push (migrations 27 et 28)
+
+**Migration 27 — `20261122000001_recommandations_avant_arrivee.sql`** (prérequis : 25)
+- `property_places.guest_visibility` : `access` (par défaut : à l'ouverture des informations pratiques) ou `booking` (dès la réservation). Rien ne devient visible plus tôt sans choix explicite de l'équipe.
+- Avant l'ouverture, une recommandation `booking` est **listée** (nom, catégorie, adresse, conseil) **sans point sur la carte** : un ensemble de choix de l'équipe groupés autour du logement permettrait de le retrouver par recoupement. Les distances partent du centre de zone, arrondies à 100 m.
+- Garde-fous automatiques : recommandation retenue jusqu'à l'ouverture si elle est à moins de 200 m du logement ou dans la même rue. Adresse masquée si la distance n'est pas vérifiable (lieu sans position).
+- `guest_text_safe` masque les descriptions et conseils qui situent le logement (« en bas de l'immeuble », « à 50 m », « 5 min à pied », « next door »…). Même liste dans `src/lib/engine/privacy.ts`, pour avertir l'équipe pendant la saisie.
+- Contenus publiés à l'avance (`get_guest_stay` → `prepared`) : adresse du lieu associé selon la même règle.
+- Recommandations ajoutées par l'équipe : position calculée à partir de leur adresse (OpenStreetMap, ville du logement), retenue seulement si elle est plausible (moins de 5 km).
+- Retour arrière : `drop function public.guest_pick_before_access, public.street_of, public.guest_text_safe` après avoir réappliqué les fonctions de la migration 25. Ensuite, `alter table public.property_places drop column guest_visibility`.
+
+**Migration 28 — `20261123000001_notifications_push.sql`** : voir `docs/17-notifications-push.md`. Aucun envoi sans `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` et `VAPID_SUBJECT` côté serveur.

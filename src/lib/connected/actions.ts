@@ -1005,6 +1005,30 @@ export interface PlaceInput {
   note?: string;
   lat?: number | null;
   lng?: number | null;
+  /** Avant l'ouverture des informations pratiques : « booking » (dès la réservation) ou « access » (après l'ouverture, défaut) */
+  guestVisibility?: "booking" | "access";
+}
+/** Colonne guest_visibility (migration 27) : jamais envoyée tant qu'elle n'est pas choisie « dès la réservation »
+ *  — l'application reste utilisable avant la migration, et rien ne devient visible plus tôt par défaut. */
+const visibilityPatch = (input: PlaceInput) => (input.guestVisibility ? { guest_visibility: input.guestVisibility } : {});
+const columnMissing = (e: { code?: string; message?: string } | null) => !!e && (e.code === "PGRST204" || e.code === "42703");
+/**
+ * Position d'une recommandation à partir de son adresse (OpenStreetMap, ville et pays du logement) : sert à la
+ * distance affichée et aux garde-fous avant l'ouverture (moins de 200 m du logement). Résultat retenu seulement
+ * s'il est plausible (moins de 5 km du logement) ; sinon le lieu reste sans position — avant l'ouverture, il est
+ * alors listé par son nom seul. Seule l'adresse du lieu est transmise.
+ */
+async function placePosition(supabase: Awaited<ReturnType<typeof getContext>>["supabase"], orgId: string, propertyId: string, address: string | null | undefined) {
+  if (!address?.trim()) return { latitude: null, longitude: null };
+  const { data: p } = await supabase.from("properties").select("postal_code, city, country_code, latitude, longitude").eq("organization_id", orgId).eq("id", propertyId).maybeSingle();
+  if (!p) return { latitude: null, longitude: null };
+  const { geocode } = await import("./osm");
+  const { distanceM } = await import("@/lib/engine/places");
+  const hasCity = !!p.city && address.toLowerCase().includes(String(p.city).toLowerCase());
+  const g = await geocode({ addressLine: address.trim(), postalCode: hasCity ? null : p.postal_code, city: hasCity ? null : p.city, countryCode: p.country_code });
+  if (!g.ok) return { latitude: null, longitude: null };
+  if (p.latitude != null && p.longitude != null && distanceM(p.latitude, p.longitude, g.lat, g.lng) > 5000) return { latitude: null, longitude: null };
+  return { latitude: g.lat, longitude: g.lng };
 }
 /** Lieu ajouté et vérifié par l'équipe (source « équipe », date du jour). */
 export async function addPlace(propertyId: string, input: PlaceInput): Promise<Result> {
@@ -1023,11 +1047,11 @@ export async function addPlace(propertyId: string, input: PlaceInput): Promise<R
     phone: input.phone?.trim() || null,
     website: input.website?.trim() || null,
     note: input.note?.trim() || null,
-    latitude: input.lat ?? null,
-    longitude: input.lng ?? null,
+    ...(input.lat != null && input.lng != null ? { latitude: input.lat, longitude: input.lng } : await placePosition(ctx.supabase, ctx.org!.id, propertyId, input.address)),
     created_by: ctx.user!.id,
+    ...visibilityPatch(input),
   });
-  if (e) return fail(errCode(e));
+  if (e) return fail(columnMissing(e) ? "migration_missing" : errCode(e));
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };
 }
@@ -1058,6 +1082,11 @@ export async function updatePlace(placeId: string, input: PlaceInput): Promise<R
   const { ctx, error } = await manager();
   if (error) return fail(error);
   if (!input.name.trim()) return fail("invalid");
+  // Adresse modifiée : position recalculée (ou effacée si introuvable) ; sinon, position conservée
+  const { data: cur } = await ctx.supabase.from("property_places").select("property_id, address, latitude").eq("organization_id", ctx.org!.id).eq("id", placeId).maybeSingle();
+  if (!cur) return fail("not_found");
+  const newAddress = input.address?.trim() || null;
+  const position = newAddress !== cur.address || (cur.latitude == null && newAddress) ? await placePosition(ctx.supabase, ctx.org!.id, cur.property_id as string, newAddress) : {};
   const { data, error: e } = await ctx.supabase
     .from("property_places")
     .update({
@@ -1071,12 +1100,14 @@ export async function updatePlace(placeId: string, input: PlaceInput): Promise<R
       website: input.website?.trim() || null,
       note: input.note?.trim() || null,
       source_updated_at: new Date().toISOString(),
+      ...position,
+      ...visibilityPatch(input),
     })
     .eq("organization_id", ctx.org!.id)
     .eq("id", placeId)
     .in("source", ["manager", "owner"])
     .select("id");
-  if (e) return fail(errCode(e));
+  if (e) return fail(columnMissing(e) ? "migration_missing" : errCode(e));
   if (!data?.length) return fail("not_found");
   revalidatePath("/", "layout");
   return { ok: true, data: undefined };

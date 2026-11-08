@@ -7,6 +7,7 @@ import { ChevronDown, Clock, Globe, Heart, MapPin, Navigation, Phone } from "luc
 import { guestFavorite } from "@/lib/connected/guest-actions";
 import { addPlace, deletePlace, importNearbyPlaces, locateProperty, setAutoPlaces, setPlaceHidden, storeImportedPlaces, updatePlace, verifyPlace, type PlaceInput } from "@/lib/connected/actions";
 import { directionsLink, MAPS_APPS, type MapsApp } from "@/lib/engine/directions";
+import { beforeAccess, revealsHome, streetOf } from "@/lib/engine/privacy";
 import { GUEST_FILTERS, GUEST_RADII, matchesFilter, overpassQuery, parseOverpass, parsePhoton, photonUrls, PLACE_CATEGORIES, withinRadius, type GuestFilter, type PlaceCategory } from "@/lib/engine/places";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -37,6 +38,8 @@ export interface Place {
   hidden?: boolean;
   created_at?: string | null;
   verified_at?: string | null;
+  /** Avant l'ouverture : « booking » (dès la réservation) ou « access » (à l'ouverture). Absent tant que la migration 27 n'est pas appliquée. */
+  guest_visibility?: "booking" | "access" | null;
 }
 
 /**
@@ -270,7 +273,12 @@ export function GuestAround({
             </div>
           )}
           {center && view === "map" && !tilesFailed && <PlacesMap center={center} places={shown} selected={selected} onSelect={pick} onTilesFailed={() => setTilesFailed(true)} homeLabel={property.name} zoneRadius={isZone ? zone!.radius_m : undefined} />}
-          {isZone && <p className="text-[12px] text-muted" data-testid="around-zone-note">{t("zoneNote")}</p>}
+          {isZone && (
+            <p className="text-[12px] text-muted" data-testid="around-zone-note">
+              {t("zoneNote")}
+              {places.some((p) => p.source !== "openstreetmap" && p.lat == null) && <span data-testid="around-team-listed"> {t("teamListed")}</span>}
+            </p>
+          )}
           {tilesFailed && view === "map" && (
             // Fond de carte refusé ou inaccessible : pas de carte trompeuse, la liste reste complète
             <div className="rounded-xl border border-line bg-surface p-4 text-[14px]" role="status" data-testid="around-map-offline">
@@ -447,7 +455,13 @@ export function PlacesManager({
   places,
   overpassUrls,
   photonUrl,
+  homeAddress = null,
+  visibilityReady = false,
 }: {
+  /** Adresse du logement : garde-fou « même rue » (avant l'ouverture) */
+  homeAddress?: string | null;
+  /** Migration 27 appliquée : choix « dès la réservation » proposé */
+  visibilityReady?: boolean;
   overpassUrls: string[];
   /** Photon (OpenStreetMap, sans clé) : solution de repli quand Overpass refuse ou ne répond pas */
   photonUrl: string;
@@ -534,11 +548,11 @@ export function PlacesManager({
 
       <section className="space-y-2">
         <h3 className="text-[15px] font-semibold">{t("ownTitle")}</h3>
-        <PlaceForm key={editing?.id ?? "new"} propertyId={propertyId} place={editing} onDone={() => setEditing(null)} />
+        <PlaceForm key={editing?.id ?? "new"} propertyId={propertyId} place={editing} onDone={() => setEditing(null)} homeAddress={homeAddress} visibilityReady={visibilityReady} />
         <ul className="divide-y divide-line" data-testid="places-list">
           {own.length === 0 && <li className="py-2 text-[14px] text-muted">{t("none")}</li>}
           {own.map((p) => (
-            <PlaceRow key={p.id} p={p} label={tc(p.category)} date={f.dateTime(new Date(p.updated_at), { dateStyle: "medium" })} onEdit={() => setEditing(p)} />
+            <PlaceRow key={p.id} p={p} label={tc(p.category)} date={f.dateTime(new Date(p.updated_at), { dateStyle: "medium" })} onEdit={() => setEditing(p)} home={visibilityReady ? { lat: coords?.lat ?? null, lng: coords?.lng ?? null, address: homeAddress } : null} />
           ))}
         </ul>
       </section>
@@ -602,17 +616,20 @@ export function PlacesManager({
   );
 }
 
-function PlaceForm({ propertyId, place, onDone }: { propertyId: string; place: Place | null; onDone: () => void }) {
+function PlaceForm({ propertyId, place, onDone, homeAddress, visibilityReady }: { propertyId: string; place: Place | null; onDone: () => void; homeAddress: string | null; visibilityReady: boolean }) {
   const t = useTranslations("connected.places");
   const tc = useTranslations("places.category");
   const { pending, error, run } = useRun();
-  const empty: PlaceInput = { source: "manager", category: "food", name: "", description: "", address: "", openingHours: "", phone: "", website: "", note: "" };
+  const empty: PlaceInput = { source: "manager", category: "food", name: "", description: "", address: "", openingHours: "", phone: "", website: "", note: "", ...(visibilityReady ? { guestVisibility: "access" as const } : {}) };
   const [form, setForm] = useState<PlaceInput>(
     place
-      ? { source: place.source === "owner" ? "owner" : "manager", category: place.category, name: place.name, description: place.description ?? "", address: place.address ?? "", openingHours: place.opening_hours ?? "", phone: place.phone ?? "", website: place.website ?? "", note: place.note ?? "" }
+      ? { source: place.source === "owner" ? "owner" : "manager", category: place.category, name: place.name, description: place.description ?? "", address: place.address ?? "", openingHours: place.opening_hours ?? "", phone: place.phone ?? "", website: place.website ?? "", note: place.note ?? "", ...(visibilityReady ? { guestVisibility: place.guest_visibility === "booking" ? ("booking" as const) : ("access" as const) } : {}) }
       : empty,
   );
   const set = (k: keyof PlaceInput, v: string) => setForm({ ...form, [k]: v });
+  const early = form.guestVisibility === "booking";
+  const homeStreet = streetOf(homeAddress);
+  const sameStreet = early && !!homeStreet && homeStreet.length >= 4 && (form.address ?? "").toLowerCase().includes(homeStreet);
   return (
     <form
       className="grid gap-3 rounded-lg border border-line p-4 sm:grid-cols-2"
@@ -649,10 +666,23 @@ function PlaceForm({ propertyId, place, onDone }: { propertyId: string; place: P
       </Field>
       <Field label={t("description")} htmlFor="pl-desc" className="sm:col-span-2">
         <Input id="pl-desc" value={form.description} onChange={(e) => set("description", e.target.value)} maxLength={300} data-testid="place-description" />
+        {early && revealsHome(form.description) && <p className="mt-1 text-[12px] text-warning" data-testid="place-description-masked">{t("textMasked")}</p>}
       </Field>
       <Field label={t("note")} htmlFor="pl-note" className="sm:col-span-2">
         <Input id="pl-note" value={form.note} onChange={(e) => set("note", e.target.value)} maxLength={500} data-testid="place-note" />
+        {early && revealsHome(form.note) && <p className="mt-1 text-[12px] text-warning" data-testid="place-note-masked">{t("textMasked")}</p>}
       </Field>
+      {visibilityReady ? (
+        <Field label={t("visibility")} htmlFor="pl-vis" className="sm:col-span-2" hint={t("visibilityHint")}>
+          <Select id="pl-vis" value={form.guestVisibility ?? "access"} onChange={(e) => set("guestVisibility", e.target.value)} data-testid="place-visibility">
+            <option value="access">{t("visibilityAccess")}</option>
+            <option value="booking">{t("visibilityBooking")}</option>
+          </Select>
+          {sameStreet && <p className="mt-1 text-[12px] text-warning" data-testid="place-same-street">{t("sameStreetWarn")}</p>}
+        </Field>
+      ) : (
+        <p className="text-[12px] text-muted sm:col-span-2" data-testid="place-visibility-unavailable">{t("visibilityUnavailable")}</p>
+      )}
       <Field label={t("hours")} htmlFor="pl-hours" hint={t("hoursHint")}>
         <Input id="pl-hours" value={form.openingHours} onChange={(e) => set("openingHours", e.target.value)} maxLength={300} data-testid="place-hours" />
       </Field>
@@ -674,9 +704,10 @@ function PlaceForm({ propertyId, place, onDone }: { propertyId: string; place: P
   );
 }
 
-function PlaceRow({ p, label, date, onEdit }: { p: Place; label: string; date: string; onEdit?: () => void }) {
+function PlaceRow({ p, label, date, onEdit, home }: { p: Place; label: string; date: string; onEdit?: () => void; home?: { lat: number | null; lng: number | null; address: string | null } | null }) {
   const t = useTranslations("connected.places");
   const { pending, error, run } = useRun();
+  const ba = home && p.source !== "openstreetmap" ? beforeAccess(p, home) : null;
   return (
     <li className={cn("flex flex-wrap items-center gap-2 py-2.5", p.hidden && "opacity-50")} data-testid="place-row" data-source={p.source}>
       <span className="min-w-0 flex-1">
@@ -687,6 +718,12 @@ function PlaceRow({ p, label, date, onEdit }: { p: Place; label: string; date: s
           {p.distance_m != null ? ` · ${fmtDistance(p.distance_m)}` : ` · ${t("noDistance")}`}
           {p.hidden && ` · ${t("hidden")}`}
         </span>
+        {ba && !p.hidden && (
+          <span className="mt-1 flex flex-wrap gap-1.5 text-[12px]" data-testid="place-visibility-badge" data-state={ba}>
+            <span className={cn("rounded-full px-2 py-0.5", ba === "booking" ? "bg-accent-soft text-accent-text" : ba === "access" ? "bg-subtle text-muted" : "bg-warning-soft text-warning")}>{t(`badge.${ba}`)}</span>
+            {ba === "booking" && p.lat == null && <span className="rounded-full bg-warning-soft px-2 py-0.5 text-warning" data-testid="place-no-position">{t("badge.noPosition")}</span>}
+          </span>
+        )}
       </span>
       {!p.verified_at && p.source !== "openstreetmap" && (
         <Button size="sm" variant="ghost" onClick={() => run(() => verifyPlace(p.id))} disabled={pending} data-testid="place-verify" title={t("verifyHint")}>

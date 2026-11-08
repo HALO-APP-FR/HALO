@@ -910,6 +910,10 @@ function startOsm() {
     res.setHeader("Content-Type", "application/json");
     // Import depuis le navigateur du responsable (fournisseur appelé côté client) : autorisation CORS comme Overpass
     res.setHeader("Access-Control-Allow-Origin", "*");
+    // Adresse d'une recommandation éloignée (test 54) : à environ 900 m du point par défaut
+    // Adresse introuvable (test 19 : recommandation sans coordonnées)
+    if (req.url?.startsWith("/search") && decodeURIComponent(req.url).includes("Hôtel-de-Ville")) return res.end("[]");
+    if (req.url?.startsWith("/search") && decodeURIComponent(req.url).includes("Lointaine")) return res.end(JSON.stringify([{ lat: "48.8687", lon: "2.3376", display_name: "Place Lointaine, Paris" }]));
     if (req.url?.startsWith("/search")) return res.end(JSON.stringify([{ lat: "48.8606", lon: "2.3376", display_name: "1 Rue de la Paix, Paris" }]));
     // Photon (repli) : mêmes lieux au format GeoJSON, filtrés par étiquette demandée
     if (req.url?.startsWith("/reverse")) {
@@ -1100,7 +1104,8 @@ test("18 · missions à valider, messages lus, messagerie interne, itinéraires,
   // F. Préférences de notification : enregistrées, appliquées par le serveur, canaux non configurés signalés
   await agent.goto("/fr/app/preferences");
   await expect(agent.getByTestId("channel-sms")).toContainText("indisponible");
-  await expect(agent.getByTestId("channel-push")).toContainText("indisponibles");
+  // Push : jamais présenté comme actif sans appareil inscrit (clés de test locales présentes ou non)
+  await expect(agent.getByTestId("channel-push")).toHaveAttribute("data-state", /^(not_configured|no_device)$/);
   const pref = agent.locator('[data-testid="pref-row"][data-event="agent_task_assigned"]');
   await pref.getByTestId("pref-email").uncheck();
   await expect.poll(async () => (await admin.from("notification_prefs").select("email").eq("user_id", agentUser.id).eq("event", "agent_task_assigned").maybeSingle()).data?.email).toBe(false);
@@ -2429,14 +2434,15 @@ test("32 · lieux avant l'ouverture : aucune donnée qui localise le logement", 
   const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
   await admin.from("properties").update({ latitude: 48.8584, longitude: 2.2945 }).eq("id", prop!.id);
   await admin.from("property_places").insert([
-    { organization_id: org, property_id: prop!.id, source: "manager", category: "activities", name: "Monument au même endroit", latitude: 48.8584, longitude: 2.2945 },
-    { organization_id: org, property_id: prop!.id, source: "manager", category: "food", name: "Bistrot à 1,5 km", latitude: 48.871, longitude: 2.2995, address: "1 avenue Fictive, Paris" },
+    // Migration 27 : les deux choisies « dès la réservation » ; celle au même endroit est retenue automatiquement
+    { organization_id: org, property_id: prop!.id, source: "manager", category: "activities", name: "Monument au même endroit", latitude: 48.8584, longitude: 2.2945, guest_visibility: "booking" },
+    { organization_id: org, property_id: prop!.id, source: "manager", category: "food", name: "Bistrot à 1,5 km", latitude: 48.871, longitude: 2.2995, address: "1 avenue Fictive, Paris", guest_visibility: "booking" },
   ]);
   const { url } = await prepStay(m, browser, "Lou Avance", 12);
   const g = await newPage(browser);
   await g.goto(url);
   const around = g.getByTestId("guest-around");
-  await expect(around.getByTestId("around-near-hidden")).toContainText("1 lieu tout proche du logement apparaîtra");
+  await expect(around.getByTestId("around-near-hidden")).toContainText("1 autre recommandation de l'équipe sera visible");
   await expect(around.getByTestId("around-place")).toHaveCount(1);
   await expect(around).not.toContainText("Monument au même endroit");
   await expect(around.getByTestId("around-distance")).toBeVisible(); // migration 25 : distance depuis le centre de zone, arrondie
@@ -2921,9 +2927,9 @@ test("34 · lieux avant l'ouverture : données transmises au navigateur sans coo
     await admin.from("property_places").delete().eq("property_id", prop!.id);
     await admin.from("properties").update({ latitude: lat, longitude: lng, auto_places: true }).eq("id", prop!.id);
     await admin.from("property_places").insert([
-      { organization_id: org, property_id: prop!.id, source: "openstreetmap", external_id: `node/${lat}-1`, category: "food", name: "Suggestion auto", latitude: lat + 0.004, longitude: lng },
-      { organization_id: org, property_id: prop!.id, source: "manager", category: "activities", name: "Lieu public au même endroit", latitude: lat, longitude: lng },
-      { organization_id: org, property_id: prop!.id, source: "manager", category: "food", name: "Choix de l'équipe", latitude: lat + 0.012, longitude: lng + 0.004, address: "1 rue Fictive" },
+      { organization_id: org, property_id: prop!.id, source: "openstreetmap", external_id: `node/${lat}-1`, category: "food", name: "Suggestion auto", latitude: lat + 0.004, longitude: lng, guest_visibility: "access" },
+      { organization_id: org, property_id: prop!.id, source: "manager", category: "activities", name: "Lieu public au même endroit", latitude: lat, longitude: lng, guest_visibility: "booking" },
+      { organization_id: org, property_id: prop!.id, source: "manager", category: "food", name: "Choix de l'équipe", latitude: lat + 0.012, longitude: lng + 0.004, address: "1 rue Fictive", guest_visibility: "booking" },
     ]);
     // Page complète réellement transmise (HTML + données de rendu)
     const html = await (await m.context().request.get(url)).text();
@@ -3804,6 +3810,126 @@ test("52 · alentours dès l'activation du lien : zone approximative (point du l
   await g2.reload();
   await expect(g2.getByTestId("guest-unavailable")).toBeVisible();
   for (const c of [m, g, g2]) await c.context().close();
+});
+
+test("54 · recommandations avant l'arrivée : choix « dès la réservation », textes qui situent le logement masqués, garde-fous, rien du logement transmis", async ({ browser }) => {
+  test.slow();
+  startOsm();
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `visibilite ${run}`);
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).limit(1).single();
+  await admin.from("properties").update({ latitude: 48.8606, longitude: 2.3376, auto_places: false, address_line: "7 rue Confidentielle" }).eq("id", prop!.id);
+  await m.goto(`/fr/app/properties/${prop!.id}`);
+  await openSections(m);
+  // Par défaut : visible à l'ouverture (aucune décision implicite)
+  await expect(m.getByTestId("place-visibility")).toHaveValue("access");
+  // 1) Recommandation « dès la réservation », éloignée, avec une description qui situe le logement : averti
+  await m.getByTestId("place-name").fill("Musée choisi");
+  await m.getByTestId("place-address").fill("Place Lointaine, Paris");
+  await m.getByTestId("place-visibility").selectOption("booking");
+  await m.getByTestId("place-description").fill("À 5 min à pied du logement");
+  await expect(m.getByTestId("place-description-masked")).toBeVisible();
+  await m.getByTestId("place-note").fill("Gratuit le dimanche");
+  await expect(m.getByTestId("place-note-masked")).toHaveCount(0);
+  await m.getByTestId("place-add").click();
+  await expect(m.getByTestId("place-row").filter({ hasText: "Musée choisi" }).getByTestId("place-visibility-badge")).toHaveAttribute("data-state", "booking");
+  // 2) Même rue que le logement : avertissement immédiat, retenue jusqu'à l'ouverture
+  await m.getByTestId("place-name").fill("Café de la rue");
+  await m.getByTestId("place-address").fill("30 rue Confidentielle, Paris Lointaine");
+  await m.getByTestId("place-visibility").selectOption("booking");
+  await expect(m.getByTestId("place-same-street")).toBeVisible();
+  await m.getByTestId("place-add").click();
+  await expect(m.getByTestId("place-row").filter({ hasText: "Café de la rue" })).toBeVisible();
+  // 3) Juste à côté (géocodée sur le logement) : retenue automatiquement (< 200 m)
+  await m.getByTestId("place-name").fill("Épicerie proche");
+  await m.getByTestId("place-address").fill("1 rue de la Paix, Paris");
+  await m.getByTestId("place-visibility").selectOption("booking");
+  await m.getByTestId("place-add").click();
+  await expect(m.getByTestId("place-row").filter({ hasText: "Épicerie proche" })).toBeVisible();
+  // 4) Par défaut : à l'ouverture
+  await m.getByTestId("place-name").fill("Bistrot à l'arrivée");
+  await m.getByTestId("place-add").click();
+  await expect(m.getByTestId("place-row").filter({ hasText: "Bistrot à l'arrivée" })).toBeVisible();
+  const badge = (name: string) => m.getByTestId("place-row").filter({ hasText: name }).getByTestId("place-visibility-badge");
+  await expect(badge("Café de la rue")).toHaveAttribute("data-state", "same_street");
+  await expect(badge("Épicerie proche")).toHaveAttribute("data-state", "near");
+  await expect(badge("Bistrot à l'arrivée")).toHaveAttribute("data-state", "access");
+  // Voyageur, 20 jours avant l'arrivée : seule la recommandation choisie, sans point ni texte qui situe le logement
+  const { url } = await prepStay(m, browser, "Voyageur choix", 20);
+  const g = await newPage(browser);
+  await g.goto(url);
+  const around = g.getByTestId("guest-around");
+  await expect(around.getByTestId("around-place")).toHaveCount(1);
+  const card = around.getByTestId("around-place").first();
+  await expect(card).toContainText("Musée choisi");
+  await card.locator("summary").click();
+  await expect(card).toContainText("Gratuit le dimanche");
+  await expect(card).not.toContainText("5 min à pied");
+  await expect(around.getByTestId("around-near-hidden")).toContainText("3 autres recommandations de l'équipe");
+  await expect(around.getByTestId("around-team-listed")).toBeVisible();
+  await expect(around.locator(".leaflet-marker-icon")).toHaveCount(0);
+  const html = await g.content();
+  for (const secret of ["7 rue Confidentielle", "rue Confidentielle", "48.8606", "2.3376", "Café de la rue", "Épicerie proche", "Bistrot à l'arrivée"]) expect(html, secret).not.toContain(secret);
+  // Réponses brutes du serveur : mêmes garanties
+  const tok = url.split("?")[0].split("/").pop()!;
+  const { data: raw } = await admin.rpc("guest_places", { token: tok });
+  expect(JSON.stringify(raw)).not.toContain("48.8687");
+  for (const c of [m, g]) await c.context().close();
+});
+
+test("55 · notifications push (SIMULÉ, aucun vrai téléphone) : état réel, inscription refusée sans mensonge, préférences par événement, essai vers ses propres appareils seulement, iPhone non installé", async ({ browser }) => {
+  test.slow();
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `push ${run}`);
+  const { data: me } = await admin.from("memberships").select("user_id").eq("organization_id", org).eq("role", "owner").single();
+  await m.context().grantPermissions(["notifications"]);
+  await m.goto("/fr/app/preferences");
+  const setup = m.getByTestId("push-setup");
+  // Serveur configuré (clés de test locales), aucun appareil : rien n'est promis
+  await expect(setup.getByTestId("push-status")).toHaveAttribute("data-state", "no_device");
+  await expect(m.getByTestId("channel-push")).toHaveAttribute("data-state", "no_device");
+  await expect(m.locator('[data-testid="pref-row"][data-event="team_guest_message"]').getByTestId("pref-push")).toBeDisabled();
+  await expect(m.locator('[data-testid="pref-row"][data-event="team_low_review"]').getByTestId("pref-push")).toHaveCount(0); // pas de push pour cet événement
+  // Inscription depuis ce navigateur de test : le service de notification n'est pas joignable ici → échec affiché, rien d'enregistré
+  await expect(setup.getByTestId("push-device")).toHaveAttribute("data-device-state", "ready");
+  await setup.getByTestId("push-activate").click();
+  await expect.poll(async () => (await setup.getByRole("alert").count()) + (await setup.getByTestId("push-here-on").count()), { timeout: 30_000 }).toBeGreaterThan(0);
+  const saved = (await admin.from("push_subscriptions").select("id").eq("user_id", me!.user_id)).data ?? [];
+  if (await setup.getByRole("alert").count()) expect(saved).toHaveLength(0);
+  else expect(saved).toHaveLength(1);
+  // Appareil inscrit SIMULÉ (adresse d'envoi fictive, non joignable) : préférences push actives
+  await admin.from("push_subscriptions").delete().eq("user_id", me!.user_id);
+  await admin.from("push_subscriptions").insert({ user_id: me!.user_id, endpoint: `https://push.halo.invalid/simule-${run}`, p256dh: "B".repeat(87), auth: "A".repeat(22), label: "Appareil simulé" });
+  await m.reload();
+  await expect(setup.getByTestId("push-status")).toHaveAttribute("data-state", "active");
+  await expect(m.getByTestId("channel-push")).toContainText("1 appareil");
+  const guestMsg = m.locator('[data-testid="pref-row"][data-event="team_guest_message"]').getByTestId("pref-push");
+  await expect(guestMsg).toBeEnabled();
+  await expect(guestMsg).toBeChecked();
+  await guestMsg.uncheck();
+  await expect.poll(async () => (await admin.from("notification_prefs").select("push").eq("user_id", me!.user_id).eq("event", "team_guest_message").maybeSingle()).data?.push).toBe(false);
+  await m.reload();
+  await expect(m.locator('[data-testid="pref-row"][data-event="team_guest_message"]').getByTestId("pref-push")).not.toBeChecked();
+  // Essai : jamais « envoyé » vers un appareil injoignable — échec réel affiché et journalisé
+  await setup.getByTestId("push-test").click();
+  await expect(setup.getByTestId("push-test-result")).toContainText("Échec");
+  await expect(setup).not.toContainText("Accepté par le service");
+  const { data: log } = await admin.from("push_deliveries").select("status, category").eq("user_id", me!.user_id);
+  expect(log).toEqual([{ status: "failed", category: "test" }]);
+  await m.reload();
+  await expect(setup.getByTestId("push-device-row")).toContainText("Dernier essai en échec");
+  // iPhone dans Safari (non installé) : consigne d'installation, aucun bouton trompeur
+  const ios17 = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
+  const phone = await browser.newContext({ ...devices["iPhone 13"], userAgent: ios17, locale: "fr-FR", timezoneId: "Europe/Paris", storageState: await m.context().storageState() });
+  const p = await phone.newPage();
+  await p.goto("/fr/app/preferences");
+  await expect(p.getByTestId("push-device")).toHaveAttribute("data-device-state", "ios_install");
+  await expect(p.getByTestId("push-device-help")).toContainText("écran d'accueil");
+  await expect(p.getByTestId("push-activate")).toHaveCount(0);
+  expect(await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+  await phone.close();
+  await admin.from("push_subscriptions").delete().eq("user_id", me!.user_id);
+  await m.context().close();
 });
 
 test("53 · linge opérationnel : catalogue, kit, inventaire, besoins et manques datés, livraison et collecte planifiées, report au stock, historique", async ({ browser }) => {

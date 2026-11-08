@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 import { getTranslations } from "next-intl/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { locales, type Locale } from "@/i18n/routing";
+import { pushForOutbox } from "./push";
 
 /** Service d'envoi : SMTP_URL complète, ou bien hôte + identifiant + mot de passe séparés (plus simples à saisir). */
 function smtpTransport() {
@@ -60,6 +61,18 @@ export async function processOutbox(orgId?: string) {
     if (LINK_TEMPLATES.has(row.template) && typeof row.payload.url !== "string") {
       // Relance d'une invitation déjà traitée : le lien n'est plus connu, il faut en envoyer une nouvelle
       await finish(row, { status: "failed", last_error: "link_not_kept_send_new_invite" });
+      continue;
+    }
+    // Push (migration 28) : avant l'e-mail, indépendant de lui ; uniquement vers les appareils que la personne a
+    // elle-même inscrits, une seule fois par notification. Résultat réel journalisé dans push_deliveries.
+    let emailWanted = true;
+    try {
+      emailWanted = (await pushForOutbox(admin, row, appUrl())).email;
+    } catch {
+      // un échec push n'empêche jamais l'e-mail
+    }
+    if (!emailWanted) {
+      await finish(row, { status: "skipped", last_error: "email_off_by_user" });
       continue;
     }
     // Adresse fictive (comptes de test) : jamais envoyée, jamais comptée « envoyée »
