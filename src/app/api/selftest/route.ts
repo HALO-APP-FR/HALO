@@ -175,6 +175,36 @@ export async function GET(request: NextRequest) {
       const { data: otRow } = await a1.from("tasks").select("status, end_proposal_status").eq("id", ot!.id).single();
       check("end_time_proposed_then_decided_by_manager", !pre && pr === "applied" && Boolean(selfDecide) && dec === "applied" && otRow?.status === "in_progress" && otRow?.end_proposal_status === "accepted", pre ? `${pre.code}:${pre.message}` : `${pr} ${dec} ${otRow?.status} ${otRow?.end_proposal_status}`);
     }
+    // 4f. Mission oubliée (migration 23) : régularisation motivée par un responsable (jamais validée),
+    //     réponse tardive de l'agent sans effet, annulation motivée d'une mission commencée
+    {
+      const mk = async () => {
+        const { data } = await a1.from("tasks").insert({ organization_id: orgA, property_id: pA!.id, type: "maintenance", status: "assigned", assignee_id: agentId, window_start: soon(-240), window_end: soon(240), duration_min: 30 }).select("id").single();
+        await ag.rpc("start_task", { org: orgA, task: data!.id, action_id: crypto.randomUUID(), client_at: new Date().toISOString() });
+        return data!.id as string;
+      };
+      const rt = await mk();
+      const endAt = new Date(Date.now() + 20_000).toISOString();
+      const { error: rNoWhy } = await a1.rpc("regularize_task_end", { org: orgA, task: rt, ended_at: endAt, reason: " " });
+      const { error: rAgent } = await ag.rpc("regularize_task_end", { org: orgA, task: rt, ended_at: endAt, reason: "selftest" });
+      const { error: rOther } = await b.rpc("regularize_task_end", { org: orgA, task: rt, ended_at: endAt, reason: "selftest" });
+      const { data: rg, error: rge } = await a1.rpc("regularize_task_end", { org: orgA, task: rt, ended_at: endAt, reason: `Selftest ${run} (fictif)` });
+      const { data: rRow } = await a1.from("tasks").select("status, validated_at, regularized_reason").eq("id", rt).single();
+      const { data: rEv } = await a1.from("task_events").select("kind, note").eq("task_id", rt).eq("kind", "end_regularized");
+      check(
+        "manager_regularizes_forgotten_mission",
+        !rge && rg === "applied" && rNoWhy?.code === "22023" && Boolean(rAgent) && Boolean(rOther) && rRow?.status === "done" && rRow?.validated_at === null && (rEv ?? []).length === 1,
+        rge ? (rge.code === "PGRST202" ? "migration 23 absente" : `${rge.code}:${rge.message}`) : `${rg} ${rNoWhy?.code} ${rRow?.status} ${(rEv ?? []).length}`,
+      );
+      const { data: lateC } = await ag.rpc("task_overrun_continue", { org: orgA, task: rt });
+      const { data: lateP } = await ag.rpc("propose_task_end", { org: orgA, task: rt, ended_at: new Date().toISOString(), note: null });
+      check("late_answer_ignored_after_regularization", lateC === "stale" && lateP === "stale", `${lateC} ${lateP}`);
+      const ct = await mk();
+      const { error: cNoWhy } = await a1.rpc("cancel_task", { org: orgA, task: ct, reason: null });
+      const { data: cc, error: cce } = await a1.rpc("cancel_task", { org: orgA, task: ct, reason: `Selftest ${run} (fictif)` });
+      const { data: cRow } = await a1.from("tasks").select("status, cancel_reason").eq("id", ct).single();
+      check("manager_cancels_started_mission_with_reason", !cce && cc === "applied" && cNoWhy?.code === "22023" && cRow?.status === "cancelled", cce ? (cce.code === "PGRST202" ? "migration 23 absente" : `${cce.code}:${cce.message}`) : `${cc} ${cNoWhy?.code} ${cRow?.status}`);
+    }
     // 4d. Règles de mission (migration 19) : ménage impossible avant sa plage, même par appel direct ;
     //     livraison de linge avant l'heure conseillée = confirmation demandée
     {
