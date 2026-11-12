@@ -4438,7 +4438,7 @@
       "ownerAddedOn": "Vom Eigentümer hinzugefügt am {date}",
       "hoursVerified": "Öffnungszeiten vom Team geprüft",
       "hoursToConfirm": "Öffnungszeiten zu bestätigen",
-      "mapLater": "Karte und Adresse erscheinen ab {date}. Entfernungen sind bereits angegeben.",
+      "mapLater": "Die Karte des Viertels und die Adresse der Unterkunft erscheinen ab {date}.",
       "picksTitle": "Auswahl des Teams und des Eigentümers",
       "autoTitle": "Automatische Vorschläge in der Nähe (nicht geprüft)",
       "showAll": "Alle {count} Vorschläge ansehen",
@@ -4503,7 +4503,18 @@
       "zonePreparing": "Die Orte im Viertel werden vorbereitet: Schauen Sie in ein paar Minuten wieder vorbei.",
       "hoursVerifiedOn": "Öffnungszeiten vom Team am {date} geprüft",
       "hoursUnverified": "Öffnungszeiten nicht geprüft: beim Ort bestätigen (Website oder Telefon).",
-      "teamListed": "Team-Empfehlungen stehen in der Liste, ohne Markierung auf der Karte."
+      "teamListed": "Team-Empfehlungen stehen ohne Adresse und Entfernung in der Liste; Adresse und Route ab {date}.",
+      "distanceNoteZone": "Ungefähre Luftlinie ab der Mitte des Viertels (auf 100 m gerundet), nie ab der Unterkunft",
+      "radiusLabelZone": "Um die Mitte des Viertels",
+      "addressLater": "Adresse ab {date}",
+      "routeLater": "Route ab {date} verfügbar.",
+      "zoneLoading": "Orte im Viertel werden gesucht… die Karte ergänzt sich von selbst.",
+      "zoneSlow": "Die Suche im Viertel dauert länger als erwartet. Bitte in ein paar Minuten wiederkommen.",
+      "zoneFailed": "Der Kartendienst antwortet gerade nicht: Orte im Viertel sind nicht verfügbar. Die Team-Empfehlungen bleiben unten.",
+      "zoneRetry": "Erneut versuchen",
+      "zoneNone": "OpenStreetMap hat in diesem Viertel keine öffentlichen Orte gefunden.",
+      "discoverHintZone": "Restaurants, Geschäfte, Aktivitäten und Dienste im Viertel",
+      "distanceFromZone": "≈ {d} vom Zentrum des Viertels"
     },
     "prepBanner": "Ihr Aufenthalt rückt näher. Praktische Infos (Adresse, Zugang, Leitfaden) erscheinen hier ab {date}. Bis dahin können Sie Ihren Aufenthalt vorbereiten und dem Team schreiben.",
     "prepared": {
@@ -4643,7 +4654,7 @@
     "demoOnly": "Diese Bereitstellung läuft nur als Demo: kein Backend eingerichtet.",
     "check": {
       "api": "API erreichbar",
-      "migrations": "Datenbank aktuell (Migrationen angewendet)",
+      "migrations": "Datenbank: für diese Version nötige Migrationen",
       "anonBlocked": "Anonymes Lesen verweigert",
       "auth": "E-Mail-Anmeldung aktiv",
       "serverKey": "Server-Schlüssel (Benachrichtigungen)",
@@ -4652,10 +4663,17 @@
     "state": {
       "ok": "Geprüft",
       "fail": "Prüfung fehlgeschlagen",
-      "missing": "Nicht eingerichtet"
+      "missing": "Nicht eingerichtet",
+      "unverified": "Nicht geprüft (Prüfung nicht abgeschlossen)"
     },
     "checkedAt": "Geprüft am {at}",
-    "back": "Zur Startseite"
+    "back": "Zur Startseite",
+    "migrationsOk": "{count} Migrationen einzeln geprüft",
+    "migration": {
+      "missing": "Fehlt: {file}",
+      "unverified": "Nicht geprüft: {file}"
+    },
+    "readyPartial": "Das Backend antwortet und die Zugriffsregeln sind aktiv, aber einige Funktionen warten auf ein Datenbank-Update (Details unten). Bis dahin bleiben sie nicht verfügbar."
   },
   "places": {
     "category": {

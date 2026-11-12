@@ -4438,7 +4438,7 @@
       "ownerAddedOn": "Adicionado pelo proprietário a {date}",
       "hoursVerified": "horário verificado pela equipa",
       "hoursToConfirm": "horário a confirmar",
-      "mapLater": "O mapa e a morada aparecerão a partir de {date}. As distâncias já estão indicadas.",
+      "mapLater": "O mapa do bairro e a morada do alojamento aparecem a partir de {date}.",
       "picksTitle": "Seleção da equipa e do proprietário",
       "autoTitle": "Sugestões automáticas por perto (não verificadas)",
       "showAll": "Ver as {count} sugestões",
@@ -4503,7 +4503,18 @@
       "zonePreparing": "Os locais do bairro estão a ser preparados: volte dentro de alguns minutos.",
       "hoursVerifiedOn": "horário verificado pela equipa em {date}",
       "hoursUnverified": "Horário não verificado: confirme junto do local (site ou telefone).",
-      "teamListed": "As recomendações da equipa aparecem na lista, sem marcação no mapa."
+      "teamListed": "As recomendações da equipa aparecem sem morada nem distância; morada e itinerário a partir de {date}.",
+      "distanceNoteZone": "Distâncias aproximadas em linha reta a partir do centro do bairro (arredondadas a 100 m), nunca a partir do alojamento",
+      "radiusLabelZone": "À volta do centro do bairro",
+      "addressLater": "Morada disponível a partir de {date}",
+      "routeLater": "Itinerário disponível a partir de {date}.",
+      "zoneLoading": "A procurar locais do bairro… o mapa completa-se sozinho.",
+      "zoneSlow": "A pesquisa do bairro está a demorar mais do que o previsto. Volte dentro de minutos.",
+      "zoneFailed": "O serviço de mapas não responde de momento: os locais do bairro não estão disponíveis. As recomendações da equipa continuam abaixo.",
+      "zoneRetry": "Tentar novamente",
+      "zoneNone": "O OpenStreetMap não encontrou locais públicos neste bairro.",
+      "discoverHintZone": "Restaurantes, comércio, atividades e serviços do bairro",
+      "distanceFromZone": "≈ {d} do centro do bairro"
     },
     "prepBanner": "A sua estadia aproxima-se. As informações práticas (morada, acesso, guia) aparecerão aqui a partir de {date}. Entretanto pode preparar a estadia e escrever à equipa.",
     "prepared": {
@@ -4643,7 +4654,7 @@
     "demoOnly": "Esta implementação funciona apenas em demo: nenhum backend configurado.",
     "check": {
       "api": "API acessível",
-      "migrations": "Base de dados atualizada (migrações aplicadas)",
+      "migrations": "Base de dados: migrações necessárias a esta versão",
       "anonBlocked": "Leitura anónima recusada",
       "auth": "Início de sessão por e-mail ativo",
       "serverKey": "Chave do servidor (notificações)",
@@ -4652,10 +4663,17 @@
     "state": {
       "ok": "Verificado",
       "fail": "Falha na verificação",
-      "missing": "Não configurado"
+      "missing": "Não configurado",
+      "unverified": "Não verificado (a verificação não foi concluída)"
     },
     "checkedAt": "Verificado em {at}",
-    "back": "Voltar ao início"
+    "back": "Voltar ao início",
+    "migrationsOk": "{count} migrações verificadas uma a uma",
+    "migration": {
+      "missing": "Em falta: {file}",
+      "unverified": "Não verificada: {file}"
+    },
+    "readyPartial": "O backend responde e as regras de acesso estão ativas, mas algumas funções aguardam uma atualização da base (detalhe abaixo). Ficam indisponíveis até ser aplicada."
   },
   "places": {
     "category": {

@@ -93,13 +93,17 @@ export async function pushMessage(category: PushCategory | "test", localeRaw: st
 export async function pushForOutbox(admin: SupabaseClient, row: { id: string; organization_id: string; template: string; locale: string; payload: Record<string, unknown> }, base: string): Promise<{ email: boolean }> {
   if (!PUSH_CATEGORY[row.template]) return { email: true };
   const { data, error } = await admin.rpc("outbox_channels", { outbox: row.id });
-  if (error || !data) return { email: true };
+  if (error || !data) {
+    if (error && error.code !== "PGRST202") console.error("push outbox_channels", error.code, error.message);
+    return { email: true };
+  }
   const ch = data as { user_id?: string; category?: PushCategory; email: boolean; push_done?: boolean; push: Sub[] };
   if (ch.user_id && ch.category && ch.push.length && !ch.push_done) {
     const results = await sendPush(admin, ch.push, await pushMessage(ch.category, row.locale, row.payload, base));
-    await admin.from("push_deliveries").insert(
+    const { error: le } = await admin.from("push_deliveries").insert(
       results.map((r) => ({ organization_id: row.organization_id, outbox_id: row.id, user_id: ch.user_id, subscription_id: r.subscriptionId, category: ch.category, status: r.status, error: r.error })),
     );
+    if (le) console.error("push journal", le.code, le.message);
   }
   return { email: ch.email !== false };
 }

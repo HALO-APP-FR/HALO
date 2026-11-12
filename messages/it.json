@@ -4438,7 +4438,7 @@
       "ownerAddedOn": "Aggiunto dal proprietario il {date}",
       "hoursVerified": "orari verificati dal team",
       "hoursToConfirm": "orari da confermare",
-      "mapLater": "La mappa e l'indirizzo appariranno dal {date}. Le distanze sono già indicate.",
+      "mapLater": "La mappa del quartiere e l'indirizzo dell'alloggio compariranno dal {date}.",
       "picksTitle": "Selezione del team e del proprietario",
       "autoTitle": "Suggerimenti automatici nelle vicinanze (non verificati)",
       "showAll": "Vedi tutti i {count} suggerimenti",
@@ -4503,7 +4503,18 @@
       "zonePreparing": "I luoghi del quartiere sono in preparazione: torna tra qualche minuto.",
       "hoursVerifiedOn": "orari verificati dal team il {date}",
       "hoursUnverified": "Orari non verificati: da confermare con il luogo (sito o telefono).",
-      "teamListed": "I consigli del team sono elencati senza essere segnati sulla mappa."
+      "teamListed": "I consigli del team sono elencati senza indirizzo né distanza; indirizzo e itinerario dal {date}.",
+      "distanceNoteZone": "Distanze approssimative in linea d'aria dal centro del quartiere (arrotondate a 100 m), mai dall'alloggio",
+      "radiusLabelZone": "Intorno al centro del quartiere",
+      "addressLater": "Indirizzo disponibile dal {date}",
+      "routeLater": "Itinerario disponibile dal {date}.",
+      "zoneLoading": "Ricerca dei luoghi del quartiere in corso… la mappa si completa da sola.",
+      "zoneSlow": "La ricerca del quartiere richiede più tempo del previsto. Torna tra qualche minuto.",
+      "zoneFailed": "Il servizio di mappe non risponde al momento: i luoghi del quartiere non sono disponibili. I consigli del team restano qui sotto.",
+      "zoneRetry": "Riprova",
+      "zoneNone": "OpenStreetMap non ha trovato luoghi pubblici in questo quartiere.",
+      "discoverHintZone": "Ristoranti, negozi, attività e servizi del quartiere",
+      "distanceFromZone": "≈ {d} dal centro del quartiere"
     },
     "prepBanner": "Il soggiorno si avvicina. Le informazioni pratiche (indirizzo, accesso, guida) appariranno qui dal {date}. Nel frattempo puoi preparare il soggiorno e scrivere al team.",
     "prepared": {
@@ -4643,7 +4654,7 @@
     "demoOnly": "Questo deploy funziona solo in demo: nessun backend configurato.",
     "check": {
       "api": "API raggiungibile",
-      "migrations": "Database aggiornato (migrazioni applicate)",
+      "migrations": "Database: migrazioni necessarie a questa versione",
       "anonBlocked": "Lettura anonima rifiutata",
       "auth": "Accesso via e-mail attivo",
       "serverKey": "Chiave server (notifiche)",
@@ -4652,10 +4663,17 @@
     "state": {
       "ok": "Verificato",
       "fail": "Verifica non riuscita",
-      "missing": "Non configurato"
+      "missing": "Non configurato",
+      "unverified": "Non verificato (il controllo non è riuscito)"
     },
     "checkedAt": "Verificato il {at}",
-    "back": "Torna alla home"
+    "back": "Torna alla home",
+    "migrationsOk": "{count} migrazioni verificate una per una",
+    "migration": {
+      "missing": "Mancante: {file}",
+      "unverified": "Non verificata: {file}"
+    },
+    "readyPartial": "Il backend risponde e le regole di accesso sono attive, ma alcune funzioni attendono un aggiornamento del database (dettagli sotto). Restano non disponibili finché non viene applicato."
   },
   "places": {
     "category": {

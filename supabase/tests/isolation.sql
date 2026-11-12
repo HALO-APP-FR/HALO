@@ -1492,7 +1492,7 @@ insert into public.property_places (id, organization_id, property_id, source, ca
   (t.id('PL16N'), t.id('A'), t.id('P16'), 'manager', 'activities', 'Lieu public au même endroit', 48.8584, 2.2945, 'booking'),
   (t.id('PL16F'), t.id('A'), t.id('P16'), 'manager', 'food', 'Bistrot à 1,5 km', 48.8710, 2.2995, 'booking');
 select t.is('avant ouverture : lieu au même endroit retenu, compté', t.q(null, format('select (public.guest_places(%L) ->> ''near_hidden'') || ''/'' || jsonb_array_length(public.guest_places(%L) -> ''places'')', (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'))), '1/1');
-select t.is('avant ouverture (migration 25) : distance depuis le centre de zone (multiple de 100 m), sans tranche ni coordonnées du logement', t.q(null, format('select ((public.guest_places(%L) #>> ''{places,0,distance_m}'')::numeric %% 100 = 0)::text || ''/'' || coalesce(public.guest_places(%L) #>> ''{places,0,distance_band}'', ''-'') || ''/'' || coalesce(public.guest_places(%L) #>> ''{property,lat}'', ''-'')', (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'))), 'true/-/-');
+select t.is('avant ouverture (migration 29) : choix de l''équipe sans distance ni tranche, aucune coordonnée du logement', t.q(null, format('select coalesce(public.guest_places(%L) #>> ''{places,0,distance_m}'', ''-'') || ''/'' || coalesce(public.guest_places(%L) #>> ''{places,0,distance_band}'', ''-'') || ''/'' || coalesce(public.guest_places(%L) #>> ''{property,lat}'', ''-'')', (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'), (select v from t_tok where k = 'g16'))), '-/-/-');
 -- Dans la fenêtre habituelle (lien de séjour en cours) : tout est visible
 insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values (t.id('R16Z'), t.id('A'), t.id('P16'), 'En cours 16', now() - interval '1 day', now() + interval '1 day');
 insert into t_tok values ('g16z', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R16Z'))));
@@ -1758,12 +1758,12 @@ insert into public.property_places (id, organization_id, property_id, source, ca
 insert into public.stay_guest_items (organization_id, reservation_id, kind, place_id, title, published_at) values
   (t.id('A'), t.id('R18'), 'recommendation', t.id('PL18H'), 'Le musée en bas', now()),
   (t.id('A'), t.id('R18'), 'recommendation', t.id('PL18F'), 'Le bistrot', now());
-select t.is('dense (migration 25) : lieu sur le logement retenu, lieu sans coordonnées listé sans adresse, lieu à 1,2 km avec adresse et distance depuis la zone',
+select t.is('dense (migration 29) : lieu sur le logement retenu ; choix de l''équipe en liste de quartier, sans adresse ni distance',
   t.q(null, format('select (public.guest_places(%L) ->> ''near_hidden'') || ''|'' || (select string_agg((e ->> ''name'') || '':'' || coalesce(e ->> ''address'', ''-'') || '':'' || case when e ->> ''distance_m'' is null then ''-'' else ''z'' end, '','' order by e ->> ''name'') from jsonb_array_elements(public.guest_places(%L) -> ''places'') e)', (select v from t_tok where k = 'g18'), (select v from t_tok where k = 'g18'))),
-  '1|Bistrot du propriétaire:20 rue Fictive, Paris:z,Boulangerie (sans coordonnées):-:-');
-select t.is('recommandations publiées avant ouverture : ni coordonnées, ni adresse du lieu au pied du logement',
+  '1|Bistrot du propriétaire:-:-,Boulangerie (sans coordonnées):-:-');
+select t.is('recommandations publiées avant ouverture (migration 29) : aucune adresse ni coordonnée de lieu de l''équipe',
   (select string_agg(coalesce(e #>> '{place,address}', '-') || ':' || coalesce(e #>> '{place,lat}', '-'), ',' order by e ->> 'title') from jsonb_array_elements(public.get_guest_stay((select v from t_tok where k = 'g18')) -> 'prepared') e),
-  '20 rue Fictive, Paris:-,-:-');
+  '-:-,-:-');
 select t.check('avant ouverture : les coordonnées du logement n''apparaissent dans aucune donnée transmise', '',
   position('48.853' in public.guest_places((select v from t_tok where k = 'g18'))::text) = 0 and position('2.349' in public.guest_places((select v from t_tok where k = 'g18'))::text) = 0
   and position('48.853' in public.get_guest_stay((select v from t_tok where k = 'g18'))::text) = 0 and position('2.35' in public.get_guest_stay((select v from t_tok where k = 'g18'))::text) = 0);
@@ -1775,7 +1775,7 @@ insert into public.property_places (id, organization_id, property_id, source, ca
   (t.id('PL18R1'), t.id('A'), t.id('P18R'), 'manager', 'food', 'Auberge à 2,5 km', 45.9225, 6.1000, 'Le Bourg', 'booking'),
   (t.id('PL18R2'), t.id('A'), t.id('P18R'), 'manager', 'food', 'Ville à 5 km', 45.9450, 6.1000, 'Centre', 'booking');
 insert into t_tok values ('g18r', t.keep('a_manager', format('select public.create_guest_link(%L, %L)', t.id('A'), t.id('R18R'))));
-select t.is('rural (migration 25) : seul le lieu à 2,5 km, sans coordonnées, distance depuis la zone', t.q(null, format('select string_agg((e ->> ''name'') || '':'' || case when (e ->> ''distance_m'')::numeric %% 100 = 0 then ''z'' else ''?'' end || '':'' || coalesce(e ->> ''lat'', ''-''), '','') from jsonb_array_elements(public.guest_places(%L) -> ''places'') e', (select v from t_tok where k = 'g18r'))), 'Auberge à 2,5 km:z:-');
+select t.is('rural (migration 29) : seul le lieu à 2,5 km, sans coordonnées ni distance', t.q(null, format('select string_agg((e ->> ''name'') || '':'' || coalesce(e ->> ''distance_m'', ''-'') || '':'' || coalesce(e ->> ''lat'', ''-''), '','') from jsonb_array_elements(public.guest_places(%L) -> ''places'') e', (select v from t_tok where k = 'g18r'))), 'Auberge à 2,5 km:-:-');
 -- Logement sans coordonnées : lieux listés sans adresse ni distance
 insert into public.properties (id, organization_id, name) values (t.id('P18X'), t.id('A'), 'Sans position 18');
 insert into public.guest_guides (organization_id, property_id, enabled) values (t.id('A'), t.id('P18X'), true);
@@ -2078,10 +2078,10 @@ select t.is('alentours avant l''arrivée : carte centrée sur la maille (et non 
   (select round((v -> 'zone' ->> 'lat')::numeric, 6)::text || ',' || round((v -> 'zone' ->> 'lng')::numeric, 6)::text from t.zone where k = 'before'), '48.862500,2.359895');
 select t.is('alentours avant l''arrivée : lieux de zone + recommandation lointaine, rien de proche du logement',
   (select string_agg(x ->> 'name', ',' order by x ->> 'name') from t.zone, jsonb_array_elements(v -> 'places') x where k = 'before'), 'Café jumeau,Musée du quartier,Zone resto,Zone épicerie');
-select t.is('alentours avant l''arrivée : distances depuis le centre de zone (arrondies à 100 m), jamais depuis le logement',
+select t.is('alentours avant l''arrivée : distances depuis le centre de zone (arrondies à 100 m) pour les lieux du quartier ; aucune pour les choix de l''équipe',
   (select string_agg(x ->> 'name' || '=' || coalesce(x ->> 'distance_m', '∅'), ',' order by x ->> 'name') from t.zone, jsonb_array_elements(v -> 'places') x where k = 'before'),
   (select string_agg(n || '=' || d, ',' order by n) from (values ('Café jumeau', round(public.distance_m(48.8625, 2.3598947903880942, 48.8610, 2.3560) / 100) * 100),
-     ('Musée du quartier', round(public.distance_m(48.8625, 2.3598947903880942, 48.8680, 2.3600) / 100) * 100), ('Zone resto', round(public.distance_m(48.8625, 2.3598947903880942, 48.8630, 2.3600) / 100) * 100),
+     ('Musée du quartier', null::numeric), ('Zone resto', round(public.distance_m(48.8625, 2.3598947903880942, 48.8630, 2.3600) / 100) * 100),
      ('Zone épicerie', round(public.distance_m(48.8625, 2.3598947903880942, 48.8580, 2.3550) / 100) * 100)) v(n, d0) cross join lateral (select coalesce(d0::bigint::text, '∅') d) z));
 select t.is('alentours avant l''arrivée : horaires seulement si vérifiés par l''équipe (jamais ceux d''OpenStreetMap)',
   (select string_agg(x ->> 'name' || '=' || coalesce(x ->> 'opening_hours', '∅'), ',' order by x ->> 'name') from t.zone, jsonb_array_elements(v -> 'places') x where k = 'before'),
@@ -2173,10 +2173,10 @@ select t.is('visibilité : par défaut, une recommandation attend l''ouverture (
 select t.err('visibilité : valeur inconnue refusée', t.q('a_manager', format('update public.property_places set guest_visibility = ''always'' where id = %L', t.id('VB1'))), '23514');
 select t.is('avant ouverture : seule la recommandation « dès la réservation » éloignée et hors de la rue est listée ; les autres sont comptées sans détail',
   (select (v ->> 'near_hidden') || '|' || coalesce((select string_agg(x ->> 'name', ',' order by x ->> 'name') from jsonb_array_elements(v -> 'places') x), '-') from t.vis where k = 'before'), '3|Musée choisi');
-select t.is('avant ouverture : description qui situe le logement masquée, conseil neutre conservé, adresse du lieu conservée',
-  (select coalesce(x ->> 'description', '∅') || '/' || coalesce(x ->> 'note', '∅') || '/' || coalesce(x ->> 'address', '∅') from t.vis, jsonb_array_elements(v -> 'places') x where k = 'before' and x ->> 'name' = 'Musée choisi'), '∅/Gratuit le dimanche/3 avenue publique');
-select t.is('avant ouverture : recommandation de l''équipe listée sans point sur la carte, distance depuis la zone seulement',
-  (select coalesce(x ->> 'lat', '∅') || '/' || coalesce(x ->> 'lng', '∅') || '/' || ((x ->> 'distance_m')::numeric % 100 = 0)::text from t.vis, jsonb_array_elements(v -> 'places') x where k = 'before' and x ->> 'name' = 'Musée choisi'), '∅/∅/true');
+select t.is('avant ouverture : description qui situe le logement masquée, conseil neutre conservé, pas d''adresse avant l''ouverture',
+  (select coalesce(x ->> 'description', '∅') || '/' || coalesce(x ->> 'note', '∅') || '/' || coalesce(x ->> 'address', '∅') from t.vis, jsonb_array_elements(v -> 'places') x where k = 'before' and x ->> 'name' = 'Musée choisi'), '∅/Gratuit le dimanche/∅');
+select t.is('avant ouverture : recommandation de l''équipe listée sans point ni distance (liste de quartier)',
+  (select coalesce(x ->> 'lat', '∅') || '/' || coalesce(x ->> 'lng', '∅') || '/' || coalesce(x ->> 'distance_m', '∅') from t.vis, jsonb_array_elements(v -> 'places') x where k = 'before' and x ->> 'name' = 'Musée choisi'), '∅/∅/∅');
 select t.check('avant ouverture : ni adresse, ni rue, ni coordonnées du logement dans la réponse', '',
   (select position('rue des Tests' in v::text) = 0 and position('48.8601' in v::text) = 0 and position('2.3501' in v::text) = 0 from t.vis where k = 'before'));
 select t.is('avant ouverture : favori refusé sur une recommandation réservée à l''arrivée, accepté sur une recommandation publique',
@@ -2190,12 +2190,25 @@ update public.properties set latitude = 48.8601, longitude = 2.3501 where id = t
 insert into public.guest_guides (organization_id, property_id, enabled) values (t.id('A'), t.id('PVIS'), true) on conflict do nothing;
 insert into public.stay_guest_items (organization_id, reservation_id, kind, place_id, title, published_at) values
   (t.id('A'), t.id('RVIS'), 'recommendation', t.id('VA1'), 'a-bistrot', now()), (t.id('A'), t.id('RVIS'), 'recommendation', t.id('VB1'), 'b-musée', now());
-select t.is('contenus publiés avant ouverture : adresse seulement pour la recommandation « dès la réservation »',
-  (select coalesce(string_agg(coalesce(e #>> '{place,address}', '-'), ',' order by e ->> 'title'), 'aucun') from jsonb_array_elements(public.get_guest_stay(repeat('f', 64)) -> 'prepared') e), '-,3 avenue publique');
+select t.is('contenus publiés avant ouverture : aucune adresse de lieu de l''équipe avant l''ouverture',
+  (select coalesce(string_agg(coalesce(e #>> '{place,address}', '-'), ',' order by e ->> 'title'), 'aucun') from jsonb_array_elements(public.get_guest_stay(repeat('f', 64)) -> 'prepared') e), '-,-');
+-- Recoupement (migration 29) : aucune donnée de position pour les choix de l'équipe avant l'ouverture
+insert into public.property_places (organization_id, property_id, source, category, name, address, latitude, longitude, guest_visibility) values
+  (t.id('A'), t.id('PVIS'), 'manager', 'food', 'Nord 500 m', '1 rue Nord', 48.8646, 2.3501, 'booking'),
+  (t.id('A'), t.id('PVIS'), 'manager', 'food', 'Sud 500 m', '1 rue Sud', 48.8556, 2.3501, 'booking'),
+  (t.id('A'), t.id('PVIS'), 'manager', 'food', 'Est 500 m', '1 rue Est', 48.8601, 2.3569, 'booking'),
+  (t.id('A'), t.id('PVIS'), 'manager', 'food', 'Ouest 500 m', '1 rue Ouest', 48.8601, 2.3433, 'booking');
+select t.is('recoupement : quatre choix autour du logement listés, sans adresse, distance ni point (centre non calculable)',
+  t.q(null, format('select count(*) filter (where x ->> ''source'' <> ''openstreetmap'')::text || ''/'' || count(*) filter (where x ->> ''source'' <> ''openstreetmap'' and (x ->> ''address'' is not null or x ->> ''lat'' is not null or x ->> ''lng'' is not null or x ->> ''distance_m'' is not null or x ->> ''distance_band'' is not null))::text from jsonb_array_elements(public.guest_places(%L) -> ''places'') x', repeat('f', 64))), '5/0');
+select t.is('état des lieux du quartier : en préparation, puis échec visible, puis prêts',
+  (select string_agg(st, ',') from (
+     select 1 o, public.guest_places(repeat('f', 64)) #>> '{zone,state}' st
+     union all select 2, (select public.zone_places_state(null, now() - interval '10 minutes'))
+     union all select 3, (select public.zone_places_state(now(), now()))) q), 'preparing,failed,ready');
 -- Ouverture des informations pratiques : tout est visible, textes d'origine
 update public.guest_links set valid_from = now() - interval '1 hour' where reservation_id = t.id('RVIS');
 select t.is('après ouverture : toutes les recommandations, description d''origine',
-  t.q(null, format('select string_agg((x ->> ''name'') || ''='' || coalesce(x ->> ''description'', ''∅''), '','' order by x ->> ''name'') from jsonb_array_elements(public.guest_places(%L) -> ''places'') x', repeat('f', 64))),
+  t.q(null, format('select string_agg((x ->> ''name'') || ''='' || coalesce(x ->> ''description'', ''∅''), '','' order by x ->> ''name'') from jsonb_array_elements(public.guest_places(%L) -> ''places'') x where x ->> ''name'' not like ''%% 500 m''', repeat('f', 64))),
   'Bistrot à l''arrivée=Cuisine maison,Café de la même rue=∅,Musée choisi=Superbe musée, à 5 min à pied du logement,Épicerie toute proche=∅');
 -- =====================================================================
 -- 28. Notifications push : chacun ses appareils, ses choix ; envoi réservé au serveur (migration 28)
@@ -2219,6 +2232,14 @@ select t.is('push : e-mail coupé mais push voulu → notification préparée', 
 select t.keep('a_agent', format('select public.set_push_pref(%L, ''agent_task_assigned'', false)::text', t.id('A')));
 select t.is('push : e-mail et push coupés → rien n''est préparé', public.wants_email(t.id('A'), t.id('a_agent'), 'agent_task_assigned', false)::text, 'false');
 select t.is('push : message urgent rattaché au réglage « messages »', public.wants_push_channel(t.id('A'), t.id('a_agent'), 'chat_urgent')::text || '/' || coalesce(public.push_category('chat_message'), '∅'), 'true/∅');
+-- Migration 30 : compte de test (.invalid) avec appareil inscrit → passe par la file (push tenté), sinon échec immédiat comme avant
+select public.outbox_insert(t.id('A'), 'a_agent@test.invalid', 'fr', 'chat_urgent', '{"t":"m30a"}', null, null, null);
+select public.outbox_insert(t.id('A'), 'a_agent@test.invalid', 'fr', 'agent_task_assigned', '{"t":"m30b"}', null, null, null);
+select public.outbox_insert(t.id('A'), 'a_agent2@test.invalid', 'fr', 'chat_urgent', '{"t":"m30c"}', null, null, null);
+select t.is('push (migration 30) : adresse de test avec push voulu → en file ; push coupé ou sans appareil → échec immédiat, aucun e-mail',
+  (select string_agg((payload ->> 't') || '=' || status || coalesce(':' || last_error, ''), ',' order by payload ->> 't') from public.notification_outbox where payload ->> 't' like 'm30%'),
+  'm30a=pending,m30b=failed:undeliverable_test_address,m30c=failed:undeliverable_test_address');
+delete from public.notification_outbox where payload ->> 't' like 'm30%';
 insert into public.notification_outbox (id, organization_id, recipient, template, payload) values
   ('00000000-0000-4000-8000-000000002801', t.id('A'), (select email from auth.users where id = t.id('a_agent')), 'chat_urgent', '{"property": "Loft"}');
 select t.is('push : canaux d''une notification (serveur) : e-mail voulu, un appareil, pas encore envoyé',

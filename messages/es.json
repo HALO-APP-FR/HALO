@@ -4438,7 +4438,7 @@
       "ownerAddedOn": "Añadido por el propietario el {date}",
       "hoursVerified": "horario verificado por el equipo",
       "hoursToConfirm": "horario por confirmar",
-      "mapLater": "El mapa y la dirección aparecerán a partir del {date}. Las distancias ya se indican.",
+      "mapLater": "El mapa del barrio y la dirección del alojamiento aparecerán a partir del {date}.",
       "picksTitle": "Selección del equipo y del propietario",
       "autoTitle": "Sugerencias automáticas cercanas (no verificadas)",
       "showAll": "Ver las {count} sugerencias",
@@ -4503,7 +4503,18 @@
       "zonePreparing": "Los lugares del barrio se están preparando: vuelva en unos minutos.",
       "hoursVerifiedOn": "horario verificado por el equipo el {date}",
       "hoursUnverified": "Horario no verificado: confírmelo con el lugar (web o teléfono).",
-      "teamListed": "Las recomendaciones del equipo aparecen en la lista, sin marcar en el mapa."
+      "teamListed": "Las recomendaciones del equipo aparecen sin dirección ni distancia; dirección e itinerario a partir del {date}.",
+      "distanceNoteZone": "Distancias aproximadas en línea recta desde el centro del barrio (redondeadas a 100 m), nunca desde el alojamiento",
+      "radiusLabelZone": "Alrededor del centro del barrio",
+      "addressLater": "Dirección disponible a partir del {date}",
+      "routeLater": "Itinerario disponible a partir del {date}.",
+      "zoneLoading": "Buscando lugares del barrio… el mapa se completa solo.",
+      "zoneSlow": "La búsqueda del barrio tarda más de lo previsto. Vuelva en unos minutos.",
+      "zoneFailed": "El servicio de mapas no responde por ahora: los lugares del barrio no están disponibles. Las recomendaciones del equipo siguen abajo.",
+      "zoneRetry": "Reintentar",
+      "zoneNone": "OpenStreetMap no encontró lugares públicos en este barrio.",
+      "discoverHintZone": "Restaurantes, tiendas, actividades y servicios del barrio",
+      "distanceFromZone": "≈ {d} del centro del barrio"
     },
     "prepBanner": "Su estancia se acerca. La información práctica (dirección, acceso, guía) aparecerá aquí a partir del {date}. Mientras tanto puede preparar su estancia y escribir al equipo.",
     "prepared": {
@@ -4643,7 +4654,7 @@
     "demoOnly": "Este despliegue funciona solo en demo: no hay backend configurado.",
     "check": {
       "api": "API accesible",
-      "migrations": "Base de datos al día (migraciones aplicadas)",
+      "migrations": "Base de datos: migraciones necesarias para esta versión",
       "anonBlocked": "Lectura anónima denegada",
       "auth": "Inicio de sesión por e-mail activo",
       "serverKey": "Clave del servidor (notificaciones)",
@@ -4652,10 +4663,17 @@
     "state": {
       "ok": "Verificado",
       "fail": "Fallo en la comprobación",
-      "missing": "No configurado"
+      "missing": "No configurado",
+      "unverified": "No verificado (la comprobación no pudo completarse)"
     },
     "checkedAt": "Comprobado el {at}",
-    "back": "Volver al inicio"
+    "back": "Volver al inicio",
+    "migrationsOk": "{count} migraciones comprobadas una a una",
+    "migration": {
+      "missing": "Falta: {file}",
+      "unverified": "No verificada: {file}"
+    },
+    "readyPartial": "El backend responde y sus reglas de acceso están activas, pero algunas funciones esperan una actualización de la base (detalle abajo). Siguen sin estar disponibles hasta aplicarla."
   },
   "places": {
     "category": {

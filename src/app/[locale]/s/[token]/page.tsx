@@ -53,7 +53,7 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
 
   let data: GStay | { status: string } | null = null;
   let problems: GProblem[] = [];
-  type Around = { zone?: { lat: number; lng: number; radius_m: number; ready: boolean } | null; full?: boolean; near_hidden?: number; auto_hidden?: number; favorites?: string[]; property: { name: string; address: string | null; postal_code: string | null; city: string | null; lat: number | null; lng: number | null }; places: Place[] };
+  type Around = { zone?: { lat: number; lng: number; radius_m: number; ready: boolean; state?: "ready" | "preparing" | "failed" } | null; full?: boolean; near_hidden?: number; auto_hidden?: number; favorites?: string[]; property: { name: string; address: string | null; postal_code: string | null; city: string | null; lat: number | null; lng: number | null }; places: Place[] };
   let around = null as Around | null;
   let failed = false;
   if (isConnected()) {
@@ -129,7 +129,7 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
             <Compass className="size-5 shrink-0 text-accent-text" />
             <span className="min-w-0 flex-1">
               <span className="block text-[15px] font-semibold">{t("around.discover")}</span>
-              <span className="block text-[13px] text-muted">{t("around.discoverHint")}</span>
+              <span className="block text-[13px] text-muted">{around.full === false ? t("around.discoverHintZone") : t("around.discoverHint")}</span>
             </span>
             <ChevronRight className="size-5 text-faint rtl:-scale-x-100" />
           </a>

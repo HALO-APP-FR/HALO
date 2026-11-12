@@ -2445,7 +2445,9 @@ test("32 · lieux avant l'ouverture : aucune donnée qui localise le logement", 
   await expect(around.getByTestId("around-near-hidden")).toContainText("1 autre recommandation de l'équipe sera visible");
   await expect(around.getByTestId("around-place")).toHaveCount(1);
   await expect(around).not.toContainText("Monument au même endroit");
-  await expect(around.getByTestId("around-distance")).toBeVisible(); // migration 25 : distance depuis le centre de zone, arrondie
+  // Migration 29 : choix de l'équipe en liste de quartier — ni distance ni adresse avant l'ouverture (recoupement)
+  await expect(around.getByTestId("around-distance")).toHaveCount(0);
+  await expect(around.getByTestId("around-team-listed")).toBeVisible();
   await expect(around.getByTestId("around-zone-note")).toBeVisible(); // carte du quartier, jamais le point du logement
   for (const c of [m, g]) await c.context().close();
 });
@@ -2942,7 +2944,7 @@ test("34 · lieux avant l'ouverture : données transmises au navigateur sans coo
     // Migration 25 : suggestions du logement jamais montrées avant l'échéance (seules celles de la zone le sont)
     await expect(g.getByTestId("around-auto-hidden")).toHaveCount(0);
     await expect(g.getByTestId("around-near-hidden")).toBeVisible();
-    await expect(g.getByTestId("around-place").filter({ hasText: "Choix de l" }).getByTestId("around-distance")).toBeVisible(); // distance depuis le centre de zone
+    await expect(g.getByTestId("around-place").filter({ hasText: "Choix de l" }).getByTestId("around-distance")).toHaveCount(0); // migration 29 : aucune distance pour un choix de l'équipe
     await g.context().close();
   }
   await m.context().close();
@@ -3736,6 +3738,7 @@ test("51 · revenir au calcul automatique : aperçu, confirmation historisée, p
 });
 
 test("52 · alentours dès l'activation du lien : zone approximative (point du logement jamais transmis), filtres, rayon, favoris, carte indisponible, lien révoqué", async ({ browser }) => {
+  startOsm(); // fournisseur simulé (arrêté par des tests précédents)
   const m = await newPage(browser);
   const { org } = await testScenario(m, `zone ${run}`);
   const { data: prop } = await admin.from("properties").select("id, address_line").eq("organization_id", org).single();
@@ -3745,8 +3748,17 @@ test("52 · alentours dès l'activation du lien : zone approximative (point du l
   await g.goto(url);
   const around = g.getByTestId("guest-around");
   await expect(around).toBeVisible();
-  // Lieux du quartier préparés côté serveur après la première ouverture : disponibles au rechargement
-  await expect.poll(async () => (await g.reload(), await around.getByTestId("around-place").count()), { timeout: 100_000, intervals: [2_000, 5_000, 10_000] }).toBeGreaterThan(0);
+  // Lieux du quartier préparés côté serveur à la première ouverture : état « recherche en cours » explicite (jamais
+  // « aucun lieu » ni « en préparation » ambigu), puis la page se complète SEULE (sans recharger à la main)
+  await expect(around.getByTestId("around-zone-loading").or(around.getByTestId("around-place").first())).toBeVisible();
+  await expect(around.getByTestId("around-empty")).toHaveCount(0);
+  await expect(around.getByTestId("around-place").first()).toBeVisible({ timeout: 90_000 });
+  await expect(around.getByTestId("around-zone-loading")).toHaveCount(0);
+  await expect(around.getByTestId("around-zone-failed")).toHaveCount(0);
+  // Libellés conformes au calcul : distances depuis le centre du quartier (jamais « depuis le logement »)
+  await expect(around.getByTestId("around-distance").first()).toContainText("du centre du quartier");
+  await expect(around.getByTestId("around-sources")).toContainText("depuis le centre du quartier");
+  await expect(around).not.toContainText("vol d'oiseau depuis le logement");
   await expect(around.getByTestId("around-origin")).toContainText("Carte du quartier");
   await expect(around.getByTestId("around-zone-note")).toContainText("pas le logement");
   // Aucune donnée du logement dans la page : ni adresse, ni coordonnées exactes
@@ -3809,6 +3821,11 @@ test("52 · alentours dès l'activation du lien : zone approximative (point du l
   await expect(m.getByTestId("link-revoke")).toHaveCount(0);
   await g2.reload();
   await expect(g2.getByTestId("guest-unavailable")).toBeVisible();
+  // Après révocation : ni lieux ni favoris, même en appelant directement le serveur
+  const tok = url.split("?")[0].split("/").pop()!;
+  const { data: anyPlace } = await admin.from("property_places").select("id").eq("organization_id", org).limit(1).single();
+  expect(((await admin.rpc("guest_places", { token: tok })).data as { status: string }).status).toBe("unavailable");
+  expect(((await admin.rpc("guest_place_favorite", { token: tok, place: anyPlace!.id, fav: true })).data as { status: string }).status).toBe("unavailable");
   for (const c of [m, g, g2]) await c.context().close();
 });
 

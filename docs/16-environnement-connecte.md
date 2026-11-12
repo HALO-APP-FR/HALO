@@ -583,3 +583,11 @@ La navigation en quatre espaces est abandonnée. Le responsable retrouve les **n
 - Retour arrière : `drop function public.guest_pick_before_access, public.street_of, public.guest_text_safe` après avoir réappliqué les fonctions de la migration 25. Ensuite, `alter table public.property_places drop column guest_visibility`.
 
 **Migration 28 — `20261123000001_notifications_push.sql`** : voir `docs/17-notifications-push.md`. Aucun envoi sans `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` et `VAPID_SUBJECT` côté serveur.
+
+## État du service, liste de quartier, push des comptes de test (migrations 29 et 30)
+
+- **`/status` (cause de la contradiction du 12/11)** : l'ancienne vérification « Base de données à jour » n'appelait qu'une fonction de 2026-10 (`get_guest_stay`) ; elle restait verte sans la migration 26. Désormais chaque migration nécessaire à la version déployée est sondée par un objet qu'elle seule crée (`src/lib/connected/schema-probes.ts`, test unitaire : une sonde par fichier de migration). Une sonde sans réponse exploitable donne « Non vérifié », jamais « Vérifié ». Les migrations manquantes sont listées par nom de fichier.
+- **Migration 29 — `20261124000001_alentours_liste_quartier.sql`** (prérequis 27) : avant l'ouverture, les choix de l'équipe deviennent une liste de quartier, sans adresse, distance ni point ; seuls les lieux publics du quartier (OpenStreetMap, indépendants de la position exacte du logement) ont point et distance, depuis le centre du quartier. État de recherche des lieux : `ready` / `preparing` / `failed` (affiché au voyageur, rafraîchissement automatique pendant la recherche).
+- **Migration 30 — `20261125000001_push_comptes_de_test.sql`** (prérequis 28) : une notification vers une adresse `.invalid` passe par la file si son destinataire a inscrit un appareil et veut le push ; l'e-mail reste non envoyé.
+- Les fichiers à exécuter en préproduction portent une garde : ils s'arrêtent sans rien modifier si la migration est déjà enregistrée. Ordre d'application vérifié hors séquence (24, 26, 29, 30 après 27 et 28).
+- Autotest : `maxDuration` porté à 300 s (504 à 60 s le 12/11 sur la préproduction distante).

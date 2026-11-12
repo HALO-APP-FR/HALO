@@ -4438,7 +4438,7 @@
       "ownerAddedOn": "Ajouté par le propriétaire le {date}",
       "hoursVerified": "horaires vérifiés par l'équipe",
       "hoursToConfirm": "horaires à confirmer",
-      "mapLater": "La carte et l'adresse du logement s'afficheront à partir du {date}. Les distances sont déjà indiquées.",
+      "mapLater": "La carte du quartier et l'adresse du logement s'afficheront à partir du {date}.",
       "picksTitle": "Sélection de l'équipe et du propriétaire",
       "autoTitle": "Suggestions automatiques à proximité (non vérifiées)",
       "showAll": "Voir les {count} suggestions",
@@ -4503,7 +4503,18 @@
       "zonePreparing": "Les adresses du quartier sont en cours de préparation : revenez dans quelques minutes.",
       "hoursVerifiedOn": "horaires vérifiés par l'équipe le {date}",
       "hoursUnverified": "Horaires non vérifiés : à confirmer auprès du lieu (site ou téléphone).",
-      "teamListed": "Les recommandations de l'équipe sont listées sans être placées sur la carte."
+      "teamListed": "Les recommandations de l'équipe sont listées sans adresse ni distance ; adresse et itinéraire à partir du {date}.",
+      "distanceNoteZone": "Distances approximatives à vol d'oiseau depuis le centre du quartier (arrondies à 100 m), jamais depuis le logement",
+      "radiusLabelZone": "Autour du centre du quartier",
+      "addressLater": "Adresse communiquée à partir du {date}",
+      "routeLater": "Itinéraire disponible à partir du {date}.",
+      "zoneLoading": "Recherche des lieux du quartier en cours… la carte se complète toute seule.",
+      "zoneSlow": "La recherche des lieux du quartier prend plus de temps que prévu. Revenez dans quelques minutes.",
+      "zoneFailed": "Le service de cartes ne répond pas pour l'instant : les lieux du quartier ne sont pas disponibles. Les recommandations de l'équipe restent ci-dessous.",
+      "zoneRetry": "Réessayer",
+      "zoneNone": "Aucun lieu public trouvé dans ce quartier par OpenStreetMap.",
+      "discoverHintZone": "Restaurants, commerces, activités et services du quartier",
+      "distanceFromZone": "≈ {d} du centre du quartier"
     },
     "prepBanner": "Votre séjour approche. Les informations pratiques (adresse, accès, guide) seront visibles ici à partir du {date}. En attendant, vous pouvez préparer votre séjour et écrire à l'équipe.",
     "prepared": {
@@ -4643,7 +4654,7 @@
     "demoOnly": "Ce déploiement fonctionne en démo uniquement : aucun backend n'est configuré.",
     "check": {
       "api": "API joignable",
-      "migrations": "Base de données à jour (migrations appliquées)",
+      "migrations": "Base de données : migrations nécessaires à cette version",
       "anonBlocked": "Lecture anonyme des données refusée",
       "auth": "Connexion par e-mail active",
       "serverKey": "Clé serveur (envoi des notifications)",
@@ -4652,10 +4663,17 @@
     "state": {
       "ok": "Vérifié",
       "fail": "Échec de la vérification",
-      "missing": "Non configuré"
+      "missing": "Non configuré",
+      "unverified": "Non vérifié (la vérification n'a pas pu aboutir)"
     },
     "checkedAt": "Vérifié le {at}",
-    "back": "Retour à l'accueil"
+    "back": "Retour à l'accueil",
+    "migrationsOk": "{count} migrations vérifiées une à une",
+    "migration": {
+      "missing": "Manquante : {file}",
+      "unverified": "Non vérifiée : {file}"
+    },
+    "readyPartial": "Le backend répond et ses règles d'accès sont actives, mais certaines fonctions attendent une mise à jour de la base (détail ci-dessous). Elles restent indisponibles tant qu'elle n'est pas appliquée."
   },
   "places": {
     "category": {

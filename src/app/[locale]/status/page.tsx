@@ -20,15 +20,26 @@ export default async function StatusPage({ params }: PageProps<"/[locale]/status
     <main className="mx-auto max-w-lg px-4 py-10" data-testid="status-page" data-ready={h.ready ? "yes" : "no"}>
       <EnvBadge />
       <h1 className="mt-4 text-title-1">{t("title")}</h1>
-      <p className="mt-2 text-[15px] text-muted">{isConnected() ? (h.ready ? t("ready") : t("notReady")) : t("demoOnly")}</p>
+      <p className="mt-2 text-[15px] text-muted">{isConnected() ? (h.ready ? (h.checks.find((c) => c.key === "migrations")?.state === "ok" ? t("ready") : t("readyPartial")) : t("notReady")) : t("demoOnly")}</p>
       {h.configured && (
         <ul className="mt-6 divide-y divide-line rounded-xl border border-line bg-surface">
           {h.checks.map((c) => (
             <li key={c.key} className="flex items-start gap-3 px-4 py-3" data-check={c.key} data-state={c.state}>
-              {c.state === "ok" ? <CheckCircle2 className="mt-0.5 size-5 text-success" /> : c.state === "missing" ? <CircleDashed className="mt-0.5 size-5 text-warning" /> : <XCircle className="mt-0.5 size-5 text-danger" />}
-              <span className="text-[15px]">
+              {c.state === "ok" ? <CheckCircle2 className="mt-0.5 size-5 text-success" /> : c.state === "missing" || c.state === "unverified" ? <CircleDashed className="mt-0.5 size-5 text-warning" /> : <XCircle className="mt-0.5 size-5 text-danger" />}
+              <span className="min-w-0 text-[15px]">
                 <span className="block font-medium">{t(`check.${c.key}`)}</span>
-                <span className="block text-[13px] text-muted">{t(`state.${c.state}`)}</span>
+                <span className="block text-[13px] text-muted">{c.key === "migrations" && c.state === "ok" ? t("migrationsOk", { count: h.migrations.length }) : t(`state.${c.state}`)}</span>
+                {c.key === "migrations" && c.state !== "ok" && (
+                  <ul className="mt-1 space-y-0.5 text-[13px]" data-testid="status-migrations">
+                    {h.migrations
+                      .filter((m) => m.state !== "ok")
+                      .map((m) => (
+                        <li key={m.version} data-version={m.version} data-state={m.state} className={m.state === "missing" ? "text-danger" : "text-warning"}>
+                          {t(`migration.${m.state}`, { file: `${m.version}_${m.name}.sql` })}
+                        </li>
+                      ))}
+                  </ul>
+                )}
               </span>
             </li>
           ))}

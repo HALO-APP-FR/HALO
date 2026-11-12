@@ -68,8 +68,9 @@ export async function processOutbox(orgId?: string) {
     let emailWanted = true;
     try {
       emailWanted = (await pushForOutbox(admin, row, appUrl())).email;
-    } catch {
-      // un échec push n'empêche jamais l'e-mail
+    } catch (e) {
+      // un échec push n'empêche jamais l'e-mail ; il est journalisé
+      console.error("push", row.template, e instanceof Error ? e.message : e);
     }
     if (!emailWanted) {
       await finish(row, { status: "skipped", last_error: "email_off_by_user" });

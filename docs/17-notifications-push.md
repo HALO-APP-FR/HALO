@@ -27,7 +27,7 @@ Contenu affiché sur l'écran verrouillé : type d'événement et nom du logemen
    - `VAPID_PUBLIC_KEY` = clé publique ;
    - `VAPID_PRIVATE_KEY` = clé privée (**secrète** : jamais dans le dépôt, jamais dans une conversation) ;
    - `VAPID_SUBJECT` = `mailto:` suivi d'une adresse de contact.
-3. Appliquer `halo-migration-28.sql` sur la base de préproduction.
+3. Appliquer sur la base de préproduction `halo-migration-28-notifications_push.sql` (si l'état du service la signale manquante) puis `halo-migration-30-push_comptes_de_test.sql`. Sans la 30, les comptes de test (adresses en .invalid, organisation QA) ne reçoivent jamais de push : la notification était classée « échouée » avant même d'atteindre la file.
 4. Redéployer la préproduction.
 
 Coût : **aucun**. Web Push est une norme ouverte ; les services d'Apple, Google et Mozilla sont gratuits. Il ne faut pas de compte développeur Apple ni d'abonnement. Aucun SMS n'est concerné.
@@ -52,5 +52,6 @@ Coût : **aucun**. Web Push est une norme ouverte ; les services d'Apple, Google
 |---|---|
 | Droits : appareil invisible pour les autres comptes ; clés illisibles ; désinscription par le seul propriétaire ; journal non modifiable ; préférences par canal | Tests d'isolation SQL, section 28 |
 | États à l'écran, refus d'inscription affiché sans mensonge, préférences push, essai vers un appareil **simulé** affiché « Échec », iPhone non installé | Bout en bout 55 (**simulé**, navigateur de test) |
-| Appareil fictif jamais compté « accepté » | Autotest en ligne `push_fake_device_never_accepted` |
+| Les 5 événements prioritaires (mission attribuée, modifiée, correction, message urgent, incident, demande voyageur) déclenchent bien une tentative de push, journalisée, jamais « acceptée » vers un appareil fictif ; préférence coupée respectée | Autotest `push_events_reach_push_pipeline`, `push_preference_off_respected_and_devices_private` (local : réussis ; préproduction : après migrations 28 et 30) |
+| Compte de test (.invalid) avec appareil inscrit : push tenté, e-mail jamais envoyé | Tests d'isolation, migration 30 |
 | **Réception réelle sur un iPhone et un Android** | **Non vérifiée** : à faire par toi, après les réglages, avec ton propre téléphone et l'essai « Envoyer un essai à mes appareils ». Aucun envoi vers un agent ou un voyageur réel. |

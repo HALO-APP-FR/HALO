@@ -6,9 +6,12 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { processOutbox } from "@/lib/connected/outbox";
 import { geocode, nearbyPlaces } from "@/lib/connected/osm";
 import { pushConfigured, sendPush } from "@/lib/connected/push";
+import { loadLinenOps } from "@/lib/connected/linen-data";
+import { statusesOf, typesOf } from "@/lib/connected/mission-filters";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+// Préproduction distante : ~150 appels séquentiels vers la base ; 60 s ne suffisaient plus (504 le 12/11). Limite Hobby + Fluid : 300 s.
+export const maxDuration = 300;
 
 /**
  * AUTO-TEST DE PRÉPRODUCTION, exécuté sur le vrai backend du déploiement.
@@ -290,6 +293,47 @@ export async function GET(request: NextRequest) {
     check("other_org_cannot_read_or_write_conversation", (bMsgs ?? []).length === 0 && Boolean(bPost));
     check("guest_cannot_read_internal_messages", Boolean(gErr) || (gMsgs ?? []).length === 0);
 
+    // 6d bis. Notifications push (migration 28) — appareils SIMULÉS (adresses injoignables) pour l'agent et le responsable,
+    // puis les 5 événements prioritaires réellement déclenchés. Prouve : événement → notification préparée → push tenté,
+    // journalisé, jamais « accepté » ; préférence coupée respectée ; appareils invisibles pour l'autre organisation.
+    // Ne prouve PAS la réception sur un téléphone (impossible ici).
+    {
+      const subA = await ag.rpc("push_subscribe", { ep: `https://push.halo.invalid/ag-${run}`, key_p256dh: "B".repeat(87), key_auth: "A".repeat(22), device: "selftest agent" });
+      const subM = await a1.rpc("push_subscribe", { ep: `https://push.halo.invalid/m-${run}`, key_p256dh: "B".repeat(87), key_auth: "A".repeat(22), device: "selftest manager" });
+      if (subA.error || subM.error) check("push_events_reach_push_pipeline", false, subA.error?.code === "PGRST202" ? "migration 28 absente" : `${subA.error?.message ?? ""} ${subM.error?.message ?? ""}`);
+      else {
+        const since = new Date().toISOString();
+        // 1) mission assignée, 2) modifiée
+        const { data: pt } = await a1.from("tasks").insert({ organization_id: orgA, property_id: pA!.id, type: "maintenance", status: "assigned", assignee_id: agentId, window_start: soon(-30), window_end: soon(240), duration_min: 30 }).select("id").single();
+        await a1.from("tasks").update({ window_end: soon(300) }).eq("id", pt!.id);
+        // 3) correction demandée (mission terminée puis renvoyée)
+        await ag.rpc("start_task", { org: orgA, task: pt!.id, action_id: crypto.randomUUID(), client_at: new Date().toISOString() });
+        await ag.rpc("finish_task", { org: orgA, task: pt!.id, action_id: crypto.randomUUID(), client_at: new Date().toISOString() });
+        const { error: ce } = await a1.rpc("request_correction", { org: orgA, task: pt!.id, reason: `Correction ${run}`, redo_items: null });
+        // 4) message urgent de l'agent au responsable
+        await ag.rpc("post_team_message", { org: orgA, thread: threadId, client: crypto.randomUUID(), body: `Urgent ${run}`, is_urgent: true });
+        // 5) incident et demande voyageur
+        await guest.rpc("guest_report_problem", { token: tokenA as string, i_category: "breakdown", i_description: `Panne push ${run}`, i_urgent: true });
+        await guest.rpc("guest_request_service", { token: tokenA as string, s_kind: "other", s_start_at: outAt, s_people: 1, s_details: `Demande push ${run}` });
+        // La file traite 20 notifications par passage : on la vide entièrement
+        for (let i = 0; i < 10 && ((await processOutbox(orgA)).processed ?? 0) > 0; i++);
+        const { data: dl } = await admin.from("push_deliveries").select("category, status, user_id").eq("organization_id", orgA).gte("created_at", since);
+        const cats = [...new Set((dl ?? []).map((d) => d.category))].sort();
+        const want = ["correction", "guest_request", "incident", "mission", "urgent_message"];
+        check("push_events_reach_push_pipeline", want.every((c) => cats.includes(c)) && (dl ?? []).every((d) => d.status !== "accepted"), `${cats.join(",")} · ${[...new Set((dl ?? []).map((d) => d.status))].join(",")} · ${pushConfigured() ? "clés configurées" : "clés absentes"}${ce ? ` · correction:${ce.message}` : ""}`);
+        // Préférence push coupée par l'agent : plus de push pour cet événement (l'e-mail suit son propre réglage)
+        await ag.rpc("set_push_pref", { org: orgA, ev: "agent_task_assigned", by_push: false });
+        const before = new Date().toISOString();
+        await a1.from("tasks").insert({ organization_id: orgA, property_id: pA!.id, type: "maintenance", status: "assigned", assignee_id: agentId, window_start: soon(60), window_end: soon(240), duration_min: 30 });
+        for (let i = 0; i < 10 && ((await processOutbox(orgA)).processed ?? 0) > 0; i++);
+        const { data: dl2 } = await admin.from("push_deliveries").select("id").eq("user_id", agentId).eq("category", "mission").gte("created_at", before);
+        const { data: bSubs } = await b.from("push_subscriptions").select("id");
+        check("push_preference_off_respected_and_devices_private", (dl2 ?? []).length === 0 && (bSubs ?? []).length === 0, `${(dl2 ?? []).length} push après refus`);
+        await ag.rpc("push_unsubscribe", { ep: `https://push.halo.invalid/ag-${run}` });
+        await a1.rpc("push_unsubscribe", { ep: `https://push.halo.invalid/m-${run}` });
+      }
+    }
+
     // 6e. Lieux autour du logement : uniquement ceux du logement du séjour
     await a1.from("properties").update({ latitude: 48.8606, longitude: 2.3376 }).eq("id", pA!.id);
     await a1.from("property_places").insert({ organization_id: orgA, property_id: pA!.id, source: "manager", category: "food", name: `Café ${run}`, latitude: 48.861, longitude: 2.338 });
@@ -298,37 +342,46 @@ export async function GET(request: NextRequest) {
     check("guest_sees_places_of_own_property", names.includes(`Café ${run}`));
     const { data: forgedPlaces } = await guest.rpc("guest_places", { token: "f".repeat(64) });
     check("forged_link_sees_no_places", (forgedPlaces as { status: string })?.status === "unavailable");
-    // 6e ter. Notifications push (migration 28) : appareil SIMULÉ (adresse injoignable) — jamais compté « accepté »,
-    // invisible pour une autre organisation ; aucun vrai téléphone n'est sollicité
-    {
-      const ep = `https://push.halo.invalid/selftest-${run}`;
-      const { error: se } = await a1.rpc("push_subscribe", { ep, key_p256dh: "B".repeat(87), key_auth: "A".repeat(22), device: "selftest" });
-      if (se) check("push_fake_device_never_accepted", false, se.code === "PGRST202" ? "migration 28 absente" : `${se.code}:${se.message}`);
-      else {
-        const { data: sub } = await admin.from("push_subscriptions").select("id, endpoint, p256dh, auth").eq("endpoint", ep).single();
-        const res = await sendPush(admin, [sub as { id: string; endpoint: string; p256dh: string; auth: string }], { title: "selftest", body: "selftest", url: "/", tag: "test", urgent: false });
-        const { data: seenByB } = await b.from("push_subscriptions").select("id").eq("id", sub!.id);
-        check("push_fake_device_never_accepted", res.every((r) => r.status !== "accepted") && (seenByB ?? []).length === 0, `${pushConfigured() ? "clés configurées" : "clés absentes"} : ${res.map((r) => r.status).join(",")}`);
-        await a1.rpc("push_unsubscribe", { ep });
-      }
-    }
-    // 6f. Linge opérationnel (migration 26) : réservé aux responsables de l'organisation, stock par mouvements
+    // 6f. Linge opérationnel (migration 26) — parcours complet sur données isolées (organisation de test) :
+    // article → kit → stock + mouvement → besoin d'un séjour confirmé → manque → filtre « missions linge sans agent »,
+    // et cas de données manquantes (aucun « prêt » sans kit ni stock connus). Droits : agent et autre organisation.
     {
       const { data: li, error: lie } = await a1.from("linen_items").insert({ organization_id: orgA, label: `Drap ${run}`, unit: "pièce" }).select("id").single();
       if (lie) check("linen_stock_by_movements", false, lie.code === "PGRST205" || lie.code === "42P01" ? "migration 26 absente" : `${lie.code}:${lie.message}`);
       else {
+        const { data: pL } = await a1.from("properties").insert({ organization_id: orgA, name: `Linge ${run}` }).select("id").single();
+        const { data: pU } = await a1.from("properties").insert({ organization_id: orgA, name: `Sans kit ${run}` }).select("id").single();
+        const { error: ke } = await a1.from("property_linen_kits").insert({ organization_id: orgA, property_id: pL!.id, item_id: li!.id, qty: 4 });
         await a1.rpc("linen_count", { org: orgA, item: li!.id, loc: "clean", counted: 10, note: "selftest" });
         const { error: over } = await a1.rpc("linen_move", { org: orgA, item: li!.id, from_loc: "clean", to_loc: "laundry", qty: 50, kind: "to_laundry", note: null, property: null, task: null });
         await a1.rpc("linen_move", { org: orgA, item: li!.id, from_loc: "clean", to_loc: "laundry", qty: 4, kind: "to_laundry", note: null, property: null, task: null });
         const { data: st } = await a1.rpc("linen_stock", { org: orgA });
         const mine = ((st ?? []) as { item_id: string; location: string; qty: number }[]).filter((r) => r.item_id === li!.id).map((r) => `${r.location}=${r.qty}`).sort().join(",");
-        check("linen_stock_by_movements", mine === "clean=6,laundry=4" && Boolean(over), mine);
+        check("linen_stock_by_movements", !ke && mine === "clean=6,laundry=4" && Boolean(over), `${ke?.code ?? "kit ok"} ${mine}`);
+        // Besoins : deux arrivées confirmées dans le logement à kit (2 × 4 = 8 > 6 propres) → manque daté ;
+        // une arrivée dans le logement sans kit → besoin inconnu, jamais « prêt »
+        await a1.from("reservations").insert([
+          { organization_id: orgA, property_id: pL!.id, guest_name: "Linge 1", check_in_at: soon(60 * 24 * 2), check_out_at: soon(60 * 24 * 3) },
+          { organization_id: orgA, property_id: pL!.id, guest_name: "Linge 2", check_in_at: soon(60 * 24 * 4), check_out_at: soon(60 * 24 * 5) },
+          { organization_id: orgA, property_id: pU!.id, guest_name: "Sans kit", check_in_at: soon(60 * 24 * 2), check_out_at: soon(60 * 24 * 3) },
+        ]);
+        const ops = await loadLinenOps(a1, orgA, new Date());
+        const plan = ops.available ? ops.plan : null;
+        const need = plan?.needs.find((n) => n.itemId === li!.id);
+        const kinds = (plan?.alerts ?? []).map((a) => `${a.kind}${"propertyId" in a && a.propertyId === pU!.id ? ":sans-kit" : ""}`);
+        check("linen_needs_and_shortage_for_confirmed_stays", need?.need === 8 && kinds.includes("shortage") && kinds.includes("no_kit:sans-kit") && plan?.complete === false, `besoin ${need?.need} · alertes ${[...new Set(kinds)].join(",")} · complet ${plan?.complete}`);
+        // Filtre « missions linge sans agent » : même requête que l'écran Missions (type=linen, status=unassigned)
+        const w = { organization_id: orgA, property_id: pL!.id, is_auto_generated: false, status: "unassigned", window_start: soon(60), window_end: soon(60 * 30), duration_min: 30 };
+        await a1.from("tasks").insert([{ ...w, type: "linen_delivery", title: `L ${run}` }, { ...w, type: "turnover", title: `M ${run}` }]);
+        const { data: filtered } = await a1.from("tasks").select("title, type").eq("organization_id", orgA).in("type", typesOf("linen")).in("status", statusesOf("unassigned")!).like("title", `% ${run}`);
+        check("linen_unassigned_filter_shows_only_linen", (filtered ?? []).map((x) => x.title).join(",") === `L ${run}`, JSON.stringify(filtered));
         const { data: agItems } = await ag.from("linen_items").select("id").eq("organization_id", orgA);
         const { error: agCount } = await ag.rpc("linen_count", { org: orgA, item: li!.id, loc: "clean", counted: 99, note: null });
         check("agent_cannot_read_or_change_linen", (agItems ?? []).length === 0 && Boolean(agCount));
         const { data: bItems } = await b.from("linen_items").select("id").eq("organization_id", orgA);
+        const { data: bKits } = await b.from("property_linen_kits").select("item_id").eq("organization_id", orgA);
         const { error: bMove } = await b.rpc("linen_move", { org: orgA, item: li!.id, from_loc: "clean", to_loc: null, qty: 1, kind: "loss", note: null, property: null, task: null });
-        check("other_org_cannot_read_or_change_linen", (bItems ?? []).length === 0 && Boolean(bMove));
+        check("other_org_cannot_read_or_change_linen", (bItems ?? []).length === 0 && (bKits ?? []).length === 0 && Boolean(bMove));
       }
     }
     // 6g. Alentours avant l'arrivée (migration 25) : ni adresse ni coordonnées du logement transmises

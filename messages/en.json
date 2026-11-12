@@ -4438,7 +4438,7 @@
       "ownerAddedOn": "Added by the owner on {date}",
       "hoursVerified": "hours verified by the team",
       "hoursToConfirm": "hours to be confirmed",
-      "mapLater": "The map and the property address will appear from {date}. Distances are already shown.",
+      "mapLater": "The neighbourhood map and the property address will appear from {date}.",
       "picksTitle": "Picked by the team and the owner",
       "autoTitle": "Automatic nearby suggestions (not verified)",
       "showAll": "See all {count} suggestions",
@@ -4503,7 +4503,18 @@
       "zonePreparing": "Neighbourhood places are being prepared: come back in a few minutes.",
       "hoursVerifiedOn": "hours checked by the team on {date}",
       "hoursUnverified": "Hours not checked: confirm with the place (website or phone).",
-      "teamListed": "Team recommendations are listed but not pinned on the map."
+      "teamListed": "Team recommendations are listed without address or distance; address and directions from {date}.",
+      "distanceNoteZone": "Approximate straight-line distances from the centre of the neighbourhood (rounded to 100 m), never from the property",
+      "radiusLabelZone": "Around the neighbourhood centre",
+      "addressLater": "Address shared from {date}",
+      "routeLater": "Directions available from {date}.",
+      "zoneLoading": "Looking up places in the neighbourhood… the map fills in by itself.",
+      "zoneSlow": "The neighbourhood search is taking longer than expected. Come back in a few minutes.",
+      "zoneFailed": "The map service is not responding right now: neighbourhood places are unavailable. The team's recommendations remain below.",
+      "zoneRetry": "Try again",
+      "zoneNone": "OpenStreetMap found no public places in this neighbourhood.",
+      "discoverHintZone": "Restaurants, shops, activities and services in the neighbourhood",
+      "distanceFromZone": "≈ {d} from the neighbourhood centre"
     },
     "prepBanner": "Your stay is coming up. Practical details (address, access, guide) will appear here from {date}. Meanwhile you can prepare your stay and message the team.",
     "prepared": {
@@ -4643,7 +4654,7 @@
     "demoOnly": "This deployment runs as a demo only: no backend is configured.",
     "check": {
       "api": "API reachable",
-      "migrations": "Database up to date (migrations applied)",
+      "migrations": "Database: migrations required by this version",
       "anonBlocked": "Anonymous data reads refused",
       "auth": "Email sign-in active",
       "serverKey": "Server key (notification sending)",
@@ -4652,10 +4663,17 @@
     "state": {
       "ok": "Verified",
       "fail": "Check failed",
-      "missing": "Not configured"
+      "missing": "Not configured",
+      "unverified": "Not verified (the check could not complete)"
     },
     "checkedAt": "Checked at {at}",
-    "back": "Back to home"
+    "back": "Back to home",
+    "migrationsOk": "{count} migrations checked one by one",
+    "migration": {
+      "missing": "Missing: {file}",
+      "unverified": "Not verified: {file}"
+    },
+    "readyPartial": "The backend responds and its access rules are active, but some features await a database update (details below). They stay unavailable until it is applied."
   },
   "places": {
     "category": {

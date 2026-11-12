@@ -2,6 +2,7 @@
 
 import "leaflet/dist/leaflet.css";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "@/i18n/navigation";
 import { useFormatter, useTranslations } from "next-intl";
 import { ChevronDown, Clock, Globe, Heart, MapPin, Navigation, Phone } from "lucide-react";
 import { guestFavorite } from "@/lib/connected/guest-actions";
@@ -147,7 +148,7 @@ export function GuestAround({
 }: {
   property: { name: string; lat: number | null; lng: number | null; address: string };
   /** Avant l'ouverture : centre de la zone approximative (jamais le logement) et état de préparation des lieux */
-  zone?: { lat: number; lng: number; radius_m: number; ready: boolean } | null;
+  zone?: { lat: number; lng: number; radius_m: number; ready: boolean; /** Migration 29 */ state?: "ready" | "preparing" | "failed" } | null;
   places: Place[];
   /** Lieux très proches retenus jusqu'à l'ouverture (seul leur nombre est connu) */ nearHidden?: number;
   /** Suggestions automatiques retenues jusqu'à l'ouverture */ autoHidden?: number;
@@ -161,6 +162,18 @@ export function GuestAround({
   const f = useFormatter();
   const center = property.lat != null && property.lng != null ? { lat: property.lat, lng: property.lng } : zone ? { lat: zone.lat, lng: zone.lng } : null;
   const isZone = property.lat == null && Boolean(zone);
+  // Lieux du quartier : recherchés par le serveur à la première ouverture. Tant qu'ils sont « en préparation »,
+  // la page se recharge seule quelques fois ; ensuite l'état réel est dit (service indisponible ou aucun lieu).
+  const zoneState = isZone ? (zone!.state ?? (zone!.ready ? "ready" : "preparing")) : "ready";
+  const router = useRouter();
+  const [polls, setPolls] = useState(0);
+  useEffect(() => {
+    if (zoneState !== "preparing" || polls >= 15) return;
+    const id = setTimeout(() => (setPolls((n) => n + 1), router.refresh()), 4000);
+    return () => clearTimeout(id);
+  }, [zoneState, polls, router]);
+  const zonePlaces = places.filter((p) => p.source === "openstreetmap").length;
+  const teamBefore = isZone && places.some((p) => p.source !== "openstreetmap");
   const [view, setView] = useState<"map" | "list">(center ? "map" : "list");
   const [filter, setFilter] = useState<GuestFilter | "all" | "favorites">("all");
   const [radius, setRadius] = useState<number | null>(null);
@@ -226,10 +239,32 @@ export function GuestAround({
           </div>
         )}
       </div>
+      {/* État des lieux du quartier : chargement, service indisponible ou aucun lieu — jamais confondus */}
+      {isZone && zoneState === "preparing" && (
+        <div className="flex items-center gap-2 rounded-xl border border-line bg-surface p-4 text-[14px]" role="status" data-testid="around-zone-loading">
+          <span className="size-4 shrink-0 animate-spin rounded-full border-2 border-line border-t-accent" aria-hidden />
+          {polls >= 15 ? t("zoneSlow") : t("zoneLoading")}
+        </div>
+      )}
+      {isZone && zoneState === "failed" && (
+        <div className="rounded-xl border border-line bg-surface p-4 text-[14px]" role="status" data-testid="around-zone-failed">
+          <p>{t("zoneFailed")}</p>
+          <button type="button" className="mt-1 font-medium text-accent-text" onClick={() => (setPolls(0), router.refresh())}>
+            {t("zoneRetry")}
+          </button>
+        </div>
+      )}
+      {isZone && zoneState === "ready" && zonePlaces === 0 && (
+        <p className="text-[14px] text-muted" data-testid="around-zone-none">
+          {t("zoneNone")}
+        </p>
+      )}
       {places.length === 0 && nearHidden === 0 && autoHidden === 0 ? (
-        <Card className="p-5 text-[15px] text-muted" data-testid="around-empty">
-          {isZone && !zone!.ready ? t("zonePreparing") : t("empty")}
-        </Card>
+        !isZone && (
+          <Card className="p-5 text-[15px] text-muted" data-testid="around-empty">
+            {t("empty")}
+          </Card>
+        )
       ) : (
         <>
           {hiddenUntil && autoHidden > 0 && (
@@ -261,10 +296,10 @@ export function GuestAround({
               </button>
             )}
           </div>
-          {/* Rayon autour du logement */}
+          {/* Rayon : autour du logement, ou du centre du quartier avant l'ouverture */}
           {hasDistances && (
-            <div className="flex flex-wrap items-center gap-1.5 text-[13px]" role="group" aria-label={t("radiusLabel")} data-testid="around-radius">
-              <span className="me-1 text-muted">{t("radiusLabel")}</span>
+            <div className="flex flex-wrap items-center gap-1.5 text-[13px]" role="group" aria-label={isZone ? t("radiusLabelZone") : t("radiusLabel")} data-testid="around-radius">
+              <span className="me-1 text-muted">{isZone ? t("radiusLabelZone") : t("radiusLabel")}</span>
               {GUEST_RADII.map((r) => (
                 <button key={String(r)} type="button" aria-pressed={radius === r} onClick={() => setRadius(r)} className={cn("h-8 rounded-full border px-3 font-medium", radius === r ? "border-accent bg-accent-soft text-accent-text" : "border-line bg-surface")} data-testid={`around-radius-${r ?? "all"}`}>
                   {r == null ? t("radiusAll") : r < 1000 ? `${r} m` : `${r / 1000} km`}
@@ -276,7 +311,7 @@ export function GuestAround({
           {isZone && (
             <p className="text-[12px] text-muted" data-testid="around-zone-note">
               {t("zoneNote")}
-              {places.some((p) => p.source !== "openstreetmap" && p.lat == null) && <span data-testid="around-team-listed"> {t("teamListed")}</span>}
+              {teamBefore && <span data-testid="around-team-listed"> {t("teamListed", { date: hiddenUntil ?? "" })}</span>}
             </p>
           )}
           {tilesFailed && view === "map" && (
@@ -337,7 +372,7 @@ export function GuestAround({
                         <p className="text-[16px] font-semibold">{p.name}</p>
                         <p className="text-[13px] text-muted">
                           {p.kind && t.has(`kind.${p.kind}`) ? t(`kind.${p.kind}`) : tc(p.category)}
-                          {p.distance_m != null && <span data-testid="around-distance"> · {fmtDistance(p.distance_m)}</span>}
+                          {p.distance_m != null && <span data-testid="around-distance"> · {isZone ? t("distanceFromZone", { d: fmtDistance(p.distance_m) }) : fmtDistance(p.distance_m)}</span>}
                           {p.distance_m == null && p.distance_band != null && <span data-testid="around-distance-band"> · {t("band", { n: p.distance_band })}</span>}
                         </p>
                         <span
@@ -359,7 +394,7 @@ export function GuestAround({
                       <div className="mt-2 space-y-1 text-[14px] text-muted">
                         <p className="flex gap-1.5">
                           <MapPin className="mt-0.5 size-4 shrink-0" />
-                          {p.address ?? <span className="text-[13px]">{t("noAddress")}</span>}
+                          {p.address ?? <span className="text-[13px]">{isZone && p.source !== "openstreetmap" ? t("addressLater", { date: hiddenUntil ?? "" }) : t("noAddress")}</span>}
                         </p>
                         <p className="flex gap-1.5" data-testid="around-hours">
                           <Clock className="mt-0.5 size-4 shrink-0" />
@@ -401,7 +436,7 @@ export function GuestAround({
                             </a>
                           ))
                         ) : (
-                          <p className="text-[12px] text-muted">{t("noRoute")}</p>
+                          <p className="text-[12px] text-muted">{isZone && p.source !== "openstreetmap" ? t("routeLater", { date: hiddenUntil ?? "" }) : t("noRoute")}</p>
                         )}
                         {favoritesAvailable && (
                           <button
@@ -435,7 +470,8 @@ export function GuestAround({
             </Button>
           )}
           <p className="text-[12px] text-faint" data-testid="around-sources">
-            {t("distanceNote")}
+            {/* Le libellé suit le calcul réel : centre du quartier avant l'ouverture, logement ensuite */}
+            {isZone ? t("distanceNoteZone") : t("distanceNote")}
             {latestOsm && ` · ${t("osmData", { date: f.dateTime(new Date(latestOsm), { dateStyle: "medium" }) })}`}
             {" · "}
             {t("notBookable")}
