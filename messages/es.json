@@ -1451,7 +1451,10 @@
       "no_kit": "Kit del alojamiento sin definir: defínalo en Ropa → Kits por alojamiento.",
       "push_permission_refused": "Permiso rechazado en este dispositivo: no se activó nada.",
       "push_subscribe_failed": "El dispositivo o su servicio de notificaciones rechazó el registro: no se guardó nada.",
-      "no_device": "Ningún dispositivo registrado: active primero las notificaciones en uno."
+      "no_device": "Ningún dispositivo registrado: active primero las notificaciones en uno.",
+      "no_lines": "Indique al menos una cantidad.",
+      "laundry_stale": "El pedido cambió entretanto: se actualiza la página.",
+      "invalid_date": "Fecha de regreso no válida (futura, 60 días como máximo)."
     },
     "home": {
       "subtitle": "lo que requiere su atención",
@@ -1994,7 +1997,8 @@
         "timing_confirmed": "Horario confirmado",
         "timing_cancelled": "Horario anulado",
         "timing_updated": "Horario de la estancia actualizado",
-        "agent_task_validated": "Agente: misión validada"
+        "agent_task_validated": "Agente: misión validada",
+        "team_laundry_gap": "Equipo: diferencia lavandería"
       },
       "testAddress": "Dirección ficticia (cuenta de prueba): no se envía nada.",
       "skippedReason": "El destinatario desactivó este correo; el evento sigue visible en HALO.",
@@ -3951,7 +3955,8 @@
             "name": "Costes",
             "build": "Por construir: coste por artículo y rotación, a partir de pedidos reales."
           }
-        }
+        },
+        "titleCosts": "Aún solo en la demo"
       },
       "openMission": "Abrir"
     },
@@ -4008,7 +4013,9 @@
           "no_kit": "Definir el kit",
           "no_stock": "Hacer inventario",
           "no_items": "Añadir artículos"
-        }
+        },
+        "shortageArrivals": "{count, plural, one {# llegada afectada} other {# llegadas afectadas}}",
+        "shortageLaundry": "de las cuales {qty} esperadas de la lavandería antes"
       },
       "deliveryToPlan": "Entrega por planificar: {property}",
       "pickupToPlan": "Recogida por planificar: {property}",
@@ -4091,7 +4098,16 @@
       "add": "Añadir",
       "historyTitle": "Historial de movimientos",
       "historySummary": "{count, plural, =0 {Ninguno} one {# reciente} other {# recientes}}",
-      "historyEmpty": "Ningún movimiento registrado."
+      "historyEmpty": "Ningún movimiento registrado.",
+      "countCurrent": "Stock registrado aquí: {qty}",
+      "countConflict": "Este stock cambió mientras escribía (un compañero lo modificó): ahora es {qty}. No se sobrescribió nada. Vuelva a contar o confirme su cifra.",
+      "countForce": "Confirmar {qty} de todos modos",
+      "laundryLate": "Pedido {reference} con retraso ({partner})",
+      "laundryLateText": "Regreso previsto el {date}, aún no recibido: esta ropa ya no cuenta en las necesidades.",
+      "laundryToConfirm": "Pedido {reference} por recibir ({partner})",
+      "laundryGap": "Diferencia en el pedido {reference} ({partner})",
+      "laundryGapText": "diferencia de cantidad",
+      "laundryOpen": "Ver pedido"
     },
     "push": {
       "title": "Notificaciones push",
@@ -4134,6 +4150,109 @@
         "content": "Contenido discreto: tipo de evento y alojamiento, nunca el nombre del viajero ni el texto de un mensaje. Al tocarla se abre la página de HALO.",
         "limits": "«Aceptado» significa que el servicio de notificaciones (Apple, Google, Mozilla) recibió el envío: HALO no puede saber si se vio. No molestar o Concentración pueden ocultarla. Las urgencias también se envían por correo."
       }
+    },
+    "laundry": {
+      "title": "Lavandería externa",
+      "summary": "{open, plural, =0 {Ningún pedido en curso} one {# pedido en curso} other {# pedidos en curso}} · {partners, plural, =0 {ningún socio} one {# socio} other {# socios}}",
+      "unavailable": "Disponible tras actualizar la base (migración 32). Nada se simula mientras tanto.",
+      "ordersTitle": "Pedidos",
+      "ordersEmpty": "Ningún pedido. Cree uno abajo: la ropa sucia va a la lavandería y vuelve al stock limpio al recibirla.",
+      "newOrder": "Nuevo pedido",
+      "partnersTitle": "Socios y accesos",
+      "partner": "Lavandería",
+      "backAt": "Regreso previsto",
+      "dirtyAvailable": "{qty} sucias",
+      "orderNote": "Indicación para la lavandería (opcional)",
+      "orderSend": "Enviar pedido",
+      "orderOk": "Pedido {reference} enviado: la ropa cuenta «en la lavandería».",
+      "needPartner": "Añada primero una lavandería (abajo).",
+      "needItems": "Añada primero artículos al catálogo.",
+      "partnerName": "Nombre de la lavandería",
+      "contactName": "Contacto",
+      "contactEmail": "Correo del contacto",
+      "partnerAdd": "Añadir lavandería",
+      "inviteName": "Persona invitada",
+      "inviteEmail": "Su correo",
+      "inviteCreate": "Crear invitación",
+      "inviteLinkHint": "Enlace personal para enviar. Solo funciona para la cuenta {email}, durante 14 días, y solo abre los pedidos de esta lavandería.",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "memberLine": "{name} ({email}) · acceso desde el {date}",
+      "inviteLine": "Invitación pendiente: {name} ({email}), válida hasta el {date}",
+      "noAccess": "Sin acceso: invite a una persona nominativa.",
+      "revokeInvite": "Anular",
+      "revokeMember": "Retirar acceso",
+      "accessNote": "La lavandería solo ve sus pedidos (artículos, cantidades, fechas, historial): nunca alojamientos, viajeros, misiones, mensajería ni stock.",
+      "status": {
+        "sent": "Enviado",
+        "received": "Recibido por la lavandería",
+        "processing": "En tratamiento",
+        "ready": "Listo",
+        "out_for_delivery": "En entrega",
+        "delivered": "Recibido por la conserjería",
+        "cancelled": "Anulado"
+      },
+      "event": {
+        "sent": "Pedido enviado",
+        "received": "Recibido",
+        "processing": "En tratamiento",
+        "ready": "Listo",
+        "out_for_delivery": "En entrega",
+        "delivered": "Recepción confirmada",
+        "cancelled": "Anulado",
+        "discrepancy": "Diferencia de cantidad",
+        "note": "Nota"
+      },
+      "action": {
+        "received": "He recibido la ropa",
+        "processing": "Tratamiento iniciado",
+        "ready": "Ropa lista",
+        "out_for_delivery": "Salió en entrega"
+      },
+      "col": {
+        "item": "Artículo",
+        "sent": "Enviado",
+        "received": "Recibido",
+        "returned": "Entregado",
+        "confirmed": "Constatado"
+      },
+      "stepsLabel": "Etapas del pedido",
+      "history": "Historial ({count})",
+      "byLaundry": "lavandería",
+      "byConcierge": "conserjería",
+      "sentOn": "Enviado el {date}",
+      "backBy": "regreso previsto el {date}",
+      "deliveredOn": "recibido el {date}",
+      "late": "Con retraso",
+      "gap": "Diferencia",
+      "confirm": "Confirmar recepción",
+      "confirmNote": "Observación (opcional)",
+      "confirmHint": "Indique lo que ha contado realmente: solo eso pasa al stock limpio. Lo que falte queda «en la lavandería» como diferencia.",
+      "confirmedOk": "Recepción confirmada, cantidades conformes.",
+      "confirmedWithGaps": "{count, plural, one {Recepción confirmada con # diferencia.} other {Recepción confirmada con # diferencias.}}",
+      "cancel": "Anular pedido",
+      "cancelReason": "Motivo de la anulación",
+      "cancelConfirm": "Confirmar anulación",
+      "partnerNote": "Observación (opcional)",
+      "declareReceived": "Indique las cantidades realmente recibidas: cualquier diferencia se comunica a la conserjería.",
+      "declareReturned": "Indique las cantidades que entrega.",
+      "waitingConfirm": "Esperando la confirmación de la conserjería.",
+      "gapReported": "{count, plural, one {# diferencia comunicada.} other {# diferencias comunicadas.}}",
+      "spaceTitle": "Espacio lavandería",
+      "myOrders": "Mis pedidos",
+      "spaceIntro": "Avance cada pedido paso a paso. La conserjería confirma la recepción.",
+      "partnerEmpty": "Ningún pedido en curso.",
+      "closedOrders": "Pedidos terminados ({count})",
+      "noAccessTitle": "Sin acceso de lavandería",
+      "noAccessText": "La cuenta {email} no tiene (o ya no tiene) acceso. Pida una invitación nominativa.",
+      "backToApp": "Volver a HALO",
+      "inviteTitle": "Invitación de lavandería",
+      "inviteSignedAs": "Conectado como {email}",
+      "accept": "Aceptar invitación",
+      "acceptedText": "Invitación aceptada: ya ve los pedidos que se le confían.",
+      "goOrders": "Ver mis pedidos",
+      "wrongAccount": "Esta invitación es nominativa: reservada a {email}. Conéctese con esa dirección.",
+      "inviteInvalid": "Invitación caducada, anulada o ya usada. Pida una nueva."
     }
   },
   "email": {
@@ -4302,6 +4421,10 @@
     "agent_task_validated": {
       "subject": "Misión validada — {property}",
       "body": "Su misión «{kind}» en {property} ha sido validada."
+    },
+    "team_laundry_gap": {
+      "subject": "La lavandería señala una diferencia — pedido {reference}",
+      "body": "La lavandería declaró cantidades distintas para el pedido {reference}. Detalle en Ropa > Lavandería externa."
     }
   },
   "guestSpace": {
@@ -4514,7 +4637,7 @@
       "zoneRetry": "Reintentar",
       "zoneNone": "OpenStreetMap no encontró lugares públicos en este barrio.",
       "discoverHintZone": "Restaurantes, tiendas, actividades y servicios del barrio",
-      "distanceFromZone": "≈ {d} del centro del barrio"
+      "distanceFromZone": "{d} del centro del barrio"
     },
     "prepBanner": "Su estancia se acerca. La información práctica (dirección, acceso, guía) aparecerá aquí a partir del {date}. Mientras tanto puede preparar su estancia y escribir al equipo.",
     "prepared": {

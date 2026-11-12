@@ -1451,7 +1451,10 @@
       "no_kit": "Property kit not set: set it in Linen → Kits per property.",
       "push_permission_refused": "Permission refused on this device: nothing was turned on.",
       "push_subscribe_failed": "The device or its notification service refused registration: nothing was saved.",
-      "no_device": "No device registered: turn notifications on for a device first."
+      "no_device": "No device registered: turn notifications on for a device first.",
+      "no_lines": "Enter at least one quantity.",
+      "laundry_stale": "The order changed meanwhile: the page is refreshed.",
+      "invalid_date": "Invalid return date (in the future, 60 days at most)."
     },
     "home": {
       "subtitle": "what needs your attention",
@@ -1994,7 +1997,8 @@
         "timing_confirmed": "Time confirmed",
         "timing_cancelled": "Time cancelled",
         "timing_updated": "Stay time updated",
-        "agent_task_validated": "Agent: mission approved"
+        "agent_task_validated": "Agent: mission approved",
+        "team_laundry_gap": "Team: laundry gap"
       },
       "testAddress": "Fictitious address (test account): nothing is sent.",
       "skippedReason": "The recipient disabled this email; the event remains visible in HALO.",
@@ -3951,7 +3955,8 @@
             "name": "Costs",
             "build": "To build: cost per item and per turnover, fed by real orders."
           }
-        }
+        },
+        "titleCosts": "Still demo-only"
       },
       "openMission": "Open"
     },
@@ -4008,7 +4013,9 @@
           "no_kit": "Set the kit",
           "no_stock": "Count stock",
           "no_items": "Add items"
-        }
+        },
+        "shortageArrivals": "{count, plural, one {# arrival affected} other {# arrivals affected}}",
+        "shortageLaundry": "including {qty} expected back from the laundry before then"
       },
       "deliveryToPlan": "Delivery to plan: {property}",
       "pickupToPlan": "Pickup to plan: {property}",
@@ -4091,7 +4098,16 @@
       "add": "Add",
       "historyTitle": "Movement history",
       "historySummary": "{count, plural, =0 {None} one {# recent} other {# recent}}",
-      "historyEmpty": "No movement recorded."
+      "historyEmpty": "No movement recorded.",
+      "countCurrent": "Recorded stock here: {qty}",
+      "countConflict": "This stock changed while you were typing (a colleague updated it): it is now {qty}. Nothing was overwritten. Recount, or confirm your figure.",
+      "countForce": "Confirm {qty} anyway",
+      "laundryLate": "Order {reference} is late ({partner})",
+      "laundryLateText": "Due back {date}, not yet received: this linen is no longer counted towards needs.",
+      "laundryToConfirm": "Order {reference} to receive ({partner})",
+      "laundryGap": "Gap reported on order {reference} ({partner})",
+      "laundryGapText": "quantity gap reported",
+      "laundryOpen": "Open order"
     },
     "push": {
       "title": "Push notifications",
@@ -4134,6 +4150,109 @@
         "content": "Deliberately discreet content: event type and property, never the guest's name or message text. Tapping opens the right HALO page.",
         "limits": "“Accepted” means the notification service (Apple, Google, Mozilla) took the push: HALO cannot know whether it was seen. Do Not Disturb or Focus may hide it. Emergencies are also sent by email."
       }
+    },
+    "laundry": {
+      "title": "External laundry",
+      "summary": "{open, plural, =0 {No open order} one {# open order} other {# open orders}} · {partners, plural, =0 {no partner} one {# partner} other {# partners}}",
+      "unavailable": "Available after the database update (migration 32). Nothing is simulated meanwhile.",
+      "ordersTitle": "Orders",
+      "ordersEmpty": "No order yet. Create one below: dirty linen goes to the laundry and returns to clean stock on receipt.",
+      "newOrder": "New order",
+      "partnersTitle": "Partners and access",
+      "partner": "Laundry",
+      "backAt": "Expected back",
+      "dirtyAvailable": "{qty} dirty",
+      "orderNote": "Instruction for the laundry (optional)",
+      "orderSend": "Send order",
+      "orderOk": "Order {reference} sent: linen now counted “at the laundry”.",
+      "needPartner": "Add a laundry first (below).",
+      "needItems": "Add items to the catalogue first.",
+      "partnerName": "Laundry name",
+      "contactName": "Contact",
+      "contactEmail": "Contact email",
+      "partnerAdd": "Add laundry",
+      "inviteName": "Invited person",
+      "inviteEmail": "Their email",
+      "inviteCreate": "Create invitation",
+      "inviteLinkHint": "Personal link to send. It only works for the account {email}, for 14 days, and only opens this laundry's orders.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "memberLine": "{name} ({email}) · access since {date}",
+      "inviteLine": "Pending invitation: {name} ({email}), valid until {date}",
+      "noAccess": "No access: invite a named person.",
+      "revokeInvite": "Cancel",
+      "revokeMember": "Remove access",
+      "accessNote": "The laundry only sees its orders (items, quantities, dates, history): never properties, guests, missions, messaging or stock.",
+      "status": {
+        "sent": "Sent",
+        "received": "Received by laundry",
+        "processing": "Processing",
+        "ready": "Ready",
+        "out_for_delivery": "Out for delivery",
+        "delivered": "Received by the concierge",
+        "cancelled": "Cancelled"
+      },
+      "event": {
+        "sent": "Order sent",
+        "received": "Received",
+        "processing": "Processing",
+        "ready": "Ready",
+        "out_for_delivery": "Out for delivery",
+        "delivered": "Receipt confirmed",
+        "cancelled": "Cancelled",
+        "discrepancy": "Quantity gap",
+        "note": "Note"
+      },
+      "action": {
+        "received": "I received the linen",
+        "processing": "Processing started",
+        "ready": "Linen ready",
+        "out_for_delivery": "Out for delivery"
+      },
+      "col": {
+        "item": "Item",
+        "sent": "Sent",
+        "received": "Received",
+        "returned": "Delivered",
+        "confirmed": "Checked"
+      },
+      "stepsLabel": "Order steps",
+      "history": "History ({count})",
+      "byLaundry": "laundry",
+      "byConcierge": "concierge",
+      "sentOn": "Sent {date}",
+      "backBy": "back by {date}",
+      "deliveredOn": "received {date}",
+      "late": "Late",
+      "gap": "Gap",
+      "confirm": "Confirm receipt",
+      "confirmNote": "Note on receipt (optional)",
+      "confirmHint": "Enter what you actually counted: only this goes to clean stock. Anything missing stays “at the laundry” and shows as a gap.",
+      "confirmedOk": "Receipt confirmed, quantities match.",
+      "confirmedWithGaps": "{count, plural, one {Receipt confirmed with # gap: visible in history and stock.} other {Receipt confirmed with # gaps: visible in history and stock.}}",
+      "cancel": "Cancel order",
+      "cancelReason": "Reason for cancellation",
+      "cancelConfirm": "Confirm cancellation",
+      "partnerNote": "Note (optional)",
+      "declareReceived": "Enter the quantities actually received: any gap is reported to the concierge.",
+      "declareReturned": "Enter the quantities you deliver.",
+      "waitingConfirm": "Waiting for the concierge to confirm receipt.",
+      "gapReported": "{count, plural, one {# gap reported to the concierge.} other {# gaps reported to the concierge.}}",
+      "spaceTitle": "Laundry space",
+      "myOrders": "My orders",
+      "spaceIntro": "Move each order forward step by step. The concierge confirms receipt.",
+      "partnerEmpty": "No open order.",
+      "closedOrders": "Completed orders ({count})",
+      "noAccessTitle": "No laundry access",
+      "noAccessText": "The account {email} has no (or no longer any) access. Ask the concierge for a named invitation.",
+      "backToApp": "Back to HALO",
+      "inviteTitle": "Laundry invitation",
+      "inviteSignedAs": "Signed in as {email}",
+      "accept": "Accept invitation",
+      "acceptedText": "Invitation accepted: you now see the orders entrusted to you.",
+      "goOrders": "See my orders",
+      "wrongAccount": "This invitation is personal: it is reserved for {email}. Sign in with that address.",
+      "inviteInvalid": "Invitation expired, cancelled or already used. Ask the concierge for a new one."
     }
   },
   "email": {
@@ -4302,6 +4421,10 @@
     "agent_task_validated": {
       "subject": "Mission approved — {property}",
       "body": "Your “{kind}” mission at {property} was approved."
+    },
+    "team_laundry_gap": {
+      "subject": "Laundry reported a gap — order {reference}",
+      "body": "The laundry declared quantities different from what was sent for order {reference}. Details in Linen > External laundry."
     }
   },
   "guestSpace": {
@@ -4514,7 +4637,7 @@
       "zoneRetry": "Try again",
       "zoneNone": "OpenStreetMap found no public places in this neighbourhood.",
       "discoverHintZone": "Restaurants, shops, activities and services in the neighbourhood",
-      "distanceFromZone": "≈ {d} from the neighbourhood centre"
+      "distanceFromZone": "{d} from the neighbourhood centre"
     },
     "prepBanner": "Your stay is coming up. Practical details (address, access, guide) will appear here from {date}. Meanwhile you can prepare your stay and message the team.",
     "prepared": {

@@ -27,7 +27,7 @@ export function TestAccountForm({ next }: { next?: string }) {
         start(async () => {
           const res = await signInTestAccount(name);
           if (!res.ok) return setError(t(`errors.${res.error}`));
-          router.replace(next && /^\/(app|invite)(\/[\w-]*)*$/.test(next) ? next : "/app");
+          router.replace(next && /^\/(app|invite|laundry)(\/[\w-]*)*$/.test(next) ? next : "/app");
           router.refresh();
         });
       }}

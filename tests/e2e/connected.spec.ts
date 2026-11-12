@@ -3066,8 +3066,11 @@ test("43 · navigation de la démo : neuf entrées, Linge et Planning réels, an
   await m.goto("/fr/app/linen");
   await expect(m.getByTestId("linen-kpis")).toBeVisible();
   await expect(m.getByTestId("linen-model")).toContainText("Blanchisserie externe");
-  await expect(m.getByTestId("linen-demo-only")).toContainText("Prochaine étape : blanchisseur externe");
-  for (const k of ["laundry", "partner", "costs"]) await expect(m.getByTestId(`linen-demo-only-${k}`)).toBeVisible();
+  // Blanchisseur externe construit (migration 32) : seuls les coûts restent propres à la démo, annoncés comme tels
+  await expect(m.getByTestId("laundry-section")).toBeVisible();
+  await expect(m.getByTestId("linen-demo-only")).toContainText("Encore propre à la démo");
+  await expect(m.getByTestId("linen-demo-only-costs")).toBeVisible();
+  for (const k of ["laundry", "partner"]) await expect(m.getByTestId(`linen-demo-only-${k}`)).toHaveCount(0);
   const linenDb = await admin.from("tasks").select("id", { count: "exact", head: true }).eq("organization_id", navOrg).in("type", ["linen_delivery", "linen_pickup"]).neq("status", "cancelled").gte("window_end", new Date().toISOString()).lt("window_start", new Date(Date.now() + 6 * 86_400_000).toISOString());
   expect(await m.getByTestId("linen-mission").count()).toBeGreaterThanOrEqual(linenDb.count ?? 0);
   // Planning : jour réel, navigation jour par jour, chaque mission ouvre sa fiche
@@ -3757,6 +3760,7 @@ test("52 · alentours dès l'activation du lien : zone approximative (point du l
   await expect(around.getByTestId("around-zone-failed")).toHaveCount(0);
   // Libellés conformes au calcul : distances depuis le centre du quartier (jamais « depuis le logement »)
   await expect(around.getByTestId("around-distance").first()).toContainText("du centre du quartier");
+  await expect(around).not.toContainText("≈ ≈"); // double symbole corrigé (12/11)
   await expect(around.getByTestId("around-sources")).toContainText("depuis le centre du quartier");
   await expect(around).not.toContainText("vol d'oiseau depuis le logement");
   await expect(around.getByTestId("around-origin")).toContainText("Carte du quartier");
@@ -3946,6 +3950,401 @@ test("55 · notifications push (SIMULÉ, aucun vrai téléphone) : état réel, 
   expect(await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   await phone.close();
   await admin.from("push_subscriptions").delete().eq("user_id", me!.user_id);
+  await m.context().close();
+});
+
+/** Compte de test fictif (test-<nom>@halo.invalid), sans organisation : blanchisseur, voyageur… */
+async function testAccount(browser: Browser, name: string) {
+  const p = await newPage(browser);
+  await p.context().clearCookies();
+  await p.goto("/fr/auth/sign-in");
+  await p.getByLabel("Nom du compte de test").fill(name);
+  await p.getByTestId("test-account-submit").click();
+  await p.waitForURL(/\/fr\/(app|laundry)/);
+  return p;
+}
+
+test("56 · blanchisseur externe : 2 conciergeries × 2 blanchisseurs, invitation nominative, étapes, écart, réception constatée, stock et historique", async ({ browser }) => {
+  test.slow();
+  const slug = (n: string) => `test-${n.toLowerCase()}@halo.invalid`;
+  const lav1 = `lav1-${run}`;
+  const lav2 = `lav2-${run}`;
+  // Conciergerie A : articles, linge sale compté, blanchisseur Alpha
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `blan A ${run}`);
+  const { data: items } = await admin.from("linen_items").insert([{ organization_id: org, label: "Drap fictif" }, { organization_id: org, label: "Serviette fictive" }]).select("id, label");
+  await m.goto("/fr/app/linen");
+  for (const [label, q] of [["Drap fictif", "20"], ["Serviette fictive", "10"]]) {
+    await m.getByTestId("linen-count-item").selectOption({ label });
+    await m.getByTestId("linen-count-location").selectOption("dirty");
+    await m.getByTestId("linen-count-qty").fill(q);
+    await m.getByTestId("linen-count-save").click();
+    await expect(m.getByTestId("linen-count-ok")).toBeVisible();
+  }
+  const sec = m.getByTestId("laundry-section");
+  await expect(sec.getByTestId("laundry-orders-empty")).toBeVisible();
+  await sec.getByTestId("laundry-partner-name").fill("Blanchisserie Alpha");
+  await sec.getByTestId("laundry-partner-add").click();
+  const alpha = sec.getByTestId("laundry-partner").filter({ hasText: "Blanchisserie Alpha" });
+  await alpha.getByTestId("laundry-invite-name").fill("Léa Alpha");
+  await alpha.getByTestId("laundry-invite-email").fill(slug(lav1));
+  await alpha.getByTestId("laundry-invite-send").click();
+  const invite1 = (await alpha.getByTestId("laundry-invite-url").innerText()).replace(/^https?:\/\/[^/]+/, "");
+  await expect(alpha.getByTestId("laundry-pending-invite")).toContainText("Léa Alpha");
+  // Conciergerie B : blanchisseur Bêta
+  const b = await newPage(browser);
+  const { org: borg } = await testScenario(b, `blan B ${run}`);
+  await b.goto("/fr/app/linen");
+  await b.getByTestId("laundry-partner-name").fill("Blanchisserie Bêta");
+  await b.getByTestId("laundry-partner-add").click();
+  const beta = b.getByTestId("laundry-partner").filter({ hasText: "Blanchisserie Bêta" });
+  await beta.getByTestId("laundry-invite-name").fill("Noé Bêta");
+  await beta.getByTestId("laundry-invite-email").fill(slug(lav2));
+  await beta.getByTestId("laundry-invite-send").click();
+  const invite2 = (await beta.getByTestId("laundry-invite-url").innerText()).replace(/^https?:\/\/[^/]+/, "");
+
+  // Invitation nominative : le blanchisseur B ne peut pas utiliser le lien de A
+  const l2 = await testAccount(browser, lav2);
+  await l2.goto(invite1);
+  await l2.getByTestId("laundry-accept").click();
+  await expect(l2.getByTestId("laundry-wrong-account")).toContainText(slug(lav1));
+  await l2.goto(invite2);
+  await l2.getByTestId("laundry-accept").click();
+  await expect(l2.getByTestId("laundry-invite-accepted")).toBeVisible();
+  const l1 = await testAccount(browser, lav1);
+  await l1.goto(invite1);
+  await l1.getByTestId("laundry-accept").click();
+  await l1.getByTestId("laundry-go").click();
+  await expect(l1.getByTestId("partner-orders-empty")).toBeVisible();
+  // Un compte blanchisseur n'entre jamais dans l'application de la conciergerie
+  for (const path of ["/fr/app", "/fr/app/linen", "/fr/app/stays", "/fr/app/messages"]) {
+    await l1.goto(path);
+    await expect(l1).toHaveURL(/\/fr\/laundry$/);
+  }
+
+  // Commandes : A → Alpha (6 draps, 4 serviettes), B → Bêta
+  await m.reload();
+  const form = m.getByTestId("laundry-order-form");
+  await form.locator('[data-testid=laundry-order-qty][data-item="Drap fictif"]').fill("6");
+  await form.locator('[data-testid=laundry-order-qty][data-item="Serviette fictive"]').fill("4");
+  await form.getByPlaceholder("Consigne pour le blanchisseur (facultatif)").fill("Repassage soigné (fictif)");
+  await form.getByTestId("laundry-order-send").click();
+  await expect(m.getByTestId("laundry-order-ok")).toBeVisible();
+  const ref = (await m.getByTestId("laundry-order-ok").innerText()).match(/BL-\d{6}-\d{3}/)![0];
+  await expect(m.locator(`[data-testid=linen-stock-row][data-item="Drap fictif"] [data-testid=linen-dirty]`)).toHaveText("14");
+  await expect(m.locator(`[data-testid=linen-stock-row][data-item="Drap fictif"] [data-testid=linen-laundry]`)).toHaveText("6");
+  // Stock sale insuffisant : refus clair, rien n'est créé
+  await form.locator('[data-testid=laundry-order-qty][data-item="Drap fictif"]').fill("99");
+  await form.getByTestId("laundry-order-send").click();
+  await expect(m.getByTestId("laundry-order-error")).toContainText("Stock insuffisant");
+  await expect(m.getByTestId("laundry-order")).toHaveCount(1);
+  await admin.from("linen_items").insert({ organization_id: borg, label: "Drap B" });
+  await b.reload();
+  await b.getByTestId("linen-count-item").selectOption({ label: "Drap B" });
+  await b.getByTestId("linen-count-location").selectOption("dirty");
+  await b.getByTestId("linen-count-qty").fill("5");
+  await b.getByTestId("linen-count-save").click();
+  await expect(b.getByTestId("linen-count-ok")).toBeVisible();
+  await b.locator('[data-testid=laundry-order-qty][data-item="Drap B"]').fill("5");
+  await b.getByTestId("laundry-order-send").click();
+  await expect(b.getByTestId("laundry-order-ok")).toBeVisible();
+
+  // Chaque blanchisseur ne voit que SES commandes, sans aucune autre donnée de la conciergerie
+  await l1.reload();
+  await expect(l1.getByTestId("partner-order")).toHaveCount(1);
+  await expect(l1.getByTestId("partner-order")).toContainText(ref);
+  await expect(l1.getByTestId("partner-order")).toContainText("Repassage soigné");
+  await expect(l1.locator("body")).not.toContainText("Drap B");
+  await expect(l1.locator("body")).not.toContainText("Appartement test");
+  await l2.goto("/fr/laundry");
+  await expect(l2.getByTestId("partner-order")).toHaveCount(1);
+  // Références numérotées par conciergerie : on vérifie le contenu, pas le numéro
+  await expect(l2.getByTestId("partner-order")).toContainText("Drap B");
+  await expect(l2.locator("body")).not.toContainText("Drap fictif");
+
+  // Étapes côté blanchisseur : reçu avec écart (5 draps au lieu de 6) → signalé
+  const card = l1.getByTestId("partner-order");
+  await expect(card.getByTestId("partner-advance")).toHaveAttribute("data-next", "received");
+  await card.getByTestId("laundry-qty-received").first().fill("5");
+  await card.getByTestId("partner-advance").click();
+  await expect(card.getByTestId("partner-gap-sent")).toBeVisible();
+  for (const next of ["processing", "ready", "out_for_delivery"]) {
+    await expect(card.getByTestId("partner-advance")).toHaveAttribute("data-next", next);
+    await card.getByTestId("partner-advance").click();
+  }
+  await expect(card).toHaveAttribute("data-status", "out_for_delivery");
+  await expect(card.getByTestId("partner-advance")).toHaveCount(0); // la réception appartient à la conciergerie
+  await expect(card.getByTestId("laundry-steps")).toContainText("En livraison");
+
+  // Conciergerie : alerte « à réceptionner », écart visible, réception constatée (5 draps, 4 serviettes)
+  await m.reload();
+  await expect(m.getByTestId("linen-laundry-alert").filter({ hasText: ref })).toHaveAttribute("data-kind", "to_confirm");
+  const order = m.locator(`[data-testid=laundry-order][data-reference="${ref}"]`);
+  await expect(order.getByTestId("laundry-gap")).toBeVisible();
+  await expect(order.locator("[data-testid=laundry-line][data-gap=yes]")).toHaveCount(1);
+  await expect(order.getByTestId("laundry-qty-confirmed").first()).toHaveValue("5");
+  await order.getByTestId("laundry-confirm").click();
+  await expect(order.getByTestId("laundry-confirm-result")).toContainText("1 écart");
+  await m.reload();
+  await expect(m.locator(`[data-testid=laundry-order][data-reference="${ref}"]`)).toHaveAttribute("data-status", "delivered");
+  await expect(m.locator(`[data-testid=linen-stock-row][data-item="Drap fictif"] [data-testid=linen-clean]`)).toHaveText("5");
+  await expect(m.locator(`[data-testid=linen-stock-row][data-item="Drap fictif"] [data-testid=linen-laundry]`)).toHaveText("1");
+  const hist = m.locator(`[data-testid=laundry-order][data-reference="${ref}"]`).getByTestId("laundry-history");
+  await hist.locator("summary").click();
+  await expect(hist.getByTestId("laundry-event")).toHaveCount(9);
+  await expect(hist.locator("[data-testid=laundry-event][data-kind=discrepancy]")).toHaveCount(3);
+  // Notification de l'écart préparée pour les responsables de A seulement
+  // (références numérotées par conciergerie : on filtre par organisation)
+  const gapCount = async (o: string) => (await admin.from("notification_outbox").select("id").eq("template", "team_laundry_gap").eq("organization_id", o)).data?.length ?? 0;
+  expect(await gapCount(org)).toBeGreaterThan(0);
+  expect(await gapCount(borg)).toBe(0);
+  // Le blanchisseur voit l'état final ; sur téléphone, rien ne déborde
+  await l1.reload();
+  await l1.locator("details summary").filter({ hasText: "Commandes terminées" }).click();
+  await expect(l1.locator(`[data-testid=partner-order][data-reference="${ref}"]`)).toHaveAttribute("data-status", "delivered");
+  await l1.setViewportSize({ width: 375, height: 800 });
+  expect(await l1.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+  // Accès retiré par la conciergerie : plus rien de visible
+  await b.reload();
+  await b.getByTestId("laundry-revoke-member").click();
+  await expect(b.getByTestId("laundry-member")).toHaveCount(0);
+  await l2.reload();
+  await expect(l2.getByTestId("laundry-no-access")).toBeVisible();
+  void items;
+  for (const c of [m, b, l1, l2]) await c.context().close();
+});
+
+test("58 · journée complète : départ → ménage attribué → contrôle linge → incident → intervention → compte rendu → correction → validation → arrivée prête ; absence agent", async ({ browser }) => {
+  test.slow();
+  const m = await newPage(browser);
+  const name = `jour ${run}`;
+  const { org, agentId } = await testScenario(m, name);
+  // Ménages et interventions validés par un responsable (réglage de l'organisation)
+  await admin.from("organizations").update({ validation_task_types: ["turnover", "maintenance"] }).eq("id", org);
+  const agent = await scenarioAgent(browser, name);
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).single();
+  const H = 3_600_000;
+  // Départ il y a 30 min, arrivée dans 6 h : le ménage attribué est réalisable maintenant
+  const { data: stays } = await admin.from("reservations").select("id, guest_name").eq("organization_id", org);
+  const out = stays!.find((x) => x.guest_name === "Voyageur sortant")!;
+  const inn = stays!.find((x) => x.guest_name === "Voyageur test")!;
+  await admin.from("reservations").update({ check_out_at: new Date(Date.now() - 0.5 * H).toISOString() }).eq("id", out.id);
+  await admin.from("reservations").update({ check_in_at: new Date(Date.now() + 6 * H).toISOString() }).eq("id", inn.id);
+  const { data: clean } = await admin.from("tasks").update({ window_start: new Date(Date.now() - 0.5 * H).toISOString(), window_end: new Date(Date.now() + 6 * H).toISOString() }).eq("organization_id", org).eq("type", "turnover").select("id").single();
+
+  // 1. Contrôle du linge : kit du logement, stock propre insuffisant → manque daté pour CE logement
+  const { data: its } = await admin.from("linen_items").insert([{ organization_id: org, label: "Drap jour" }, { organization_id: org, label: "Serviette jour" }]).select("id, label");
+  await admin.from("property_linen_kits").insert(its!.map((x) => ({ organization_id: org, property_id: prop!.id, item_id: x.id, qty: 2 })));
+  await m.goto("/fr/app/linen");
+  for (const [label, q] of [["Drap jour", "1"], ["Serviette jour", "6"]]) {
+    await m.getByTestId("linen-count-item").selectOption({ label });
+    await m.getByTestId("linen-count-qty").fill(q);
+    await m.getByTestId("linen-count-save").click();
+    await expect(m.getByTestId("linen-count-ok")).toBeVisible();
+  }
+  await m.reload();
+  const short = m.locator("[data-testid=linen-alert][data-kind=shortage]");
+  await expect(short).toHaveCount(1);
+  await expect(short).toContainText("Drap jour");
+  await expect(short).toContainText("Appartement test");
+  await expect(m.getByTestId("linen-ok")).toHaveCount(0);
+  // Achat de draps : le manque disparaît ; la livraison de linge pour l'arrivée reste à planifier
+  await m.getByTestId("linen-move-item").selectOption({ label: "Drap jour" });
+  await m.getByTestId("linen-move-kind").selectOption("purchase");
+  await m.getByTestId("linen-move-qty").fill("4");
+  await m.getByTestId("linen-move-save").click();
+  await expect(m.getByTestId("linen-move-ok")).toBeVisible();
+  await m.reload();
+  await expect(m.locator("[data-testid=linen-alert][data-kind=shortage]")).toHaveCount(0);
+  await expect(m.getByTestId("linen-delivery-to-plan").filter({ hasText: "Appartement test" })).toBeVisible();
+
+  // 2. L'agent voit SON ménage, le démarre, signale un incident urgent
+  await agent.goto(`/fr/app/missions/${clean!.id}`);
+  await agent.getByTestId("mission-start").click();
+  await expect(agent.getByTestId("task-early-confirm").or(agent.getByTestId("mission-finish"))).toBeVisible();
+  if (await agent.getByTestId("task-early-confirm").isVisible()) await agent.getByTestId("task-early-go").click();
+  await agent.getByTestId("report-open").click();
+  await agent.getByLabel("Type de problème").selectOption("leak");
+  await agent.getByTestId("report-description").fill("Fuite sous le lavabo (journée fictive)");
+  await agent.getByTestId("report-urgent").check();
+  await agent.getByTestId("report-send").click();
+  await expect(agent.getByText("Signalé : votre responsable le voit dans HALO", { exact: false })).toBeVisible();
+  // L'agent termine d'abord son ménage (photos obligatoires) : une seule mission en cours à la fois
+  const addPhotos = async () => {
+    const n = await agent.getByTestId("photo-add").count();
+    for (let i = 0; i < n; i++) {
+      const chooser = agent.waitForEvent("filechooser");
+      await agent.getByTestId("photo-add").nth(i).click();
+      await (await chooser).setFiles({ name: `photo-${i}.png`, mimeType: "image/png", buffer: PNG });
+      await expect(agent.getByTestId("mission-photo")).toHaveCount(i + 1);
+    }
+  };
+  await agent.goto(`/fr/app/missions/${clean!.id}`);
+  await addPhotos();
+  await agent.getByTestId("mission-finish").click();
+  await expect(agent.getByText("Terminée, à valider", { exact: true })).toBeVisible();
+  // Le responsable le voit : tableau de bord et arrivée concernée
+  await m.goto("/fr/app");
+  await expect(m.getByTestId("home-urgent").getByTestId("home-incidents")).toContainText("1 incident ou blocage ouvert");
+  await expect(m.getByTestId("arrival-row").filter({ hasText: "Voyageur test" })).toBeVisible();
+
+  // 3. Intervention planifiée pour l'agent, réalisée avec compte rendu, validée, incident résolu
+  await m.goto("/fr/app/incidents");
+  const inc = m.getByTestId("incident-row").filter({ hasText: "Fuite sous le lavabo" });
+  await inc.getByTestId("incident-plan-open").click();
+  await inc.getByTestId("incident-plan-assignee").selectOption({ label: "Agent test" });
+  await inc.getByTestId("incident-plan").click();
+  await expect(inc.getByTestId("incident-intervention-status")).toContainText("À faire");
+  const { data: iv } = await admin.from("incidents").select("id, follow_up_task_id").eq("organization_id", org).ilike("description", "Fuite sous le lavabo%").single();
+  await agent.goto(`/fr/app/missions/${iv!.follow_up_task_id}`);
+  await agent.getByTestId("mission-start").click();
+  await expect(agent.getByTestId("task-early-confirm").or(agent.getByTestId("mission-finish"))).toBeVisible();
+  if (await agent.getByTestId("task-early-confirm").isVisible()) await agent.getByTestId("task-early-go").click();
+  await agent.getByTestId("task-comment").fill("Joint changé (fictif)");
+  await agent.getByTestId("task-comment-save").click();
+  await expect(agent.getByTestId("task-comment-save")).toBeDisabled();
+  await agent.getByTestId("mission-finish").click();
+  await expect(agent.getByTestId("task-sent")).toBeVisible();
+  await m.goto(`/fr/app/missions/${iv!.follow_up_task_id}`);
+  await m.getByTestId("mission-validate").click();
+  await m.goto("/fr/app/incidents");
+  const prompt = m.getByTestId("incident-row").filter({ hasText: "Fuite sous le lavabo" }).getByTestId("incident-resolve-prompt");
+  await prompt.getByTestId("incident-resolve-yes").click();
+  await prompt.getByTestId("incident-resolve-text").fill("Contrôlé, plus de fuite (fictif)");
+  await prompt.getByTestId("incident-resolve-confirm").click();
+  await expect(m.getByTestId("incident-row").filter({ hasText: "Fuite sous le lavabo" })).toHaveAttribute("data-status", "resolved");
+
+  // 4. Correction demandée sur le ménage terminé, reprise, validation
+  await m.goto(`/fr/app/missions/${clean!.id}`);
+  await m.getByTestId("correction-reason").fill("Miroir de la salle de bain à reprendre (fictif)");
+  await m.getByTestId("mission-correction").click();
+  await expect(m.getByText("Correction demandée", { exact: true }).first()).toBeVisible();
+  await agent.goto(`/fr/app/missions/${clean!.id}`);
+  await expect(agent.getByTestId("correction-reason-shown")).toContainText("Miroir de la salle de bain");
+  await agent.getByTestId("mission-start").click();
+  await expect(agent.getByTestId("mission-finish")).toBeVisible();
+  await addPhotos();
+  await agent.getByTestId("mission-finish").click();
+  await expect(agent.getByText("Terminée, à valider", { exact: true })).toBeVisible();
+  await m.reload();
+  await m.getByTestId("mission-validate").click();
+  await expect(m.getByTestId("mission-history")).toContainText("Correction demandée");
+  await expect.poll(async () => (await admin.from("tasks").select("status").eq("id", clean!.id).single()).data!.status).toBe("validated");
+
+  // 5. Préparation de l'arrivée : plus de blocage (ménage validé, incident résolu)
+  await m.goto("/fr/app");
+  await expect(m.locator("[data-testid=arrival-row][data-state=blocked]").filter({ hasText: "Voyageur test" })).toHaveCount(0);
+  await expect(m.getByTestId("home-urgent")).toHaveCount(0);
+
+  // 6. Absence de l'agent : acceptée, il n'est plus proposé sur une mission de cette période
+  await agent.goto("/fr/app/profile");
+  const d3 = local(new Date(Date.now() + 3 * 86_400_000)).slice(0, 10);
+  await agent.getByTestId("absence-from").fill(d3);
+  await agent.getByTestId("absence-to").fill(d3);
+  await agent.getByTestId("absence-reason").fill("Rendez-vous (fictif)");
+  await agent.getByTestId("absence-save").click();
+  await expect(agent.getByTestId("absence-saved")).toContainText("en attente");
+  await m.goto("/fr/app/team");
+  await m.getByTestId("absence-row").filter({ hasText: "Agent test" }).first().getByTestId("absence-accept").click();
+  await expect(m.getByTestId("absence-row").filter({ hasText: "Agent test" }).first().getByTestId("absence-status")).toHaveText("Acceptée");
+  const d3noon = new Date(`${d3}T12:00:00`);
+  await admin.from("tasks").insert({ organization_id: org, property_id: prop!.id, type: "inspection", window_start: new Date(d3noon.getTime() - H).toISOString(), window_end: new Date(d3noon.getTime() + 2 * H).toISOString(), duration_min: 45 });
+  const blocked = await admin.from("tasks").update({ assignee_id: agentId, status: "assigned" }).eq("organization_id", org).eq("type", "inspection").select("id");
+  expect(blocked.error?.message).toContain("assignee_unavailable");
+  for (const c of [m, agent]) await c.context().close();
+});
+
+test("57 · linge, cas réels : plusieurs logements, arrivées rapprochées, deux responsables sur le même stock, séjour annulé ou déplacé, retour du blanchisseur", async ({ browser }) => {
+  test.slow();
+  const m = await newPage(browser);
+  const { org } = await testScenario(m, `lcas ${run}`);
+  const H = 3_600_000;
+  // Deux logements supplémentaires, kits différents, trois arrivées rapprochées (données fictives)
+  const { data: props } = await admin.from("properties").insert([{ organization_id: org, name: "Studio Nord" }, { organization_id: org, name: "Loft Sud" }]).select("id, name");
+  const { data: it } = await admin.from("linen_items").insert({ organization_id: org, label: "Housse cas" }).select("id").single();
+  await admin.from("property_linen_kits").insert(props!.map((p, i) => ({ organization_id: org, property_id: p.id, item_id: it!.id, qty: 2 + i })));
+  const nord = props!.find((p) => p.name === "Studio Nord")!;
+  const sud = props!.find((p) => p.name === "Loft Sud")!;
+  const { data: st } = await admin.from("reservations").insert([
+    { organization_id: org, property_id: nord.id, guest_name: "Cas 1", check_in_at: new Date(Date.now() + 26 * H).toISOString(), check_out_at: new Date(Date.now() + 50 * H).toISOString() },
+    { organization_id: org, property_id: sud.id, guest_name: "Cas 2", check_in_at: new Date(Date.now() + 28 * H).toISOString(), check_out_at: new Date(Date.now() + 52 * H).toISOString() },
+  ]).select("id, guest_name");
+  // Stock inconnu : jamais « prêt »
+  await m.goto("/fr/app/linen");
+  await expect(m.getByTestId("linen-ok")).toHaveCount(0);
+  await expect(m.locator("[data-testid=linen-alert][data-kind=no_stock]")).toContainText("Housse cas");
+  // Inventaire : 4 propres (besoin 2 + 3 = 5) → manque pour Loft Sud, à sa date
+  await m.getByTestId("linen-count-item").selectOption({ label: "Housse cas" });
+  await m.getByTestId("linen-count-qty").fill("4");
+  await m.getByTestId("linen-count-save").click();
+  await expect(m.getByTestId("linen-count-ok")).toBeVisible();
+  await m.reload();
+  const short = m.locator("[data-testid=linen-alert][data-kind=shortage]");
+  await expect(short).toContainText("Loft Sud");
+  await expect(short.getByTestId("linen-shortage-detail")).toContainText("1 arrivée concernée");
+
+  // Deux responsables sur le même stock : le second formulaire, ouvert sur « 4 », ne l'écrase pas
+  const m2 = await m.context().newPage();
+  await m2.goto("/fr/app/linen");
+  await m2.getByTestId("linen-count-item").selectOption({ label: "Housse cas" });
+  await expect(m2.getByTestId("linen-count-current")).toContainText("4");
+  await m.getByTestId("linen-move-item").selectOption({ label: "Housse cas" });
+  await m.getByTestId("linen-move-kind").selectOption("loss");
+  await m.getByTestId("linen-move-qty").fill("1");
+  await m.getByTestId("linen-move-save").click();
+  await expect(m.getByTestId("linen-move-ok")).toBeVisible();
+  await m2.getByTestId("linen-count-qty").fill("9");
+  await m2.getByTestId("linen-count-save").click();
+  await expect(m2.getByTestId("linen-count-conflict")).toContainText("il est maintenant de 3");
+  expect((await admin.from("linen_movements").select("delta").eq("item_id", it!.id).eq("location", "clean")).data!.reduce((s, r) => s + r.delta, 0)).toBe(3);
+  await m2.getByTestId("linen-count-force").click();
+  await expect(m2.getByTestId("linen-count-ok")).toBeVisible();
+  expect((await admin.from("linen_movements").select("delta").eq("item_id", it!.id).eq("location", "clean")).data!.reduce((s, r) => s + r.delta, 0)).toBe(9);
+  // Jamais de stock négatif : sortie supérieure au stock refusée
+  await m.reload();
+  await m.getByTestId("linen-move-item").selectOption({ label: "Housse cas" });
+  await m.getByTestId("linen-move-kind").selectOption("loss");
+  await m.getByTestId("linen-move-qty").fill("50");
+  await m.getByTestId("linen-move-save").click();
+  await expect(m.getByTestId("linen-move-error")).toContainText("Stock insuffisant");
+  await expect(m.locator("[data-testid=linen-alert][data-kind=shortage]")).toHaveCount(0);
+
+  // Séjour déplacé puis annulé : le besoin suit (recalcul, aucun reste)
+  await m.getByTestId("linen-count-item").selectOption({ label: "Housse cas" });
+  await m.getByTestId("linen-count-qty").fill("3");
+  await m.getByTestId("linen-count-save").click();
+  await expect(m.getByTestId("linen-count-ok")).toBeVisible();
+  await m.reload();
+  await expect(m.locator("[data-testid=linen-alert][data-kind=shortage]")).toContainText("Loft Sud");
+  const cas2 = st!.find((x) => x.guest_name === "Cas 2")!;
+  await admin.from("reservations").update({ check_in_at: new Date(Date.now() + 20 * 86_400_000).toISOString(), check_out_at: new Date(Date.now() + 21 * 86_400_000).toISOString() }).eq("id", cas2.id);
+  await m.reload();
+  await expect(m.locator("[data-testid=linen-alert][data-kind=shortage]")).toHaveCount(0);
+  await admin.from("reservations").update({ check_in_at: new Date(Date.now() + 28 * H).toISOString(), check_out_at: new Date(Date.now() + 52 * H).toISOString() }).eq("id", cas2.id);
+  await m.reload();
+  await expect(m.locator("[data-testid=linen-alert][data-kind=shortage]")).toHaveCount(1);
+  await admin.from("reservations").update({ status: "cancelled" }).eq("id", cas2.id);
+  await m.reload();
+  await expect(m.locator("[data-testid=linen-alert][data-kind=shortage]")).toHaveCount(0);
+  await expect(m.locator(`[data-testid=linen-stock-row][data-item="Housse cas"] [data-testid=linen-need]`)).toHaveText("2");
+
+  // Linge chez le blanchisseur : compté seulement s'il revient avant l'arrivée
+  await admin.from("reservations").update({ status: "confirmed" }).eq("id", cas2.id);
+  const { data: partner } = await admin.from("laundry_partners").insert({ organization_id: org, name: "Blanchisserie cas" }).select("id").single();
+  const { data: ord } = await admin.from("laundry_orders").insert({ organization_id: org, partner_id: partner!.id, reference: `BL-CAS-${run}`, expected_back_at: new Date(Date.now() + 12 * H).toISOString() }).select("id").single();
+  await admin.from("laundry_order_lines").insert({ organization_id: org, order_id: ord!.id, item_id: it!.id, qty_sent: 4 });
+  await m.reload();
+  await expect(m.locator("[data-testid=linen-alert][data-kind=shortage]")).toHaveCount(0);
+  await admin.from("laundry_orders").update({ expected_back_at: new Date(Date.now() + 40 * H).toISOString() }).eq("id", ord!.id);
+  await m.reload();
+  await expect(m.locator("[data-testid=linen-alert][data-kind=shortage]")).toContainText("Loft Sud");
+  // Retour en retard : signalé, et plus compté
+  await admin.from("laundry_orders").update({ expected_back_at: new Date(Date.now() - H).toISOString() }).eq("id", ord!.id);
+  await m.reload();
+  await expect(m.locator("[data-testid=linen-laundry-alert][data-kind=late]")).toContainText(`BL-CAS-${run}`);
+  // Téléphone : l'écran Linge reste lisible
+  await m.setViewportSize({ width: 375, height: 800 });
+  expect(await m.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   await m.context().close();
 });
 

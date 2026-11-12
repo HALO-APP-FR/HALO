@@ -1451,7 +1451,10 @@
       "no_kit": "Set der Unterkunft fehlt: unter Wäsche → Sets pro Unterkunft festlegen.",
       "push_permission_refused": "Erlaubnis auf diesem Gerät verweigert: nichts aktiviert.",
       "push_subscribe_failed": "Gerät oder Benachrichtigungsdienst hat die Registrierung abgelehnt: nichts gespeichert.",
-      "no_device": "Kein Gerät registriert: zuerst Benachrichtigungen auf einem Gerät aktivieren."
+      "no_device": "Kein Gerät registriert: zuerst Benachrichtigungen auf einem Gerät aktivieren.",
+      "no_lines": "Mindestens eine Menge angeben.",
+      "laundry_stale": "Der Auftrag hat sich geändert: die Seite wird aktualisiert.",
+      "invalid_date": "Ungültiges Rückgabedatum (in der Zukunft, höchstens 60 Tage)."
     },
     "home": {
       "subtitle": "was Ihre Aufmerksamkeit braucht",
@@ -1994,7 +1997,8 @@
         "timing_confirmed": "Uhrzeit bestätigt",
         "timing_cancelled": "Uhrzeit storniert",
         "timing_updated": "Uhrzeit des Aufenthalts aktualisiert",
-        "agent_task_validated": "Mitarbeiter: Einsatz freigegeben"
+        "agent_task_validated": "Mitarbeiter: Einsatz freigegeben",
+        "team_laundry_gap": "Team: Wäscherei-Abweichung"
       },
       "testAddress": "Fiktive Adresse (Testkonto): Es wird nichts gesendet.",
       "skippedReason": "Der Empfänger hat diese E-Mail deaktiviert; das Ereignis bleibt in HALO sichtbar.",
@@ -3951,7 +3955,8 @@
             "name": "Kosten",
             "build": "Zu bauen: Kosten je Artikel und Wechsel aus echten Aufträgen."
           }
-        }
+        },
+        "titleCosts": "Noch nur in der Demo"
       },
       "openMission": "Öffnen"
     },
@@ -4008,7 +4013,9 @@
           "no_kit": "Set festlegen",
           "no_stock": "Bestand zählen",
           "no_items": "Artikel hinzufügen"
-        }
+        },
+        "shortageArrivals": "{count, plural, one {# Anreise betroffen} other {# Anreisen betroffen}}",
+        "shortageLaundry": "davon {qty} vorher von der Wäscherei erwartet"
       },
       "deliveryToPlan": "Lieferung zu planen: {property}",
       "pickupToPlan": "Abholung zu planen: {property}",
@@ -4091,7 +4098,16 @@
       "add": "Hinzufügen",
       "historyTitle": "Bewegungsverlauf",
       "historySummary": "{count, plural, =0 {Keine} one {# neue} other {# neue}}",
-      "historyEmpty": "Keine Bewegung erfasst."
+      "historyEmpty": "Keine Bewegung erfasst.",
+      "countCurrent": "Erfasster Bestand hier: {qty}",
+      "countConflict": "Dieser Bestand hat sich während Ihrer Eingabe geändert (ein Kollege hat ihn geändert): jetzt {qty}. Nichts wurde überschrieben. Neu zählen oder Ihre Zahl bestätigen.",
+      "countForce": "Trotzdem {qty} bestätigen",
+      "laundryLate": "Auftrag {reference} verspätet ({partner})",
+      "laundryLateText": "Rückgabe am {date} fällig, noch nicht empfangen: zählt nicht mehr für den Bedarf.",
+      "laundryToConfirm": "Auftrag {reference} zu empfangen ({partner})",
+      "laundryGap": "Abweichung bei Auftrag {reference} ({partner})",
+      "laundryGapText": "Mengenabweichung",
+      "laundryOpen": "Auftrag öffnen"
     },
     "push": {
       "title": "Push-Benachrichtigungen",
@@ -4134,6 +4150,109 @@
         "content": "Bewusst diskret: Ereignisart und Unterkunft, nie der Gästename oder Nachrichtentext. Antippen öffnet die richtige HALO-Seite.",
         "limits": "„Angenommen“ heißt: der Benachrichtigungsdienst (Apple, Google, Mozilla) hat den Push übernommen; ob er gesehen wurde, weiß HALO nicht. Nicht stören oder Fokus kann ihn ausblenden. Notfälle gehen zusätzlich per E-Mail."
       }
+    },
+    "laundry": {
+      "title": "Externe Wäscherei",
+      "summary": "{open, plural, =0 {Kein offener Auftrag} one {# offener Auftrag} other {# offene Aufträge}} · {partners, plural, =0 {kein Partner} one {# Partner} other {# Partner}}",
+      "unavailable": "Verfügbar nach dem Datenbank-Update (Migration 32). Bis dahin wird nichts simuliert.",
+      "ordersTitle": "Aufträge",
+      "ordersEmpty": "Noch kein Auftrag. Unten anlegen: Schmutzwäsche geht zur Wäscherei und kommt beim Empfang in den sauberen Bestand zurück.",
+      "newOrder": "Neuer Auftrag",
+      "partnersTitle": "Partner und Zugänge",
+      "partner": "Wäscherei",
+      "backAt": "Rückgabe geplant",
+      "dirtyAvailable": "{qty} schmutzig",
+      "orderNote": "Hinweis für die Wäscherei (optional)",
+      "orderSend": "Auftrag senden",
+      "orderOk": "Auftrag {reference} gesendet: Wäsche gilt als „bei der Wäscherei“.",
+      "needPartner": "Zuerst eine Wäscherei hinzufügen (unten).",
+      "needItems": "Zuerst Artikel im Katalog anlegen.",
+      "partnerName": "Name der Wäscherei",
+      "contactName": "Kontakt",
+      "contactEmail": "Kontakt-E-Mail",
+      "partnerAdd": "Wäscherei hinzufügen",
+      "inviteName": "Eingeladene Person",
+      "inviteEmail": "Ihre E-Mail",
+      "inviteCreate": "Einladung erstellen",
+      "inviteLinkHint": "Persönlicher Link zum Weitergeben. Nur für das Konto {email}, 14 Tage gültig, nur Aufträge dieser Wäscherei.",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "memberLine": "{name} ({email}) · Zugang seit {date}",
+      "inviteLine": "Offene Einladung: {name} ({email}), gültig bis {date}",
+      "noAccess": "Kein Zugang: eine Person namentlich einladen.",
+      "revokeInvite": "Zurückziehen",
+      "revokeMember": "Zugang entziehen",
+      "accessNote": "Die Wäscherei sieht nur ihre Aufträge (Artikel, Mengen, Termine, Verlauf): nie Unterkünfte, Gäste, Einsätze, Nachrichten oder Bestand.",
+      "status": {
+        "sent": "Gesendet",
+        "received": "Von Wäscherei erhalten",
+        "processing": "In Bearbeitung",
+        "ready": "Fertig",
+        "out_for_delivery": "In Zustellung",
+        "delivered": "Von der Concierge empfangen",
+        "cancelled": "Storniert"
+      },
+      "event": {
+        "sent": "Auftrag gesendet",
+        "received": "Erhalten",
+        "processing": "In Bearbeitung",
+        "ready": "Fertig",
+        "out_for_delivery": "In Zustellung",
+        "delivered": "Empfang bestätigt",
+        "cancelled": "Storniert",
+        "discrepancy": "Mengenabweichung",
+        "note": "Notiz"
+      },
+      "action": {
+        "received": "Wäsche erhalten",
+        "processing": "Bearbeitung begonnen",
+        "ready": "Wäsche fertig",
+        "out_for_delivery": "Unterwegs zur Lieferung"
+      },
+      "col": {
+        "item": "Artikel",
+        "sent": "Gesendet",
+        "received": "Erhalten",
+        "returned": "Geliefert",
+        "confirmed": "Geprüft"
+      },
+      "stepsLabel": "Auftragsschritte",
+      "history": "Verlauf ({count})",
+      "byLaundry": "Wäscherei",
+      "byConcierge": "Concierge",
+      "sentOn": "Gesendet am {date}",
+      "backBy": "Rückgabe bis {date}",
+      "deliveredOn": "empfangen am {date}",
+      "late": "Verspätet",
+      "gap": "Abweichung",
+      "confirm": "Empfang bestätigen",
+      "confirmNote": "Anmerkung zum Empfang (optional)",
+      "confirmHint": "Tatsächlich gezählte Menge eintragen: nur sie geht in den sauberen Bestand. Fehlendes bleibt „bei der Wäscherei“ als Abweichung.",
+      "confirmedOk": "Empfang bestätigt, Mengen stimmen.",
+      "confirmedWithGaps": "{count, plural, one {Empfang mit # Abweichung bestätigt.} other {Empfang mit # Abweichungen bestätigt.}}",
+      "cancel": "Auftrag stornieren",
+      "cancelReason": "Grund der Stornierung",
+      "cancelConfirm": "Stornierung bestätigen",
+      "partnerNote": "Anmerkung (optional)",
+      "declareReceived": "Tatsächlich erhaltene Mengen eintragen: Abweichungen werden der Concierge gemeldet.",
+      "declareReturned": "Gelieferte Mengen eintragen.",
+      "waitingConfirm": "Warten auf die Empfangsbestätigung der Concierge.",
+      "gapReported": "{count, plural, one {# Abweichung gemeldet.} other {# Abweichungen gemeldet.}}",
+      "spaceTitle": "Wäscherei-Bereich",
+      "myOrders": "Meine Aufträge",
+      "spaceIntro": "Jeden Auftrag Schritt für Schritt voranbringen. Die Concierge bestätigt den Empfang.",
+      "partnerEmpty": "Kein offener Auftrag.",
+      "closedOrders": "Abgeschlossene Aufträge ({count})",
+      "noAccessTitle": "Kein Wäscherei-Zugang",
+      "noAccessText": "Das Konto {email} hat (keinen) Zugang mehr. Bitte um eine namentliche Einladung.",
+      "backToApp": "Zurück zu HALO",
+      "inviteTitle": "Wäscherei-Einladung",
+      "inviteSignedAs": "Angemeldet als {email}",
+      "accept": "Einladung annehmen",
+      "acceptedText": "Einladung angenommen: Sie sehen jetzt Ihre Aufträge.",
+      "goOrders": "Meine Aufträge ansehen",
+      "wrongAccount": "Diese Einladung ist persönlich: nur für {email}. Mit dieser Adresse anmelden.",
+      "inviteInvalid": "Einladung abgelaufen, zurückgezogen oder bereits benutzt. Neue anfordern."
     }
   },
   "email": {
@@ -4302,6 +4421,10 @@
     "agent_task_validated": {
       "subject": "Einsatz freigegeben — {property}",
       "body": "Ihr Einsatz „{kind}“ in {property} wurde freigegeben."
+    },
+    "team_laundry_gap": {
+      "subject": "Wäscherei meldet Abweichung — Auftrag {reference}",
+      "body": "Die Wäscherei hat für Auftrag {reference} abweichende Mengen gemeldet. Details unter Wäsche > Externe Wäscherei."
     }
   },
   "guestSpace": {
@@ -4514,7 +4637,7 @@
       "zoneRetry": "Erneut versuchen",
       "zoneNone": "OpenStreetMap hat in diesem Viertel keine öffentlichen Orte gefunden.",
       "discoverHintZone": "Restaurants, Geschäfte, Aktivitäten und Dienste im Viertel",
-      "distanceFromZone": "≈ {d} vom Zentrum des Viertels"
+      "distanceFromZone": "{d} vom Zentrum des Viertels"
     },
     "prepBanner": "Ihr Aufenthalt rückt näher. Praktische Infos (Adresse, Zugang, Leitfaden) erscheinen hier ab {date}. Bis dahin können Sie Ihren Aufenthalt vorbereiten und dem Team schreiben.",
     "prepared": {

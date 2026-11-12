@@ -2255,6 +2255,97 @@ select t.is('filtre de texte : formulations qui situent le logement',
   (select string_agg(coalesce(public.guest_text_safe(s), '∅'), '|') from unnest(array['Boulangerie en bas de l''immeuble', 'Juste à côté du logement', 'à 50 m', 'Downstairs bakery', 'Pain au levain', 'Ouvert le dimanche']) s),
   '∅|∅|∅|∅|Pain au levain|Ouvert le dimanche');
 
+-- =====================================================================
+-- 31. Inventaire concurrent (migration 31)
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['LXA', 'LXB', 'LXP', 'lav1', 'lav2', 'PLA1', 'PLA2', 'PLB']) k;
+insert into public.linen_items (id, organization_id, label, unit) values (t.id('LXA'), t.id('A'), 'Housse X', 'pièce'), (t.id('LXP'), t.id('A'), 'Taie X', 'pièce'), (t.id('LXB'), t.id('B'), 'Drap B', 'pièce');
+select t.keep('a_manager', format('select public.linen_count(%L, %L, ''dirty'', 10)::text', t.id('A'), t.id('LXA')));
+-- Un collègue sort 3 pièces pendant que l'écran du premier affiche encore 10
+select t.keep('a_owner', format('select public.linen_move(%L, %L, ''dirty'', null, 3, ''loss'')::text', t.id('A'), t.id('LXA')));
+select t.is('inventaire concurrent : comptage préparé sur un chiffre périmé → rien n''est écrit, nouveau chiffre renvoyé',
+  t.keep('a_manager', format('select public.linen_count(%L, %L, ''dirty'', 12, null, 10) ->> ''status'' || ''/'' || (public.linen_count(%L, %L, ''dirty'', 12, null, 10) ->> ''current'')', t.id('A'), t.id('LXA'), t.id('A'), t.id('LXA'))), 'stale/7');
+select t.is('inventaire concurrent : stock inchangé tant que personne n''a recompté', (select sum(delta)::text from public.linen_movements where item_id = t.id('LXA') and location = 'dirty'), '7');
+select t.is('inventaire concurrent : confirmé sur le chiffre à jour → appliqué', t.keep('a_manager', format('select public.linen_count(%L, %L, ''dirty'', 12, null, 7) ->> ''status''', t.id('A'), t.id('LXA'))), 'applied');
+select t.is('stock jamais négatif : sortie supérieure au stock refusée', t.q('a_manager', format('select public.linen_move(%L, %L, ''dirty'', null, 13, ''loss'')::text', t.id('A'), t.id('LXA'))), 'ERR:22023:insufficient_stock');
+
+-- =====================================================================
+-- 32. Blanchisseur externe : deux conciergeries (A, B), deux blanchisseurs (lav1 → A, lav2 → B) (migration 32)
+-- =====================================================================
+insert into auth.users (id, email) values (t.id('lav1'), 'lav1@test.invalid'), (t.id('lav2'), 'lav2@test.invalid');
+insert into t_tok values
+  ('pla1', t.keep('a_manager', format('select public.laundry_partner_save(%L, null, ''Blanchisserie Alpha'', ''Léa'', ''contact@alpha.invalid'')', t.id('A')))),
+  ('pla2', t.keep('a_manager', format('select public.laundry_partner_save(%L, null, ''Pressing Sans Compte'', null, null)', t.id('A')))),
+  ('plb', t.keep('b_manager', format('select public.laundry_partner_save(%L, null, ''Blanchisserie Bêta'', ''Noé'', null)', t.id('B'))));
+select t.check('blanchisseur : partenaires créés par les responsables', '', (select count(*) from public.laundry_partners where name in ('Blanchisserie Alpha', 'Pressing Sans Compte', 'Blanchisserie Bêta')) = 3);
+select t.is('blanchisseur : un agent ne crée pas de partenaire', t.q('a_agent', format('select public.laundry_partner_save(%L, null, ''X'', null, null)::text', t.id('A'))), 'ERR:42501:not_allowed');
+select t.is('blanchisseur : un responsable de B ne crée rien pour A', t.q('b_manager', format('select public.laundry_partner_save(%L, null, ''X'', null, null)::text', t.id('A'))), 'ERR:42501:not_allowed');
+insert into t_tok values
+  ('inv1', t.keep('a_manager', format('select public.laundry_invite(%L, %L, ''Léa Alpha'', ''lav1@test.invalid'')', t.id('A'), (select v from t_tok where k = 'pla1')))),
+  ('inv2', t.keep('b_manager', format('select public.laundry_invite(%L, %L, ''Noé Bêta'', ''LAV2@test.invalid'')', t.id('B'), (select v from t_tok where k = 'plb'))));
+select t.is('invitation nominative : refusée pour un autre compte (même connecté)', t.keep('lav2', format('select public.laundry_accept_invite(%L) ->> ''status''', (select v from t_tok where k = 'inv1'))), 'wrong_account');
+select t.is('invitation nominative : refusée sans compte', t.q(null, format('select public.laundry_accept_invite(%L)::text', (select v from t_tok where k = 'inv1'))), 'ERR:42501:permission denied for function laundry_accept_invite');
+select t.is('invitation nominative : acceptée par la bonne adresse (casse indifférente)',
+  t.keep('lav1', format('select public.laundry_accept_invite(%L) ->> ''status''', (select v from t_tok where k = 'inv1'))) || '/' || t.keep('lav2', format('select public.laundry_accept_invite(%L) ->> ''status''', (select v from t_tok where k = 'inv2'))), 'ok/ok');
+select t.is('invitation : usage unique', t.keep('lav1', format('select public.laundry_accept_invite(%L) ->> ''status''', (select v from t_tok where k = 'inv1'))), 'invalid');
+select t.is('blanchisseur : reconnu comme tel, pas un membre d''organisation', t.q('lav1', 'select public.laundry_is_partner()::text') || '/' || (select count(*)::text from public.memberships where user_id = t.id('lav1')), 'true/0');
+-- Commandes : stock sale nécessaire (refus sinon, rien n'est créé)
+select t.is('commande : stock sale insuffisant → refusée, aucune commande créée',
+  t.q('a_manager', format('select public.laundry_order_create(%L, %L, %L::jsonb, now() + interval ''3 days'')::text', t.id('A'), (select v from t_tok where k = 'pla1'), jsonb_build_array(jsonb_build_object('item', t.id('LXP'), 'qty', 5)))), 'ERR:22023:insufficient_stock');
+select t.keep('a_manager', format('select public.linen_count(%L, %L, ''dirty'', 20)::text', t.id('A'), t.id('LXP')));
+select t.keep('b_manager', format('select public.linen_count(%L, %L, ''dirty'', 8)::text', t.id('B'), t.id('LXB')));
+insert into t_tok values
+  ('o1', t.keep('a_manager', format('select public.laundry_order_create(%L, %L, %L::jsonb, now() + interval ''3 days'', ''Urgent avant samedi'') ->> ''id''', t.id('A'), (select v from t_tok where k = 'pla1'),
+     jsonb_build_array(jsonb_build_object('item', t.id('LXA'), 'qty', 6), jsonb_build_object('item', t.id('LXP'), 'qty', 10))))),
+  ('o2', t.keep('a_manager', format('select public.laundry_order_create(%L, %L, %L::jsonb, now() + interval ''2 days'') ->> ''id''', t.id('A'), (select v from t_tok where k = 'pla2'), jsonb_build_array(jsonb_build_object('item', t.id('LXP'), 'qty', 4))))),
+  ('ob', t.keep('b_manager', format('select public.laundry_order_create(%L, %L, %L::jsonb, now() + interval ''4 days'') ->> ''id''', t.id('B'), (select v from t_tok where k = 'plb'), jsonb_build_array(jsonb_build_object('item', t.id('LXB'), 'qty', 8)))));
+select t.is('commande : le linge sale part chez le blanchisseur (stock relié)',
+  (select string_agg(location || '=' || s, ',' order by location) from (select location, sum(delta)::text s from public.linen_movements where item_id = t.id('LXP') group by location) q), 'dirty=6,laundry=14');
+select t.is('blanchisseur A : uniquement SES commandes (ni l''autre partenaire de A, ni B)',
+  t.q('lav1', 'select string_agg((x ->> ''partner'') || '':'' || (x ->> ''client''), '','') from jsonb_array_elements(public.laundry_my_orders()) x'), 'Blanchisserie Alpha:Conciergerie A');
+select t.is('blanchisseur B : uniquement SES commandes', t.q('lav2', 'select string_agg(x ->> ''partner'', '','') from jsonb_array_elements(public.laundry_my_orders()) x'), 'Blanchisserie Bêta');
+select t.check('blanchisseur : rien sur le logement, le voyageur, la mission (contenu transmis)', '',
+  (select position('property' in v) = 0 and position('guest' in v) = 0 and position('task' in v) = 0 and position('address' in v) = 0 from (select t.q('lav1', 'select public.laundry_my_orders()::text') v) q));
+select t.is('blanchisseur : aucune lecture directe (commandes, articles, logements, séjours, messages, missions, stock)',
+  t.q('lav1', 'select (select count(*) from public.laundry_orders) + (select count(*) from public.laundry_order_lines) + (select count(*) from public.linen_items) + (select count(*) from public.properties) + (select count(*) from public.reservations) + (select count(*) from public.stay_messages) + (select count(*) from public.tasks) + (select count(*) from public.linen_movements) + (select count(*) from public.laundry_partners)'), '0');
+select t.is('blanchisseur : messagerie interne inaccessible', t.q('lav1', 'select count(*)::text from public.team_messages'), '0');
+select t.is('blanchisseur : stock global inaccessible', t.q('lav1', format('select count(*)::text from public.linen_stock(%L)', t.id('A'))), '0');
+select t.is('blanchisseur : aucune action de conciergerie', t.q('lav1', format('select public.laundry_order_confirm(%L, %L, ''[]'')::text', t.id('A'), (select v from t_tok where k = 'o1'))), 'ERR:42501:not_allowed');
+select t.is('blanchisseur B : ne fait pas avancer une commande de A', t.q('lav2', format('select public.laundry_order_advance(%L, ''received'', ''[]'')::text', (select v from t_tok where k = 'o1'))), 'ERR:P0002:not_found');
+select t.is('blanchisseur A : ne fait pas avancer la commande d''un autre partenaire de A', t.q('lav1', format('select public.laundry_order_advance(%L, ''received'', ''[]'')::text', (select v from t_tok where k = 'o2'))), 'ERR:P0002:not_found');
+select t.is('étapes : impossible de sauter une étape', t.keep('lav1', format('select public.laundry_order_advance(%L, ''processing'') ->> ''status''', (select v from t_tok where k = 'o1'))), 'stale');
+-- Reçu avec écart déclaré (5 housses au lieu de 6) : signalé à la conciergerie
+select t.is('reçu : quantités déclarées, écart détecté',
+  t.keep('lav1', format('select jsonb_array_length(public.laundry_order_advance(%L, ''received'', %L::jsonb) -> ''gaps'')::text', (select v from t_tok where k = 'o1'),
+    jsonb_build_array(jsonb_build_object('item', t.id('LXA'), 'qty', 5), jsonb_build_object('item', t.id('LXP'), 'qty', 10)))), '1');
+select t.is('écart : visible dans l''historique et notification préparée pour les responsables',
+  (select count(*)::text from public.laundry_order_events where order_id = (select v from t_tok where k = 'o1')::uuid and kind = 'discrepancy' and actor_side = 'laundry') || '/' ||
+  (select count(*)::text from public.notification_outbox where organization_id = t.id('A') and template = 'team_laundry_gap' and payload ->> 'reference' = (select reference from public.laundry_orders where id = (select v from t_tok where k = 'o1')::uuid)), '1/2');
+select t.keep('lav1', format('select public.laundry_order_advance(%L, ''processing'')::text', (select v from t_tok where k = 'o1')));
+select t.is('annulation : impossible une fois le linge reçu par le blanchisseur', t.keep('a_manager', format('select public.laundry_order_cancel(%L, %L, ''erreur'') ->> ''status''', t.id('A'), (select v from t_tok where k = 'o1'))), 'stale');
+select t.is('réception : pas avant que le blanchisseur ait déclaré « prêt »', t.keep('a_manager', format('select public.laundry_order_confirm(%L, %L, ''[]'') ->> ''status''', t.id('A'), (select v from t_tok where k = 'o1'))), 'stale');
+select t.keep('lav1', format('select public.laundry_order_advance(%L, ''ready'')::text', (select v from t_tok where k = 'o1')));
+select t.keep('lav1', format('select public.laundry_order_advance(%L, ''out_for_delivery'', %L::jsonb)::text', (select v from t_tok where k = 'o1'),
+  jsonb_build_array(jsonb_build_object('item', t.id('LXA'), 'qty', 5), jsonb_build_object('item', t.id('LXP'), 'qty', 10))));
+select t.is('blanchisseur : ne peut pas déclarer lui-même la réception (réservée à la conciergerie)', t.keep('lav1', format('select public.laundry_order_advance(%L, ''delivered'') ->> ''status''', (select v from t_tok where k = 'o1'))), 'stale');
+select t.is('réception confirmée par la conciergerie : 5 + 9 constatés (1 taie manquante) → écarts listés',
+  t.keep('a_manager', format('select jsonb_array_length(public.laundry_order_confirm(%L, %L, %L::jsonb) -> ''gaps'')::text', t.id('A'), (select v from t_tok where k = 'o1'),
+    jsonb_build_array(jsonb_build_object('item', t.id('LXA'), 'qty', 5), jsonb_build_object('item', t.id('LXP'), 'qty', 9)))), '2');
+select t.is('réception : le constaté passe au propre, l''écart reste « chez le blanchisseur » (visible)',
+  (select string_agg(location || '=' || s, ',' order by location) from (select location, sum(delta)::text s from public.linen_movements where item_id = t.id('LXP') group by location) q), 'clean=9,dirty=6,laundry=5');
+select t.is('historique complet, dans l''ordre, côté conciergerie et blanchisseur',
+  (select string_agg(kind || ':' || actor_side, ',' order by at, id) from public.laundry_order_events where order_id = (select v from t_tok where k = 'o1')::uuid),
+  'sent:concierge,received:laundry,discrepancy:laundry,processing:laundry,ready:laundry,out_for_delivery:laundry,discrepancy:laundry,delivered:concierge,discrepancy:concierge');
+select t.is('blanchisseur : voit l''état final de sa commande', t.q('lav1', format('select x ->> ''status'' from jsonb_array_elements(public.laundry_my_orders()) x where x ->> ''id'' = %L', (select v from t_tok where k = 'o1'))), 'delivered');
+select t.is('autre conciergerie : ne lit ni ne confirme les commandes de A', t.q('b_manager', 'select count(*)::text from public.laundry_orders where organization_id = ''' || t.id('A') || '''') || '/' || t.q('b_manager', format('select public.laundry_order_confirm(%L, %L, ''[]'')::text', t.id('A'), (select v from t_tok where k = 'o2'))), '0/ERR:42501:not_allowed');
+select t.is('agent : aucune commande lisible', t.q('a_agent', 'select count(*)::text from public.laundry_orders'), '0');
+select t.is('annulation avant réception : appliquée', t.keep('a_manager', format('select public.laundry_order_cancel(%L, %L, ''Erreur de partenaire'') ->> ''status''', t.id('A'), (select v from t_tok where k = 'o2'))), 'applied');
+select t.is('annulation : le linge revient au sale',
+  (select string_agg(location || '=' || s, ',' order by location) from (select location, sum(delta)::text s from public.linen_movements where item_id = t.id('LXP') group by location) q), 'clean=9,dirty=10,laundry=1');
+-- Accès retiré : plus aucune commande visible ni modifiable
+select t.keep('b_manager', format('select public.laundry_member_revoke(%L, %L, %L)::text', t.id('B'), (select v from t_tok where k = 'plb'), t.id('lav2')));
+select t.is('accès retiré : plus de commande visible ni d''action', t.q('lav2', 'select jsonb_array_length(public.laundry_my_orders())::text') || '/' || t.q('lav2', format('select public.laundry_order_advance(%L, ''received'', ''[]'')::text', (select v from t_tok where k = 'ob'))), '0/ERR:P0002:not_found');
+
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);
 do $$ declare n int; begin

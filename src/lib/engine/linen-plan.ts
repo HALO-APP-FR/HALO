@@ -29,11 +29,18 @@ export interface LinenArrival {
   checkInAt: string;
 }
 
+/** Linge attendu en retour du blanchisseur (commandes en cours, date de retour prévue encore à venir) */
+export interface LinenReturn {
+  itemId: string;
+  qty: number;
+  at: string;
+}
+
 export type LinenAlert =
   | { kind: "no_items" }
   | { kind: "no_stock"; itemId: string }
   | { kind: "no_kit"; propertyId: string; propertyName: string; firstArrivalAt: string; arrivals: number }
-  | { kind: "shortage"; itemId: string; need: number; available: number; at: string; propertyName: string; stayId: string };
+  | { kind: "shortage"; itemId: string; need: number; available: number; at: string; propertyName: string; stayId: string; /** Dont retours du blanchisseur attendus avant cette arrivée */ fromLaundry: number; /** Arrivées concernées (cette arrivée et les suivantes de la période) */ arrivals: number };
 
 export interface LinenNeed {
   itemId: string;
@@ -55,7 +62,11 @@ export interface LinenPlan {
   arrivalsWithoutKit: number;
 }
 
-export function linenPlan(items: LinenItem[], kits: LinenKit[], stock: LinenStockRow[], arrivals: LinenArrival[]): LinenPlan {
+/**
+ * `returns` : retours attendus du blanchisseur. Comptés disponibles pour une arrivée seulement s'ils sont prévus AVANT
+ * elle ; un retour en retard (date passée, non réceptionné) n'est jamais compté (il est signalé à part).
+ */
+export function linenPlan(items: LinenItem[], kits: LinenKit[], stock: LinenStockRow[], arrivals: LinenArrival[], returns: LinenReturn[] = []): LinenPlan {
   const alerts: LinenAlert[] = [];
   if (!items.length) return { needs: [], alerts: [{ kind: "no_items" }], complete: false, arrivalsWithoutKit: arrivals.length };
   const qty = (itemId: string, loc: LinenLocation) => stock.find((s) => s.itemId === itemId && s.location === loc)?.qty ?? 0;
@@ -83,15 +94,20 @@ export function linenPlan(items: LinenItem[], kits: LinenKit[], stock: LinenStoc
     const clean = qty(it.id, "clean");
     let cumulative = 0;
     let breach: LinenAlert | null = null;
+    let impacted = 0;
     for (const a of sorted) {
       const k = kitOf.get(a.propertyId)?.find((x) => x.itemId === it.id);
       if (!k) continue;
       cumulative += k.qty;
-      // Premier séjour pour lequel le stock propre ne suffit plus : où et quand agir
-      if (!breach && counted && cumulative > clean) breach = { kind: "shortage", itemId: it.id, need: cumulative, available: clean, at: a.checkInAt, propertyName: a.propertyName, stayId: a.stayId };
+      const back = returns.filter((r) => r.itemId === it.id && Date.parse(r.at) <= Date.parse(a.checkInAt)).reduce((s, r) => s + r.qty, 0);
+      // Premier séjour pour lequel le stock propre (+ retours attendus avant lui) ne suffit plus : où et quand agir
+      if (counted && cumulative > clean + back) {
+        impacted += 1;
+        if (!breach) breach = { kind: "shortage", itemId: it.id, need: cumulative, available: clean + back, at: a.checkInAt, propertyName: a.propertyName, stayId: a.stayId, fromLaundry: back, arrivals: 0 };
+      }
     }
     if (!counted && cumulative > 0) alerts.push({ kind: "no_stock", itemId: it.id });
-    if (breach) alerts.push({ ...breach, need: cumulative } as LinenAlert);
+    if (breach) alerts.push({ ...breach, need: cumulative, arrivals: impacted } as LinenAlert);
     return { itemId: it.id, need: cumulative, clean, dirty: qty(it.id, "dirty"), laundry: qty(it.id, "laundry"), counted, lastCountAt: lastCount(it.id) };
   });
   // Articles jamais comptés, même sans besoin immédiat : signalés (stock non renseigné)

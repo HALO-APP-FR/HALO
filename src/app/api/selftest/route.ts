@@ -384,6 +384,60 @@ export async function GET(request: NextRequest) {
         check("other_org_cannot_read_or_change_linen", (bItems ?? []).length === 0 && (bKits ?? []).length === 0 && Boolean(bMove));
       }
     }
+    // 6f bis. Inventaire concurrent (migration 31) et blanchisseur externe (migration 32) : deux conciergeries (A, B),
+    // deux blanchisseurs (lavA invité par A, lavB invité par B) — comptes fictifs créés puis supprimés.
+    {
+      const { data: it, error: ie } = await a1.from("linen_items").insert({ organization_id: orgA, label: `Housse ${run}` }).select("id").single();
+      if (ie) check("linen_count_never_overwrites_concurrent_change", false, "migration 26 absente");
+      else {
+        await a1.rpc("linen_count", { org: orgA, item: it!.id, loc: "dirty", counted: 10, note: null });
+        await a1.rpc("linen_move", { org: orgA, item: it!.id, from_loc: "dirty", to_loc: null, qty: 2, kind: "loss", note: null, property: null, task: null });
+        const { data: stale, error: se } = await a1.rpc("linen_count", { org: orgA, item: it!.id, loc: "dirty", counted: 15, note: null, expected: 10 });
+        check("linen_count_never_overwrites_concurrent_change", !se && (stale as { status: string; current: number })?.status === "stale" && (stale as { current: number }).current === 8, se ? (se.code === "PGRST202" ? "migration 31 absente" : se.message) : JSON.stringify(stale));
+        const { data: pa, error: pe } = await a1.rpc("laundry_partner_save", { org: orgA, partner: null, p_name: `Lav A ${run}`, p_contact: null, p_email: null, p_active: true });
+        if (pe) check("laundry_partner_sees_only_own_orders", false, pe.code === "PGRST202" ? "migration 32 absente" : pe.message);
+        else {
+          const { data: pb } = await b.rpc("laundry_partner_save", { org: orgB, partner: null, p_name: `Lav B ${run}`, p_contact: null, p_email: null, p_active: true });
+          const lavAEmail = `selftest-${run}-lav-a@halo.invalid`;
+          const lavBEmail = `selftest-${run}-lav-b@halo.invalid`;
+          const { data: tA } = await a1.rpc("laundry_invite", { org: orgA, partner: pa, p_contact: "Lav A", p_email: lavAEmail });
+          const { data: tB } = await b.rpc("laundry_invite", { org: orgB, partner: pb, p_contact: "Lav B", p_email: lavBEmail });
+          const lavA = await session(admin, lavAEmail, users);
+          const lavB = await session(admin, lavBEmail, users);
+          const { data: wrong } = await lavB.rpc("laundry_accept_invite", { raw_token: tA });
+          await lavA.rpc("laundry_accept_invite", { raw_token: tA });
+          await lavB.rpc("laundry_accept_invite", { raw_token: tB });
+          check("laundry_invitation_is_nominative", (wrong as { status: string })?.status === "wrong_account", JSON.stringify(wrong));
+          const { data: itB } = await b.from("linen_items").insert({ organization_id: orgB, label: `Drap B ${run}` }).select("id").single();
+          await b.rpc("linen_count", { org: orgB, item: itB!.id, loc: "dirty", counted: 3, note: null });
+          const back = new Date(Date.now() + 2 * 86_400_000).toISOString();
+          const { data: oA } = await a1.rpc("laundry_order_create", { org: orgA, partner: pa, lines: [{ item: it!.id, qty: 6 }], back_at: back, p_note: null });
+          const { data: oB } = await b.rpc("laundry_order_create", { org: orgB, partner: pb, lines: [{ item: itB!.id, qty: 3 }], back_at: back, p_note: null });
+          const idA = (oA as { id: string }).id;
+          const { data: seenA } = await lavA.rpc("laundry_my_orders");
+          const { data: seenB } = await lavB.rpc("laundry_my_orders");
+          const { error: cross } = await lavB.rpc("laundry_order_advance", { oid: idA, to_status: "received", lines: [{ item: it!.id, qty: 6 }], p_note: null });
+          const { data: agOrders } = await ag.from("laundry_orders").select("id");
+          const { data: bOrders } = await b.from("laundry_orders").select("id").eq("organization_id", orgA);
+          const { data: lavTables } = await lavA.from("properties").select("id");
+          const ids = (x: unknown) => ((x ?? []) as { id: string }[]).map((o) => o.id);
+          check(
+            "laundry_partner_sees_only_own_orders",
+            ids(seenA).join() === idA && ids(seenB).join() === (oB as { id: string }).id && Boolean(cross) && (agOrders ?? []).length === 0 && (bOrders ?? []).length === 0 && (lavTables ?? []).length === 0,
+            `A:${ids(seenA).length} B:${ids(seenB).length} croisé:${cross?.code ?? "accepté"}`,
+          );
+          // Étapes + écart + réception constatée → stock
+          await lavA.rpc("laundry_order_advance", { oid: idA, to_status: "received", lines: [{ item: it!.id, qty: 5 }], p_note: null });
+          for (const st of ["processing", "ready"]) await lavA.rpc("laundry_order_advance", { oid: idA, to_status: st, lines: null, p_note: null });
+          await lavA.rpc("laundry_order_advance", { oid: idA, to_status: "out_for_delivery", lines: [{ item: it!.id, qty: 5 }], p_note: null });
+          const { data: conf } = await a1.rpc("laundry_order_confirm", { org: orgA, oid: idA, lines: [{ item: it!.id, qty: 5 }], p_note: null });
+          const { data: stk } = await a1.rpc("linen_stock", { org: orgA });
+          const mine = ((stk ?? []) as { item_id: string; location: string; qty: number }[]).filter((r) => r.item_id === it!.id).map((r) => `${r.location}=${r.qty}`).sort().join(",");
+          const { data: ev } = await a1.from("laundry_order_events").select("kind").eq("order_id", idA);
+          check("laundry_order_steps_gap_and_stock", mine === "clean=5,dirty=2,laundry=1" && ((conf as { gaps: unknown[] })?.gaps ?? []).length === 1 && (ev ?? []).filter((e) => e.kind === "discrepancy").length >= 2, `${mine} · ${(ev ?? []).map((e) => e.kind).join(",")}`);
+        }
+      }
+    }
     // 6g. Alentours avant l'arrivée (migration 25) : ni adresse ni coordonnées du logement transmises
     {
       const { data: zr } = await a1.from("reservations").insert({ organization_id: orgA, property_id: pA!.id, guest_name: `Zone ${run}`, check_in_at: soon(60 * 24 * 30), check_out_at: soon(60 * 24 * 33) }).select("id").single();

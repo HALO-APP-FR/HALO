@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { linenPlan, type LinenArrival, type LinenLocation, type LinenPlan } from "@/lib/engine/linen-plan";
+import { loadLaundry, type LaundryData } from "./laundry-data";
 
 export interface LinenOps {
   available: true;
@@ -17,6 +18,10 @@ export interface LinenOps {
   movements: { id: number; itemLabel: string; location: string; delta: number; kind: string; note: string | null; at: string; actor: string | null; propertyName: string | null }[];
   lastCountAt: string | null;
   linenModel: string | null;
+  /** Stock actuel par article et emplacement (inventaire : détecte une modification concurrente) */
+  stock: Record<string, Record<LinenLocation, number>>;
+  /** Blanchisseur externe (migration 32) */
+  laundry: LaundryData | { available: false };
 }
 
 const one = <T,>(v: T | T[] | null | undefined) => (Array.isArray(v) ? v[0] : v) ?? null;
@@ -45,7 +50,8 @@ export async function loadLinenOps(supabase: SupabaseClient, orgId: string, now:
     .map((r) => ({ itemId: r.item_id, location: r.location, qty: Number(r.qty), lastCountAt: r.last_count_at }));
   const propName = new Map((props ?? []).map((p) => [p.id as string, p.name as string]));
   const arr: LinenArrival[] = (arrivals ?? []).map((r) => ({ stayId: r.id as string, propertyId: r.property_id as string, propertyName: one(r.properties as unknown as { name: string } | null)?.name ?? propName.get(r.property_id as string) ?? "", checkInAt: r.check_in_at as string }));
-  const plan = linenPlan(itemList, kitList, stockRows, arr);
+  const laundry = await loadLaundry(supabase, orgId, now);
+  const plan = linenPlan(itemList, kitList, stockRows, arr, laundry.available ? laundry.returns : []);
   const tasks = linenTasks ?? [];
   const hasKit = new Set(kitList.map((k) => k.propertyId));
   const model = (org?.linen_model as string | null) ?? null;
@@ -77,5 +83,7 @@ export async function loadLinenOps(supabase: SupabaseClient, orgId: string, now:
     propertyName: m.property_id ? (propName.get(m.property_id as string) ?? null) : null,
   }));
   const lastCountAt = stockRows.map((s) => s.lastCountAt).filter(Boolean).sort().at(-1) ?? null;
-  return { available: true, items: itemList, kits: kitList, properties: (props ?? []).map((p) => ({ id: p.id as string, name: p.name as string })), plan, deliveriesToPlan, pickupsToPlan, toApply, movements, lastCountAt, linenModel: model };
+  const stockMap: LinenOps["stock"] = Object.fromEntries(itemList.map((i) => [i.id, { clean: 0, dirty: 0, laundry: 0 }]));
+  for (const r of stockRows) if (stockMap[r.itemId]) stockMap[r.itemId][r.location] = r.qty;
+  return { available: true, laundry, stock: stockMap, items: itemList, kits: kitList, properties: (props ?? []).map((p) => ({ id: p.id as string, name: p.name as string })), plan, deliveriesToPlan, pickupsToPlan, toApply, movements, lastCountAt, linenModel: model };
 }

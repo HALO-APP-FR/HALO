@@ -92,12 +92,25 @@ export async function saveLinenKit(propertyId: string, lines: { itemId: string; 
   return done();
 }
 
-export async function countLinen(itemId: string, location: string, qty: number, note: string): Promise<Result> {
+/**
+ * Inventaire. `expected` = quantité affichée à l'ouverture du formulaire : si un collègue a modifié ce stock
+ * entre-temps, rien n'est enregistré et la nouvelle valeur est renvoyée (statut « stale »). `null` = confirmer quand même.
+ */
+export async function countLinen(itemId: string, location: string, qty: number, note: string, expected: number | null = null): Promise<Result<{ status: "applied" | "stale"; current?: number }>> {
   const { ctx, error } = await manager();
   if (error) return fail(error);
-  const { error: e } = await ctx.supabase.rpc("linen_count", { org: ctx.org!.id, item: itemId, loc: location, counted: qty, note: note || null });
+  const args: Record<string, unknown> = { org: ctx.org!.id, item: itemId, loc: location, counted: qty, note: note || null };
+  if (expected != null) args.expected = expected;
+  let { data, error: e } = await ctx.supabase.rpc("linen_count", args);
+  // Migration 31 pas encore appliquée : comptage sans contrôle de concurrence (comportement antérieur)
+  if (e?.code === "PGRST202" && "expected" in args) {
+    delete args.expected;
+    ({ data, error: e } = await ctx.supabase.rpc("linen_count", args));
+  }
   if (e) return fail(code(e));
-  return done();
+  const res = data as { status: "applied" | "stale"; current?: number };
+  if (res.status === "applied") revalidatePath("/", "layout");
+  return { ok: true, data: { status: res.status, current: res.current } };
 }
 
 /** Mouvement entre emplacements (envoi / retour blanchisseur), entrée (achat) ou sortie (perte). */

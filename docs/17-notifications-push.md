@@ -1,6 +1,8 @@
 # 17 — Notifications push : fiche d'activation
 
-État : **préparées, non activées**. Aucun push ne part tant que les trois variables ci-dessous ne sont pas définies sur le serveur et que la migration 28 n'est pas appliquée.
+État au 12/11 : **migrations 28 et 30 appliquées en préproduction ; clés VAPID absentes → aucun push ne part** (état affiché « Pas encore activées pour HALO »).
+
+État initial : **préparées, non activées**. Aucun push ne part tant que les trois variables ci-dessous ne sont pas définies sur le serveur et que la migration 28 n'est pas appliquée.
 
 ## Ce qui déclenche un push
 

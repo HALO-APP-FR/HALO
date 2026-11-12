@@ -15,6 +15,11 @@ export default async function AppLayout({ children, params }: LayoutProps<"/[loc
   }
   const { supabase, user, org, orgs, profile } = await getContext();
   if (!user) redirect({ href: "/auth/sign-in", locale });
+  // Compte de blanchisseur sans organisation : son seul espace est celui de ses commandes
+  if (!org) {
+    const { data: partner } = await supabase.rpc("laundry_is_partner");
+    if (partner === true) redirect({ href: "/laundry", locale });
+  }
   const unreadChats = org ? await unreadThreads(supabase, org.id) : 0;
   // Pastille « Alertes » (comme la démo) : incidents réellement ouverts, pour les responsables
   const openAlerts =

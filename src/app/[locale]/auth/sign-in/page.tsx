@@ -17,7 +17,7 @@ export default async function SignInPage({ params, searchParams }: PageProps<"/[
   const t = await getTranslations("connected");
   if (isConnected()) {
     const { user } = await getContext();
-    if (user) redirect({ href: nextPath && /^\/(app|invite)(\/[\w-]*)*$/.test(nextPath) ? nextPath : "/app", locale });
+    if (user) redirect({ href: nextPath && /^\/(app|invite|laundry)(\/[\w-]*)*$/.test(nextPath) ? nextPath : "/app", locale });
   }
   return (
     <div className="flex min-h-dvh flex-col bg-subtle">

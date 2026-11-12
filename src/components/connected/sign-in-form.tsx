@@ -34,7 +34,7 @@ export function SignInForm({ initialError, next }: { initialError?: "link"; next
     start(async () => {
       const res = await verifySignInCode(email, code);
       if (!res.ok) return setError(t(`errors.${res.error}`));
-      router.replace(next && /^\/(app|invite)(\/[\w-]*)*$/.test(next) ? next : "/app");
+      router.replace(next && /^\/(app|invite|laundry)(\/[\w-]*)*$/.test(next) ? next : "/app");
       router.refresh();
     });
   };

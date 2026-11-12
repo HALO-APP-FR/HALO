@@ -119,7 +119,11 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
   const tz = p?.timezone ?? "Europe/Paris";
   const d = (x: string) => f.dateTime(new Date(x), { dateStyle: "medium", timeStyle: "short", timeZone: tz });
   // Messages du voyageur non lus au moment de l'ouverture : signalés « Nouveau », puis marqués lus (ceux affichés seulement)
-  const unreadIds = (msgs ?? []).filter((m) => m.author_kind === "guest" && !m.read_by_team_at).map((m) => m.id as number);
+  // « Nouveau » reste affiché quelques minutes après la lecture : le marquage « lu » (et l'actualisation qui suit)
+  // ne doit pas effacer le repère avant que le responsable l'ait vu.
+  const justRead = (x: string | null) => Boolean(x) && nowDate().getTime() - Date.parse(x!) < 5 * 60_000;
+  const unreadIds = (msgs ?? []).filter((m) => m.author_kind === "guest" && (!m.read_by_team_at || justRead(m.read_by_team_at as string | null))).map((m) => m.id as number);
+  const toMark = (msgs ?? []).filter((m) => m.author_kind === "guest" && !m.read_by_team_at).map((m) => m.id as number);
   return (
     <>
       <PageHeader title={s.guest_name || t("stays.unnamed")} subtitle={`${p?.name} · ${windowText(f, s.check_in_at, s.check_out_at, false, p?.timezone ?? undefined)}${zone ? ` (${t("missions.localTime", { zone })})` : ""}`} />
@@ -399,7 +403,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
                   </p>
                 </li>
               ))}
-              {unreadIds.length > 0 && <MarkStayRead reservationId={s.id} ids={unreadIds} />}
+              {toMark.length > 0 && <MarkStayRead reservationId={s.id} ids={toMark} />}
               {(msgs ?? []).length === 0 && <li className="text-[14px] text-muted">{t("messages.empty")}</li>}
             </ul>
             <StayReply reservationId={s.id} hasEmail={Boolean(s.guest_email)} />

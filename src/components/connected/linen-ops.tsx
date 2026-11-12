@@ -11,8 +11,11 @@ import { useRun } from "./use-run";
 type Item = { id: string; label: string; unit: string };
 const LOCS = ["clean", "dirty", "laundry"] as const;
 
-/** Inventaire : la quantité comptée devient le stock de l'emplacement (l'écart est historisé). */
-export function LinenCountForm({ items, defaultItem }: { items: Item[]; defaultItem?: string }) {
+/**
+ * Inventaire : la quantité comptée devient le stock de l'emplacement (l'écart est historisé). Le formulaire mémorise la
+ * quantité affichée ; si un collègue a modifié ce stock entre-temps, rien n'est écrasé : le nouveau chiffre est montré.
+ */
+export function LinenCountForm({ items, defaultItem, stock = {} }: { items: Item[]; defaultItem?: string; stock?: Record<string, Partial<Record<(typeof LOCS)[number], number>>> }) {
   const t = useTranslations("connected.linenOps");
   const { pending, error, run } = useRun();
   const [item, setItem] = useState(defaultItem ?? items[0]?.id ?? "");
@@ -20,18 +23,39 @@ export function LinenCountForm({ items, defaultItem }: { items: Item[]; defaultI
   const [qty, setQty] = useState("");
   const [note, setNote] = useState("");
   const [ok, setOk] = useState(false);
+  // Quantité de référence : celle affichée par la page, ou la valeur réelle renvoyée après un conflit
+  const [seen, setSeen] = useState<Record<string, number>>({});
+  const [conflict, setConflict] = useState<number | null>(null);
+  const key = `${item}:${loc}`;
+  const shown = seen[key] ?? stock[item]?.[loc] ?? 0;
+  const submit = (force: boolean) =>
+    run(
+      () => countLinen(item, loc, Number(qty), note, force ? null : shown),
+      (d) => {
+        if (d.status === "stale") {
+          setConflict(d.current ?? 0);
+          setSeen((s) => ({ ...s, [key]: d.current ?? 0 }));
+          return;
+        }
+        setConflict(null);
+        setSeen((s) => Object.fromEntries(Object.entries(s).filter(([k]) => k !== key)));
+        setOk(true);
+        setQty("");
+        setNote("");
+      },
+    );
   return (
     <form
       className="grid grid-cols-2 gap-2"
       onSubmit={(e) => {
         e.preventDefault();
         setOk(false);
-        run(() => countLinen(item, loc, Number(qty), note), () => (setOk(true), setQty(""), setNote("")));
+        submit(false);
       }}
       data-testid="linen-count-form"
     >
       <Field label={t("item")} htmlFor="lc-item" className="col-span-2">
-        <Select id="lc-item" value={item} onChange={(e) => setItem(e.target.value)} data-testid="linen-count-item">
+        <Select id="lc-item" value={item} onChange={(e) => (setItem(e.target.value), setConflict(null))} data-testid="linen-count-item">
           {items.map((i) => (
             <option key={i.id} value={i.id}>
               {i.label}
@@ -40,7 +64,7 @@ export function LinenCountForm({ items, defaultItem }: { items: Item[]; defaultI
         </Select>
       </Field>
       <Field label={t("location")} htmlFor="lc-loc">
-        <Select id="lc-loc" value={loc} onChange={(e) => setLoc(e.target.value as (typeof LOCS)[number])} data-testid="linen-count-location">
+        <Select id="lc-loc" value={loc} onChange={(e) => (setLoc(e.target.value as (typeof LOCS)[number]), setConflict(null))} data-testid="linen-count-location">
           {LOCS.map((l) => (
             <option key={l} value={l}>
               {t(`loc.${l}`)}
@@ -51,12 +75,21 @@ export function LinenCountForm({ items, defaultItem }: { items: Item[]; defaultI
       <Field label={t("counted")} htmlFor="lc-qty">
         <Input id="lc-qty" type="number" min={0} max={100000} inputMode="numeric" value={qty} onChange={(e) => setQty(e.target.value)} required data-testid="linen-count-qty" />
       </Field>
+      <p className="col-span-2 text-[12px] text-muted" data-testid="linen-count-current">{t("countCurrent", { qty: shown })}</p>
       <Button type="submit" className="self-end" disabled={pending || qty === "" || !item} data-testid="linen-count-save">
         {t("countSave")}
       </Button>
       <div className="col-span-2">
         <Input value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder={t("notePlaceholder")} aria-label={t("note")} />
       </div>
+      {conflict != null && (
+        <div role="alert" className="col-span-2 rounded-md border border-warning bg-warning-soft p-2 text-[13px]" data-testid="linen-count-conflict">
+          <p>{t("countConflict", { qty: conflict })}</p>
+          <Button type="button" size="sm" variant="outline" className="mt-1" disabled={pending || qty === ""} onClick={() => (setOk(false), submit(true))} data-testid="linen-count-force">
+            {t("countForce", { qty: qty || "0" })}
+          </Button>
+        </div>
+      )}
       {ok && <p role="status" className="text-[13px] text-success col-span-2" data-testid="linen-count-ok">{t("countOk")}</p>}
       {error && <p role="alert" className="text-[13px] text-danger col-span-2">{error}</p>}
     </form>

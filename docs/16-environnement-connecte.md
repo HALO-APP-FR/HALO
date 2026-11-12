@@ -591,3 +591,10 @@ La navigation en quatre espaces est abandonnée. Le responsable retrouve les **n
 - **Migration 30 — `20261125000001_push_comptes_de_test.sql`** (prérequis 28) : une notification vers une adresse `.invalid` passe par la file si son destinataire a inscrit un appareil et veut le push ; l'e-mail reste non envoyé.
 - Les fichiers à exécuter en préproduction portent une garde : ils s'arrêtent sans rien modifier si la migration est déjà enregistrée. Ordre d'application vérifié hors séquence (24, 26, 29, 30 après 27 et 28).
 - Autotest : `maxDuration` porté à 300 s (504 à 60 s le 12/11 sur la préproduction distante).
+
+## Linge à plusieurs et blanchisseur externe (migrations 31 et 32)
+
+- **Migration 31 — `20261126000001_linge_inventaire_concurrent.sql`** (prérequis 26) : `linen_count(..., expected)`. Un comptage préparé sur un chiffre périmé n'écrit rien et renvoie le chiffre actuel.
+- **Migration 32 — `20261127000001_blanchisseur_externe.sql`** (prérequis 26) : partenaires, invitations nominatives, commandes reliées au stock, étapes, écarts, historique. Espace blanchisseur : `/[locale]/laundry` ; invitation : `/[locale]/laundry/invite/[token]`. Détails dans `docs/18-linge-et-blanchisseur.md`.
+- Un compte sans organisation mais blanchisseur est redirigé vers `/laundry` ; les chemins de connexion acceptent `/laundry` comme destination.
+- « Nouveau » sur les messages voyageur reste affiché 5 minutes après leur lecture (le marquage « lu » ne l'efface plus avant que le responsable l'ait vu).

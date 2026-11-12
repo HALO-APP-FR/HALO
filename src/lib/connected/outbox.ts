@@ -103,7 +103,7 @@ export async function processOutbox(orgId?: string) {
       const time = str("stay_at")
         ? new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: str("tz") || "UTC" }).format(new Date(str("stay_at")))
         : "";
-      const params = { org, kind, decision, time, which: str("kind") || "other", choice: str("decision") || "other", property: str("property") || "—", guest: str("guest") || "—", member: str("member") || "—" };
+      const params = { org, kind, decision, time, which: str("kind") || "other", choice: str("decision") || "other", property: str("property") || "—", guest: str("guest") || "—", member: str("member") || "—", reference: str("reference") || "—" };
       // Invitation à préparer le séjour : le lien personnel n'existe que dans cet e-mail (jamais stocké en clair)
       const guestUrl = LINK_TEMPLATES.has(row.template) && /^https?:\/\/\S+\/(s|b|avis)\/[0-9a-f]{64}$/.test(str("url")) ? str("url") : "";
       // E-mails internes (équipe, agent, messagerie) : lien vers HALO et pied de page interne

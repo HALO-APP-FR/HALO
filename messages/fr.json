@@ -1451,7 +1451,10 @@
       "no_kit": "Kit du logement non défini : définissez-le dans Linge → Kits par logement.",
       "push_permission_refused": "Autorisation refusée sur cet appareil : rien n'a été activé.",
       "push_subscribe_failed": "L'appareil ou son service de notification a refusé l'inscription : rien n'a été enregistré.",
-      "no_device": "Aucun appareil inscrit : activez d'abord les notifications sur un appareil."
+      "no_device": "Aucun appareil inscrit : activez d'abord les notifications sur un appareil.",
+      "no_lines": "Indiquez au moins une quantité.",
+      "laundry_stale": "La commande a changé entre-temps : la page est actualisée.",
+      "invalid_date": "Date de retour invalide (dans le futur, 60 jours au plus)."
     },
     "home": {
       "subtitle": "ce qui demande votre attention",
@@ -1994,7 +1997,8 @@
         "timing_confirmed": "Horaire confirmé",
         "timing_cancelled": "Horaire annulé",
         "timing_updated": "Horaire du séjour mis à jour",
-        "agent_task_validated": "Agent : mission validée"
+        "agent_task_validated": "Agent : mission validée",
+        "team_laundry_gap": "Équipe : écart blanchisseur"
       },
       "testAddress": "Adresse fictive (compte de test) : rien n'est envoyé.",
       "skippedReason": "Le destinataire a désactivé cet e-mail ; l'événement reste visible dans HALO.",
@@ -3951,7 +3955,8 @@
             "name": "Coûts",
             "build": "À construire : coût par article et par rotation, alimenté par les commandes réelles."
           }
-        }
+        },
+        "titleCosts": "Encore propre à la démo"
       },
       "openMission": "Ouvrir"
     },
@@ -4008,7 +4013,9 @@
           "no_kit": "Définir le kit",
           "no_stock": "Faire l'inventaire",
           "no_items": "Ajouter des articles"
-        }
+        },
+        "shortageArrivals": "{count, plural, one {# arrivée concernée} other {# arrivées concernées}}",
+        "shortageLaundry": "dont {qty} attendues du blanchisseur avant cette date"
       },
       "deliveryToPlan": "Livraison à planifier : {property}",
       "pickupToPlan": "Collecte à planifier : {property}",
@@ -4091,7 +4098,16 @@
       "add": "Ajouter",
       "historyTitle": "Historique des mouvements",
       "historySummary": "{count, plural, =0 {Aucun} one {# récent} other {# récents}}",
-      "historyEmpty": "Aucun mouvement enregistré."
+      "historyEmpty": "Aucun mouvement enregistré.",
+      "countCurrent": "Stock enregistré à cet emplacement : {qty}",
+      "countConflict": "Ce stock a changé pendant votre saisie (un collègue l'a modifié) : il est maintenant de {qty}. Rien n'a été écrasé. Recomptez, ou confirmez votre chiffre.",
+      "countForce": "Confirmer {qty} quand même",
+      "laundryLate": "Commande {reference} en retard ({partner})",
+      "laundryLateText": "Retour prévu le {date}, pas encore réceptionné : ce linge n'est plus compté dans les besoins.",
+      "laundryToConfirm": "Commande {reference} à réceptionner ({partner})",
+      "laundryGap": "Écart déclaré sur la commande {reference} ({partner})",
+      "laundryGapText": "écart de quantité déclaré",
+      "laundryOpen": "Voir la commande"
     },
     "push": {
       "title": "Notifications push",
@@ -4134,6 +4150,109 @@
         "content": "Contenu volontairement discret : type d'événement et logement, jamais le nom du voyageur ni le texte d'un message. Toucher la notification ouvre la bonne page de HALO.",
         "limits": "« Accepté » signifie que le service de notification (Apple, Google, Mozilla) a pris l'envoi en charge : HALO ne peut pas savoir si la notification a été vue. Le mode Ne pas déranger ou Concentration peut la masquer. Les urgences restent aussi envoyées par e-mail."
       }
+    },
+    "laundry": {
+      "title": "Blanchisseur externe",
+      "summary": "{open, plural, =0 {Aucune commande en cours} one {# commande en cours} other {# commandes en cours}} · {partners, plural, =0 {aucun partenaire} one {# partenaire} other {# partenaires}}",
+      "unavailable": "Disponible après la mise à jour de la base (migration 32). Rien n'est simulé en attendant.",
+      "ordersTitle": "Commandes",
+      "ordersEmpty": "Aucune commande. Créez-en une ci-dessous : le linge sale part chez le blanchisseur et revient au stock propre à la réception.",
+      "newOrder": "Nouvelle commande",
+      "partnersTitle": "Partenaires et accès",
+      "partner": "Blanchisseur",
+      "backAt": "Retour prévu",
+      "dirtyAvailable": "{qty} au sale",
+      "orderNote": "Consigne pour le blanchisseur (facultatif)",
+      "orderSend": "Envoyer la commande",
+      "orderOk": "Commande {reference} envoyée : le linge est compté « chez le blanchisseur ».",
+      "needPartner": "Ajoutez d'abord un blanchisseur (ci-dessous).",
+      "needItems": "Ajoutez d'abord des articles au catalogue.",
+      "partnerName": "Nom du blanchisseur",
+      "contactName": "Contact",
+      "contactEmail": "E-mail du contact",
+      "partnerAdd": "Ajouter le blanchisseur",
+      "inviteName": "Personne invitée",
+      "inviteEmail": "Son adresse e-mail",
+      "inviteCreate": "Créer l'invitation",
+      "inviteLinkHint": "Lien personnel à transmettre. Il ne fonctionne que pour le compte {email}, pendant 14 jours, et n'ouvre que les commandes de ce blanchisseur.",
+      "copy": "Copier",
+      "copied": "Copié",
+      "memberLine": "{name} ({email}) · accès depuis le {date}",
+      "inviteLine": "Invitation en attente : {name} ({email}), valable jusqu'au {date}",
+      "noAccess": "Aucun accès : invitez une personne nominativement.",
+      "revokeInvite": "Annuler",
+      "revokeMember": "Retirer l'accès",
+      "accessNote": "Le blanchisseur voit uniquement ses commandes (articles, quantités, dates, historique) : jamais les logements, voyageurs, missions, la messagerie ni le stock.",
+      "status": {
+        "sent": "Envoyé",
+        "received": "Reçu par le blanchisseur",
+        "processing": "En traitement",
+        "ready": "Prêt",
+        "out_for_delivery": "En livraison",
+        "delivered": "Réceptionné par la conciergerie",
+        "cancelled": "Annulée"
+      },
+      "event": {
+        "sent": "Commande envoyée",
+        "received": "Reçue",
+        "processing": "En traitement",
+        "ready": "Prête",
+        "out_for_delivery": "En livraison",
+        "delivered": "Réception confirmée",
+        "cancelled": "Annulée",
+        "discrepancy": "Écart de quantité",
+        "note": "Note"
+      },
+      "action": {
+        "received": "J'ai reçu le linge",
+        "processing": "Traitement commencé",
+        "ready": "Linge prêt",
+        "out_for_delivery": "Parti en livraison"
+      },
+      "col": {
+        "item": "Article",
+        "sent": "Envoyé",
+        "received": "Reçu",
+        "returned": "Livré",
+        "confirmed": "Constaté"
+      },
+      "stepsLabel": "Étapes de la commande",
+      "history": "Historique ({count})",
+      "byLaundry": "blanchisseur",
+      "byConcierge": "conciergerie",
+      "sentOn": "Envoyée le {date}",
+      "backBy": "retour prévu le {date}",
+      "deliveredOn": "réceptionnée le {date}",
+      "late": "En retard",
+      "gap": "Écart",
+      "confirm": "Confirmer la réception",
+      "confirmNote": "Remarque sur la réception (facultatif)",
+      "confirmHint": "Indiquez ce que vous avez réellement compté : seul ce chiffre passe au stock propre. Un manque reste « chez le blanchisseur » et apparaît comme écart.",
+      "confirmedOk": "Réception confirmée, quantités conformes.",
+      "confirmedWithGaps": "{count, plural, one {Réception confirmée avec # écart : visible dans l'historique et le stock.} other {Réception confirmée avec # écarts : visibles dans l'historique et le stock.}}",
+      "cancel": "Annuler la commande",
+      "cancelReason": "Motif de l'annulation",
+      "cancelConfirm": "Confirmer l'annulation",
+      "partnerNote": "Remarque (facultatif)",
+      "declareReceived": "Indiquez les quantités réellement reçues : un écart est signalé à la conciergerie.",
+      "declareReturned": "Indiquez les quantités que vous livrez.",
+      "waitingConfirm": "En attente de la confirmation de réception par la conciergerie.",
+      "gapReported": "{count, plural, one {# écart signalé à la conciergerie.} other {# écarts signalés à la conciergerie.}}",
+      "spaceTitle": "Espace blanchisseur",
+      "myOrders": "Mes commandes",
+      "spaceIntro": "Faites avancer chaque commande étape par étape. La conciergerie confirme elle-même la réception.",
+      "partnerEmpty": "Aucune commande en cours.",
+      "closedOrders": "Commandes terminées ({count})",
+      "noAccessTitle": "Aucun accès blanchisseur",
+      "noAccessText": "Le compte {email} n'a pas (ou plus) d'accès. Demandez une invitation nominative à la conciergerie.",
+      "backToApp": "Retour à HALO",
+      "inviteTitle": "Invitation blanchisseur",
+      "inviteSignedAs": "Connecté avec {email}",
+      "accept": "Accepter l'invitation",
+      "acceptedText": "Invitation acceptée : vous voyez désormais les commandes qui vous sont confiées.",
+      "goOrders": "Voir mes commandes",
+      "wrongAccount": "Cette invitation est nominative : elle est réservée à {email}. Connectez-vous avec cette adresse.",
+      "inviteInvalid": "Invitation expirée, annulée ou déjà utilisée. Demandez-en une nouvelle à la conciergerie."
     }
   },
   "email": {
@@ -4302,6 +4421,10 @@
     "agent_task_validated": {
       "subject": "Mission validée — {property}",
       "body": "Votre mission « {kind} » dans {property} a été validée."
+    },
+    "team_laundry_gap": {
+      "subject": "Écart signalé par le blanchisseur — commande {reference}",
+      "body": "Le blanchisseur a déclaré des quantités différentes de l'envoi pour la commande {reference}. Le détail est dans Linge > Blanchisseur externe."
     }
   },
   "guestSpace": {
@@ -4514,7 +4637,7 @@
       "zoneRetry": "Réessayer",
       "zoneNone": "Aucun lieu public trouvé dans ce quartier par OpenStreetMap.",
       "discoverHintZone": "Restaurants, commerces, activités et services du quartier",
-      "distanceFromZone": "≈ {d} du centre du quartier"
+      "distanceFromZone": "{d} du centre du quartier"
     },
     "prepBanner": "Votre séjour approche. Les informations pratiques (adresse, accès, guide) seront visibles ici à partir du {date}. En attendant, vous pouvez préparer votre séjour et écrire à l'équipe.",
     "prepared": {

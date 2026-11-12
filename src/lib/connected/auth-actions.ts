@@ -11,7 +11,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /** Envoie un e-mail de connexion contenant un lien ET un code à 6 chiffres. */
 /** Chemin interne autorisé après connexion (jamais une URL externe). */
-export const safeNext = async (next: string | undefined) => (next && /^\/(app|invite)(\/[\w-]*)*$/.test(next) ? next : "/app");
+export const safeNext = async (next: string | undefined) => (next && /^\/(app|invite|laundry)(\/[\w-]*)*$/.test(next) ? next : "/app");
 
 export async function sendSignInEmail(email: string, locale: string, next?: string): Promise<AuthResult> {
   const clean = email.trim().toLowerCase();

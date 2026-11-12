@@ -17,9 +17,12 @@ import type { TaskStatus, TaskType } from "@/lib/domain/types";
 import { ApplyLinenTaskButton, LinenCatalogue, LinenCountForm, LinenKitEditor, LinenMoveForm } from "@/components/connected/linen-ops";
 import { PlanLinenForm } from "@/components/connected/create-cleaning-button";
 import { loadLinenOps } from "@/lib/connected/linen-data";
+import { LaundryInviteForm, LaundryOrderCard, LaundryOrderForm, LaundryPartnerForm, RevokeLaundryAccess } from "@/components/connected/laundry";
 
 /** Fonctions présentes uniquement dans la démo : listées avec ce qu'il faut construire, jamais simulées. */
 const DEMO_ONLY = ["laundry", "partner", "costs"] as const;
+/** Une fois le blanchisseur externe disponible (migration 32), seuls les coûts restent propres à la démo */
+const DEMO_ONLY_WITH_LAUNDRY = ["costs"] as const;
 
 /**
  * Linge (responsable) — uniquement des données réelles. En tête : ce qui manque, où et quand agir
@@ -76,6 +79,16 @@ export default async function LinenPage({ params, searchParams }: PageProps<"/[l
   const people = (members ?? []).map((m: { user_id: string; profiles: unknown }) => ({ id: m.user_id, name: nameOf(m.user_id) ?? "—" }));
   const day = (x: string) => f.dateTime(new Date(x), { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: tz });
   const itemLabel = (id: string) => (ops.available ? ops.items.find((i) => i.id === id)?.label : null) ?? "—";
+  const laundry = ops.available && ops.laundry.available ? ops.laundry : null;
+  const tl = await getTranslations("connected.laundry");
+  const laundryAlerts = laundry ? laundry.orders.filter((o) => o.late || (o.gap && o.status !== "delivered" && o.status !== "cancelled") || o.status === "ready" || o.status === "out_for_delivery").length : 0;
+  // Date de retour proposée : délai habituel de l'organisation (onboarding), 10:00 heure locale du navigateur
+  const turnaround = (o?.linen_turnaround_days as number | undefined) ?? 2;
+  const backDefault = (() => {
+    const d = new Date(now.getTime() + turnaround * 86_400_000);
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T10:00`;
+  })();
   const kitText = (pid: string) =>
     ops.available
       ? ops.kits
@@ -116,6 +129,10 @@ export default async function LinenPage({ params, searchParams }: PageProps<"/[l
                     <>
                       <p className="font-semibold">{tk("alert.shortageTitle", { item: itemLabel(a.itemId) })}</p>
                       <p className="text-muted">{tk("alert.shortage", { need: a.need, available: a.available, date: day(a.at), property: a.propertyName })}</p>
+                      <p className="text-[13px] text-muted" data-testid="linen-shortage-detail">
+                        {tk("alert.shortageArrivals", { count: a.arrivals })}
+                        {a.fromLaundry > 0 && ` · ${tk("alert.shortageLaundry", { qty: a.fromLaundry })}`}
+                      </p>
                     </>
                   )}
                   {a.kind === "no_kit" && (
@@ -146,6 +163,23 @@ export default async function LinenPage({ params, searchParams }: PageProps<"/[l
                 </Link>
               </li>
             ))}
+            {laundry?.orders
+              .filter((o) => o.late || (o.gap && o.status !== "delivered" && o.status !== "cancelled") || o.status === "ready" || o.status === "out_for_delivery")
+              .map((o) => (
+                <li key={`l${o.id}`} className="flex flex-wrap items-start gap-3 px-4 py-3 md:px-5" data-testid="linen-laundry-alert" data-kind={o.late ? "late" : o.status === "ready" || o.status === "out_for_delivery" ? "to_confirm" : "gap"}>
+                  <Shirt className={o.late || o.gap ? "mt-0.5 size-5 shrink-0 text-danger" : "mt-0.5 size-5 shrink-0 text-accent-text"} />
+                  <div className="min-w-0 flex-1 basis-[14rem] text-[14px]">
+                    <p className="font-semibold">{tk(o.late ? "laundryLate" : o.status === "ready" || o.status === "out_for_delivery" ? "laundryToConfirm" : "laundryGap", { reference: o.reference, partner: o.partnerName })}</p>
+                    <p className="text-muted">
+                      {o.late ? tk("laundryLateText", { date: day(o.expectedBackAt) }) : tl(`status.${o.status}`)}
+                      {o.gap && ` · ${tk("laundryGapText")}`}
+                    </p>
+                  </div>
+                  <Link href={`#order-${o.id}`} className="inline-flex h-9 items-center rounded-md border border-line bg-surface px-3 text-[13px] font-medium hover:bg-surface-hover" data-testid="linen-laundry-alert-action">
+                    {tk("laundryOpen")}
+                  </Link>
+                </li>
+              ))}
             {ops.deliveriesToPlan.map((d) => (
               <li key={`d${d.stayId}`} className="flex flex-wrap items-start gap-3 px-4 py-3 md:px-5" data-testid="linen-delivery-to-plan">
                 <ArrowDownToLine className="mt-0.5 size-5 shrink-0 text-accent-text" />
@@ -177,7 +211,7 @@ export default async function LinenPage({ params, searchParams }: PageProps<"/[l
                 {k.hasKit && <ApplyLinenTaskButton taskId={k.id} label={tk("apply")} />}
               </li>
             ))}
-            {ops.plan.alerts.length + ops.deliveriesToPlan.length + ops.pickupsToPlan.length + ops.toApply.length === 0 && (
+            {ops.plan.alerts.length + ops.deliveriesToPlan.length + ops.pickupsToPlan.length + ops.toApply.length + laundryAlerts === 0 && (
               <li className="flex items-center gap-3 px-4 py-4 text-[14px] md:px-5" data-testid="linen-ok">
                 <CheckCircle2 className="size-5 shrink-0 text-success" />
                 {ops.plan.complete ? tk("allGood", { date: ops.lastCountAt ? day(ops.lastCountAt) : "—" }) : tk("notEnoughData")}
@@ -279,7 +313,7 @@ export default async function LinenPage({ params, searchParams }: PageProps<"/[l
                     <div className="mt-4 grid gap-4 lg:grid-cols-2">
                       <div className="rounded-md border border-line p-3">
                         <p className="mb-2 text-[14px] font-semibold">{tk("countTitle")}</p>
-                        <LinenCountForm items={ops.items} />
+                        <LinenCountForm items={ops.items} stock={ops.stock} />
                       </div>
                       <div className="rounded-md border border-line p-3">
                         <p className="mb-2 text-[14px] font-semibold">{tk("moveTitle")}</p>
@@ -334,6 +368,72 @@ export default async function LinenPage({ params, searchParams }: PageProps<"/[l
                   ))}
                 </ul>
               </details>
+
+              {/* ===== Blanchisseur externe (migration 32) ===== */}
+              {laundry ? (
+                <details id="laundry" open className="group rounded-xl border border-line bg-surface shadow-card" data-testid="laundry-section">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 md:px-5 [&::-webkit-details-marker]:hidden">
+                    <span className="text-title-3">{tl("title")}</span>
+                    <span className="text-[13px] text-muted">{tl("summary", { open: laundry.orders.filter((x) => x.status !== "delivered" && x.status !== "cancelled").length, partners: laundry.partners.filter((x) => x.active).length })}</span>
+                  </summary>
+                  <div className="space-y-5 border-t border-line px-4 pb-4 pt-3 md:px-5">
+                    <div>
+                      <p className="mb-2 text-[14px] font-semibold">{tl("ordersTitle")}</p>
+                      {laundry.orders.length === 0 ? (
+                        <p className="text-[14px] text-muted" data-testid="laundry-orders-empty">{tl("ordersEmpty")}</p>
+                      ) : (
+                        <ul className="divide-y divide-line rounded-md border border-line">
+                          {laundry.orders.map((x) => (
+                            <LaundryOrderCard key={x.id} o={x} />
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    <div className="rounded-md border border-line p-3">
+                      <p className="mb-2 text-[14px] font-semibold">{tl("newOrder")}</p>
+                      <LaundryOrderForm partners={laundry.partners.filter((x) => x.active)} items={ops.items} dirty={Object.fromEntries(Object.entries(ops.stock).map(([k, v]) => [k, v.dirty]))} defaultBackAt={backDefault} />
+                    </div>
+                    <div>
+                      <p className="mb-2 text-[14px] font-semibold">{tl("partnersTitle")}</p>
+                      <ul className="space-y-3">
+                        {laundry.partners.map((p) => (
+                          <li key={p.id} className="rounded-md border border-line p-3" data-testid="laundry-partner" data-name={p.name}>
+                            <p className="text-[15px] font-semibold">{p.name}</p>
+                            {(p.contactName || p.contactEmail) && <p className="text-[13px] text-muted">{[p.contactName, p.contactEmail].filter(Boolean).join(" · ")}</p>}
+                            <ul className="mt-2 space-y-1 text-[13px]">
+                              {p.members.map((m) => (
+                                <li key={m.userId} className="flex items-center justify-between gap-2" data-testid="laundry-member">
+                                  <span>{tl("memberLine", { name: m.name ?? "—", email: m.email ?? "—", date: day(m.since) })}</span>
+                                  <RevokeLaundryAccess kind="member" partnerId={p.id} id={m.userId} />
+                                </li>
+                              ))}
+                              {p.invites.map((i) => (
+                                <li key={i.id} className="flex items-center justify-between gap-2 text-muted" data-testid="laundry-pending-invite">
+                                  <span>{tl("inviteLine", { name: i.contactName, email: i.email, date: day(i.expiresAt) })}</span>
+                                  <RevokeLaundryAccess kind="invite" partnerId={p.id} id={i.id} />
+                                </li>
+                              ))}
+                              {p.members.length + p.invites.length === 0 && <li className="text-muted">{tl("noAccess")}</li>}
+                            </ul>
+                            <div className="mt-3">
+                              <LaundryInviteForm partnerId={p.id} defaultName={p.contactName ?? ""} defaultEmail={p.contactEmail ?? ""} />
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="mt-3">
+                        <LaundryPartnerForm />
+                      </div>
+                      <p className="mt-2 text-[12px] text-muted">{tl("accessNote")}</p>
+                    </div>
+                  </div>
+                </details>
+              ) : (
+                <Card className="border-dashed p-4 text-[14px]" data-testid="laundry-unavailable">
+                  <p className="font-semibold">{tl("title")}</p>
+                  <p className="mt-1 text-muted">{tl("unavailable")}</p>
+                </Card>
+              )}
             </>
           )}
 
@@ -376,11 +476,11 @@ export default async function LinenPage({ params, searchParams }: PageProps<"/[l
           <Card className="border-dashed p-5" data-testid="linen-demo-only">
             <p className="flex items-center gap-2 text-[15px] font-semibold">
               <CircleDashed className="size-5 text-muted" />
-              {t("demoOnly.title")}
+              {laundry ? t("demoOnly.titleCosts") : t("demoOnly.title")}
             </p>
-            <p className="mt-1 text-[13px] text-muted">{t("demoOnly.text")}</p>
+            {!laundry && <p className="mt-1 text-[13px] text-muted">{t("demoOnly.text")}</p>}
             <ul className="mt-3 space-y-3">
-              {DEMO_ONLY.map((k) => (
+              {(laundry ? DEMO_ONLY_WITH_LAUNDRY : DEMO_ONLY).map((k) => (
                 <li key={k} className="text-[14px]" data-testid={`linen-demo-only-${k}`}>
                   <p className="font-medium">{t(`demoOnly.items.${k}.name`)}</p>
                   <p className="text-[13px] text-muted">{t(`demoOnly.items.${k}.build`)}</p>
