@@ -141,7 +141,8 @@ export async function pushForOutbox(admin: SupabaseClient, row: { id: string; or
         organization_id: row.organization_id,
         outbox_id: row.id,
         user_id: ch.user_id ?? null,
-        reservation_id: ch.user_id ? null : (ch.reservation_id ?? null),
+        // Colonne ajoutée par la migration 33 : absente du message pour un membre (base antérieure compatible)
+        ...(ch.user_id ? {} : { reservation_id: ch.reservation_id ?? null }),
         subscription_id: ch.user_id ? r.subscriptionId : null,
         category: ch.category,
         status: r.status,

@@ -214,7 +214,11 @@ export async function GET(request: NextRequest) {
         const ot = await mk();
         await admin.from("tasks").update({ started_at: new Date(Date.now() - 2 * 3_600_000).toISOString() }).eq("id", ot);
         const { error: swe } = await admin.rpc("overrun_sweep");
-        if (swe) check("overrun_reminder_prepared_once", false, swe.code === "PGRST202" ? "migration 33 absente" : `${swe.code}:${swe.message}`);
+        if (swe) {
+          check("overrun_reminder_prepared_once", false, swe.code === "PGRST202" ? "migration 33 absente" : `${swe.code}:${swe.message}`);
+          // L'agent ne peut avoir qu'une mission en cours : on libère avant la suite
+          await a1.rpc("cancel_task", { org: orgA, task: ot, reason: `Selftest ${run} (fictif)` });
+        }
         else {
           await admin.rpc("overrun_sweep");
           const tpls = async () => ((await admin.from("notification_outbox").select("template").eq("organization_id", orgA).eq("payload->>path", `/app/missions/${ot}`).in("template", ["agent_task_overrun", "team_task_overrun"])).data ?? []).map((r) => r.template as string).sort().join(",");
