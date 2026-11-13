@@ -187,9 +187,10 @@ select t.check('aucune fonction exécutable par anon (hors exception invité) : 
 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')
   and p.proname not in ('get_guest_stay', 'guest_request_service', 'guest_reply_service', 'guest_send_message', 'guest_report_problem', 'guest_problems', 'guest_places', 'guest_place_favorite', 'guest_save_preparation', 'guest_delete_preparation', 'guest_request_vip', 'guest_reply_vip',
-                        'booking_portal', 'booking_submit', 'booking_guest_action', 'review_portal', 'review_submit', 'get_showcase');
+                        'booking_portal', 'booking_submit', 'booking_guest_action', 'review_portal', 'review_submit', 'get_showcase',
+                        'guest_push_subscribe', 'guest_push_unsubscribe', 'guest_push_state');
 select t.is('exceptions anonymes : uniquement la porte d''entrée voyageur (lien de séjour)', (select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'booking_guest_action,booking_portal,booking_submit,get_guest_stay,get_showcase,guest_delete_preparation,guest_place_favorite,guest_places,guest_problems,guest_reply_service,guest_reply_vip,guest_report_problem,guest_request_service,guest_request_vip,guest_save_preparation,guest_send_message,review_portal,review_submit');
+  where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')), 'booking_guest_action,booking_portal,booking_submit,get_guest_stay,get_showcase,guest_delete_preparation,guest_place_favorite,guest_places,guest_problems,guest_push_state,guest_push_subscribe,guest_push_unsubscribe,guest_reply_service,guest_reply_vip,guest_report_problem,guest_request_service,guest_request_vip,guest_save_preparation,guest_send_message,review_portal,review_submit');
 
 select t.check('fonction security definer avec search_path fixé : ' || p.proname,
   coalesce(array_to_string(p.proconfig, ','), 'aucun'), coalesce(array_to_string(p.proconfig, ','), '') like '%search_path=%')
@@ -2231,7 +2232,7 @@ select t.keep('a_agent', format('select public.set_notification_pref(%L, ''agent
 select t.is('push : e-mail coupé mais push voulu → notification préparée', public.wants_email(t.id('A'), t.id('a_agent'), 'agent_task_assigned', false)::text || '/' || public.wants_email_channel(t.id('A'), t.id('a_agent'), 'agent_task_assigned', false)::text, 'true/false');
 select t.keep('a_agent', format('select public.set_push_pref(%L, ''agent_task_assigned'', false)::text', t.id('A')));
 select t.is('push : e-mail et push coupés → rien n''est préparé', public.wants_email(t.id('A'), t.id('a_agent'), 'agent_task_assigned', false)::text, 'false');
-select t.is('push : message urgent rattaché au réglage « messages »', public.wants_push_channel(t.id('A'), t.id('a_agent'), 'chat_urgent')::text || '/' || coalesce(public.push_category('chat_message'), '∅'), 'true/∅');
+select t.is('push : message urgent rattaché au réglage « messages »', public.wants_push_channel(t.id('A'), t.id('a_agent'), 'chat_urgent')::text || '/' || coalesce(public.push_category('chat_message'), '∅'), 'true/message');
 -- Migration 30 : compte de test (.invalid) avec appareil inscrit → passe par la file (push tenté), sinon échec immédiat comme avant
 select public.outbox_insert(t.id('A'), 'a_agent@test.invalid', 'fr', 'chat_urgent', '{"t":"m30a"}', null, null, null);
 select public.outbox_insert(t.id('A'), 'a_agent@test.invalid', 'fr', 'agent_task_assigned', '{"t":"m30b"}', null, null, null);
@@ -2323,7 +2324,7 @@ select t.is('écart : visible dans l''historique et notification préparée pour
   (select count(*)::text from public.notification_outbox where organization_id = t.id('A') and template = 'team_laundry_gap' and payload ->> 'reference' = (select reference from public.laundry_orders where id = (select v from t_tok where k = 'o1')::uuid)), '1/2');
 select t.keep('lav1', format('select public.laundry_order_advance(%L, ''processing'')::text', (select v from t_tok where k = 'o1')));
 select t.is('annulation : impossible une fois le linge reçu par le blanchisseur', t.keep('a_manager', format('select public.laundry_order_cancel(%L, %L, ''erreur'') ->> ''status''', t.id('A'), (select v from t_tok where k = 'o1'))), 'stale');
-select t.is('réception : pas avant que le blanchisseur ait déclaré « prêt »', t.keep('a_manager', format('select public.laundry_order_confirm(%L, %L, ''[]'') ->> ''status''', t.id('A'), (select v from t_tok where k = 'o1'))), 'stale');
+select t.is('réception : quantité constatée obligatoire pour chaque article', t.keep('a_manager', format('select public.laundry_order_confirm(%L, %L, ''[]'') ->> ''status''', t.id('A'), (select v from t_tok where k = 'o1'))), 'ERR:22023:invalid');
 select t.keep('lav1', format('select public.laundry_order_advance(%L, ''ready'')::text', (select v from t_tok where k = 'o1')));
 select t.keep('lav1', format('select public.laundry_order_advance(%L, ''out_for_delivery'', %L::jsonb)::text', (select v from t_tok where k = 'o1'),
   jsonb_build_array(jsonb_build_object('item', t.id('LXA'), 'qty', 5), jsonb_build_object('item', t.id('LXP'), 'qty', 10))));
@@ -2345,6 +2346,100 @@ select t.is('annulation : le linge revient au sale',
 -- Accès retiré : plus aucune commande visible ni modifiable
 select t.keep('b_manager', format('select public.laundry_member_revoke(%L, %L, %L)::text', t.id('B'), (select v from t_tok where k = 'plb'), t.id('lav2')));
 select t.is('accès retiré : plus de commande visible ni d''action', t.q('lav2', 'select jsonb_array_length(public.laundry_my_orders())::text') || '/' || t.q('lav2', format('select public.laundry_order_advance(%L, ''received'', ''[]'')::text', (select v from t_tok where k = 'ob'))), '0/ERR:P0002:not_found');
+
+-- =====================================================================
+-- 33. Notifications complètes, dépassement côté serveur, réattribution en cours, blanchisseur (migration 33)
+-- =====================================================================
+insert into t.ids select k, gen_random_uuid() from unnest(array['TOV', 'TRA', 'RGP']) k;
+select t.is('catégories push : manager, agent, voyageur',
+  (select string_agg(coalesce(public.push_category(x), '∅'), ',' order by o) from unnest(array['team_task_to_validate', 'team_task_overrun', 'team_laundry_update', 'agent_task_overrun', 'chat_message', 'stay_message', 'service_confirmed', 'team_low_review']) with ordinality u(x, o)),
+  'to_validate,overrun,laundry,overrun_reminder,message,guest_update,guest_update,∅');
+select t.keep('a_manager', 'select public.push_subscribe(''https://push.example.invalid/m33'', repeat(''k'', 87), repeat(''a'', 22), ''Test'')::text');
+select t.keep('a_manager', format('select public.set_push_pref(%L, ''team_agent_blocker'', false)::text', t.id('A')));
+select t.keep('a_manager', format('select public.set_push_pref(%L, ''team_task_to_validate'', false)::text', t.id('A')));
+select t.is('urgences toujours en push (préférence ignorée), autres événements selon la préférence',
+  public.wants_push_channel(t.id('A'), t.id('a_manager'), 'team_agent_blocker')::text || '/' || public.wants_push_channel(t.id('A'), t.id('a_manager'), 'team_task_to_validate')::text, 'true/false');
+select t.is('réglage push : événement sans push refusé', t.q('a_manager', format('select public.set_push_pref(%L, ''team_low_review'', true)::text', t.id('A'))), 'ERR:22023:invalid');
+select t.is('réglage linge : écart et linge en route partagent un seul réglage', public.pref_event('team_laundry_gap') || '/' || public.pref_event('team_laundry_update'), 'team_laundry/team_laundry');
+select t.keep('a_manager', 'select public.push_unsubscribe(''https://push.example.invalid/m33'')::text');
+
+-- Voyageur : appareil rattaché au séjour (sans compte), notification sans e-mail → push seul
+insert into public.reservations (id, organization_id, property_id, guest_name, check_in_at, check_out_at) values
+  (t.id('RGP'), t.id('A'), t.id('PA1'), 'Voyageur push', now() + interval '40 days', now() + interval '43 days');
+insert into public.guest_links (organization_id, reservation_id, token_hash, valid_from, valid_until)
+values (t.id('A'), t.id('RGP'), encode(extensions.digest(repeat('c', 64), 'sha256'), 'hex'), now() - interval '1 day', now() + interval '44 days');
+select t.is('voyageur : lien falsifié refusé', t.q(null, format('select public.guest_push_subscribe(%L, ''https://push.example.invalid/g'', repeat(''k'', 87), repeat(''a'', 22)) ->> ''status''', repeat('d', 64))), 'unavailable');
+select t.is('voyageur : inscription depuis son espace, état lisible pour ce navigateur seulement',
+  t.keep(null, format('select public.guest_push_subscribe(%L, ''https://push.example.invalid/g'', repeat(''k'', 87), repeat(''a'', 22)) ->> ''status''', repeat('c', 64))) || '/' ||
+  t.q(null, format('select public.guest_push_state(%L, ''https://push.example.invalid/g'') ->> ''subscribed''', repeat('c', 64))) || '/' ||
+  t.q(null, format('select public.guest_push_state(%L, ''https://push.example.invalid/autre'') ->> ''subscribed''', repeat('c', 64))), 'ok/true/false');
+select t.is('voyageur : aucune lecture directe des appareils', t.q(null, 'select count(*)::text from public.guest_push_subscriptions'), 'ERR:42501:permission denied for table guest_push_subscriptions');
+select public.queue_guest_email(r, 'stay_message', '{"t":"m33g"}', null) from public.reservations r where r.id = t.id('RGP');
+select t.is('voyageur sans e-mail : notification préparée pour le push seul, jamais envoyée par e-mail',
+  (select (c ->> 'category') || '/' || (c ->> 'email') || '/' || jsonb_array_length(c -> 'push') || '/' || (o.recipient like '%@push.invalid')::text
+     from public.notification_outbox o, lateral (select public.outbox_channels(o.id) c) q where o.payload ->> 't' = 'm33g'), 'guest_update/false/1/true');
+select public.queue_guest_email(r, 'team_low_review', '{"t":"m33h"}', null) from public.reservations r where r.id = t.id('RGP');
+select t.is('voyageur sans e-mail : rien de préparé pour un événement sans push', (select count(*)::text from public.notification_outbox where payload ->> 't' = 'm33h'), '0');
+select t.is('voyageur : désinscription', t.keep(null, format('select public.guest_push_unsubscribe(%L, ''https://push.example.invalid/g'') ->> ''status''', repeat('c', 64))) || '/' ||
+  t.q(null, format('select public.guest_push_state(%L, ''https://push.example.invalid/g'') ->> ''subscribed''', repeat('c', 64))), 'ok/false');
+
+-- Dépassement : rappel agent à la fin estimée, une seule fois ; responsable après le délai ; « je continue » repousse
+insert into public.tasks (id, organization_id, property_id, type, status, assignee_id, window_start, window_end, duration_min, started_at) values
+  (t.id('TOV'), t.id('A'), t.id('PA1'), 'other', 'in_progress', t.id('a_agent'), now() - interval '3 hours', now() + interval '3 hours', 60, now() - interval '70 minutes');
+update public.organizations set overrun_alert_min = 30 where id = t.id('A');
+select public.overrun_sweep();
+select t.is('dépassement : rappel à l''agent préparé (fin estimée dépassée de 10 min), pas encore le responsable',
+  (select count(*) filter (where template = 'agent_task_overrun')::text || '/' || count(*) filter (where template = 'team_task_overrun')::text from public.notification_outbox where payload ->> 'path' = '/app/missions/' || t.id('TOV')), '1/0');
+select public.overrun_sweep();
+select t.is('dépassement : jamais deux rappels pour la même échéance', (select count(*)::text from public.notification_outbox where template = 'agent_task_overrun' and payload ->> 'path' = '/app/missions/' || t.id('TOV')), '1');
+update public.tasks set started_at = now() - interval '100 minutes' where id = t.id('TOV');
+select public.overrun_sweep();
+select t.is('dépassement : responsable informé après le délai de l''organisation, avec le lien de la mission',
+  (select count(*)::text from public.notification_outbox where template = 'team_task_overrun' and payload ->> 'path' = '/app/missions/' || t.id('TOV')), '2');
+select t.keep('a_agent', format('select public.task_overrun_continue(%L, %L)', t.id('A'), t.id('TOV')));
+select public.overrun_sweep();
+select t.is('« je continue » : pas de nouveau rappel avant 30 minutes', (select count(*)::text from public.notification_outbox where template = 'agent_task_overrun' and payload ->> 'path' = '/app/missions/' || t.id('TOV')), '1');
+select t.is('dépassement : lancé par le serveur seulement', t.q('a_manager', 'select public.overrun_sweep()::text'), 'ERR:42501:permission denied for function overrun_sweep');
+
+-- Réattribution d'une mission en cours
+select t.is('réattribution en cours : motif obligatoire', t.q('a_manager', format('select public.reassign_started_task(%L, %L, %L, '''')', t.id('A'), t.id('TOV'), t.id('a_agent2'))), 'ERR:22023:reason_required');
+select t.is('réattribution en cours : réservée aux responsables', t.q('a_agent', format('select public.reassign_started_task(%L, %L, %L, ''Imprévu'')', t.id('A'), t.id('TOV'), t.id('a_agent2'))), 'ERR:42501:not_allowed');
+select t.is('réattribution en cours : appliquée', t.keep('a_manager', format('select public.reassign_started_task(%L, %L, %L, ''Agent souffrant'')', t.id('A'), t.id('TOV'), t.id('a_agent2'))), 'applied');
+select t.is('réattribution : mission à redémarrer par le nouvel agent',
+  (select status::text || ':' || (assignee_id = t.id('a_agent2'))::text || ':' || (started_at is null)::text from public.tasks where id = t.id('TOV')), 'assigned:true:true');
+select t.is('réattribution : historique avec motif, ancien agent prévenu',
+  (select count(*)::text from public.task_events where task_id = t.id('TOV') and kind = 'reassigned') || '/' ||
+  (select count(*)::text from public.notification_outbox where template = 'agent_task_changed' and payload ->> 'path' = '/app/missions/' || t.id('TOV') and (payload ->> 'reassigned')::boolean), '1/1');
+select t.is('réattribution : réponse tardive de l''ancien agent ignorée (aucune écriture)',
+  t.keep('a_agent', format('select public.task_overrun_continue(%L, %L)', t.id('A'), t.id('TOV'))) || '/' ||
+  t.keep('a_agent', format('select public.propose_task_end(%L, %L, now() - interval ''5 minutes'', ''oubli'')', t.id('A'), t.id('TOV'))), 'stale/stale');
+select t.is('réattribution : sans effet sur une mission qui n''est pas en cours', t.keep('a_manager', format('select public.reassign_started_task(%L, %L, %L, ''Encore'')', t.id('A'), t.id('TOV'), t.id('a_agent'))), 'stale');
+
+-- Blanchisseur : « prêt » facultatif, action répétée sans double effet, reprise anticipée, écart traité
+insert into t_tok values ('o3', t.keep('a_manager', format('select public.laundry_order_create(%L, %L, %L::jsonb, now() + interval ''2 days'') ->> ''id''', t.id('A'), (select v from t_tok where k = 'pla1'), jsonb_build_array(jsonb_build_object('item', t.id('LXP'), 'qty', 4)))));
+select t.keep('lav1', format('select public.laundry_order_advance(%L, ''received'', %L::jsonb)::text', (select v from t_tok where k = 'o3'), jsonb_build_array(jsonb_build_object('item', t.id('LXP'), 'qty', 4))));
+select t.is('action répétée (double appui) : aucune seconde écriture', t.keep('lav1', format('select public.laundry_order_advance(%L, ''received'', %L::jsonb) ->> ''status''', (select v from t_tok where k = 'o3'), jsonb_build_array(jsonb_build_object('item', t.id('LXP'), 'qty', 4)))) || '/' ||
+  (select count(*)::text from public.laundry_order_events where order_id = (select v from t_tok where k = 'o3')::uuid and kind = 'received'), 'stale/1');
+select t.keep('lav1', format('select public.laundry_order_advance(%L, ''processing'')::text', (select v from t_tok where k = 'o3')));
+select t.is('« prêt » facultatif : départ en livraison directement depuis le traitement',
+  t.keep('lav1', format('select public.laundry_order_advance(%L, ''out_for_delivery'', %L::jsonb) ->> ''status''', (select v from t_tok where k = 'o3'), jsonb_build_array(jsonb_build_object('item', t.id('LXP'), 'qty', 4)))), 'applied');
+select t.is('linge en route : le responsable est prévenu (réception à confirmer)',
+  ((select count(*)::text from public.notification_outbox where template = 'team_laundry_update' and payload ->> 'reference' = (select reference from public.laundry_orders where id = (select v from t_tok where k = 'o3')::uuid) and organization_id = t.id('A')) <> '0')::text, 'true');
+select t.keep('a_manager', format('select public.laundry_order_confirm(%L, %L, %L::jsonb)::text', t.id('A'), (select v from t_tok where k = 'o3'), jsonb_build_array(jsonb_build_object('item', t.id('LXP'), 'qty', 3))));
+select t.is('confirmation répétée : refusée', t.keep('a_manager', format('select public.laundry_order_confirm(%L, %L, %L::jsonb) ->> ''status''', t.id('A'), (select v from t_tok where k = 'o3'), jsonb_build_array(jsonb_build_object('item', t.id('LXP'), 'qty', 3)))), 'stale');
+select t.is('confirmation répétée : un seul mouvement de stock pour cette commande',
+  (select count(distinct group_id)::text from public.linen_movements where organization_id = t.id('A') and note = 'Réception ' || (select reference from public.laundry_orders where id = (select v from t_tok where k = 'o3')::uuid)), '1');
+select t.is('écart traité : jamais plus que le manque restant', t.keep('a_manager', format('select public.laundry_gap_resolve(%L, %L, %L, 2, ''lost'') ->> ''status''', t.id('A'), (select v from t_tok where k = 'o3'), t.id('LXP'))), 'stale');
+select t.is('écart traité : 1 pièce déclarée perdue (sort du stock)', t.keep('a_manager', format('select public.laundry_gap_resolve(%L, %L, %L, 1, ''lost'', ''Perte confirmée'') ->> ''open''', t.id('A'), (select v from t_tok where k = 'o3'), t.id('LXP'))), '0');
+select t.is('écart traité : historique daté et attribué', (select count(*)::text from public.laundry_order_events where order_id = (select v from t_tok where k = 'o3')::uuid and kind = 'gap_resolved' and actor_id = t.id('a_manager') and actor_side = 'concierge'), '1');
+select t.is('écart soldé : seconde demande sans effet', t.keep('a_manager', format('select public.laundry_gap_resolve(%L, %L, %L, 1, ''found'') ->> ''status''', t.id('A'), (select v from t_tok where k = 'o3'), t.id('LXP'))), 'stale');
+select t.is('écart : le blanchisseur ne le traite pas', t.q('lav1', format('select public.laundry_gap_resolve(%L, %L, %L, 1, ''found'')::text', t.id('A'), (select v from t_tok where k = 'o3'), t.id('LXP'))), 'ERR:42501:not_allowed');
+insert into t_tok values ('o4', t.keep('a_manager', format('select public.laundry_order_create(%L, %L, %L::jsonb, now() + interval ''2 days'') ->> ''id''', t.id('A'), (select v from t_tok where k = 'pla1'), jsonb_build_array(jsonb_build_object('item', t.id('LXP'), 'qty', 2)))));
+select t.keep('lav1', format('select public.laundry_order_advance(%L, ''received'', %L::jsonb)::text', (select v from t_tok where k = 'o4'), jsonb_build_array(jsonb_build_object('item', t.id('LXP'), 'qty', 2))));
+select t.is('reprise anticipée (avant traitement) : le linge revient au SALE',
+  t.keep('a_manager', format('select public.laundry_order_confirm(%L, %L, %L::jsonb) ->> ''to''', t.id('A'), (select v from t_tok where k = 'o4'), jsonb_build_array(jsonb_build_object('item', t.id('LXP'), 'qty', 2)))), 'dirty');
+select t.is('auteurs côté blanchisseur : noms visibles des seuls responsables',
+  t.q('a_manager', format('select public.laundry_actor_names(%L) ->> %L', t.id('A'), t.id('lav1'))) || '/' || t.q('a_agent', format('select public.laundry_actor_names(%L)::text', t.id('A'))), 'Léa Alpha/{}');
 
 -- Suppression d'une organisation (fermeture de compte) : le journal des missions ne bloque pas la cascade
 select t.check('suppression : l''organisation A a des missions assignées', '', (select count(*) from public.tasks where organization_id = t.id('A') and assignee_id is not null) > 0);

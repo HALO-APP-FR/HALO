@@ -9,7 +9,7 @@ import { guestFavorite } from "@/lib/connected/guest-actions";
 import { addPlace, deletePlace, importNearbyPlaces, locateProperty, setAutoPlaces, setPlaceHidden, storeImportedPlaces, updatePlace, verifyPlace, type PlaceInput } from "@/lib/connected/actions";
 import { directionsLink, MAPS_APPS, type MapsApp } from "@/lib/engine/directions";
 import { beforeAccess, revealsHome, streetOf } from "@/lib/engine/privacy";
-import { GUEST_FILTERS, GUEST_RADII, matchesFilter, overpassQuery, parseOverpass, parsePhoton, photonUrls, PLACE_CATEGORIES, withinRadius, type GuestFilter, type PlaceCategory } from "@/lib/engine/places";
+import { dedupePlaces, GUEST_FILTERS, GUEST_RADII, matchesFilter, overpassQuery, parseOverpass, parsePhoton, photonUrls, PLACE_CATEGORIES, withinRadius, type GuestFilter, type PlaceCategory } from "@/lib/engine/places";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Select } from "@/components/ui/field";
@@ -137,7 +137,7 @@ const HEALTH_KINDS = ["pharmacy", "hospital", "clinic", "doctors"];
  */
 export function GuestAround({
   property,
-  places,
+  places: rawPlaces,
   hiddenUntil,
   nearHidden = 0,
   autoHidden = 0,
@@ -160,6 +160,8 @@ export function GuestAround({
   const t = useTranslations("guestSpace.around");
   const tc = useTranslations("places.category");
   const f = useFormatter();
+  // Même nom au même endroit = une seule fiche (la plus fiable) ; deux noms différents ne sont jamais fusionnés
+  const { places, merged } = useMemo(() => dedupePlaces(rawPlaces, new Set(initialFavorites)), [rawPlaces, initialFavorites]);
   const center = property.lat != null && property.lng != null ? { lat: property.lat, lng: property.lng } : zone ? { lat: zone.lat, lng: zone.lng } : null;
   const isZone = property.lat == null && Boolean(zone);
   // Lieux du quartier : recherchés par le serveur à la première ouverture. Tant qu'ils sont « en préparation »,
@@ -473,6 +475,7 @@ export function GuestAround({
             {/* Le libellé suit le calcul réel : centre du quartier avant l'ouverture, logement ensuite */}
             {isZone ? t("distanceNoteZone") : t("distanceNote")}
             {latestOsm && ` · ${t("osmData", { date: f.dateTime(new Date(latestOsm), { dateStyle: "medium" }) })}`}
+            {merged > 0 && <span data-testid="around-merged">{` · ${t("merged", { count: merged })}`}</span>}
             {" · "}
             {t("notBookable")}
           </p>

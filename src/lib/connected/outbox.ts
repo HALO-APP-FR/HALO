@@ -39,9 +39,25 @@ export interface OutboxRow {
 /** E-mails portant un lien personnel : le lien n'existe que dans l'e-mail et quitte le journal après l'envoi. */
 const LINK_TEMPLATES = new Set(["prep_invite", "booking_link", "review_request"]);
 
+/**
+ * Rappels de dépassement (migration 33) : préparés par la base au moment voulu. Lancés par la tâche planifiée
+ * (/api/cron/notifications) et, en complément, à chaque traitement de la file (au plus une fois par minute).
+ */
+let lastSweep = 0;
+export async function sweepOverruns(force = false) {
+  const admin = supabaseAdmin();
+  if (!admin) return null;
+  if (!force && Date.now() - lastSweep < 60_000) return null;
+  lastSweep = Date.now();
+  const { data, error } = await admin.rpc("overrun_sweep");
+  if (error) return error.code === "PGRST202" ? null : { error: error.message };
+  return data as { agent: number; team: number };
+}
+
 export async function processOutbox(orgId?: string) {
   const admin = supabaseAdmin();
   if (!admin) return { processed: 0, reason: "no_admin_key" as const };
+  await sweepOverruns();
   // Réservation atomique (migration 18) : deux traitements simultanés n'envoient jamais le même e-mail
   const { data: rows, error: claimErr } = await admin.rpc("outbox_claim", { org: orgId ?? null, n: 20 });
   if (claimErr) return { processed: 0, reason: "claim_failed" as const };
@@ -66,14 +82,17 @@ export async function processOutbox(orgId?: string) {
     // Push (migration 28) : avant l'e-mail, indépendant de lui ; uniquement vers les appareils que la personne a
     // elle-même inscrits, une seule fois par notification. Résultat réel journalisé dans push_deliveries.
     let emailWanted = true;
+    let skipReason = "email_off_by_user";
     try {
-      emailWanted = (await pushForOutbox(admin, row, appUrl())).email;
+      const r = await pushForOutbox(admin, row, appUrl());
+      emailWanted = r.email;
+      if (r.reason) skipReason = r.reason;
     } catch (e) {
       // un échec push n'empêche jamais l'e-mail ; il est journalisé
       console.error("push", row.template, e instanceof Error ? e.message : e);
     }
     if (!emailWanted) {
-      await finish(row, { status: "skipped", last_error: "email_off_by_user" });
+      await finish(row, { status: "skipped", last_error: skipReason });
       continue;
     }
     // Adresse fictive (comptes de test) : jamais envoyée, jamais comptée « envoyée »
@@ -93,7 +112,7 @@ export async function processOutbox(orgId?: string) {
       const locale = (locales as readonly string[]).includes(row.locale) ? (row.locale as Locale) : "en";
       const t = await getTranslations({ locale, namespace: "email" });
       // Missions : type de mission ; prestations : type de prestation
-      const taskTpl = row.template === "team_task_to_validate" || row.template.startsWith("agent_");
+      const taskTpl = row.template === "team_task_to_validate" || row.template === "team_task_overrun" || row.template.startsWith("agent_");
       const kind = typeof row.payload.kind === "string" ? (await getTranslations({ locale, namespace: taskTpl ? "taskType" : "serviceKind" }))(row.payload.kind) : "";
       const message = typeof row.payload.message === "string" ? row.payload.message : "";
       const org = orgNames.get(row.organization_id)!;

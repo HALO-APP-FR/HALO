@@ -100,6 +100,22 @@ export async function confirmLaundryOrder(orderId: string, lines: { itemId: stri
   return { ok: true, data: { gaps: d.gaps?.length ?? 0 } };
 }
 
+/**
+ * Écart restant après réception (migration 33) : le linge manquant est déclaré perdu (sort du stock) ou retrouvé
+ * (rejoint le propre). Jamais plus que le manque restant ; l'action est datée et attribuée.
+ */
+export async function resolveLaundryGap(orderId: string, itemId: string, qty: number, outcome: "lost" | "found", note: string): Promise<Result<{ open: number }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  if (!Number.isInteger(qty) || qty <= 0 || (outcome !== "lost" && outcome !== "found")) return fail("invalid");
+  const { data, error: e } = await ctx.supabase.rpc("laundry_gap_resolve", { org: ctx.org!.id, oid: orderId, item: itemId, qty, outcome, p_note: note || null });
+  if (e) return fail(code(e));
+  const d = data as { status: string; open?: number };
+  if (d.status === "stale") return fail("laundry_stale");
+  refresh();
+  return { ok: true, data: { open: d.open ?? 0 } };
+}
+
 // ---------------------------------------------------------------- Blanchisseur
 
 export async function acceptLaundryInvite(token: string): Promise<Result<{ status: string; email?: string }>> {
@@ -121,7 +137,8 @@ export async function advanceLaundryOrder(orderId: string, toStatus: string, lin
   const d = data as { status: string; gaps?: unknown[] };
   if (d.status === "stale") return fail("laundry_stale");
   // Écart déclaré : la notification préparée pour les responsables part tout de suite (e-mail / push selon leurs choix)
-  if (d.gaps?.length) await processOutbox();
+  // Écart déclaré ou linge en route : la notification préparée pour les responsables part tout de suite (e-mail / push selon leurs choix)
+  if (d.gaps?.length || toStatus === "out_for_delivery") await processOutbox();
   refresh();
   return { ok: true, data: { gaps: d.gaps?.length ?? 0 } };
 }

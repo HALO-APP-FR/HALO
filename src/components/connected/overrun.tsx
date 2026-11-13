@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Timer } from "lucide-react";
-import { cancelStartedTask, decideTaskEnd, keepIncidentOpen, overrunContinue, proposeTaskEnd, regularizeTaskEnd, resolveIncident, setOverrunAlert } from "@/lib/connected/actions";
+import { cancelStartedTask, reassignStartedTask, decideTaskEnd, keepIncidentOpen, overrunContinue, proposeTaskEnd, regularizeTaskEnd, resolveIncident, setOverrunAlert } from "@/lib/connected/actions";
 import { durationText, fromLocalInput, localInputIn } from "@/lib/connected/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Field, Textarea } from "@/components/ui/field";
+import { Field, Select, Textarea } from "@/components/ui/field";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useRun } from "./use-run";
 import { overrunDueAt } from "@/lib/engine/overrun";
@@ -243,13 +243,14 @@ export function OverrunAlertSetting({ initial, available }: { initial: number; a
  * Mission oubliée (responsable) : régulariser la fin quand l'agent n'est pas disponible, ou annuler la mission commencée.
  * Motif obligatoire ; ni l'une ni l'autre ne valide le travail. Les preuves manquantes sont annoncées avant de confirmer.
  */
-export function ForgottenMissionPanel({ taskId, startedAt, durationMin, proposedAt, missing, timeZone }: { taskId: string; startedAt: string; durationMin: number; proposedAt: string | null; missing: string[]; timeZone?: string }) {
+export function ForgottenMissionPanel({ taskId, startedAt, durationMin, proposedAt, missing, timeZone, members = [] }: { taskId: string; startedAt: string; durationMin: number; proposedAt: string | null; missing: string[]; timeZone?: string; /** Autres membres actifs (réattribution) */ members?: { id: string; name: string }[] }) {
   const t = useTranslations("connected.forgotten");
   const { pending, error, run } = useRun();
-  const [mode, setMode] = useState<"" | "end" | "cancel">("");
+  const [mode, setMode] = useState<"" | "end" | "cancel" | "reassign">("");
+  const [to, setTo] = useState("");
   const [end, setEnd] = useState("");
   const [reason, setReason] = useState("");
-  const open = (m: "end" | "cancel") => {
+  const open = (m: "end" | "cancel" | "reassign") => {
     setMode((x) => (x === m ? "" : m));
     setReason("");
     if (m === "end" && !end) {
@@ -265,6 +266,11 @@ export function ForgottenMissionPanel({ taskId, startedAt, durationMin, proposed
         <Button variant={mode === "end" ? "primary" : "outline"} onClick={() => open("end")} data-testid="regularize-open">
           {t("regularize")}
         </Button>
+        {members.length > 0 && (
+          <Button variant={mode === "reassign" ? "primary" : "outline"} onClick={() => open("reassign")} data-testid="reassign-started-open">
+            {t("reassign")}
+          </Button>
+        )}
         <Button variant={mode === "cancel" ? "danger" : "outline"} onClick={() => open("cancel")} data-testid="cancel-started-open">
           {t("cancel")}
         </Button>
@@ -275,6 +281,7 @@ export function ForgottenMissionPanel({ taskId, startedAt, durationMin, proposed
           onSubmit={(e) => {
             e.preventDefault();
             if (mode === "end") run(() => regularizeTaskEnd(taskId, fromLocalInput(end, timeZone).toISOString(), reason));
+            else if (mode === "reassign") run(() => reassignStartedTask(taskId, to, reason));
             else run(() => cancelStartedTask(taskId, reason));
           }}
         >
@@ -283,7 +290,19 @@ export function ForgottenMissionPanel({ taskId, startedAt, durationMin, proposed
               <Input id={`reg-end-${taskId}`} type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} required data-testid="regularize-end" />
             </Field>
           )}
-          <Field label={t("reasonLabel")} htmlFor={`reg-why-${taskId}`} hint={mode === "end" ? t("reasonHintEnd") : t("reasonHintCancel")}>
+          {mode === "reassign" && (
+            <Field label={t("reassignTo")} htmlFor={`reassign-${taskId}`}>
+              <Select id={`reassign-${taskId}`} value={to} onChange={(e) => setTo(e.target.value)} required data-testid="reassign-member">
+                <option value="">—</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
+          <Field label={t("reasonLabel")} htmlFor={`reg-why-${taskId}`} hint={mode === "end" ? t("reasonHintEnd") : mode === "reassign" ? t("reasonHintReassign") : t("reasonHintCancel")}>
             <Textarea id={`reg-why-${taskId}`} value={reason} onChange={(e) => setReason(e.target.value)} minLength={3} maxLength={1000} rows={2} required data-testid="regularize-reason" />
           </Field>
           {mode === "end" && missing.length > 0 && (
@@ -291,9 +310,9 @@ export function ForgottenMissionPanel({ taskId, startedAt, durationMin, proposed
               {t("missingWarning", { items: missing.join(", ") })}
             </p>
           )}
-          <p className="text-[13px] text-muted">{mode === "end" ? t("effectsEnd") : t("effectsCancel")}</p>
-          <Button type="submit" variant={mode === "cancel" ? "danger" : "primary"} disabled={pending || reason.trim().length < 3 || (mode === "end" && !end)} data-testid={mode === "end" ? "regularize-confirm" : "cancel-started-confirm"}>
-            {mode === "end" ? t("confirmEnd") : t("confirmCancel")}
+          <p className="text-[13px] text-muted">{mode === "end" ? t("effectsEnd") : mode === "reassign" ? t("effectsReassign") : t("effectsCancel")}</p>
+          <Button type="submit" variant={mode === "cancel" ? "danger" : "primary"} disabled={pending || reason.trim().length < 3 || (mode === "end" && !end) || (mode === "reassign" && !to)} data-testid={mode === "end" ? "regularize-confirm" : mode === "reassign" ? "reassign-started-confirm" : "cancel-started-confirm"}>
+            {mode === "end" ? t("confirmEnd") : mode === "reassign" ? t("confirmReassign") : t("confirmCancel")}
           </Button>
         </form>
       )}

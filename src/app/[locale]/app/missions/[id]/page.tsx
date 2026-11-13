@@ -137,6 +137,12 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
   const ta = await getTranslations("connected.absences");
   const tm = await getTranslations("connected.missions");
   const tc2 = await getTranslations("connected.arrivalConflict");
+  // Mission commencée : personnes à qui la confier (réattribution motivée, migration 33)
+  let startedMembers: { id: string; name: string }[] = [];
+  if (manager && task.status === "in_progress") {
+    const planning = await loadPlanning(supabase, o, nowDate());
+    startedMembers = planning.members.filter((m) => m.id !== task.assignee_id).map((m) => ({ id: m.id, name: m.name || "—" }));
+  }
   // Responsable : affectation, conflit d'absence et actions possibles, au même endroit
   let assign: React.ReactNode = null;
   if (manager && ["unassigned", "assigned", "to_redo"].includes(task.status)) {
@@ -298,7 +304,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
         </div>
       )}
       {manager && task.status === "in_progress" && task.started_at && (
-        <ForgottenMissionPanel taskId={task.id} startedAt={task.started_at} durationMin={task.duration_min} proposedAt={ex?.end_proposal_status === "pending" ? ex.end_proposed_at : null} missing={(requirements ? ([requirements.photos_missing > 0 ? "photos" : null, requirements.checklist.required && requirements.checklist.done < requirements.checklist.total ? "checklist" : null, requirements.comment.required && !requirements.comment.present ? "comment" : null].filter(Boolean) as string[]) : []).map((k) => tsm(k))} timeZone={p?.timezone ?? undefined} />
+        <ForgottenMissionPanel members={startedMembers} taskId={task.id} startedAt={task.started_at} durationMin={task.duration_min} proposedAt={ex?.end_proposal_status === "pending" ? ex.end_proposed_at : null} missing={(requirements ? ([requirements.photos_missing > 0 ? "photos" : null, requirements.checklist.required && requirements.checklist.done < requirements.checklist.total ? "checklist" : null, requirements.comment.required && !requirements.comment.present ? "comment" : null].filter(Boolean) as string[]) : []).map((k) => tsm(k))} timeZone={p?.timezone ?? undefined} />
       )}
       {x23?.regularized_at && (manager || mine) && (
         <div className="mb-4 rounded-xl border border-warning bg-warning-soft p-4 text-[15px]" role="status" data-testid="task-regularized">
@@ -451,7 +457,7 @@ export default async function MissionPage({ params }: PageProps<"/[locale]/app/m
                 } catch {
                   extra = "";
                 }
-              } else if (["correction_requested", "early_start_allowed", "end_regularized", "cancelled"].includes(e.kind) && e.note) extra = ` — « ${e.note} »`;
+              } else if (["correction_requested", "early_start_allowed", "end_regularized", "cancelled", "reassigned"].includes(e.kind) && e.note) extra = ` — « ${e.note} »`;
               else if (e.kind === "auto_restored" && e.note) {
                 try {
                   const n = JSON.parse(e.note) as { to: [string, string, number] };

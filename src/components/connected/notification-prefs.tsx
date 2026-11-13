@@ -16,6 +16,8 @@ export interface PrefRow {
   email: boolean;
   /** Push : null = aucun push pour cet événement ; sinon préférence enregistrée (oui par défaut) */
   push: boolean | null;
+  /** Urgence : push toujours envoyé (non désactivable) dès qu'un appareil est inscrit */
+  pushLocked?: boolean;
   /** Urgences : l'e-mail part toujours pour elles, même préférence coupée. */
   critical: "always" | "urgent_only" | null;
 }
@@ -108,7 +110,7 @@ function PrefItem({ row, disabled, pushReady }: { row: PrefRow; disabled: boolea
           <input
             type="checkbox"
             checked={pushReady && pushOn}
-            disabled={!pushReady || pending}
+            disabled={!pushReady || pending || row.pushLocked}
             onChange={(e) => {
               const v = e.target.checked;
               setPushOn(v);
@@ -121,6 +123,7 @@ function PrefItem({ row, disabled, pushReady }: { row: PrefRow; disabled: boolea
             data-testid="pref-push"
           />
           {t("byPush")}
+          {row.pushLocked && <span className="text-[12px] text-muted" data-testid="pref-push-locked">· {t("pushAlways")}</span>}
         </label>
       )}
       {error && <p role="alert" className="basis-full text-[13px] text-danger">{error}</p>}

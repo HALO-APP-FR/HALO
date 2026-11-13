@@ -208,6 +208,37 @@ export async function GET(request: NextRequest) {
       const { data: cc, error: cce } = await a1.rpc("cancel_task", { org: orgA, task: ct, reason: `Selftest ${run} (fictif)` });
       const { data: cRow } = await a1.from("tasks").select("status, cancel_reason").eq("id", ct).single();
       check("manager_cancels_started_mission_with_reason", !cce && cc === "applied" && cNoWhy?.code === "22023" && cRow?.status === "cancelled", cce ? (cce.code === "PGRST202" ? "migration 23 absente" : `${cce.code}:${cce.message}`) : `${cc} ${cNoWhy?.code} ${cRow?.status}`);
+      // 4g. Migration 33 : rappel de dépassement préparé par le serveur (une seule fois, rien après annulation),
+      //     réattribution motivée d'une mission commencée
+      if (admin) {
+        const ot = await mk();
+        await admin.from("tasks").update({ started_at: new Date(Date.now() - 2 * 3_600_000).toISOString() }).eq("id", ot);
+        const { error: swe } = await admin.rpc("overrun_sweep");
+        if (swe) check("overrun_reminder_prepared_once", false, swe.code === "PGRST202" ? "migration 33 absente" : `${swe.code}:${swe.message}`);
+        else {
+          await admin.rpc("overrun_sweep");
+          const tpls = async () => ((await admin.from("notification_outbox").select("template").eq("organization_id", orgA).eq("payload->>path", `/app/missions/${ot}`).in("template", ["agent_task_overrun", "team_task_overrun"])).data ?? []).map((r) => r.template as string).sort().join(",");
+          const first = await tpls();
+          await a1.rpc("cancel_task", { org: orgA, task: ot, reason: `Selftest ${run} (fictif)` });
+          await admin.from("tasks").update({ overrun_reminded_at: null, overrun_alerted_at: null }).eq("id", ot);
+          await admin.rpc("overrun_sweep");
+          const after = await tpls();
+          check("overrun_reminder_prepared_once", first === "agent_task_overrun,team_task_overrun" && after === first, `${first} → ${after}`);
+        }
+        const rt2 = await mk();
+        const managerId = (await a1.auth.getUser()).data.user!.id;
+        const { error: noWhy } = await a1.rpc("reassign_started_task", { org: orgA, task: rt2, member: managerId, reason: " " });
+        const { error: byAgent } = await ag.rpc("reassign_started_task", { org: orgA, task: rt2, member: managerId, reason: "selftest" });
+        const { data: ra, error: rae } = await a1.rpc("reassign_started_task", { org: orgA, task: rt2, member: managerId, reason: `Selftest ${run} (fictif)` });
+        const { data: raRow } = await a1.from("tasks").select("status, assignee_id, started_at").eq("id", rt2).single();
+        const { data: lateAg } = await ag.rpc("task_overrun_continue", { org: orgA, task: rt2 });
+        check(
+          "manager_reassigns_started_mission",
+          !rae && Boolean(noWhy) && Boolean(byAgent) && raRow?.status === "assigned" && raRow?.assignee_id === managerId && raRow?.started_at === null && lateAg !== "applied",
+          rae ? (rae.code === "PGRST202" ? "migration 33 absente" : `${rae.code}:${rae.message}`) : `${JSON.stringify(ra)} ${raRow?.status} ${String(lateAg)}`,
+        );
+        await a1.rpc("cancel_task", { org: orgA, task: rt2, reason: `Selftest ${run} (fictif)` });
+      }
     }
     // 4d. Règles de mission (migration 19) : ménage impossible avant sa plage, même par appel direct ;
     //     livraison de linge avant l'heure conseillée = confirmation demandée

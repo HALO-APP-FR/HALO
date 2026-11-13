@@ -1998,14 +1998,19 @@
         "timing_cancelled": "Horário anulado",
         "timing_updated": "Horário da estadia atualizado",
         "agent_task_validated": "Agente: missão validada",
-        "team_laundry_gap": "Equipa: diferença lavandaria"
+        "team_laundry_gap": "Equipa: diferença lavandaria",
+        "team_task_overrun": "Equipa: missão mais longa do que previsto",
+        "agent_task_overrun": "Agente: duração estimada atingida",
+        "team_laundry_update": "Equipa: roupa a caminho"
       },
       "testAddress": "Endereço fictício (conta de teste): nada é enviado.",
       "skippedReason": "O destinatário desativou este e-mail; o evento continua visível no HALO.",
       "inviteNotKept": "A ligação não é guardada após um envio: envie um novo convite a partir da estadia.",
       "inviteResend": "Para tentar de novo, use «Enviar por e-mail» na estadia (nova ligação).",
       "skippedSuperseded": "Não enviado: foi tomada uma decisão mais recente sobre o horário desta estadia; só a última mensagem é enviada.",
-      "skippedEmailOff": "E-mail desativado pelo destinatário para este evento (só push); o evento continua visível no HALO."
+      "skippedEmailOff": "E-mail desativado pelo destinatário para este evento (só push); o evento continua visível no HALO.",
+      "pushOnly": "telemóvel do hóspede (sem e-mail)",
+      "skippedNoGuestEmail": "Sem e-mail: apenas foi tentada uma notificação no telemóvel do hóspede (se ativada). A mensagem fica no seu espaço."
     },
     "services": {
       "title": "Serviços",
@@ -2447,7 +2452,8 @@
         "end_accepted": "Hora de fim proposta aceite",
         "end_rejected": "Hora de fim proposta recusada",
         "end_regularized": "Fim regularizado por um responsável (por validar)",
-        "auto_restored": "Regresso ao cálculo automático"
+        "auto_restored": "Regresso ao cálculo automático",
+        "reassigned": "Reatribuída em curso"
       },
       "bySystem": "automático",
       "byYou": "você",
@@ -2643,7 +2649,10 @@
         "team_vip_requested": "Pedido de receção personalizada (VIP)",
         "team_booking_requested": "Pedido de estadia de um antigo hóspede",
         "team_low_review": "Avaliação com nota baixa",
-        "agent_task_validated": "A minha missão foi validada"
+        "agent_task_validated": "A minha missão foi validada",
+        "team_task_overrun": "Missão mais longa do que previsto",
+        "team_laundry": "Encomenda de roupa (diferença, roupa a caminho)",
+        "agent_task_overrun": "Lembrete: duração estimada atingida"
       },
       "pageTitle": "Preferências",
       "pageSubtitle": "As suas definições pessoais: não mudam nada para os outros membros.",
@@ -2658,13 +2667,15 @@
         "missions": "As minhas missões",
         "profile": "O meu perfil (ausências)",
         "bookings": "Pedidos de estadia e Início",
-        "satisfaction": "Satisfação e Início"
+        "satisfaction": "Satisfação e Início",
+        "linen": "Roupa"
       },
       "reset": "Repor as definições predefinidas",
       "resetHint": "Por predefinição, tudo é enviado por e-mail.",
       "resetDone": "Definições predefinidas repostas.",
       "byPush": "Push",
-      "pushNeedsDevice": "Ative primeiro o push num aparelho"
+      "pushNeedsDevice": "Ative primeiro o push num aparelho",
+      "pushAlways": "urgente, sempre enviado"
     },
     "places": {
       "title": "Recomendações do alojamento (espaço do hóspede)",
@@ -3782,7 +3793,7 @@
       "declaredAt": "Declarada em {at}",
       "refresh": "Atualizar",
       "question": "Ainda está na tarefa?",
-      "channel": "Lembrete mostrado apenas no HALO: nenhuma notificação é enviada para o telemóvel."
+      "channel": "Lembrete no HALO, e no telemóvel se as notificações estiverem ativas em As minhas preferências."
     },
     "incidentResolve": {
       "title": "Intervenção validada: o incidente está resolvido?",
@@ -3962,7 +3973,7 @@
     },
     "forgotten": {
       "title": "Tarefa ainda em curso?",
-      "text": "Se o agente se esqueceu de terminar e não pode responder, regularize o fim; se a intervenção já não se justifica, anule-a. Motivo obrigatório, tudo fica no histórico.",
+      "text": "Se o agente se esqueceu de terminar e não pode responder, regularize o fim; se tiver de passar a vez, confie a missão a outra pessoa; se já não for necessária, anule-a. Motivo obrigatório; tudo fica no histórico.",
       "regularize": "Regularizar o fim",
       "cancel": "Anular a tarefa",
       "endLabel": "Hora de fim considerada",
@@ -3979,7 +3990,12 @@
       "regularizedText": "Hora de fim considerada: {end}. Decisão de {at}. Não é um fim declarado pelo agente.",
       "regularizedMissing": "Provas em falta na regularização: {items}. A validação continua a exigi-las.",
       "regularizedComplete": "Nenhuma prova obrigatória faltava na regularização.",
-      "cancelledTitle": "Anulada em {at}"
+      "cancelledTitle": "Anulada em {at}",
+      "reassign": "Confiar a outra pessoa",
+      "reassignTo": "Nova pessoa",
+      "reasonHintReassign": "Ex.: agente chamado para uma urgência, rendição prevista.",
+      "effectsReassign": "Efeito: a missão volta a «a fazer» para a nova pessoa (início, fotos e relatório ficam no histórico). O agente atual é avisado; as ações tardias não terão efeito.",
+      "confirmReassign": "Confirmar reatribuição"
     },
     "autoWindow": {
       "open": "Voltar ao cálculo automático",
@@ -4201,7 +4217,8 @@
         "delivered": "Receção confirmada",
         "cancelled": "Anulada",
         "discrepancy": "Diferença de quantidade",
-        "note": "Nota"
+        "note": "Nota",
+        "gap_resolved": "Diferença tratada"
       },
       "action": {
         "received": "Recebi a roupa",
@@ -4214,7 +4231,9 @@
         "sent": "Enviado",
         "received": "Recebido",
         "returned": "Entregue",
-        "confirmed": "Constatado"
+        "confirmed": "Confirmado",
+        "yours": "você",
+        "declaredByLaundry": "declarado pela lavandaria"
       },
       "stepsLabel": "Etapas da encomenda",
       "history": "Histórico ({count})",
@@ -4252,7 +4271,52 @@
       "acceptedText": "Convite aceite: passa a ver as encomendas que lhe são confiadas.",
       "goOrders": "Ver as minhas encomendas",
       "wrongAccount": "Este convite é nominal: reservado a {email}. Entre com esse endereço.",
-      "inviteInvalid": "Convite expirado, anulado ou já usado. Peça um novo."
+      "inviteInvalid": "Convite expirado, anulado ou já usado. Peça um novo.",
+      "byLaundryNamed": "lavandaria ({name})",
+      "gapFoundQty": "{qty} encontrado(s), de volta ao limpo",
+      "gapLostQty": "{qty} perdido(s), retirado(s) do stock",
+      "nextConfirm": "Próximo passo: conte a roupa entregue e confirme a receção.",
+      "takeBack": "Recuperar a roupa antes do fim",
+      "takeBackHint": "A roupa recuperada volta ao stock «sujo» (não foi tratada). Indique o que recupera realmente.",
+      "takeBackConfirm": "Confirmar recuperação",
+      "openGapTitle": "Roupa em falta a tratar",
+      "openGapLine": "{label}: {count} em falta",
+      "openGapQty": "Quantidade · {label}",
+      "gapFound": "Encontrado",
+      "gapLost": "Perdido",
+      "gapResolved": "Diferença tratada",
+      "group": {
+        "toReceive": "A receber",
+        "toProcess": "A tratar",
+        "toDeliver": "A entregar",
+        "onTheWay": "A caminho"
+      }
+    },
+    "stayNow": {
+      "title": "Agora",
+      "prep": "Preparação: {status}",
+      "missions": "{count, plural, =0 {nenhuma missão} one {# missão} other {# missões}}",
+      "calm": "Nada a tratar para esta estadia neste momento.",
+      "next": {
+        "conflict": "Resolver o conflito de horário",
+        "arrival_risk": "Verificar {count, plural, one {a missão} other {as # missões}} antes da chegada",
+        "guest_messages": "Ler e responder {count, plural, one {à mensagem} other {às # mensagens}} do hóspede",
+        "guest_requests": "Responder {count, plural, one {ao pedido} other {aos # pedidos}} do hóspede",
+        "vip_request": "Decidir sobre o pedido de acolhimento personalizado",
+        "prep_review": "Rever as respostas de preparação",
+        "blocking_actions": "Concluir {count, plural, one {a ação bloqueante} other {as # ações bloqueantes}}",
+        "unassigned_missions": "Atribuir {count, plural, one {a missão} other {as # missões}} sem agente"
+      },
+      "item": {
+        "conflict": "Conflito de horário",
+        "arrival_risk": "{count, plural, one {# missão em risco} other {# missões em risco}}",
+        "guest_messages": "{count, plural, one {# mensagem por ler} other {# mensagens por ler}}",
+        "guest_requests": "{count, plural, one {# pedido a tratar} other {# pedidos a tratar}}",
+        "vip_request": "Pedido VIP",
+        "prep_review": "Respostas a rever",
+        "blocking_actions": "{count, plural, one {# ação bloqueante} other {# ações bloqueantes}}",
+        "unassigned_missions": "{count, plural, one {# missão sem agente} other {# missões sem agente}}"
+      }
     }
   },
   "email": {
@@ -4425,6 +4489,18 @@
     "team_laundry_gap": {
       "subject": "A lavandaria assinala uma diferença — encomenda {reference}",
       "body": "A lavandaria declarou quantidades diferentes na encomenda {reference}. Detalhe em Roupa > Lavandaria externa."
+    },
+    "agent_task_overrun": {
+      "subject": "Duração estimada atingida — {property}",
+      "body": "A duração estimada da sua missão «{kind}» em {property} foi atingida. Se ainda estiver no local, indique-o no HALO ou proponha uma hora de fim. É apenas uma estimativa."
+    },
+    "team_task_overrun": {
+      "subject": "Missão mais longa do que previsto — {property}",
+      "body": "A missão «{kind}» de {member} em {property} excede a duração estimada, sem resposta por agora. Nada é alterado automaticamente: consulte a missão no HALO."
+    },
+    "team_laundry_update": {
+      "subject": "Roupa a caminho — encomenda {reference}",
+      "body": "A lavandaria indica que a encomenda {reference} saiu para entrega. Confirme a receção em Roupa depois de contada."
     }
   },
   "guestSpace": {
@@ -4637,7 +4713,8 @@
       "zoneRetry": "Tentar novamente",
       "zoneNone": "O OpenStreetMap não encontrou locais públicos neste bairro.",
       "discoverHintZone": "Restaurantes, comércio, atividades e serviços do bairro",
-      "distanceFromZone": "{d} do centro do bairro"
+      "distanceFromZone": "{d} do centro do bairro",
+      "merged": "{count, plural, one {# ficha duplicada agrupada} other {# fichas duplicadas agrupadas}}"
     },
     "prepBanner": "A sua estadia aproxima-se. As informações práticas (morada, acesso, guia) aparecerão aqui a partir de {date}. Entretanto pode preparar a estadia e escrever à equipa.",
     "prepared": {
@@ -4760,6 +4837,31 @@
         "late_checkout": "Saída atualmente prevista para {date}, mais tarde do que o horário confirmado ({old})."
       },
       "current": "Horários atualmente previstos: chegada a {in}, saída a {out}."
+    },
+    "push": {
+      "title": "Ser avisado neste telemóvel",
+      "text": "Uma notificação discreta quando a equipa responde ao seu pedido ou lhe escreve. Nenhum conteúdo ou nome no ecrã bloqueado.",
+      "state": {
+        "checking": "A verificar este dispositivo…",
+        "ready": "Disponíveis neste dispositivo: ative-as se desejar.",
+        "on": "Ativadas neste dispositivo para esta estadia.",
+        "denied": "Recusadas neste dispositivo. Para mudar, autorize as notificações deste site nas definições do telemóvel ou do navegador.",
+        "ios_install": "No iPhone, as notificações só funcionam a partir do ecrã principal:",
+        "ios_too_old": "Impossível neste iPhone: é necessário iOS 16.4 ou superior. As respostas continuam visíveis nesta página.",
+        "unsupported": "Impossível com este navegador. As respostas continuam visíveis nesta página.",
+        "not_configured": "Ainda não disponibilizadas pela sua concierge. As respostas continuam visíveis nesta página.",
+        "unavailable": "Indisponível de momento."
+      },
+      "ios": {
+        "share": "No Safari, toque em Partilhar (quadrado com seta).",
+        "add": "Escolha «Adicionar ao ecrã principal» e depois Adicionar.",
+        "open": "Abra «Mon séjour» a partir do ecrã principal e ative aqui as notificações.",
+        "keep": "Mantenha o ícone «Mon séjour» até ao fim da estadia."
+      },
+      "activate": "Ativar notificações",
+      "deactivate": "Desativar neste dispositivo",
+      "failed": "A ativação falhou. Nada foi guardado; tente mais tarde.",
+      "linkUnavailable": "Esta ligação de estadia já não está ativa."
     }
   },
   "demoEntry": {
@@ -4781,7 +4883,9 @@
       "anonBlocked": "Leitura anónima recusada",
       "auth": "Início de sessão por e-mail ativo",
       "serverKey": "Chave do servidor (notificações)",
-      "email": "Serviço de e-mail (ligação SMTP verificada)"
+      "email": "Serviço de e-mail (ligação SMTP verificada)",
+      "push": "Notificações push (chaves configuradas no servidor; receção real a testar num telemóvel)",
+      "cron": "Tarefa agendada de lembretes (segredo configurado)"
     },
     "state": {
       "ok": "Verificado",
@@ -5037,6 +5141,36 @@
       "title": "Teste HALO",
       "body": "As notificações push funcionam neste aparelho.",
       "bodyProperty": "Teste · {property}"
+    },
+    "message": {
+      "title": "Mensagem",
+      "body": "Uma nova mensagem aguarda no HALO.",
+      "bodyProperty": "Nova mensagem · {property}"
+    },
+    "overrun_reminder": {
+      "title": "Fim de missão previsto",
+      "body": "A duração estimada foi atingida. Indique se ainda está em missão.",
+      "bodyProperty": "Duração estimada atingida · {property}"
+    },
+    "to_validate": {
+      "title": "Missão a validar",
+      "body": "Uma missão concluída aguarda a sua validação.",
+      "bodyProperty": "Missão concluída · {property}"
+    },
+    "overrun": {
+      "title": "Missão mais longa do que previsto",
+      "body": "Uma missão excede a duração estimada.",
+      "bodyProperty": "Duração estimada excedida · {property}"
+    },
+    "laundry": {
+      "title": "Roupa",
+      "body": "Uma encomenda de roupa mudou.",
+      "bodyProperty": "Encomenda de roupa · {property}"
+    },
+    "guest_update": {
+      "title": "A sua estadia",
+      "body": "A equipa respondeu ou atualizou o seu pedido.",
+      "bodyProperty": "Nova resposta · {property}"
     }
   }
 }

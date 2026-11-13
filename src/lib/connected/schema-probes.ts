@@ -46,6 +46,7 @@ export const SCHEMA_PROBES: Probe[] = [
   { version: "20261125000001", name: "push_comptes_de_test", rpc: "push_wanted_for_recipient", args: { org: Z, rcpt: "x@halo.invalid", tpl: "agent_task_assigned" } },
   { version: "20261126000001", name: "linge_inventaire_concurrent", rpc: "linen_count", args: { org: Z, item: Z, loc: "clean", counted: 0, note: null, expected: 0 } },
   { version: "20261127000001", name: "blanchisseur_externe", table: "laundry_orders" },
+  { version: "20261128000001", name: "notifications_completes", rpc: "laundry_gap_resolve", args: { org: Z, oid: Z, item: Z, qty: 1, outcome: "lost", p_note: null } },
 ];
 
 export type ProbeState = "ok" | "missing" | "unverified";

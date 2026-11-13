@@ -1998,14 +1998,19 @@
         "timing_cancelled": "Uhrzeit storniert",
         "timing_updated": "Uhrzeit des Aufenthalts aktualisiert",
         "agent_task_validated": "Mitarbeiter: Einsatz freigegeben",
-        "team_laundry_gap": "Team: Wäscherei-Abweichung"
+        "team_laundry_gap": "Team: Wäscherei-Abweichung",
+        "team_task_overrun": "Team: Mission länger als geplant",
+        "agent_task_overrun": "Agent: geschätzte Dauer erreicht",
+        "team_laundry_update": "Team: Wäsche unterwegs"
       },
       "testAddress": "Fiktive Adresse (Testkonto): Es wird nichts gesendet.",
       "skippedReason": "Der Empfänger hat diese E-Mail deaktiviert; das Ereignis bleibt in HALO sichtbar.",
       "inviteNotKept": "Der Link wird nach einem Versand nicht gespeichert: Senden Sie eine neue Einladung aus dem Aufenthalt.",
       "inviteResend": "Zum erneuten Versuch „Per E-Mail senden“ im Aufenthalt nutzen (neuer Link).",
       "skippedSuperseded": "Nicht gesendet: Es gibt eine neuere Entscheidung zur Uhrzeit dieses Aufenthalts; nur die letzte Nachricht wird gesendet.",
-      "skippedEmailOff": "E-Mail vom Empfänger für dieses Ereignis abgeschaltet (nur Push); das Ereignis bleibt in HALO sichtbar."
+      "skippedEmailOff": "E-Mail vom Empfänger für dieses Ereignis abgeschaltet (nur Push); das Ereignis bleibt in HALO sichtbar.",
+      "pushOnly": "Telefon des Gastes (ohne E-Mail)",
+      "skippedNoGuestEmail": "Keine E-Mail-Adresse: Nur eine Benachrichtigung aufs Telefon des Gastes wurde versucht (falls aktiviert). Die Nachricht bleibt in seinem Bereich."
     },
     "services": {
       "title": "Leistungen",
@@ -2447,7 +2452,8 @@
         "end_accepted": "Vorgeschlagenes Ende angenommen",
         "end_rejected": "Vorgeschlagenes Ende abgelehnt",
         "end_regularized": "Ende nachgetragen (zur Freigabe)",
-        "auto_restored": "Zurück zur automatischen Berechnung"
+        "auto_restored": "Zurück zur automatischen Berechnung",
+        "reassigned": "Während der Ausführung neu zugewiesen"
       },
       "bySystem": "automatisch",
       "byYou": "Sie",
@@ -2643,7 +2649,10 @@
         "team_vip_requested": "Anfrage für persönlichen Empfang (VIP)",
         "team_booking_requested": "Aufenthaltsanfrage eines früheren Gastes",
         "team_low_review": "Bewertung mit niedriger Note",
-        "agent_task_validated": "Mein Einsatz ist freigegeben"
+        "agent_task_validated": "Mein Einsatz ist freigegeben",
+        "team_task_overrun": "Mission länger als geplant",
+        "team_laundry": "Wäscheauftrag (Abweichung, unterwegs)",
+        "agent_task_overrun": "Erinnerung: geschätzte Dauer erreicht"
       },
       "pageTitle": "Einstellungen",
       "pageSubtitle": "Ihre persönlichen Einstellungen: Sie ändern nichts für andere Mitglieder.",
@@ -2658,13 +2667,15 @@
         "missions": "Meine Einsätze",
         "profile": "Mein Profil (Abwesenheiten)",
         "bookings": "Aufenthaltsanfragen und Start",
-        "satisfaction": "Zufriedenheit und Start"
+        "satisfaction": "Zufriedenheit und Start",
+        "linen": "Wäsche"
       },
       "reset": "Standardeinstellungen wiederherstellen",
       "resetHint": "Standardmäßig wird alles per E-Mail gesendet.",
       "resetDone": "Standardeinstellungen wiederhergestellt.",
       "byPush": "Push",
-      "pushNeedsDevice": "Zuerst Push auf einem Gerät aktivieren"
+      "pushNeedsDevice": "Zuerst Push auf einem Gerät aktivieren",
+      "pushAlways": "dringend, immer gesendet"
     },
     "places": {
       "title": "Empfehlungen der Unterkunft (Gästebereich)",
@@ -3782,7 +3793,7 @@
       "declaredAt": "Gemeldet am {at}",
       "refresh": "Aktualisieren",
       "question": "Sind Sie noch im Einsatz?",
-      "channel": "Erinnerung nur in HALO: Es wird keine Benachrichtigung ans Telefon gesendet."
+      "channel": "Erinnerung in HALO und auf dem Telefon, wenn Benachrichtigungen in Meine Einstellungen aktiv sind."
     },
     "incidentResolve": {
       "title": "Einsatz freigegeben: ist der Vorfall behoben?",
@@ -3962,7 +3973,7 @@
     },
     "forgotten": {
       "title": "Aufgabe noch offen?",
-      "text": "Hat die Person vergessen abzuschließen und ist nicht erreichbar, tragen Sie das Ende nach; wird der Einsatz nicht mehr benötigt, stornieren Sie ihn. Begründung Pflicht, alles bleibt im Verlauf.",
+      "text": "Hat der Agent das Beenden vergessen und ist nicht erreichbar, Ende nachtragen; muss er übergeben, Mission jemand anderem geben; wird sie nicht mehr gebraucht, stornieren. Grund erforderlich; alles bleibt im Verlauf.",
       "regularize": "Ende nachtragen",
       "cancel": "Aufgabe stornieren",
       "endLabel": "Festgelegtes Ende",
@@ -3979,7 +3990,12 @@
       "regularizedText": "Festgelegtes Ende: {end}. Entscheidung vom {at}. Kein von der Person gemeldetes Ende.",
       "regularizedMissing": "Fehlende Nachweise beim Nachtrag: {items}. Die Freigabe verlangt sie weiterhin.",
       "regularizedComplete": "Beim Nachtrag fehlte kein Pflichtnachweis.",
-      "cancelledTitle": "Storniert am {at}"
+      "cancelledTitle": "Storniert am {at}",
+      "reassign": "Jemand anderem übergeben",
+      "reassignTo": "Neue Person",
+      "reasonHintReassign": "Z. B. Agent zu einem Notfall gerufen, geplante Übergabe.",
+      "effectsReassign": "Wirkung: Die Mission ist für die neue Person wieder „zu erledigen“ (Start, Fotos und Bericht bleiben im Verlauf). Der aktuelle Agent wird benachrichtigt; spätere Aktionen bleiben wirkungslos.",
+      "confirmReassign": "Übergabe bestätigen"
     },
     "autoWindow": {
       "open": "Zur automatischen Berechnung zurück",
@@ -4201,7 +4217,8 @@
         "delivered": "Empfang bestätigt",
         "cancelled": "Storniert",
         "discrepancy": "Mengenabweichung",
-        "note": "Notiz"
+        "note": "Notiz",
+        "gap_resolved": "Abweichung bearbeitet"
       },
       "action": {
         "received": "Wäsche erhalten",
@@ -4214,7 +4231,9 @@
         "sent": "Gesendet",
         "received": "Erhalten",
         "returned": "Geliefert",
-        "confirmed": "Geprüft"
+        "confirmed": "Bestätigt",
+        "yours": "Sie",
+        "declaredByLaundry": "von der Wäscherei angegeben"
       },
       "stepsLabel": "Auftragsschritte",
       "history": "Verlauf ({count})",
@@ -4252,7 +4271,52 @@
       "acceptedText": "Einladung angenommen: Sie sehen jetzt Ihre Aufträge.",
       "goOrders": "Meine Aufträge ansehen",
       "wrongAccount": "Diese Einladung ist persönlich: nur für {email}. Mit dieser Adresse anmelden.",
-      "inviteInvalid": "Einladung abgelaufen, zurückgezogen oder bereits benutzt. Neue anfordern."
+      "inviteInvalid": "Einladung abgelaufen, zurückgezogen oder bereits benutzt. Neue anfordern.",
+      "byLaundryNamed": "Wäscherei ({name})",
+      "gapFoundQty": "{qty} gefunden, zurück in sauber",
+      "gapLostQty": "{qty} verloren, aus dem Bestand entfernt",
+      "nextConfirm": "Nächster Schritt: gelieferte Wäsche zählen und Empfang bestätigen.",
+      "takeBack": "Wäsche vorzeitig zurücknehmen",
+      "takeBackHint": "Zurückgenommene Wäsche geht in den Bestand „schmutzig“ (nicht bearbeitet). Tatsächliche Menge angeben.",
+      "takeBackConfirm": "Rücknahme bestätigen",
+      "openGapTitle": "Fehlende Wäsche zu bearbeiten",
+      "openGapLine": "{label}: {count} fehlend",
+      "openGapQty": "Menge · {label}",
+      "gapFound": "Gefunden",
+      "gapLost": "Verloren",
+      "gapResolved": "Abweichung bearbeitet",
+      "group": {
+        "toReceive": "Abzuholen",
+        "toProcess": "Zu bearbeiten",
+        "toDeliver": "Zu liefern",
+        "onTheWay": "Unterwegs"
+      }
+    },
+    "stayNow": {
+      "title": "Jetzt",
+      "prep": "Vorbereitung: {status}",
+      "missions": "{count, plural, =0 {keine Mission} one {# Mission} other {# Missionen}}",
+      "calm": "Für diesen Aufenthalt ist gerade nichts zu tun.",
+      "next": {
+        "conflict": "Zeitkonflikt lösen",
+        "arrival_risk": "{count, plural, one {Mission} other {# Missionen}} vor der Ankunft prüfen",
+        "guest_messages": "{count, plural, one {Nachricht} other {# Nachrichten}} des Gastes lesen und beantworten",
+        "guest_requests": "{count, plural, one {Anfrage} other {# Anfragen}} des Gastes beantworten",
+        "vip_request": "Über die Anfrage für persönlichen Empfang entscheiden",
+        "prep_review": "Vorbereitungsantworten prüfen",
+        "blocking_actions": "{count, plural, one {Blockierende Aktion} other {# blockierende Aktionen}} erledigen",
+        "unassigned_missions": "{count, plural, one {Mission} other {# Missionen}} ohne Agent zuweisen"
+      },
+      "item": {
+        "conflict": "Zeitkonflikt",
+        "arrival_risk": "{count, plural, one {# gefährdete Mission} other {# gefährdete Missionen}}",
+        "guest_messages": "{count, plural, one {# ungelesene Nachricht} other {# ungelesene Nachrichten}}",
+        "guest_requests": "{count, plural, one {# offene Anfrage} other {# offene Anfragen}}",
+        "vip_request": "VIP-Anfrage",
+        "prep_review": "Antworten zu prüfen",
+        "blocking_actions": "{count, plural, one {# blockierende Aktion} other {# blockierende Aktionen}}",
+        "unassigned_missions": "{count, plural, one {# Mission ohne Agent} other {# Missionen ohne Agent}}"
+      }
     }
   },
   "email": {
@@ -4425,6 +4489,18 @@
     "team_laundry_gap": {
       "subject": "Wäscherei meldet Abweichung — Auftrag {reference}",
       "body": "Die Wäscherei hat für Auftrag {reference} abweichende Mengen gemeldet. Details unter Wäsche > Externe Wäscherei."
+    },
+    "agent_task_overrun": {
+      "subject": "Geschätzte Dauer erreicht — {property}",
+      "body": "Die geschätzte Dauer Ihrer Mission „{kind}“ in {property} ist erreicht. Wenn Sie noch vor Ort sind, geben Sie es in HALO an oder schlagen Sie ein Ende vor. Es ist nur eine Schätzung."
+    },
+    "team_task_overrun": {
+      "subject": "Mission länger als geplant — {property}",
+      "body": "Die Mission „{kind}“ von {member} in {property} überschreitet ihre geschätzte Dauer, bisher ohne Antwort. Nichts wird automatisch geändert: Mission in HALO ansehen."
+    },
+    "team_laundry_update": {
+      "subject": "Wäsche unterwegs — Auftrag {reference}",
+      "body": "Die Wäscherei meldet Auftrag {reference} als unterwegs. Empfang nach dem Zählen unter Wäsche bestätigen."
     }
   },
   "guestSpace": {
@@ -4637,7 +4713,8 @@
       "zoneRetry": "Erneut versuchen",
       "zoneNone": "OpenStreetMap hat in diesem Viertel keine öffentlichen Orte gefunden.",
       "discoverHintZone": "Restaurants, Geschäfte, Aktivitäten und Dienste im Viertel",
-      "distanceFromZone": "{d} vom Zentrum des Viertels"
+      "distanceFromZone": "{d} vom Zentrum des Viertels",
+      "merged": "{count, plural, one {# doppelter Eintrag zusammengefasst} other {# doppelte Einträge zusammengefasst}}"
     },
     "prepBanner": "Ihr Aufenthalt rückt näher. Praktische Infos (Adresse, Zugang, Leitfaden) erscheinen hier ab {date}. Bis dahin können Sie Ihren Aufenthalt vorbereiten und dem Team schreiben.",
     "prepared": {
@@ -4760,6 +4837,31 @@
         "late_checkout": "Abreise derzeit am {date}, später als die bestätigte Uhrzeit ({old})."
       },
       "current": "Derzeit geplant: Anreise am {in}, Abreise am {out}."
+    },
+    "push": {
+      "title": "Auf diesem Telefon benachrichtigt werden",
+      "text": "Eine dezente Benachrichtigung, wenn das Team Ihre Anfrage beantwortet oder Ihnen schreibt. Kein Inhalt, kein Name auf dem Sperrbildschirm.",
+      "state": {
+        "checking": "Gerät wird geprüft…",
+        "ready": "Auf diesem Gerät verfügbar: bei Bedarf aktivieren.",
+        "on": "Für diesen Aufenthalt auf diesem Gerät aktiv.",
+        "denied": "Auf diesem Gerät abgelehnt. Zum Ändern Benachrichtigungen für diese Seite in den Telefon- oder Browsereinstellungen erlauben.",
+        "ios_install": "Auf dem iPhone funktionieren Benachrichtigungen nur vom Home-Bildschirm:",
+        "ios_too_old": "Auf diesem iPhone nicht möglich: iOS 16.4 oder neuer nötig. Antworten bleiben auf dieser Seite sichtbar.",
+        "unsupported": "Mit diesem Browser nicht möglich. Antworten bleiben auf dieser Seite sichtbar.",
+        "not_configured": "Von Ihrer Concierge noch nicht angeboten. Antworten bleiben auf dieser Seite sichtbar.",
+        "unavailable": "Derzeit nicht verfügbar."
+      },
+      "ios": {
+        "share": "In Safari auf Teilen tippen (Quadrat mit Pfeil).",
+        "add": "„Zum Home-Bildschirm“ wählen, dann Hinzufügen.",
+        "open": "„Mon séjour“ vom Home-Bildschirm öffnen und hier Benachrichtigungen aktivieren.",
+        "keep": "Das Symbol „Mon séjour“ bis zum Ende des Aufenthalts behalten."
+      },
+      "activate": "Benachrichtigungen aktivieren",
+      "deactivate": "Auf diesem Gerät deaktivieren",
+      "failed": "Aktivierung fehlgeschlagen. Nichts gespeichert; später erneut versuchen.",
+      "linkUnavailable": "Dieser Aufenthaltslink ist nicht mehr aktiv."
     }
   },
   "demoEntry": {
@@ -4781,7 +4883,9 @@
       "anonBlocked": "Anonymes Lesen verweigert",
       "auth": "E-Mail-Anmeldung aktiv",
       "serverKey": "Server-Schlüssel (Benachrichtigungen)",
-      "email": "E-Mail-Dienst (SMTP-Verbindung geprüft)"
+      "email": "E-Mail-Dienst (SMTP-Verbindung geprüft)",
+      "push": "Push-Benachrichtigungen (Schlüssel auf dem Server; echter Empfang auf einem Telefon zu testen)",
+      "cron": "Geplanter Erinnerungsjob (Geheimnis gesetzt)"
     },
     "state": {
       "ok": "Geprüft",
@@ -5037,6 +5141,36 @@
       "title": "HALO-Test",
       "body": "Push-Benachrichtigungen funktionieren auf diesem Gerät.",
       "bodyProperty": "Test · {property}"
+    },
+    "message": {
+      "title": "Nachricht",
+      "body": "Eine neue Nachricht wartet in HALO.",
+      "bodyProperty": "Neue Nachricht · {property}"
+    },
+    "overrun_reminder": {
+      "title": "Geplantes Missionsende",
+      "body": "Die geschätzte Dauer ist erreicht. Geben Sie an, ob Sie noch im Einsatz sind.",
+      "bodyProperty": "Geschätzte Dauer erreicht · {property}"
+    },
+    "to_validate": {
+      "title": "Mission zu prüfen",
+      "body": "Eine abgeschlossene Mission wartet auf Ihre Prüfung.",
+      "bodyProperty": "Mission abgeschlossen · {property}"
+    },
+    "overrun": {
+      "title": "Mission dauert länger als geplant",
+      "body": "Eine Mission überschreitet ihre geschätzte Dauer.",
+      "bodyProperty": "Geschätzte Dauer überschritten · {property}"
+    },
+    "laundry": {
+      "title": "Wäsche",
+      "body": "Ein Wäscheauftrag hat sich geändert.",
+      "bodyProperty": "Wäscheauftrag · {property}"
+    },
+    "guest_update": {
+      "title": "Ihr Aufenthalt",
+      "body": "Das Team hat Ihre Anfrage beantwortet oder aktualisiert.",
+      "bodyProperty": "Neue Antwort · {property}"
     }
   }
 }

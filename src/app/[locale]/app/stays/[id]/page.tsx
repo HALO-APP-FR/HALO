@@ -14,6 +14,7 @@ import { GuestItems, PrepActions, PrepStatusControl, VipPanel, type GuestItemRow
 import { MissionTiming } from "@/components/connected/mission-timing";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { cn } from "@/lib/utils";
+import { stayNow } from "@/lib/engine/stay-now";
 import { durationText, windowText, zoneLabel } from "@/lib/connected/format";
 import { toProperty, toReservation } from "@/lib/connected/mappers";
 import { scheduleConflicts } from "@/lib/engine/tasks";
@@ -124,13 +125,56 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
   const justRead = (x: string | null) => Boolean(x) && nowDate().getTime() - Date.parse(x!) < 5 * 60_000;
   const unreadIds = (msgs ?? []).filter((m) => m.author_kind === "guest" && (!m.read_by_team_at || justRead(m.read_by_team_at as string | null))).map((m) => m.id as number);
   const toMark = (msgs ?? []).filter((m) => m.author_kind === "guest" && !m.read_by_team_at).map((m) => m.id as number);
+  // Maintenant : ce qui demande une action, dans l'ordre, avec la prochaine action en tête
+  const now = stayNow({
+    conflicts: conflicts.length,
+    arrivalRisks: prepChecks.filter((c) => c.level === "impossible" || c.level === "at_risk").length,
+    unreadGuestMessages: toMark.length,
+    servicesToAnswer: (services ?? []).filter((sv) => sv.manager_unread || sv.status === "requested").length,
+    vipPending: ["pending", "info_requested"].includes((vipReq as { status?: string } | null)?.status ?? ""),
+    prepNeedsReview: Boolean(prep?.needs_review),
+    blockingActions: (prep?.prep_status as string) === "ready" ? 0 : openBlocking,
+    unassignedMissions: (tasks ?? []).filter((k) => k.status === "unassigned").length,
+  });
+  const tn = await getTranslations("connected.stayNow");
+  const prepStatus = (prep?.prep_status as string) ?? "to_prepare";
   return (
     <>
       <PageHeader title={s.guest_name || t("stays.unnamed")} subtitle={`${p?.name} · ${windowText(f, s.check_in_at, s.check_out_at, false, p?.timezone ?? undefined)}${zone ? ` (${t("missions.localTime", { zone })})` : ""}`} />
+      <Card className={cn("mb-4 p-4 md:p-5", now.length ? "border-accent" : "")} data-testid="stay-now" data-count={now.length}>
+        <div className="flex flex-wrap items-center gap-2 text-[13px]">
+          <span className="font-semibold uppercase tracking-wide text-muted">{tn("title")}</span>
+          <span className={cn("rounded-full px-2 py-0.5 font-medium", prepStatus === "ready" ? "bg-success-soft text-success" : "bg-subtle text-muted dark:bg-surface-hover")} data-testid="stay-now-prep">
+            {tn("prep", { status: tp(`status.${prepStatus}`) })}
+          </span>
+          <span className="rounded-full bg-subtle px-2 py-0.5 text-muted dark:bg-surface-hover">{tn("missions", { count: (tasks ?? []).length })}</span>
+        </div>
+        {now.length === 0 ? (
+          <p className="mt-2 text-[15px]" data-testid="stay-now-calm">{tn("calm")}</p>
+        ) : (
+          <>
+            <a href={`#${now[0].anchor}`} className="mt-2 flex items-center gap-2 rounded-lg bg-accent-soft px-3 py-2.5 text-[15px] font-semibold text-accent-text" data-testid="stay-now-next" data-key={now[0].key}>
+              <span className="flex-1">{tn(`next.${now[0].key}`, { count: now[0].count })}</span>
+              <span aria-hidden>→</span>
+            </a>
+            {now.length > 1 && (
+              <ul className="mt-2 flex flex-wrap gap-2 text-[13px]">
+                {now.slice(1).map((x) => (
+                  <li key={x.key}>
+                    <a href={`#${x.anchor}`} className="inline-flex rounded-full border border-line px-2.5 py-1 hover:bg-subtle" data-testid="stay-now-item" data-key={x.key}>
+                      {tn(`item.${x.key}`, { count: x.count })}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </Card>
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
           {conflicts.length > 0 && (
-            <Card className="border-danger p-5" data-testid="stay-schedule-conflict">
+            <Card id="stay-schedule-conflict" className="scroll-mt-20 border-danger p-5" data-testid="stay-schedule-conflict">
               <h2 className="text-[17px] font-semibold text-danger">{tc("stayTitle")}</h2>
               {conflicts.map((c) => (
                 <p key={c.kind} className="mt-1 text-[14px]">
@@ -140,7 +184,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
               <p className="mt-2 text-[13px] text-muted">{tc("stayHint")}</p>
             </Card>
           )}
-          <Card className="p-5" data-testid="stay-prep">
+          <Card id="stay-prep" className="scroll-mt-20 p-5" data-testid="stay-prep">
             <h2 className="text-[17px] font-semibold">{tp("title")}</h2>
             <p className="mt-1 text-[13px] text-muted">{tp("text")}</p>
             <div className="mt-3">
@@ -181,10 +225,12 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
                 );
               })()}
             </div>
-            <h3 className="mt-5 flex items-center gap-2 text-[15px] font-semibold">
+            <details className="group mt-5" open={Boolean(prep?.needs_review)} data-testid="prep-answers-section">
+            <summary className="flex cursor-pointer list-none items-center gap-2 text-[15px] font-semibold [&::-webkit-details-marker]:hidden">
+              <span className="text-muted transition-transform group-open:rotate-90" aria-hidden>›</span>
               {tp("answers")}
               {prep?.needs_review && <span className="rounded-full bg-danger px-2 py-0.5 text-[11px] font-semibold text-white" data-testid="prep-needs-review">{tp("toReview")}</span>}
-            </h3>
+            </summary>
             <p className="text-[13px] text-muted" data-testid="prep-questionnaire" data-status={(prep?.questionnaire_status as string) ?? "not_started"}>
               {t(`link.journey.q.${(prep?.questionnaire_status as string) ?? "not_started"}`)}
               {prep?.guest_updated_at ? ` · ${tp("lastUpdate", { date: d(prep.guest_updated_at as string) })}` : ""}
@@ -241,6 +287,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
                 )}
               </dl>
             )}
+            </details>
             <h3 className="mt-5 text-[15px] font-semibold">{tp("actions")}</h3>
             <div className="mt-2">
               <PrepActions
@@ -252,9 +299,15 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
                 checkIn={s.check_in_at}
               />
             </div>
-            <h3 className="mt-5 text-[15px] font-semibold">{tp("forGuest")}</h3>
-            <p className="mb-2 text-[13px] text-muted">{tp("forGuestText")}</p>
+            <details className="group mt-5" data-testid="prep-for-guest">
+            <summary className="flex cursor-pointer list-none items-center gap-2 text-[15px] font-semibold [&::-webkit-details-marker]:hidden">
+              <span className="text-muted transition-transform group-open:rotate-90" aria-hidden>›</span>
+              {tp("forGuest")}
+              <span className="text-[13px] font-normal text-muted">· {(items ?? []).length}</span>
+            </summary>
+            <p className="mb-2 mt-1 text-[13px] text-muted">{tp("forGuestText")}</p>
             <GuestItems reservationId={s.id} items={(items ?? []) as GuestItemRow[]} places={((places ?? []) as { id: string; name: string; scope?: string }[]).filter((x) => (x.scope ?? "property") === "property").map((x) => ({ id: x.id, name: x.name }))} timeZone={tz} />
+            </details>
             <details className="mt-5">
               <summary className="cursor-pointer text-[15px] font-semibold">{tp("history")}</summary>
               <ol className="mt-2 space-y-1 border-s border-line ps-3 text-[13px]" data-testid="prep-history">
@@ -300,7 +353,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
             requests={(bReqs ?? []) as { id: string; status: string; check_in: string; check_out: string }[]}
             timeZone={tz}
           />
-          <Card className="p-5">
+          <Card id="stay-services" className="scroll-mt-20 p-5">
             <h2 className="text-[17px] font-semibold">{t("stays.services")}</h2>
             {(services ?? []).length === 0 ? (
               <p className="mt-2 text-[14px] text-muted">{t("stays.noServices")}</p>
@@ -321,7 +374,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
             )}
           </Card>
           {prepChecks.length > 0 && (
-            <Card className="p-5" data-testid="stay-prep-checks">
+            <Card id="stay-prep-checks" className="scroll-mt-20 p-5" data-testid="stay-prep-checks">
               <h2 className="text-[17px] font-semibold">{tcf("title")}</h2>
               <p className="mt-1 text-[13px] text-muted">{tcf("text", { arrival: d(s.check_in_at as string) })}</p>
               <ul className="mt-2 space-y-2 text-[14px]">
@@ -344,7 +397,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
               </ul>
             </Card>
           )}
-          <Card className="p-5">
+          <Card id="stay-missions" className="scroll-mt-20 p-5">
             <h2 className="text-[17px] font-semibold">{t("stays.missions")}</h2>
             <ul className="mt-2 space-y-1.5 text-[14px]">
               {(tasks ?? []).map((k) => (
@@ -364,7 +417,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
           </Card>
         </div>
         <div className="space-y-4">
-          <Card className="p-5">
+          <Card id="stay-vip" className="scroll-mt-20 p-5">
             <h2 className="text-[17px] font-semibold">{t("vip.title")}</h2>
             <p className="mb-3 mt-1 text-[13px] text-muted">{t("vip.text")}</p>
             <VipPanel
@@ -388,7 +441,7 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
               timeZone={tz}
             />
           </Card>
-          <Card className="p-5" data-testid="stay-messages">
+          <Card id="stay-messages" className="scroll-mt-20 p-5" data-testid="stay-messages">
             <h2 className="text-[17px] font-semibold">{t("messages.title")}</h2>
             <p className="mt-1 text-[13px] text-muted">{t("messages.visibleToGuest")}</p>
             <ul className="mt-3 space-y-2">
@@ -409,9 +462,15 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
             <StayReply reservationId={s.id} hasEmail={Boolean(s.guest_email)} />
           </Card>
           <Card className="p-5">
-            <h2 className="text-[17px] font-semibold">{t("outbox.title")}</h2>
-            <p className="mb-2 mt-1 text-[13px] text-muted">{s.guest_email ? t("outbox.to", { email: s.guest_email }) : t("outbox.noEmail")}</p>
-            <OutboxList items={(outbox ?? []) as OutboxItem[]} />
+            <details className="group" open={(outbox ?? []).some((x) => x.status === "failed")} data-testid="stay-outbox">
+              <summary className="flex cursor-pointer list-none items-center gap-2 text-[17px] font-semibold [&::-webkit-details-marker]:hidden">
+                <span className="text-muted transition-transform group-open:rotate-90" aria-hidden>›</span>
+                {t("outbox.title")}
+                <span className="text-[13px] font-normal text-muted">· {(outbox ?? []).length}</span>
+              </summary>
+              <p className="mb-2 mt-1 text-[13px] text-muted">{s.guest_email ? t("outbox.to", { email: s.guest_email }) : t("outbox.noEmail")}</p>
+              <OutboxList items={(outbox ?? []) as OutboxItem[]} />
+            </details>
           </Card>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { SignOutButton } from "@/components/connected/shell-client";
 import { PartnerOrderCard, type OrderView } from "@/components/connected/laundry";
 import { getContext } from "@/lib/connected/context";
 import { isConnected } from "@/lib/supabase/config";
+import { cn } from "@/lib/utils";
 
 /**
  * Espace blanchisseur : uniquement SES commandes (fonction laundry_my_orders). Aucune navigation vers les logements,
@@ -38,6 +39,13 @@ export default async function LaundrySpace({ params }: PageProps<"/[locale]/laun
     } satisfies OrderView;
   });
   const open = orders.filter((o) => o.status !== "delivered" && o.status !== "cancelled");
+  // Ce que le blanchisseur a à faire, dans l'ordre : recevoir, traiter, livrer ; puis ce qui attend la conciergerie
+  const groups = [
+    { key: "toReceive", list: open.filter((o) => o.status === "sent") },
+    { key: "toProcess", list: open.filter((o) => o.status === "received") },
+    { key: "toDeliver", list: open.filter((o) => o.status === "processing" || o.status === "ready") },
+    { key: "onTheWay", list: open.filter((o) => o.status === "out_for_delivery") },
+  ] as const;
   const closed = orders.filter((o) => !open.includes(o));
   return (
     <div className="min-h-dvh bg-subtle" data-testid="laundry-space">
@@ -69,11 +77,30 @@ export default async function LaundrySpace({ params }: PageProps<"/[locale]/laun
             {open.length === 0 ? (
               <p className="mt-6 rounded-xl border border-dashed border-line bg-surface p-5 text-[14px] text-muted" data-testid="partner-orders-empty">{t("partnerEmpty")}</p>
             ) : (
-              <ul className="mt-6 space-y-4">
-                {open.map((o) => (
-                  <PartnerOrderCard key={o.id} o={o} />
-                ))}
-              </ul>
+              <>
+                <ul className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4" data-testid="partner-summary">
+                  {groups.map((g) => (
+                    <li key={g.key}>
+                      <a href={`#g-${g.key}`} className={cn("block rounded-lg border border-line bg-surface px-3 py-2", g.list.length ? "" : "opacity-60")} data-testid={`partner-count-${g.key}`} data-count={g.list.length}>
+                        <span className="block text-title-2 tabular">{g.list.length}</span>
+                        <span className="block text-[13px] text-muted">{t(`group.${g.key}`)}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+                {groups
+                  .filter((g) => g.list.length)
+                  .map((g) => (
+                    <section key={g.key} id={`g-${g.key}`} className="mt-6 scroll-mt-4" data-testid={`partner-group-${g.key}`}>
+                      <h2 className="text-[15px] font-semibold">{t(`group.${g.key}`)}</h2>
+                      <ul className="mt-2 space-y-4">
+                        {g.list.map((o) => (
+                          <PartnerOrderCard key={o.id} o={o} />
+                        ))}
+                      </ul>
+                    </section>
+                  ))}
+              </>
             )}
             {closed.length > 0 && (
               <details className="mt-8">

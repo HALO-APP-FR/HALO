@@ -5,6 +5,8 @@ import { LogoMark } from "@/components/halo/logo";
 import { LocaleSwitcher } from "@/components/halo/locale-switcher";
 import { Card } from "@/components/ui/card";
 import { GuestAround, type Place } from "@/components/connected/places";
+import { GuestPush } from "@/components/connected/guest-push";
+import { pushPublicKey } from "@/lib/connected/push";
 import { after } from "next/server";
 import { ensureZonePlacesForToken } from "@/lib/connected/zone-places";
 import { GuestMessageForm, GuestPrepForm, GuestProblemForm, GuestReply, GuestRequestForm, GuestVip } from "@/components/connected/guest-forms";
@@ -13,11 +15,16 @@ import { isConnected } from "@/lib/supabase/config";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = {
-  title: "HALO",
-  robots: { index: false, follow: false },
-  referrer: "no-referrer",
-};
+export async function generateMetadata({ params }: PageProps<"/[locale]/s/[token]">): Promise<Metadata> {
+  const { locale, token } = await params;
+  return {
+    title: "HALO",
+    robots: { index: false, follow: false },
+    referrer: "no-referrer",
+    // iPhone : « Sur l'écran d'accueil » doit rouvrir CE séjour (et non l'espace équipe) pour recevoir les notifications
+    manifest: /^[0-9a-f]{64}$/.test(token) ? `/${locale}/s/${token}/manifest.webmanifest` : undefined,
+  };
+}
 
 interface GEvent { kind: string; status: string | null; body: string | null; author: string; at: string; ref_at?: string | null }
 /** timing_state : règle unique côté serveur (public.timing_state) — applied, superseded, covered, contradiction, pending… */
@@ -56,6 +63,7 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
   type Around = { zone?: { lat: number; lng: number; radius_m: number; ready: boolean; state?: "ready" | "preparing" | "failed" } | null; full?: boolean; near_hidden?: number; auto_hidden?: number; favorites?: string[]; property: { name: string; address: string | null; postal_code: string | null; city: string | null; lat: number | null; lng: number | null }; places: Place[] };
   let around = null as Around | null;
   let failed = false;
+  let pushAvailable = false;
   if (isConnected()) {
     const anon = supabaseAnon();
     const { data: d, error } = await anon.rpc("get_guest_stay", { token });
@@ -70,6 +78,9 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
       const { data: pl } = await anon.rpc("guest_places", { token });
       if ((pl as { status?: string } | null)?.status === "ok") around = pl as Around;
       // Alentours de la zone pas encore préparés : récupérés côté serveur APRÈS la réponse (le voyageur n'attend pas)
+      // Migration 33 présente ? (inscription des appareils du voyageur)
+      const { error: pe } = await anon.rpc("guest_push_state", { token, ep: "https://halo.invalid/probe" });
+      pushAvailable = !pe;
       if (around && around.full === false && around.zone && !around.zone.ready) after(() => ensureZonePlacesForToken(token));
     }
   }
@@ -346,6 +357,7 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
             hint={full ? undefined : g.contact_phone ? t("contact.hintPrepPhone", { phone: g.contact_phone }) : t("contact.hintPrep", { date: d(g.stay.details_from) })}
           />
         </Card>
+        <GuestPush token={token} publicKey={pushPublicKey()} available={pushAvailable} />
         <p className="pb-6 text-center text-[13px] text-muted">{t("linkValid", { until: d(g.stay.link_valid_until) })}</p>
       </main>
     </div>

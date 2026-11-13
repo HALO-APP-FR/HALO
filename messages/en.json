@@ -1998,14 +1998,19 @@
         "timing_cancelled": "Time cancelled",
         "timing_updated": "Stay time updated",
         "agent_task_validated": "Agent: mission approved",
-        "team_laundry_gap": "Team: laundry gap"
+        "team_laundry_gap": "Team: laundry gap",
+        "team_task_overrun": "Team: mission longer than planned",
+        "agent_task_overrun": "Agent: estimated duration reached",
+        "team_laundry_update": "Team: linen out for delivery"
       },
       "testAddress": "Fictitious address (test account): nothing is sent.",
       "skippedReason": "The recipient disabled this email; the event remains visible in HALO.",
       "inviteNotKept": "The link is not kept after a send attempt: send a new invitation from the stay.",
       "inviteResend": "To retry, use “Send by e-mail” on the stay (new link).",
       "skippedSuperseded": "Not sent: a more recent decision about this stay's time was made; only the latest message is sent.",
-      "skippedEmailOff": "Email turned off by the recipient for this event (push only); the event stays visible in HALO."
+      "skippedEmailOff": "Email turned off by the recipient for this event (push only); the event stays visible in HALO.",
+      "pushOnly": "guest's phone (no email)",
+      "skippedNoGuestEmail": "No email address: only a notification to the guest's phone was attempted (if enabled). The message stays in their space."
     },
     "services": {
       "title": "Services",
@@ -2447,7 +2452,8 @@
         "end_accepted": "Proposed end time accepted",
         "end_rejected": "Proposed end time refused",
         "end_regularized": "End regularised by a manager (to validate)",
-        "auto_restored": "Back to automatic calculation"
+        "auto_restored": "Back to automatic calculation",
+        "reassigned": "Reassigned while in progress"
       },
       "bySystem": "automatic",
       "byYou": "you",
@@ -2643,7 +2649,10 @@
         "team_vip_requested": "Personalised welcome request (VIP)",
         "team_booking_requested": "Stay request from a past guest",
         "team_low_review": "Review with a low rating",
-        "agent_task_validated": "My mission is approved"
+        "agent_task_validated": "My mission is approved",
+        "team_task_overrun": "Mission longer than planned",
+        "team_laundry": "Linen order (gap, linen on its way)",
+        "agent_task_overrun": "Reminder: estimated duration reached"
       },
       "pageTitle": "Preferences",
       "pageSubtitle": "Your personal settings: they change nothing for other members.",
@@ -2658,13 +2667,15 @@
         "missions": "My missions",
         "profile": "My profile (my absences)",
         "bookings": "Stay requests and Home",
-        "satisfaction": "Satisfaction and Home"
+        "satisfaction": "Satisfaction and Home",
+        "linen": "Linen"
       },
       "reset": "Restore default settings",
       "resetHint": "By default, everything is sent by email.",
       "resetDone": "Default settings restored.",
       "byPush": "Push",
-      "pushNeedsDevice": "Turn on push on a device first"
+      "pushNeedsDevice": "Turn on push on a device first",
+      "pushAlways": "urgent, always sent"
     },
     "places": {
       "title": "Property recommendations (guest space)",
@@ -3782,7 +3793,7 @@
       "declaredAt": "Declared on {at}",
       "refresh": "Refresh",
       "question": "Are you still on this job?",
-      "channel": "Reminder shown in HALO only: no notification is sent to the phone."
+      "channel": "Reminder shown in HALO, and on your phone if notifications are enabled in My preferences."
     },
     "incidentResolve": {
       "title": "Intervention approved: is the incident resolved?",
@@ -3962,7 +3973,7 @@
     },
     "forgotten": {
       "title": "Task still in progress?",
-      "text": "If the agent forgot to finish and cannot answer, regularise the end; if the job is no longer needed, cancel it. Reason required, everything stays in the history.",
+      "text": "If the agent forgot to finish and cannot answer, regularize the end; if they must hand over, give the mission to someone else; if it is no longer needed, cancel it. Reason required; everything stays in the history.",
       "regularize": "Regularise the end",
       "cancel": "Cancel the task",
       "endLabel": "End time retained",
@@ -3979,7 +3990,12 @@
       "regularizedText": "End time retained: {end}. Decision of {at}. This is not an end declared by the agent.",
       "regularizedMissing": "Proof missing at regularisation: {items}. Validation still requires it.",
       "regularizedComplete": "No required proof was missing at regularisation.",
-      "cancelledTitle": "Cancelled on {at}"
+      "cancelledTitle": "Cancelled on {at}",
+      "reassign": "Hand over to someone else",
+      "reassignTo": "New person",
+      "reasonHintReassign": "E.g. agent called to an emergency, planned handover.",
+      "effectsReassign": "Effect: the mission goes back to “to do” for the new person (start, photos and report stay in the history). The current agent is notified; late actions will have no effect.",
+      "confirmReassign": "Confirm handover"
     },
     "autoWindow": {
       "open": "Back to automatic calculation",
@@ -4201,7 +4217,8 @@
         "delivered": "Receipt confirmed",
         "cancelled": "Cancelled",
         "discrepancy": "Quantity gap",
-        "note": "Note"
+        "note": "Note",
+        "gap_resolved": "Gap handled"
       },
       "action": {
         "received": "I received the linen",
@@ -4214,7 +4231,9 @@
         "sent": "Sent",
         "received": "Received",
         "returned": "Delivered",
-        "confirmed": "Checked"
+        "confirmed": "Confirmed",
+        "yours": "you",
+        "declaredByLaundry": "declared by the laundry"
       },
       "stepsLabel": "Order steps",
       "history": "History ({count})",
@@ -4252,7 +4271,52 @@
       "acceptedText": "Invitation accepted: you now see the orders entrusted to you.",
       "goOrders": "See my orders",
       "wrongAccount": "This invitation is personal: it is reserved for {email}. Sign in with that address.",
-      "inviteInvalid": "Invitation expired, cancelled or already used. Ask the concierge for a new one."
+      "inviteInvalid": "Invitation expired, cancelled or already used. Ask the concierge for a new one.",
+      "byLaundryNamed": "laundry ({name})",
+      "gapFoundQty": "{qty} found, back to clean",
+      "gapLostQty": "{qty} lost, removed from stock",
+      "nextConfirm": "Next step: count the delivered linen, then confirm receipt.",
+      "takeBack": "Take linen back early",
+      "takeBackHint": "Linen taken back returns to “dirty” stock (not processed). Enter what you actually take back.",
+      "takeBackConfirm": "Confirm take-back",
+      "openGapTitle": "Missing linen to handle",
+      "openGapLine": "{label}: {count} missing",
+      "openGapQty": "Quantity · {label}",
+      "gapFound": "Found",
+      "gapLost": "Lost",
+      "gapResolved": "Gap handled",
+      "group": {
+        "toReceive": "To receive",
+        "toProcess": "To process",
+        "toDeliver": "To deliver",
+        "onTheWay": "On the way"
+      }
+    },
+    "stayNow": {
+      "title": "Now",
+      "prep": "Preparation: {status}",
+      "missions": "{count, plural, =0 {no mission} one {# mission} other {# missions}}",
+      "calm": "Nothing to handle for this stay right now.",
+      "next": {
+        "conflict": "Resolve the time-slot conflict",
+        "arrival_risk": "Check {count, plural, one {the mission} other {the # missions}} before arrival",
+        "guest_messages": "Read and reply to the guest's {count, plural, one {message} other {# messages}}",
+        "guest_requests": "Answer the guest's {count, plural, one {request} other {# requests}}",
+        "vip_request": "Decide on the personalised welcome request",
+        "prep_review": "Review the preparation answers",
+        "blocking_actions": "Complete {count, plural, one {the blocking action} other {the # blocking actions}}",
+        "unassigned_missions": "Assign {count, plural, one {the mission} other {the # missions}} without an agent"
+      },
+      "item": {
+        "conflict": "Time-slot conflict",
+        "arrival_risk": "{count, plural, one {# mission at risk} other {# missions at risk}}",
+        "guest_messages": "{count, plural, one {# unread message} other {# unread messages}}",
+        "guest_requests": "{count, plural, one {# request to handle} other {# requests to handle}}",
+        "vip_request": "VIP request",
+        "prep_review": "Answers to review",
+        "blocking_actions": "{count, plural, one {# blocking action} other {# blocking actions}}",
+        "unassigned_missions": "{count, plural, one {# mission without agent} other {# missions without agent}}"
+      }
     }
   },
   "email": {
@@ -4425,6 +4489,18 @@
     "team_laundry_gap": {
       "subject": "Laundry reported a gap — order {reference}",
       "body": "The laundry declared quantities different from what was sent for order {reference}. Details in Linen > External laundry."
+    },
+    "agent_task_overrun": {
+      "subject": "Estimated duration reached — {property}",
+      "body": "The estimated duration of your mission “{kind}” at {property} is reached. If you are still on site, say so in HALO or propose an end time. This is only an estimate."
+    },
+    "team_task_overrun": {
+      "subject": "Mission longer than planned — {property}",
+      "body": "The mission “{kind}” by {member} at {property} exceeds its estimated duration, with no reply yet. Nothing is changed automatically: check the mission in HALO."
+    },
+    "team_laundry_update": {
+      "subject": "Linen on its way — order {reference}",
+      "body": "The laundry says order {reference} is out for delivery. Confirm receipt in Linen once the linen is counted."
     }
   },
   "guestSpace": {
@@ -4637,7 +4713,8 @@
       "zoneRetry": "Try again",
       "zoneNone": "OpenStreetMap found no public places in this neighbourhood.",
       "discoverHintZone": "Restaurants, shops, activities and services in the neighbourhood",
-      "distanceFromZone": "{d} from the neighbourhood centre"
+      "distanceFromZone": "{d} from the neighbourhood centre",
+      "merged": "{count, plural, one {# duplicate listing merged} other {# duplicate listings merged}}"
     },
     "prepBanner": "Your stay is coming up. Practical details (address, access, guide) will appear here from {date}. Meanwhile you can prepare your stay and message the team.",
     "prepared": {
@@ -4760,6 +4837,31 @@
         "late_checkout": "Departure currently planned for {date}, later than the confirmed time ({old})."
       },
       "current": "Currently planned times: arrival on {in}, departure on {out}."
+    },
+    "push": {
+      "title": "Get notified on this phone",
+      "text": "A discreet notification when the team answers your request or writes to you. No content or name shown on the lock screen.",
+      "state": {
+        "checking": "Checking this device…",
+        "ready": "Available on this device: turn them on if you wish.",
+        "on": "On for this stay on this device.",
+        "denied": "Blocked on this device. To change this, allow notifications for this site in your phone or browser settings.",
+        "ios_install": "On iPhone, notifications only work from the home screen:",
+        "ios_too_old": "Not possible on this iPhone: iOS 16.4 or later is required. Replies stay visible on this page.",
+        "unsupported": "Not possible with this browser. Replies stay visible on this page.",
+        "not_configured": "Not offered by your concierge yet. Replies stay visible on this page.",
+        "unavailable": "Unavailable for now."
+      },
+      "ios": {
+        "share": "In Safari, tap Share (square with an arrow).",
+        "add": "Choose “Add to Home Screen”, then Add.",
+        "open": "Open “Mon séjour” from the home screen and turn notifications on here.",
+        "keep": "Keep the “Mon séjour” icon until the end of the stay."
+      },
+      "activate": "Turn on notifications",
+      "deactivate": "Turn off on this device",
+      "failed": "Activation failed. Nothing was saved; try again later.",
+      "linkUnavailable": "This stay link is no longer active."
     }
   },
   "demoEntry": {
@@ -4781,7 +4883,9 @@
       "anonBlocked": "Anonymous data reads refused",
       "auth": "Email sign-in active",
       "serverKey": "Server key (notification sending)",
-      "email": "Email provider (SMTP connection verified)"
+      "email": "Email provider (SMTP connection verified)",
+      "push": "Push notifications (keys set on the server; real delivery to be tested on a phone)",
+      "cron": "Scheduled reminders job (secret set)"
     },
     "state": {
       "ok": "Verified",
@@ -5037,6 +5141,36 @@
       "title": "HALO test",
       "body": "Push notifications work on this device.",
       "bodyProperty": "Test · {property}"
+    },
+    "message": {
+      "title": "Message",
+      "body": "A new message is waiting in HALO.",
+      "bodyProperty": "New message · {property}"
+    },
+    "overrun_reminder": {
+      "title": "Planned mission end",
+      "body": "The estimated duration is reached. Tell us if you are still on the mission.",
+      "bodyProperty": "Estimated duration reached · {property}"
+    },
+    "to_validate": {
+      "title": "Mission to review",
+      "body": "A finished mission awaits your review.",
+      "bodyProperty": "Mission finished · {property}"
+    },
+    "overrun": {
+      "title": "Mission longer than planned",
+      "body": "A mission exceeds its estimated duration.",
+      "bodyProperty": "Estimated duration exceeded · {property}"
+    },
+    "laundry": {
+      "title": "Linen",
+      "body": "A linen order has changed.",
+      "bodyProperty": "Linen order · {property}"
+    },
+    "guest_update": {
+      "title": "Your stay",
+      "body": "The team replied to or updated your request.",
+      "bodyProperty": "New reply · {property}"
     }
   }
 }

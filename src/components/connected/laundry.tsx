@@ -12,6 +12,7 @@ import {
   createLaundryOrder,
   inviteLaundry,
   revokeLaundryInvite,
+  resolveLaundryGap,
   revokeLaundryMember,
   saveLaundryPartner,
 } from "@/lib/connected/laundry-actions";
@@ -36,8 +37,8 @@ export interface OrderView {
   deliveredAt: string | null;
   note: string | null;
   late: boolean;
-  lines: { itemId: string; label: string; sent: number; received: number | null; returned: number | null; confirmed: number | null }[];
-  events: { kind: string; side: "concierge" | "laundry"; at: string; note: string | null; actor?: string | null }[];
+  lines: { itemId: string; label: string; sent: number; received: number | null; returned: number | null; confirmed: number | null; resolved?: number; openGap?: number }[];
+  events: { kind: string; side: "concierge" | "laundry"; at: string; note: string | null; actor?: string | null; data?: Record<string, unknown> | null }[];
 }
 
 const gapOf = (l: OrderView["lines"][number]) => [l.received, l.returned, l.confirmed].some((q) => q != null && q !== l.sent);
@@ -70,6 +71,12 @@ function LinesTable({ o, editable, onChange, values }: { o: OrderView; editable?
     <div className="-mx-1 overflow-x-auto px-1">
       <table className="w-full min-w-[300px] text-[13px]" data-testid="laundry-lines">
         <thead>
+          <tr className="text-[10px] text-muted">
+            <th />
+            <th className="pt-1 text-end font-normal">{t("col.yours")}</th>
+            <th colSpan={2} className="pt-1 text-end font-normal">{t("col.declaredByLaundry")}</th>
+            <th className="pt-1 text-end font-normal">{t("col.yours")}</th>
+          </tr>
           <tr className="text-[11px] uppercase tracking-wide text-muted">
             <th className="py-1 text-start font-medium">{t("col.item")}</th>
             <th className="py-1 text-end font-medium">{t("col.sent")}</th>
@@ -121,7 +128,10 @@ function History({ o }: { o: OrderView }) {
           <li key={i} data-testid="laundry-event" data-kind={e.kind} data-side={e.side}>
             <span className="text-muted tabular">{f.dateTime(new Date(e.at), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span> ·{" "}
             <span className={e.kind === "discrepancy" ? "font-semibold text-danger" : "font-medium"}>{t(`event.${e.kind}`)}</span>
-            <span className="text-muted"> · {e.side === "laundry" ? t("byLaundry") : e.actor ? e.actor : t("byConcierge")}</span>
+            <span className="text-muted"> · {e.side === "laundry" ? (e.actor ? t("byLaundryNamed", { name: e.actor }) : t("byLaundry")) : e.actor ? e.actor : t("byConcierge")}</span>
+            {e.kind === "gap_resolved" && e.data && (
+              <span className="text-muted"> · {t(e.data.outcome === "found" ? "gapFoundQty" : "gapLostQty", { qty: Number(e.data.qty) || 0 })}</span>
+            )}
             {e.note && <span className="text-muted"> · « {e.note} »</span>}
           </li>
         ))}
@@ -147,7 +157,12 @@ function Header({ o, side }: { o: OrderView; side: "concierge" | "laundry" }) {
       </div>
       <div className="flex flex-wrap gap-1.5">
         {o.late && <span className="rounded-full bg-danger-soft px-2 py-0.5 text-[12px] font-semibold text-danger" data-testid="laundry-late">{t("late")}</span>}
-        {o.lines.some(gapOf) && <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[12px] font-semibold text-warning" data-testid="laundry-gap">{t("gap")}</span>}
+        {o.lines.some(gapOf) &&
+          (side === "concierge" && o.status === "delivered" && o.lines.every((l) => (l.openGap ?? 0) === 0) && o.lines.some((l) => (l.resolved ?? 0) > 0) ? (
+            <span className="rounded-full bg-success-soft px-2 py-0.5 text-[12px] font-semibold text-success" data-testid="laundry-gap-resolved">{t("gapResolved")}</span>
+          ) : (
+            <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[12px] font-semibold text-warning" data-testid="laundry-gap">{t("gap")}</span>
+          ))}
       </div>
     </div>
   );
@@ -158,6 +173,9 @@ export function LaundryOrderCard({ o }: { o: OrderView }) {
   const t = useTranslations("connected.laundry");
   const { pending, error, run } = useRun();
   const canConfirm = o.status === "ready" || o.status === "out_for_delivery";
+  // Reprise anticipée (reçu ou en traitement) : le linge revient au SALE ; action secondaire, repliée
+  const canTakeBack = o.status === "received" || o.status === "processing";
+  const [takingBack, setTakingBack] = useState(false);
   const [qty, setQty] = useState<Record<string, string>>(() => Object.fromEntries(o.lines.map((l) => [l.itemId, String(l.returned ?? l.sent)])));
   const [note, setNote] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -170,8 +188,31 @@ export function LaundryOrderCard({ o }: { o: OrderView }) {
         <LaundrySteps status={o.status} />
       </div>
       <div className="mt-2">
-        <LinesTable o={o} editable={canConfirm ? "confirmed" : undefined} values={qty} onChange={(id, v) => setQty((q) => ({ ...q, [id]: v }))} />
+        <LinesTable o={o} editable={canConfirm || takingBack ? "confirmed" : undefined} values={qty} onChange={(id, v) => setQty((q) => ({ ...q, [id]: v }))} />
       </div>
+      {o.status === "out_for_delivery" && <p className="mt-2 rounded-md bg-accent-soft px-3 py-2 text-[13px] text-accent-text" data-testid="laundry-next-confirm">{t("nextConfirm")}</p>}
+      {canTakeBack && !takingBack && (
+        <Button size="sm" variant="ghost" className="mt-2" onClick={() => setTakingBack(true)} data-testid="laundry-takeback">
+          {t("takeBack")}
+        </Button>
+      )}
+      {takingBack && (
+        <div className="mt-2 flex flex-wrap items-end gap-2">
+          <p className="basis-full text-[12px] text-muted">{t("takeBackHint")}</p>
+          <Input value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder={t("confirmNote")} aria-label={t("confirmNote")} className="min-w-0 flex-1 basis-48" />
+          <Button size="sm" variant="outline" disabled={pending} onClick={() => run(() => confirmLaundryOrder(o.id, o.lines.map((l) => ({ itemId: l.itemId, qty: Number(qty[l.itemId] || 0) })), note), (d) => (setResult(d.gaps), setTakingBack(false)))} data-testid="laundry-takeback-confirm">
+            {t("takeBackConfirm")}
+          </Button>
+        </div>
+      )}
+      {o.status === "delivered" && o.lines.some((l) => (l.openGap ?? 0) > 0) && (
+        <div className="mt-2 space-y-2 rounded-md border border-warning/40 bg-warning-soft/40 p-3" data-testid="laundry-open-gap">
+          <p className="text-[13px] font-medium">{t("openGapTitle")}</p>
+          {o.lines.filter((l) => (l.openGap ?? 0) > 0).map((l) => (
+            <GapLine key={l.itemId} orderId={o.id} itemId={l.itemId} label={l.label} open={l.openGap!} />
+          ))}
+        </div>
+      )}
       {canConfirm && (
         <div className="mt-2 flex flex-wrap items-end gap-2">
           <Input value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder={t("confirmNote")} aria-label={t("confirmNote")} className="min-w-0 flex-1 basis-48" />
@@ -205,7 +246,30 @@ export function LaundryOrderCard({ o }: { o: OrderView }) {
   );
 }
 
-const NEXT: Partial<Record<Step, Step>> = { sent: "received", received: "processing", processing: "ready", ready: "out_for_delivery" };
+/** Manque restant après réception : perdu (sort du stock) ou retrouvé (rejoint le propre), jamais plus que le manque. */
+function GapLine({ orderId, itemId, label, open }: { orderId: string; itemId: string; label: string; open: number }) {
+  const t = useTranslations("connected.laundry");
+  const { pending, error, run } = useRun();
+  const [qty, setQty] = useState(String(open));
+  const n = Number(qty);
+  const ok = Number.isInteger(n) && n > 0 && n <= open;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-[13px]" data-testid="laundry-gap-line" data-open={open}>
+      <span className="min-w-0 flex-1 basis-40">{t("openGapLine", { label, count: open })}</span>
+      <Input type="number" min={1} max={open} inputMode="numeric" value={qty} onChange={(e) => setQty(e.target.value)} className="h-8 w-16 text-end" aria-label={t("openGapQty", { label })} data-testid="laundry-gap-qty" />
+      <Button size="sm" variant="outline" disabled={pending || !ok} onClick={() => run(() => resolveLaundryGap(orderId, itemId, n, "found", ""))} data-testid="laundry-gap-found">
+        {t("gapFound")}
+      </Button>
+      <Button size="sm" variant="ghost" disabled={pending || !ok} onClick={() => run(() => resolveLaundryGap(orderId, itemId, n, "lost", ""))} data-testid="laundry-gap-lost">
+        {t("gapLost")}
+      </Button>
+      {error && <span role="alert" className="basis-full text-danger">{error}</span>}
+    </div>
+  );
+}
+
+/** Prochaine action du blanchisseur : principale, et « prêt » en option pendant le traitement. */
+const NEXT: Partial<Record<Step, Step>> = { sent: "received", received: "processing", processing: "out_for_delivery", ready: "out_for_delivery" };
 
 /** Commande vue par le blanchisseur : une seule action possible, l'étape suivante (quantités à la réception et au départ). */
 export function PartnerOrderCard({ o }: { o: OrderView }) {
@@ -213,6 +277,8 @@ export function PartnerOrderCard({ o }: { o: OrderView }) {
   const { pending, error, run } = useRun();
   const next = NEXT[o.status];
   const withQty = next === "received" || next === "out_for_delivery";
+  const send = (to: Step, lines: boolean) =>
+    run(() => advanceLaundryOrder(o.id, to, lines ? o.lines.map((l) => ({ itemId: l.itemId, qty: Number(qty[l.itemId] || 0) })) : null, note), (d) => setGaps(d.gaps));
   const [qty, setQty] = useState<Record<string, string>>(() => Object.fromEntries(o.lines.map((l) => [l.itemId, String((next === "out_for_delivery" ? l.received : null) ?? l.sent)])));
   const [note, setNote] = useState("");
   const [gaps, setGaps] = useState<number | null>(null);
@@ -229,23 +295,28 @@ export function PartnerOrderCard({ o }: { o: OrderView }) {
         <div className="mt-3 space-y-2">
           {withQty && <p className="text-[12px] text-muted">{t(next === "received" ? "declareReceived" : "declareReturned")}</p>}
           <Input value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} placeholder={t("partnerNote")} aria-label={t("partnerNote")} />
-          <Button
-            className="w-full sm:w-auto"
-            disabled={pending}
-            onClick={() => run(() => advanceLaundryOrder(o.id, next, withQty ? o.lines.map((l) => ({ itemId: l.itemId, qty: Number(qty[l.itemId] || 0) })) : null, note), (d) => setGaps(d.gaps))}
-            data-testid="partner-advance"
-            data-next={next}
-          >
-            {t(`action.${next}`)}
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button className="w-full sm:w-auto" disabled={pending} onClick={() => send(next, withQty)} data-testid="partner-advance" data-next={next}>
+              {t(`action.${next}`)}
+            </Button>
+            {o.status === "processing" && (
+              <Button variant="outline" className="w-full sm:w-auto" disabled={pending} onClick={() => send("ready", false)} data-testid="partner-ready">
+                {t("action.ready")}
+              </Button>
+            )}
+          </div>
         </div>
       )}
       {o.status === "out_for_delivery" && <p className="mt-3 text-[13px] text-muted">{t("waitingConfirm")}</p>}
-      {gaps != null && gaps > 0 && (
-        <p role="status" className="mt-2 text-[13px] text-warning" data-testid="partner-gap-sent">
-          {t("gapReported", { count: gaps })}
-        </p>
-      )}
+      {/* Écart déclaré : affiché à partir des données (et non d'un état local), même après changement d'étape */}
+      {(() => {
+        const n = gaps ?? o.lines.filter((l) => [l.received, l.returned].some((q) => q != null && q !== l.sent)).length;
+        return n > 0 && o.status !== "delivered" && o.status !== "cancelled" ? (
+          <p role="status" className="mt-2 text-[13px] text-warning" data-testid="partner-gap-sent">
+            {t("gapReported", { count: n })}
+          </p>
+        ) : null;
+      })()}
       {error && <p role="alert" className="mt-2 text-[13px] text-danger">{error}</p>}
       <History o={o} />
     </li>

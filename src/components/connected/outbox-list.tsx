@@ -34,7 +34,7 @@ export function OutboxList({ items }: { items: OutboxItem[] }) {
         {items.map((o) => (
           <li key={o.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-[14px]" data-testid="outbox-row" data-status={o.status}>
             <span className="flex-1">
-              {t(`template.${o.template}`)} · <span className="text-muted">{o.recipient}</span>
+              {t(`template.${o.template}`)} · <span className="text-muted">{/@push\.invalid$/i.test(o.recipient) ? t("pushOnly") : o.recipient}</span>
               <span className="block text-[12px] text-faint">{fmt(o.created_at)}{o.attempts > 1 ? ` · ${t("attempts", { n: o.attempts })}` : ""}</span>
             </span>
             {/* Adresse de test (.invalid) : jamais envoyée, volontairement — distinguée d'un vrai échec de distribution */}
@@ -53,7 +53,7 @@ export function OutboxList({ items }: { items: OutboxItem[] }) {
             )}
             {o.status === "skipped" && (
               <span className="w-full text-[12px] text-muted" data-testid="outbox-skipped">
-                {o.last_error === "superseded_by_newer_decision" ? t("skippedSuperseded") : o.last_error === "email_off_by_user" ? t("skippedEmailOff") : t("skippedReason")}
+                {o.last_error === "superseded_by_newer_decision" ? t("skippedSuperseded") : o.last_error === "email_off_by_user" ? t("skippedEmailOff") : o.last_error === "no_guest_email" ? t("skippedNoGuestEmail") : t("skippedReason")}
               </span>
             )}
             {o.status === "failed" && o.last_error && (

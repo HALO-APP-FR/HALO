@@ -19,7 +19,7 @@ self.addEventListener("push", (event) => {
       tag: typeof data.tag === "string" ? data.tag : undefined,
       renotify: Boolean(data.urgent),
       requireInteraction: Boolean(data.urgent),
-      data: { url: typeof data.url === "string" ? data.url : "/" },
+      data: { url: typeof data.url === "string" && data.url ? data.url : self.registration.scope },
     }),
   );
 });
@@ -28,7 +28,8 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   let target = "/";
   try {
-    const u = new URL(event.notification.data && event.notification.data.url ? event.notification.data.url : "/", self.location.origin);
+    // Pas d'adresse dans le message (voyageur) : la page d'où l'appareil a été inscrit (portée de ce service worker)
+    const u = new URL(event.notification.data && event.notification.data.url ? event.notification.data.url : self.registration.scope, self.location.origin);
     // Jamais d'ouverture vers un autre site
     target = u.origin === self.location.origin ? u.href : "/";
   } catch {

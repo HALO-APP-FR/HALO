@@ -245,3 +245,51 @@ export function parsePhoton(responses: { category: PlaceCategory; json: { featur
   all.sort((a, b) => a.distanceM - b.distanceM);
   return { places: PLACE_CATEGORIES.flatMap((c) => all.filter((x) => x.category === c).slice(0, MAX_PER_CATEGORY)), dataDate: null as string | null };
 }
+
+/** Nom comparable : minuscules, sans accents, ponctuation ni espaces multiples (« Café de l'Église » = « cafe de l eglise ») */
+export function normalizePlaceName(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " et ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/** Distance maximale entre deux fiches du même nom pour les considérer comme un seul lieu (entrées multiples, point + bâtiment) */
+export const DUPLICATE_RADIUS_M = 80;
+
+type DedupePlace = { id: string; source: string; name: string; lat: number | null; lng: number | null; address?: string | null; opening_hours?: string | null; phone?: string | null; website?: string | null };
+
+/**
+ * Doublons visibles par le voyageur : même nom (normalisé) ET même endroit (moins de 80 m, ou même adresse sans
+ * coordonnées). Deux établissements de noms différents ne sont JAMAIS fusionnés, même voisins ; deux enseignes
+ * identiques éloignées restent distinctes. On garde la fiche la plus fiable : choisie par l'équipe ou le propriétaire,
+ * puis celle déjà en favori, puis la plus complète. Renvoie aussi le nombre de fiches regroupées.
+ */
+export function dedupePlaces<T extends DedupePlace>(places: T[], prefer: ReadonlySet<string> = new Set()): { places: T[]; merged: number } {
+  const score = (p: T) =>
+    (p.source !== "openstreetmap" ? 100 : 0) + (prefer.has(p.id) ? 50 : 0) + [p.address, p.opening_hours, p.phone, p.website].filter(Boolean).length;
+  const same = (a: T, b: T) => {
+    if (normalizePlaceName(a.name) !== normalizePlaceName(b.name) || !normalizePlaceName(a.name)) return false;
+    if (a.lat != null && a.lng != null && b.lat != null && b.lng != null) return distanceM(a.lat, a.lng, b.lat, b.lng) <= DUPLICATE_RADIUS_M;
+    const ad = (x?: string | null) => (x ? normalizePlaceName(x) : "");
+    return Boolean(ad(a.address)) && ad(a.address) === ad(b.address);
+  };
+  const kept: T[] = [];
+  let merged = 0;
+  // Ordre de préférence d'abord : la meilleure fiche de chaque groupe est rencontrée en premier
+  const order = places.map((p, i) => ({ p, i })).sort((x, y) => score(y.p) - score(x.p) || x.i - y.i);
+  const keptIdx: number[] = [];
+  for (const { p, i } of order) {
+    if (kept.some((k) => same(k, p))) {
+      merged++;
+      continue;
+    }
+    kept.push(p);
+    keptIdx.push(i);
+  }
+  // Ordre d'origine conservé pour l'affichage
+  return { places: kept.map((p, j) => ({ p, i: keptIdx[j] })).sort((a, b) => a.i - b.i).map((x) => x.p), merged };
+}

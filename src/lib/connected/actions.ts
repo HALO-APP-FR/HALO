@@ -498,7 +498,8 @@ export async function decideService(
   if (e) return fail(e.message?.includes("question_required") ? "question_required" : e.message?.includes("use_timing_decision") ? "use_timing_decision" : errCode(e));
   const res = data as { status: string; email_queued?: boolean; current?: string };
   if (res.status !== "ok") return fail(`conflict:${res.current}`);
-  if (res.email_queued) await processOutbox(ctx.org!.id);
+  // Toujours : un voyageur sans e-mail peut être prévenu sur son appareil (push seul)
+  await processOutbox(ctx.org!.id);
   revalidatePath("/", "layout");
   return { ok: true, data: { emailQueued: Boolean(res.email_queued) } };
 }
@@ -511,7 +512,8 @@ export async function updateService(serviceId: string, startAt: string, people: 
   const res = data as { status: string; email_queued?: boolean; current?: string };
   if (res.status === "unchanged") return fail("unchanged");
   if (res.status !== "ok") return fail(`conflict:${res.current}`);
-  if (res.email_queued) await processOutbox(ctx.org!.id);
+  // Toujours : un voyageur sans e-mail peut être prévenu sur son appareil (push seul)
+  await processOutbox(ctx.org!.id);
   revalidatePath("/", "layout");
   return { ok: true, data: { emailQueued: Boolean(res.email_queued) } };
 }
@@ -530,7 +532,8 @@ export async function replyStayMessage(reservationId: string, message: string): 
   const { data, error: e } = await ctx.supabase.rpc("reply_stay_message", { org: ctx.org!.id, reservation: reservationId, message });
   if (e) return fail(errCode(e));
   const res = data as { email_queued?: boolean };
-  if (res.email_queued) await processOutbox(ctx.org!.id);
+  // Toujours : un voyageur sans e-mail peut être prévenu sur son appareil (push seul)
+  await processOutbox(ctx.org!.id);
   revalidatePath("/", "layout");
   return { ok: true, data: { emailQueued: Boolean(res.email_queued) } };
 }
@@ -652,7 +655,8 @@ export async function resolveIncident(incidentId: string, resolution: string, gu
   if (e) return fail(e.message?.includes("resolution_required") ? "resolution_required" : errCode(e));
   const res = data as { status: string; email_queued?: boolean; current?: string };
   if (res.status !== "ok") return fail(`conflict:${res.current}`);
-  if (res.email_queued) await processOutbox(ctx.org!.id);
+  // Toujours : un voyageur sans e-mail peut être prévenu sur son appareil (push seul)
+  await processOutbox(ctx.org!.id);
   revalidatePath("/", "layout");
   return { ok: true, data: { emailQueued: Boolean(res.email_queued) } };
 }
@@ -1547,6 +1551,22 @@ export async function cancelStartedTask(taskId: string, reason: string): Promise
   const { data, error: e } = await ctx.supabase.rpc("cancel_task", { org: ctx.org!.id, task: taskId, reason });
   if (e) return fail(e.code === "PGRST202" ? "migration_missing" : dbCode(e, ["reason_required"]));
   if (typeof data === "string" && data.startsWith("conflict")) return fail("conflict");
+  revalidatePath("/", "layout");
+  return { ok: true, data: { result: data as string } };
+}
+
+/**
+ * Réattribution d'une mission COMMENCÉE (migration 33) : motif obligatoire, la mission repart « à faire » pour la
+ * nouvelle personne ; l'ancien agent est prévenu et ses réponses tardives restent sans effet. Historique conservé.
+ */
+export async function reassignStartedTask(taskId: string, memberId: string, reason: string): Promise<Result<{ result: string }>> {
+  const { ctx, error } = await manager();
+  if (error) return fail(error);
+  if (reason.trim().length < 3) return fail("reason_required");
+  const { data, error: e } = await ctx.supabase.rpc("reassign_started_task", { org: ctx.org!.id, task: taskId, member: memberId, reason });
+  if (e) return fail(e.code === "PGRST202" ? "migration_missing" : dbCode(e, ["reason_required"]));
+  if (data === "stale") return fail("conflict");
+  await processOutbox(ctx.org!.id);
   revalidatePath("/", "layout");
   return { ok: true, data: { result: data as string } };
 }

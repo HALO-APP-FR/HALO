@@ -4,12 +4,13 @@ import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_ANON_KEY, SUPABASE_URL, isConnected } from "@/lib/supabase/config";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { probeSchema, type ProbeState } from "./schema-probes";
+import { pushConfigured } from "./push";
 
 /** « unverified » : la vérification n'a pas pu aboutir — jamais présenté comme « vérifié » */
 export type CheckState = "ok" | "fail" | "missing" | "unverified";
 export interface Health {
   configured: boolean;
-  checks: { key: "api" | "migrations" | "anonBlocked" | "auth" | "serverKey" | "email"; state: CheckState }[];
+  checks: { key: "api" | "migrations" | "anonBlocked" | "auth" | "serverKey" | "email" | "push" | "cron"; state: CheckState }[];
   /** Migrations nécessaires à cette version : état de chacune (réellement sondée) */
   migrations: { version: string; name: string; state: ProbeState }[];
   /** Le parcours connecté est utilisable : API, base migrée, authentification. */
@@ -81,6 +82,10 @@ export async function backendHealth(): Promise<Health> {
       checks.push({ key: "email", state: "fail" });
     }
   }
+  // Notifications push (clés VAPID) et tâche planifiée (rappels de dépassement) : présence de la configuration seulement.
+  // La réception réelle sur un téléphone ne peut pas être vérifiée ici.
+  checks.push({ key: "push", state: pushConfigured() ? "ok" : "missing" });
+  checks.push({ key: "cron", state: (process.env.CRON_SECRET ?? "").length >= 32 ? "ok" : "missing" });
   const okOf = (k: string) => checks.find((c) => c.key === k)?.state === "ok";
   const value: Health = { configured: true, checks, migrations, // Connexion possible dès que le socle est là ; une migration plus récente manquante ne bloque que sa fonction
     // (affichée en échec ici et sur l'écran concerné), jamais l'ensemble

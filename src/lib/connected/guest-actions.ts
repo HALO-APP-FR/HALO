@@ -75,3 +75,28 @@ export async function guestFavorite(token: string, placeId: string, fav: boolean
   if (res.status !== "ok") return { ok: false, error: "unavailable" };
   return { ok: true };
 }
+
+/**
+ * Notifications push du voyageur (migration 33) : liées au SÉJOUR, jamais à un compte. Inscription décidée par le
+ * voyageur lui-même ; lien expiré ou révoqué → refusé. Les messages restent neutres (aucun contenu, aucun nom).
+ */
+const validEndpoint = (ep: string) => /^https:\/\/[^\s/]+\/\S{8,}$/.test(ep) && ep.length <= 1000;
+export async function guestPushSubscribe(token: string, input: { endpoint: string; p256dh: string; auth: string }): Promise<GuestResult> {
+  if (!validEndpoint(input.endpoint) || !/^[A-Za-z0-9_-]{40,200}$/.test(input.p256dh) || !/^[A-Za-z0-9_-]{8,100}$/.test(input.auth)) return { ok: false, error: "invalid" };
+  const { data, error } = await supabaseAnon().rpc("guest_push_subscribe", { token, ep: input.endpoint, key_p256dh: input.p256dh, key_auth: input.auth });
+  if (error) return { ok: false, error: error.code === "PGRST202" ? "unavailable" : "server" };
+  return (data as Rpc).status === "ok" ? { ok: true } : { ok: false, error: "unavailable" };
+}
+export async function guestPushUnsubscribe(token: string, endpoint: string): Promise<GuestResult> {
+  if (!validEndpoint(endpoint)) return { ok: false, error: "invalid" };
+  const { data, error } = await supabaseAnon().rpc("guest_push_unsubscribe", { token, ep: endpoint });
+  if (error) return { ok: false, error: error.code === "PGRST202" ? "unavailable" : "server" };
+  return (data as Rpc).status === "ok" ? { ok: true } : { ok: false, error: "unavailable" };
+}
+/** Ce navigateur est-il inscrit pour ce séjour ? (vérifié côté base, pas seulement dans le navigateur) */
+export async function guestPushState(token: string, endpoint: string): Promise<boolean | null> {
+  if (!validEndpoint(endpoint)) return null;
+  const { data, error } = await supabaseAnon().rpc("guest_push_state", { token, ep: endpoint });
+  if (error || (data as { status: string }).status !== "ok") return null;
+  return Boolean((data as { subscribed?: boolean }).subscribed);
+}

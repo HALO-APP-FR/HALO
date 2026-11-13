@@ -1399,6 +1399,7 @@ test("20 · préparation avant l'arrivée et demande VIP : lien, questionnaire, 
 
   // 7. Recommandation publiée et action indispensable pour l'équipe
   await m.goto(`/fr/app/stays/${stayId}`);
+  await m.getByTestId("prep-for-guest").locator("summary").click(); // section repliée par défaut (fiche séjour simplifiée)
   await m.getByTestId("prep-item-title").fill("Le Petit Zinc");
   await m.getByTestId("prep-item-body").fill("Table conseillée pour votre anniversaire, à réserver ensemble.");
   await m.getByTestId("prep-item-add").click();
@@ -3634,7 +3635,7 @@ test("50 · mission oubliée : « toujours en mission ? », heure proposée, ré
   const agent = await scenarioAgent(browser, name);
   await agent.goto(`/fr/app/missions/${fid}`);
   await expect(agent.getByTestId("overrun-prompt")).toContainText("Êtes-vous toujours en mission ?");
-  await expect(agent.getByTestId("overrun-channel")).toContainText("aucune notification n'est envoyée sur le téléphone");
+  await expect(agent.getByTestId("overrun-channel")).toContainText("si les notifications sont activées");
   // « Terminer » depuis la liste (raccourci) : refusé sans la photo obligatoire, la mission reste en cours
   const { data: room } = await admin.from("checklist_rooms").insert({ organization_id: org, property_id: prop!.id, name: "Salle de bain (fictif)", sort: 99 }).select("id").single();
   await admin.from("checklist_items").insert({ organization_id: org, room_id: room!.id, label: "Photo de la douche (fictif)", photo_required: true, sort: 1 });
@@ -4062,16 +4063,24 @@ test("56 · blanchisseur externe : 2 conciergeries × 2 blanchisseurs, invitatio
   await expect(l2.getByTestId("partner-order")).toContainText("Drap B");
   await expect(l2.locator("body")).not.toContainText("Drap fictif");
 
+  // Vue du blanchisseur rangée par prochaine action : 1 commande « à recevoir »
+  await expect(l1.getByTestId("partner-count-toReceive")).toHaveAttribute("data-count", "1");
+  await expect(l1.getByTestId("partner-group-toReceive").getByTestId("partner-order")).toHaveCount(1);
   // Étapes côté blanchisseur : reçu avec écart (5 draps au lieu de 6) → signalé
   const card = l1.getByTestId("partner-order");
   await expect(card.getByTestId("partner-advance")).toHaveAttribute("data-next", "received");
   await card.getByTestId("laundry-qty-received").first().fill("5");
   await card.getByTestId("partner-advance").click();
   await expect(card.getByTestId("partner-gap-sent")).toBeVisible();
-  for (const next of ["processing", "ready", "out_for_delivery"]) {
-    await expect(card.getByTestId("partner-advance")).toHaveAttribute("data-next", next);
-    await card.getByTestId("partner-advance").click();
-  }
+  await expect(card.getByTestId("partner-advance")).toHaveAttribute("data-next", "processing");
+  await card.getByTestId("partner-advance").click();
+  // En traitement : « Parti en livraison » directement, ou « prêt » (facultatif) d'abord
+  await expect(card.getByTestId("partner-advance")).toHaveAttribute("data-next", "out_for_delivery");
+  await expect(l1.getByTestId("partner-count-toDeliver")).toHaveAttribute("data-count", "1");
+  await card.getByTestId("partner-ready").click();
+  await expect(card).toHaveAttribute("data-status", "ready");
+  await expect(card.getByTestId("partner-ready")).toHaveCount(0);
+  await card.getByTestId("partner-advance").click();
   await expect(card).toHaveAttribute("data-status", "out_for_delivery");
   await expect(card.getByTestId("partner-advance")).toHaveCount(0); // la réception appartient à la conciergerie
   await expect(card.getByTestId("laundry-steps")).toContainText("En livraison");
@@ -4093,6 +4102,15 @@ test("56 · blanchisseur externe : 2 conciergeries × 2 blanchisseurs, invitatio
   await hist.locator("summary").click();
   await expect(hist.getByTestId("laundry-event")).toHaveCount(9);
   await expect(hist.locator("[data-testid=laundry-event][data-kind=discrepancy]")).toHaveCount(3);
+  // Chaque étape est attribuée : la personne du blanchisseur (invitation nominative) ou le responsable
+  await expect(hist.locator("[data-testid=laundry-event][data-kind=received]")).toContainText("blanchisseur (Léa Alpha)");
+  // Écart restant (1 drap) : le responsable le traite — retrouvé → stock propre, rien ne reste « chez le blanchisseur »
+  const gapLine = m.locator(`[data-testid=laundry-order][data-reference="${ref}"]`).getByTestId("laundry-gap-line");
+  await expect(gapLine).toHaveAttribute("data-open", "1");
+  await gapLine.getByTestId("laundry-gap-found").click();
+  await expect(m.locator(`[data-testid=laundry-order][data-reference="${ref}"]`).getByTestId("laundry-gap-resolved")).toBeVisible();
+  await expect(m.locator(`[data-testid=linen-stock-row][data-item="Drap fictif"] [data-testid=linen-clean]`)).toHaveText("6");
+  await expect(m.locator(`[data-testid=linen-stock-row][data-item="Drap fictif"] [data-testid=linen-laundry]`)).toHaveText("0");
   // Notification de l'écart préparée pour les responsables de A seulement
   // (références numérotées par conciergerie : on filtre par organisation)
   const gapCount = async (o: string) => (await admin.from("notification_outbox").select("id").eq("template", "team_laundry_gap").eq("organization_id", o)).data?.length ?? 0;
@@ -4456,4 +4474,99 @@ test("53 · linge opérationnel : catalogue, kit, inventaire, besoins et manques
   await agent.goto("/fr/app/linen");
   await expect(agent).toHaveURL(/\/fr\/app\/missions$/);
   for (const c of [m, agent]) await c.context().close();
+});
+
+test("59 · notifications complètes (SIMULÉ, aucun vrai téléphone) : urgences toujours en push, voyageur sans e-mail prévenu sur son appareil, iPhone, lien révoqué, rappel de dépassement unique, réattribution d'une mission commencée", async ({ browser }) => {
+  test.slow();
+  const m = await newPage(browser);
+  const { org, agentId } = await testScenario(m, `notif ${run}`);
+  const { data: me } = await admin.from("memberships").select("user_id").eq("organization_id", org).eq("role", "owner").single();
+  // 1. Responsable avec un appareil SIMULÉ : les urgences restent toujours en push (case verrouillée)
+  await admin.from("push_subscriptions").insert({ user_id: me!.user_id, endpoint: `https://push.halo.invalid/notif-${run}`, p256dh: "B".repeat(87), auth: "A".repeat(22), label: "Appareil simulé" });
+  await m.goto("/fr/app/preferences");
+  const blocker = m.locator('[data-testid="pref-row"][data-event="team_agent_blocker"]');
+  await expect(blocker.getByTestId("pref-push")).toBeChecked();
+  await expect(blocker.getByTestId("pref-push")).toBeDisabled();
+  await expect(blocker.getByTestId("pref-push-locked")).toBeVisible();
+  await expect(m.locator('[data-testid="pref-row"][data-event="team_task_overrun"]').getByTestId("pref-push")).toBeEnabled();
+  await expect(m.locator('[data-testid="pref-row"][data-event="team_laundry"]')).toBeVisible();
+
+  // 2. Voyageur SANS e-mail : notification possible sur son appareil (inscription simulée), jamais annoncée « envoyée »
+  const { data: prop } = await admin.from("properties").select("id").eq("organization_id", org).eq("name", "Appartement test").single();
+  const { data: r } = await admin
+    .from("reservations")
+    .insert({ organization_id: org, property_id: prop!.id, guest_name: "Voyageur sans e-mail", check_in_at: new Date(Date.now() + 5 * 86_400_000).toISOString(), check_out_at: new Date(Date.now() + 7 * 86_400_000).toISOString() })
+    .select("id")
+    .single();
+  await m.goto(`/fr/app/stays/${r!.id}`);
+  await m.getByTestId("link-create").click();
+  const token = (await m.getByTestId("guest-link-url").inputValue()).split("/").pop()!;
+  const g = await newPage(browser);
+  await g.context().grantPermissions(["notifications"]);
+  await g.goto(`/fr/s/${token}`);
+  await expect(g.getByTestId("guest-push")).toHaveAttribute("data-state", "ready");
+  await expect(g.getByTestId("guest-push-activate")).toBeVisible();
+  // Manifeste propre au séjour (iPhone : l'icône rouvre CE séjour) ; lien inventé → introuvable
+  const man = await (await g.request.get(`/fr/s/${token}/manifest.webmanifest`)).json();
+  expect(man.start_url).toBe(`/fr/s/${token}`);
+  expect((await g.request.get(`/fr/s/${"x".repeat(64)}/manifest.webmanifest`)).status()).toBe(404);
+  await admin.from("guest_push_subscriptions").insert({ organization_id: org, reservation_id: r!.id, endpoint: `https://push.halo.invalid/voyageur-${run}`, p256dh: "B".repeat(87), auth: "A".repeat(22) });
+  await m.getByLabel("Répondre au voyageur").fill("Message de l'équipe (fictif)");
+  await m.getByTestId("reply-send").click();
+  // Tentative réelle vers l'appareil inscrit (injoignable ici) → « échec » journalisé ; l'e-mail est « non envoyé : pas d'adresse »
+  await expect.poll(async () => (await admin.from("push_deliveries").select("status, category").eq("reservation_id", r!.id)).data, { timeout: 20_000 }).toEqual([{ status: "failed", category: "guest_update" }]);
+  const { data: ob } = await admin.from("notification_outbox").select("status, last_error").eq("reservation_id", r!.id).eq("template", "stay_message");
+  expect(ob).toEqual([{ status: "skipped", last_error: "no_guest_email" }]);
+  await m.reload();
+  const outbox = m.getByTestId("stay-outbox");
+  await outbox.locator("summary").click();
+  await expect(outbox.getByTestId("outbox-skipped")).toContainText("Aucune adresse e-mail");
+  await expect(outbox).not.toContainText("Envoyé");
+  await expect(outbox).not.toContainText("@push.invalid");
+  // iPhone dans Safari : consigne d'ajout à l'écran d'accueil, aucun bouton trompeur
+  const ios = await browser.newContext({ ...devices["iPhone 13"], userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1", locale: "fr-FR" });
+  const ip = await ios.newPage();
+  await ip.goto(`/fr/s/${token}`);
+  await expect(ip.getByTestId("guest-push")).toHaveAttribute("data-state", "ios_install");
+  await expect(ip.getByTestId("guest-push-ios")).toContainText("écran d'accueil");
+  await expect(ip.getByTestId("guest-push-activate")).toHaveCount(0);
+  expect(await ip.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+  await ios.close();
+  // Lien révoqué : plus d'espace, plus d'inscription possible
+  await admin.from("guest_links").update({ revoked_at: new Date().toISOString() }).eq("reservation_id", r!.id);
+  await g.reload();
+  await expect(g.getByTestId("guest-unavailable")).toBeVisible();
+  const { data: sub } = await admin.rpc("guest_push_subscribe", { token, ep: `https://push.halo.invalid/apres-${run}`, key_p256dh: "B".repeat(87), key_auth: "A".repeat(22) });
+  expect(sub).toEqual({ status: "unavailable" });
+
+  // 3. Dépassement : rappel à l'agent puis information du responsable, une seule fois chacun
+  const { data: tk } = await admin
+    .from("tasks")
+    .insert({ organization_id: org, property_id: prop!.id, type: "maintenance", status: "in_progress", assignee_id: agentId, window_start: new Date(Date.now() - 4 * 3_600_000).toISOString(), window_end: new Date(Date.now() + 4 * 3_600_000).toISOString(), duration_min: 30, started_at: new Date(Date.now() - 2 * 3_600_000).toISOString() })
+    .select("id")
+    .single();
+  const overrunMails = async () => ((await admin.from("notification_outbox").select("template").eq("organization_id", org).eq("payload->>path", `/app/missions/${tk!.id}`).in("template", ["agent_task_overrun", "team_task_overrun"])).data ?? []).map((x) => x.template).sort();
+  await admin.rpc("overrun_sweep");
+  await admin.rpc("overrun_sweep");
+  expect(await overrunMails()).toEqual(["agent_task_overrun", "team_task_overrun"]);
+  // Tâche planifiée : refusée sans secret (aucun déclenchement public)
+  expect((await m.request.get("/api/cron/notifications")).status()).toBe(401);
+
+  // 4. Réattribution d'une mission commencée : motif obligatoire, historique, plus aucun rappel pour l'ancien agent
+  await m.goto(`/fr/app/missions/${tk!.id}`);
+  await m.getByTestId("reassign-started-open").click();
+  await m.getByTestId("reassign-member").selectOption({ index: 1 });
+  await expect(m.getByTestId("reassign-started-confirm")).toBeDisabled();
+  await m.getByTestId("regularize-reason").fill("Agent appelé sur une urgence (fictif)");
+  await m.getByTestId("reassign-started-confirm").click();
+  await expect.poll(async () => (await admin.from("tasks").select("status, assignee_id, started_at").eq("id", tk!.id).single()).data).toEqual({ status: "assigned", assignee_id: me!.user_id, started_at: null });
+  const { data: ev } = await admin.from("task_events").select("kind, note").eq("task_id", tk!.id).eq("kind", "reassigned");
+  expect(ev).toEqual([{ kind: "reassigned", note: "Agent appelé sur une urgence (fictif)" }]);
+  await admin.from("tasks").update({ overrun_reminded_at: null, overrun_alerted_at: null }).eq("id", tk!.id);
+  await admin.rpc("overrun_sweep");
+  expect(await overrunMails()).toEqual(["agent_task_overrun", "team_task_overrun"]);
+  await m.reload();
+  await expect(m.locator("body")).toContainText("Réattribuée en cours de mission");
+  await admin.from("push_subscriptions").delete().eq("user_id", me!.user_id);
+  for (const c of [m, g]) await c.context().close();
 });

@@ -7,13 +7,15 @@ import { MapsAppSetting } from "@/components/connected/directions";
 import { NotificationPrefs, type PrefRow } from "@/components/connected/notification-prefs";
 import { getContext, isManagerRole } from "@/lib/connected/context";
 import { emailConfigured } from "@/lib/connected/outbox";
-import { PUSH_EVENTS, pushPublicKey } from "@/lib/connected/push";
+import { PUSH_EVENTS, PUSH_LOCKED, pushPublicKey } from "@/lib/connected/push";
 import { PushSetup, type PushDevice } from "@/components/connected/push-setup";
 import type { MapsApp } from "@/lib/engine/directions";
 
 /** Événements réellement émis par HALO, par rôle ; « critical » : urgences toujours envoyées par e-mail. */
 const MANAGER_EVENTS: [string, PrefRow["critical"], string][] = [
   ["team_task_to_validate", null, "home"],
+  ["team_task_overrun", null, "missions"],
+  ["team_laundry", null, "linen"],
   ["team_assignment_conflict", null, "team"],
   ["team_absence_requested", null, "team"],
   ["chat_message", "urgent_only", "messages"],
@@ -33,6 +35,7 @@ const AGENT_EVENTS: [string, PrefRow["critical"], string][] = [
   ["agent_task_assigned", null, "missions"],
   ["agent_task_changed", null, "missions"],
   ["agent_correction_requested", null, "missions"],
+  ["agent_task_overrun", null, "missions"],
   ["agent_task_validated", null, "missions"],
   ["agent_absence_decided", null, "profile"],
   ["chat_message", "urgent_only", "messages"],
@@ -61,7 +64,8 @@ export default async function PreferencesPage({ params }: PageProps<"/[locale]/a
     critical,
     where: t(`where.${where}`),
     email: prefsEmail?.find((p) => p.event === event)?.email ?? true,
-    push: PUSH_EVENTS.has(event) ? ((prefs as { event: string; push?: boolean }[] | null)?.find((p) => p.event === event)?.push ?? true) : null,
+    push: PUSH_EVENTS.has(event) ? (PUSH_LOCKED.has(event) ? true : ((prefs as { event: string; push?: boolean }[] | null)?.find((p) => p.event === event)?.push ?? true)) : null,
+    pushLocked: PUSH_LOCKED.has(event),
   }));
   return (
     <>

@@ -13,6 +13,10 @@ export interface LaundryLine {
   received: number | null;
   returned: number | null;
   confirmed: number | null;
+  /** Écart déjà traité par le responsable (perdu ou retrouvé) — migration 33 */
+  resolved: number;
+  /** Manque restant à traiter après réception confirmée (0 si aucun) */
+  openGap: number;
 }
 export interface LaundryOrder {
   id: string;
@@ -25,11 +29,14 @@ export interface LaundryOrder {
   deliveredAt: string | null;
   note: string | null;
   lines: LaundryLine[];
-  events: { kind: string; side: "concierge" | "laundry"; at: string; note: string | null; actor: string | null }[];
+  /** Qui a fait quoi : côté conciergerie (nom du membre) ou côté blanchisseur (personne invitée), daté */
+  events: { kind: string; side: "concierge" | "laundry"; at: string; note: string | null; actor: string | null; data: Record<string, unknown> | null }[];
   /** Date de retour dépassée sans réception confirmée */
   late: boolean;
   /** Quantité déclarée ou constatée différente de l'envoi (à n'importe quelle étape) */
   gap: boolean;
+  /** Réception confirmée avec un manque non encore traité */
+  openGap: boolean;
 }
 export interface LaundryPartner {
   id: string;
@@ -62,8 +69,8 @@ export async function loadLaundry(supabase: SupabaseClient, orgId: string, now: 
   const since = new Date(now.getTime() - 60 * 86_400_000).toISOString();
   const [{ data: orders }, { data: lines }, { data: events }, { data: members }, { data: invites }, { data: items }, { data: people }] = await Promise.all([
     supabase.from("laundry_orders").select("id, reference, partner_id, status, sent_at, expected_back_at, delivered_at, note").eq("organization_id", orgId).or(`status.not.in.(delivered,cancelled),sent_at.gte.${since}`).order("sent_at", { ascending: false }).limit(100),
-    supabase.from("laundry_order_lines").select("order_id, item_id, qty_sent, qty_received, qty_returned, qty_confirmed").eq("organization_id", orgId),
-    supabase.from("laundry_order_events").select("order_id, kind, actor_side, at, note, actor_id").eq("organization_id", orgId).order("at").order("id").limit(2000),
+    supabase.from("laundry_order_lines").select("*").eq("organization_id", orgId),
+    supabase.from("laundry_order_events").select("order_id, kind, actor_side, at, note, actor_id, data").eq("organization_id", orgId).order("at").order("id").limit(2000),
     supabase.from("laundry_partner_members").select("partner_id, user_id, created_at").eq("organization_id", orgId).is("revoked_at", null),
     supabase.from("laundry_invites").select("id, partner_id, contact_name, email, expires_at, accepted_at, accepted_by, revoked_at").eq("organization_id", orgId).order("created_at"),
     supabase.from("linen_items").select("id, label").eq("organization_id", orgId),
@@ -72,10 +79,20 @@ export async function loadLaundry(supabase: SupabaseClient, orgId: string, now: 
   const label = new Map((items ?? []).map((i) => [i.id as string, i.label as string]));
   const pname = new Map((partners ?? []).map((p) => [p.id as string, p.name as string]));
   const who = new Map((people ?? []).map((m: { user_id: string; profiles: unknown }) => [m.user_id, (one(m.profiles as { full_name: string } | null)?.full_name as string | undefined) ?? null]));
+  // Personnes du blanchisseur : nom donné à l'invitation nominative acceptée
+  const laundryWho = new Map((invites ?? []).filter((i) => i.accepted_by).map((i) => [i.accepted_by as string, i.contact_name as string]));
   const list: LaundryOrder[] = (orders ?? []).map((o) => {
     const ls = (lines ?? [])
       .filter((l) => l.order_id === o.id)
-      .map((l) => ({ itemId: l.item_id as string, label: label.get(l.item_id as string) ?? "—", sent: l.qty_sent as number, received: l.qty_received as number | null, returned: l.qty_returned as number | null, confirmed: l.qty_confirmed as number | null }))
+      .map((l) => {
+        const resolved = (l.qty_resolved as number | undefined) ?? 0;
+        const confirmed = l.qty_confirmed as number | null;
+        return {
+          itemId: l.item_id as string, label: label.get(l.item_id as string) ?? "—", sent: l.qty_sent as number, received: l.qty_received as number | null, returned: l.qty_returned as number | null, confirmed,
+          resolved,
+          openGap: o.status === "delivered" && confirmed != null ? Math.max(0, (l.qty_sent as number) - confirmed - resolved) : 0,
+        };
+      })
       .sort((a, b) => a.label.localeCompare(b.label));
     const status = o.status as LaundryStatus;
     return {
@@ -91,9 +108,10 @@ export async function loadLaundry(supabase: SupabaseClient, orgId: string, now: 
       lines: ls,
       events: (events ?? [])
         .filter((e) => e.order_id === o.id)
-        .map((e) => ({ kind: e.kind as string, side: e.actor_side as "concierge" | "laundry", at: e.at as string, note: (e.note as string | null) ?? null, actor: e.actor_side === "concierge" && e.actor_id ? (who.get(e.actor_id as string) ?? null) : null })),
+        .map((e) => ({ kind: e.kind as string, side: e.actor_side as "concierge" | "laundry", at: e.at as string, note: (e.note as string | null) ?? null, actor: !e.actor_id ? null : e.actor_side === "concierge" ? (who.get(e.actor_id as string) ?? null) : (laundryWho.get(e.actor_id as string) ?? null), data: (e.data as Record<string, unknown> | null) ?? null })),
       late: status !== "delivered" && status !== "cancelled" && Date.parse(o.expected_back_at as string) < now.getTime(),
       gap: ls.some(lineGap),
+      openGap: ls.some((l) => l.openGap > 0),
     };
   });
   // Retours attendus : commandes en cours dont la date de retour est encore à venir ; quantité déclarée la plus récente
