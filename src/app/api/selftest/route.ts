@@ -327,6 +327,18 @@ export async function GET(request: NextRequest) {
     ]);
     check("other_org_cannot_read_or_write_conversation", (bMsgs ?? []).length === 0 && Boolean(bPost));
     check("guest_cannot_read_internal_messages", Boolean(gErr) || (gMsgs ?? []).length === 0);
+    // 6d ter. Deux agents de la MÊME organisation : le second ne lit pas la conversation du premier
+    {
+      const { data: inv2 } = await a1.rpc("create_invitation", { org: orgA, invite_role: "agent", invite_position: "housekeeper" });
+      const ag2 = await session(admin, `selftest-${run}-agent2-a@halo.invalid`, users);
+      await ag2.rpc("accept_invitation", { raw_token: inv2 as string, member_name: `Agent 2 ${run}`, member_phone: "+33600000001" });
+      const [{ data: a2Msgs }, { data: a2Threads }, { error: a2Post }] = await Promise.all([
+        ag2.from("team_messages").select("id").eq("thread_id", threadId),
+        ag2.from("team_threads").select("id").eq("id", threadId),
+        ag2.rpc("post_team_message", { org: orgA, thread: threadId, client: crypto.randomUUID(), body: "intrusion", is_urgent: false }),
+      ]);
+      check("second_agent_cannot_read_other_agent_conversation", (a2Msgs ?? []).length === 0 && (a2Threads ?? []).length === 0 && Boolean(a2Post), `${(a2Msgs ?? []).length}/${(a2Threads ?? []).length}/${a2Post?.code ?? "accepté"}`);
+    }
 
     // 6d bis. Notifications push (migration 28) — appareils SIMULÉS (adresses injoignables) pour l'agent et le responsable,
     // puis les 5 événements prioritaires réellement déclenchés. Prouve : événement → notification préparée → push tenté,
