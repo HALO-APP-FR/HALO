@@ -4316,7 +4316,19 @@
         "prep_review": "Respostas a rever",
         "blocking_actions": "{count, plural, one {# ação bloqueante} other {# ações bloqueantes}}",
         "unassigned_missions": "{count, plural, one {# missão sem agente} other {# missões sem agente}}"
-      }
+      },
+      "phase": {
+        "upcoming": "{count, plural, =0 {Chega hoje} one {Chega amanhã} other {Chega dentro de # dias}}",
+        "ongoing": "Estadia em curso",
+        "past": "Estadia terminada",
+        "cancelled": "Estadia cancelada"
+      },
+      "jump": "Ir para",
+      "jumpMissions": "Missões ({count})",
+      "jumpServices": "Pedidos ({count})",
+      "jumpMessages": "Mensagens ({count})",
+      "jumpGuest": "Preparação do hóspede",
+      "olderMessages": "{count, plural, one {Mostrar # mensagem anterior} other {Mostrar # mensagens anteriores}}"
     }
   },
   "email": {
@@ -4885,7 +4897,7 @@
       "serverKey": "Chave do servidor (notificações)",
       "email": "Serviço de e-mail (ligação SMTP verificada)",
       "push": "Notificações push (chaves configuradas no servidor; receção real a testar num telemóvel)",
-      "cron": "Tarefa agendada de lembretes (segredo configurado)"
+      "cron": "Tarefa agendada de lembretes e notificações (a cada 5 min)"
     },
     "state": {
       "ok": "Verificado",
@@ -4900,7 +4912,9 @@
       "missing": "Em falta: {file}",
       "unverified": "Não verificada: {file}"
     },
-    "readyPartial": "O backend responde e as regras de acesso estão ativas, mas algumas funções aguardam uma atualização da base (detalhe abaixo). Ficam indisponíveis até ser aplicada."
+    "readyPartial": "O backend responde e as regras de acesso estão ativas, mas algumas funções aguardam uma atualização da base (detalhe abaixo). Ficam indisponíveis até ser aplicada.",
+    "cronLast": "Última execução: {date}",
+    "cronNever": "Nenhuma execução registada: a tarefa não está ativada."
   },
   "places": {
     "category": {

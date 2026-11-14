@@ -4316,7 +4316,19 @@
         "prep_review": "Antworten zu prüfen",
         "blocking_actions": "{count, plural, one {# blockierende Aktion} other {# blockierende Aktionen}}",
         "unassigned_missions": "{count, plural, one {# Mission ohne Agent} other {# Missionen ohne Agent}}"
-      }
+      },
+      "phase": {
+        "upcoming": "{count, plural, =0 {Ankunft heute} one {Ankunft morgen} other {Ankunft in # Tagen}}",
+        "ongoing": "Aufenthalt läuft",
+        "past": "Aufenthalt beendet",
+        "cancelled": "Aufenthalt storniert"
+      },
+      "jump": "Gehe zu",
+      "jumpMissions": "Missionen ({count})",
+      "jumpServices": "Anfragen ({count})",
+      "jumpMessages": "Nachrichten ({count})",
+      "jumpGuest": "Gastvorbereitung",
+      "olderMessages": "{count, plural, one {# frühere Nachricht anzeigen} other {# frühere Nachrichten anzeigen}}"
     }
   },
   "email": {
@@ -4885,7 +4897,7 @@
       "serverKey": "Server-Schlüssel (Benachrichtigungen)",
       "email": "E-Mail-Dienst (SMTP-Verbindung geprüft)",
       "push": "Push-Benachrichtigungen (Schlüssel auf dem Server; echter Empfang auf einem Telefon zu testen)",
-      "cron": "Geplanter Erinnerungsjob (Geheimnis gesetzt)"
+      "cron": "Geplanter Job für Erinnerungen und Benachrichtigungen (alle 5 Min.)"
     },
     "state": {
       "ok": "Geprüft",
@@ -4900,7 +4912,9 @@
       "missing": "Fehlt: {file}",
       "unverified": "Nicht geprüft: {file}"
     },
-    "readyPartial": "Das Backend antwortet und die Zugriffsregeln sind aktiv, aber einige Funktionen warten auf ein Datenbank-Update (Details unten). Bis dahin bleiben sie nicht verfügbar."
+    "readyPartial": "Das Backend antwortet und die Zugriffsregeln sind aktiv, aber einige Funktionen warten auf ein Datenbank-Update (Details unten). Bis dahin bleiben sie nicht verfügbar.",
+    "cronLast": "Letzter Lauf: {date}",
+    "cronNever": "Kein Lauf erfasst: Der Job ist nicht aktiviert."
   },
   "places": {
     "category": {

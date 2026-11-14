@@ -4316,7 +4316,19 @@
         "prep_review": "Réponses à relire",
         "blocking_actions": "{count, plural, one {# action bloquante} other {# actions bloquantes}}",
         "unassigned_missions": "{count, plural, one {# mission sans agent} other {# missions sans agent}}"
-      }
+      },
+      "phase": {
+        "upcoming": "{count, plural, =0 {Arrivée aujourd'hui} one {Arrivée demain} other {Arrivée dans # jours}}",
+        "ongoing": "Séjour en cours",
+        "past": "Séjour terminé",
+        "cancelled": "Séjour annulé"
+      },
+      "jump": "Aller à",
+      "jumpMissions": "Missions ({count})",
+      "jumpServices": "Demandes ({count})",
+      "jumpMessages": "Messages ({count})",
+      "jumpGuest": "Préparation du voyageur",
+      "olderMessages": "{count, plural, one {Afficher # message précédent} other {Afficher les # messages précédents}}"
     }
   },
   "email": {
@@ -4885,7 +4897,7 @@
       "serverKey": "Clé serveur (envoi des notifications)",
       "email": "Service d'envoi d'e-mails (connexion SMTP vérifiée)",
       "push": "Notifications push (clés configurées sur le serveur ; réception réelle à tester sur un téléphone)",
-      "cron": "Tâche planifiée des rappels (secret configuré)"
+      "cron": "Tâche planifiée des rappels et notifications (passage toutes les 5 min)"
     },
     "state": {
       "ok": "Vérifié",
@@ -4900,7 +4912,9 @@
       "missing": "Manquante : {file}",
       "unverified": "Non vérifiée : {file}"
     },
-    "readyPartial": "Le backend répond et ses règles d'accès sont actives, mais certaines fonctions attendent une mise à jour de la base (détail ci-dessous). Elles restent indisponibles tant qu'elle n'est pas appliquée."
+    "readyPartial": "Le backend répond et ses règles d'accès sont actives, mais certaines fonctions attendent une mise à jour de la base (détail ci-dessous). Elles restent indisponibles tant qu'elle n'est pas appliquée.",
+    "cronLast": "Dernier passage : {date}",
+    "cronNever": "Aucun passage enregistré : la tâche n'est pas activée."
   },
   "places": {
     "category": {

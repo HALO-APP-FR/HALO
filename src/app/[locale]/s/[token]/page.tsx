@@ -357,7 +357,7 @@ export default async function GuestSpace({ params }: PageProps<"/[locale]/s/[tok
             hint={full ? undefined : g.contact_phone ? t("contact.hintPrepPhone", { phone: g.contact_phone }) : t("contact.hintPrep", { date: d(g.stay.details_from) })}
           />
         </Card>
-        <GuestPush token={token} publicKey={pushPublicKey()} available={pushAvailable} />
+        <GuestPush token={token} publicKey={await pushPublicKey()} available={pushAvailable} />
         <p className="pb-6 text-center text-[13px] text-muted">{t("linkValid", { until: d(g.stay.link_valid_until) })}</p>
       </main>
     </div>

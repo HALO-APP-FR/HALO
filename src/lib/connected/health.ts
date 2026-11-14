@@ -15,6 +15,8 @@ export interface Health {
   migrations: { version: string; name: string; state: ProbeState }[];
   /** Le parcours connecté est utilisable : API, base migrée, authentification. */
   ready: boolean;
+  /** Dernier passage de la tâche planifiée (null : jamais) */
+  cronLastRun?: string | null;
   at: string;
 }
 
@@ -84,10 +86,16 @@ export async function backendHealth(): Promise<Health> {
   }
   // Notifications push (clés VAPID) et tâche planifiée (rappels de dépassement) : présence de la configuration seulement.
   // La réception réelle sur un téléphone ne peut pas être vérifiée ici.
-  checks.push({ key: "push", state: pushConfigured() ? "ok" : "missing" });
-  checks.push({ key: "cron", state: (process.env.CRON_SECRET ?? "").length >= 32 ? "ok" : "missing" });
+  checks.push({ key: "push", state: (await pushConfigured()) ? "ok" : "missing" });
+  // Tâche planifiée : PREUVE de fonctionnement = un passage enregistré il y a moins de 15 minutes (migration 34)
+  let cronLastRun: string | null = null;
+  if (admin) {
+    const { data, error } = await admin.rpc("cron_last_run");
+    if (!error) cronLastRun = (data as string | null) ?? null;
+  }
+  checks.push({ key: "cron", state: cronLastRun && Date.now() - new Date(cronLastRun).getTime() < 15 * 60_000 ? "ok" : cronLastRun ? "fail" : "missing" });
   const okOf = (k: string) => checks.find((c) => c.key === k)?.state === "ok";
-  const value: Health = { configured: true, checks, migrations, // Connexion possible dès que le socle est là ; une migration plus récente manquante ne bloque que sa fonction
+  const value: Health = { configured: true, checks, migrations, cronLastRun, // Connexion possible dès que le socle est là ; une migration plus récente manquante ne bloque que sa fonction
     // (affichée en échec ici et sur l'écran concerné), jamais l'ensemble
     ready: okOf("api") && okOf("auth") && okOf("anonBlocked") && migrations.find((m) => m.version === "20261027000001")?.state === "ok",
     at };

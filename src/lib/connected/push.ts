@@ -3,6 +3,7 @@ import webpush from "web-push";
 import { getTranslations } from "next-intl/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { locales, type Locale } from "@/i18n/routing";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 /**
  * Notifications push (Web Push, norme ouverte, sans abonnement payant) — migration 28.
@@ -59,23 +60,52 @@ export const PUSH_EVENTS = new Set([
 /** Réglages dont le push ne peut pas être coupé (urgences) */
 export const PUSH_LOCKED = new Set(["team_agent_blocker", "team_guest_problem"]);
 
-export function pushConfig() {
-  const publicKey = process.env.VAPID_PUBLIC_KEY ?? "";
-  const privateKey = process.env.VAPID_PRIVATE_KEY ?? "";
-  const subject = process.env.VAPID_SUBJECT ?? "";
-  const ok = /^[A-Za-z0-9_-]{80,100}$/.test(publicKey) && privateKey.length >= 40 && /^(mailto:|https:\/\/)/.test(subject);
-  return ok ? { publicKey, privateKey, subject } : null;
+type PushCfg = { publicKey: string; privateKey: string; subject: string; source: "env" | "server" };
+const validKeys = (publicKey: string, privateKey: string) => /^[A-Za-z0-9_-]{80,100}$/.test(publicKey) && privateKey.length >= 40;
+/** Contact exigé par la norme : VAPID_SUBJECT, sinon l'adresse publique de l'application */
+function pushSubject() {
+  const s = process.env.VAPID_SUBJECT ?? "";
+  if (/^(mailto:|https:\/\/)/.test(s)) return s;
+  const host = process.env.APP_URL ?? (process.env.VERCEL_BRANCH_URL ? `https://${process.env.VERCEL_BRANCH_URL}` : process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+  return /^https:\/\//.test(host) ? host : "";
 }
-export const pushConfigured = () => pushConfig() !== null;
+let serverKeys: { at: number; cfg: PushCfg | null } | null = null;
+/**
+ * Configuration push : variables VAPID_* si présentes ; sinon (HALO_PUSH_AUTO_KEYS=1, migration 34) clés générées et
+ * conservées par le serveur lui-même — personne ne manipule la clé privée.
+ */
+export async function pushConfig(): Promise<PushCfg | null> {
+  const subject = pushSubject();
+  const envPub = process.env.VAPID_PUBLIC_KEY ?? "";
+  const envPriv = process.env.VAPID_PRIVATE_KEY ?? "";
+  if (validKeys(envPub, envPriv) && subject) return { publicKey: envPub, privateKey: envPriv, subject, source: "env" };
+  if (process.env.HALO_PUSH_AUTO_KEYS !== "1" || !subject) return null;
+  if (serverKeys && Date.now() - serverKeys.at < 5 * 60_000) return serverKeys.cfg;
+  const admin = supabaseAdmin();
+  if (!admin) return null;
+  const read = () => admin.from("push_server_keys").select("public_key, private_key").eq("id", 1).maybeSingle();
+  let { data, error } = await read();
+  if (!error && !data) {
+    const k = webpush.generateVAPIDKeys();
+    // Deux serveurs simultanés : un seul enregistrement gagne, tous relisent le même
+    await admin.from("push_server_keys").upsert({ id: 1, public_key: k.publicKey, private_key: k.privateKey }, { onConflict: "id", ignoreDuplicates: true });
+    ({ data, error } = await read());
+  }
+  const cfg = !error && data && validKeys(data.public_key as string, data.private_key as string) ? { publicKey: data.public_key as string, privateKey: data.private_key as string, subject, source: "server" as const } : null;
+  serverKeys = { at: Date.now(), cfg };
+  return cfg;
+}
+export const pushConfigured = async () => (await pushConfig()) !== null;
 /** Clé publique (non secrète) transmise au navigateur pour l'inscription */
-export const pushPublicKey = () => pushConfig()?.publicKey ?? null;
+export const pushPublicKey = async () => (await pushConfig())?.publicKey ?? null;
 
 type Sub = { id: string; endpoint: string; p256dh: string; auth: string; guest?: boolean };
 export type PushResult = { subscriptionId: string; status: "accepted" | "failed" | "expired" | "not_configured"; error: string | null };
 
 /** Envoi à une liste d'appareils ; un appareil expiré (404/410) est désactivé. */
 export async function sendPush(admin: SupabaseClient, subs: Sub[], message: { title: string; body: string; url: string; tag: string; urgent: boolean }): Promise<PushResult[]> {
-  const cfg = pushConfig();
+  const full = await pushConfig();
+  const cfg = full ? { publicKey: full.publicKey, privateKey: full.privateKey, subject: full.subject } : null;
   if (!cfg) return subs.map((s) => ({ subscriptionId: s.id, status: "not_configured", error: "no_vapid_keys" }));
   const out: PushResult[] = [];
   for (const s of subs) {

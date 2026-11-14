@@ -56,7 +56,7 @@ export default async function PreferencesPage({ params }: PageProps<"/[locale]/a
   // Migration 28 absente : préférences e-mail seules, push présenté comme indisponible (jamais promis)
   const pushAvailable = !prefErr && !devErr;
   const { data: prefsEmail } = pushAvailable ? { data: prefs } : await supabase.from("notification_prefs").select("event, email").eq("organization_id", org!.id).eq("user_id", user!.id);
-  const publicKey = pushPublicKey();
+  const publicKey = await pushPublicKey();
   const activeDevices = (devices ?? []).filter((d) => !d.disabled_at).length;
   const pushState = !pushAvailable ? "migration" : !publicKey ? "not_configured" : activeDevices ? "active" : "no_device";
   const rows: PrefRow[] = (isManagerRole(org!.role) ? MANAGER_EVENTS : AGENT_EVENTS).map(([event, critical, where]) => ({

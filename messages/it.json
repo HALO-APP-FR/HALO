@@ -4316,7 +4316,19 @@
         "prep_review": "Risposte da rivedere",
         "blocking_actions": "{count, plural, one {# azione bloccante} other {# azioni bloccanti}}",
         "unassigned_missions": "{count, plural, one {# missione senza agente} other {# missioni senza agente}}"
-      }
+      },
+      "phase": {
+        "upcoming": "{count, plural, =0 {Arrivo oggi} one {Arrivo domani} other {Arrivo tra # giorni}}",
+        "ongoing": "Soggiorno in corso",
+        "past": "Soggiorno terminato",
+        "cancelled": "Soggiorno annullato"
+      },
+      "jump": "Vai a",
+      "jumpMissions": "Missioni ({count})",
+      "jumpServices": "Richieste ({count})",
+      "jumpMessages": "Messaggi ({count})",
+      "jumpGuest": "Preparazione dell'ospite",
+      "olderMessages": "{count, plural, one {Mostra # messaggio precedente} other {Mostra # messaggi precedenti}}"
     }
   },
   "email": {
@@ -4885,7 +4897,7 @@
       "serverKey": "Chiave server (notifiche)",
       "email": "Servizio e-mail (connessione SMTP verificata)",
       "push": "Notifiche push (chiavi configurate sul server; ricezione reale da testare su un telefono)",
-      "cron": "Attività pianificata dei promemoria (segreto configurato)"
+      "cron": "Attività pianificata di promemoria e notifiche (ogni 5 min)"
     },
     "state": {
       "ok": "Verificato",
@@ -4900,7 +4912,9 @@
       "missing": "Mancante: {file}",
       "unverified": "Non verificata: {file}"
     },
-    "readyPartial": "Il backend risponde e le regole di accesso sono attive, ma alcune funzioni attendono un aggiornamento del database (dettagli sotto). Restano non disponibili finché non viene applicato."
+    "readyPartial": "Il backend risponde e le regole di accesso sono attive, ma alcune funzioni attendono un aggiornamento del database (dettagli sotto). Restano non disponibili finché non viene applicato.",
+    "cronLast": "Ultima esecuzione: {date}",
+    "cronNever": "Nessuna esecuzione registrata: l'attività non è attiva."
   },
   "places": {
     "category": {

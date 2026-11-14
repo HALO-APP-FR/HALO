@@ -29,6 +29,11 @@ export default async function StatusPage({ params }: PageProps<"/[locale]/status
               <span className="min-w-0 text-[15px]">
                 <span className="block font-medium">{t(`check.${c.key}`)}</span>
                 <span className="block text-[13px] text-muted">{c.key === "migrations" && c.state === "ok" ? t("migrationsOk", { count: h.migrations.length }) : t(`state.${c.state}`)}</span>
+                {c.key === "cron" && (
+                  <span className="block text-[13px] text-muted" data-testid="status-cron-last">
+                    {h.cronLastRun ? t("cronLast", { date: new Date(h.cronLastRun).toLocaleString(locale, { timeZone: "Europe/Paris", dateStyle: "short", timeStyle: "short" }) }) : t("cronNever")}
+                  </span>
+                )}
                 {c.key === "migrations" && c.state !== "ok" && (
                   <ul className="mt-1 space-y-0.5 text-[13px]" data-testid="status-migrations">
                     {h.migrations

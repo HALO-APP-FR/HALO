@@ -4316,7 +4316,19 @@
         "prep_review": "Respuestas por revisar",
         "blocking_actions": "{count, plural, one {# acción bloqueante} other {# acciones bloqueantes}}",
         "unassigned_missions": "{count, plural, one {# misión sin agente} other {# misiones sin agente}}"
-      }
+      },
+      "phase": {
+        "upcoming": "{count, plural, =0 {Llega hoy} one {Llega mañana} other {Llega en # días}}",
+        "ongoing": "Estancia en curso",
+        "past": "Estancia terminada",
+        "cancelled": "Estancia anulada"
+      },
+      "jump": "Ir a",
+      "jumpMissions": "Misiones ({count})",
+      "jumpServices": "Solicitudes ({count})",
+      "jumpMessages": "Mensajes ({count})",
+      "jumpGuest": "Preparación del viajero",
+      "olderMessages": "{count, plural, one {Mostrar # mensaje anterior} other {Mostrar # mensajes anteriores}}"
     }
   },
   "email": {
@@ -4885,7 +4897,7 @@
       "serverKey": "Clave del servidor (notificaciones)",
       "email": "Servicio de e-mail (conexión SMTP verificada)",
       "push": "Notificaciones push (claves configuradas en el servidor; recepción real por probar en un teléfono)",
-      "cron": "Tarea programada de recordatorios (secreto configurado)"
+      "cron": "Tarea programada de recordatorios y notificaciones (cada 5 min)"
     },
     "state": {
       "ok": "Verificado",
@@ -4900,7 +4912,9 @@
       "missing": "Falta: {file}",
       "unverified": "No verificada: {file}"
     },
-    "readyPartial": "El backend responde y sus reglas de acceso están activas, pero algunas funciones esperan una actualización de la base (detalle abajo). Siguen sin estar disponibles hasta aplicarla."
+    "readyPartial": "El backend responde y sus reglas de acceso están activas, pero algunas funciones esperan una actualización de la base (detalle abajo). Siguen sin estar disponibles hasta aplicarla.",
+    "cronLast": "Última ejecución: {date}",
+    "cronNever": "Ninguna ejecución registrada: la tarea no está activada."
   },
   "places": {
     "category": {

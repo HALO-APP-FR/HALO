@@ -355,7 +355,7 @@ export async function GET(request: NextRequest) {
         const { data: dl } = await admin.from("push_deliveries").select("category, status, user_id").eq("organization_id", orgA).gte("created_at", since);
         const cats = [...new Set((dl ?? []).map((d) => d.category))].sort();
         const want = ["correction", "guest_request", "incident", "mission", "urgent_message"];
-        check("push_events_reach_push_pipeline", want.every((c) => cats.includes(c)) && (dl ?? []).every((d) => d.status !== "accepted"), `${cats.join(",")} · ${[...new Set((dl ?? []).map((d) => d.status))].join(",")} · ${pushConfigured() ? "clés configurées" : "clés absentes"}${ce ? ` · correction:${ce.message}` : ""}`);
+        check("push_events_reach_push_pipeline", want.every((c) => cats.includes(c)) && (dl ?? []).every((d) => d.status !== "accepted"), `${cats.join(",")} · ${[...new Set((dl ?? []).map((d) => d.status))].join(",")} · ${(await pushConfigured()) ? "clés configurées" : "clés absentes"}${ce ? ` · correction:${ce.message}` : ""}`);
         // Préférence push coupée par l'agent : plus de push pour cet événement (l'e-mail suit son propre réglage)
         await ag.rpc("set_push_pref", { org: orgA, ev: "agent_task_assigned", by_push: false });
         const before = new Date().toISOString();
@@ -470,6 +470,35 @@ export async function GET(request: NextRequest) {
           const mine = ((stk ?? []) as { item_id: string; location: string; qty: number }[]).filter((r) => r.item_id === it!.id).map((r) => `${r.location}=${r.qty}`).sort().join(",");
           const { data: ev } = await a1.from("laundry_order_events").select("kind").eq("order_id", idA);
           check("laundry_order_steps_gap_and_stock", mine === "clean=5,dirty=2,laundry=1" && ((conf as { gaps: unknown[] })?.gaps ?? []).length === 1 && (ev ?? []).filter((e) => e.kind === "discrepancy").length >= 2, `${mine} · ${(ev ?? []).map((e) => e.kind).join(",")}`);
+          // Migration 33 : action répétée sans effet, écart traité, annulation selon l'étape, reprise anticipée, accès retiré
+          const stockOf = async () => (((await a1.rpc("linen_stock", { org: orgA })).data ?? []) as { item_id: string; location: string; qty: number }[]).filter((r) => r.item_id === it!.id).map((r) => `${r.location}=${r.qty}`).sort().join(",");
+          const { data: rep1, error: repE1 } = await lavA.rpc("laundry_order_advance", { oid: idA, to_status: "out_for_delivery", lines: [{ item: it!.id, qty: 5 }], p_note: null });
+          const { data: rep2, error: repE2 } = await a1.rpc("laundry_order_confirm", { org: orgA, oid: idA, lines: [{ item: it!.id, qty: 5 }], p_note: null });
+          const afterRepeat = await stockOf();
+          const { error: gre } = await a1.rpc("laundry_gap_resolve", { org: orgA, oid: idA, item: it!.id, qty: 1, outcome: "found", p_note: `Selftest ${run}` });
+          const afterGap = await stockOf();
+          const mk = async () => ((await a1.rpc("laundry_order_create", { org: orgA, partner: pa, lines: [{ item: it!.id, qty: 1 }], back_at: back, p_note: null })).data as { id: string } | null)?.id ?? "";
+          const o2 = await mk();
+          await lavA.rpc("laundry_order_advance", { oid: o2, to_status: "received", lines: [{ item: it!.id, qty: 1 }], p_note: null });
+          const { data: c2 } = await a1.rpc("laundry_order_cancel", { org: orgA, oid: o2, reason: "selftest" });
+          const { data: tb } = await a1.rpc("laundry_order_confirm", { org: orgA, oid: o2, lines: [{ item: it!.id, qty: 1 }], p_note: "reprise" });
+          const o3 = await mk();
+          const { data: c3 } = await a1.rpc("laundry_order_cancel", { org: orgA, oid: o3, reason: "selftest" });
+          const afterCancel = await stockOf();
+          const o4 = await mk();
+          const lavAId = (await lavA.auth.getUser()).data.user!.id;
+          await a1.rpc("laundry_member_revoke", { org: orgA, partner: pa, member: lavAId });
+          const { data: seenAfter } = await lavA.rpc("laundry_my_orders");
+          const { error: actAfter } = await lavA.rpc("laundry_order_advance", { oid: o4, to_status: "received", lines: [{ item: it!.id, qty: 1 }], p_note: null });
+          const st = (x: unknown) => (x as { status?: string } | null)?.status ?? "";
+          check(
+            "laundry_repeat_cancel_takeback_revoke",
+            (Boolean(repE1) || st(rep1) === "stale") && (Boolean(repE2) || st(rep2) === "stale") && afterRepeat === mine &&
+              !gre && afterGap === "clean=6,dirty=2,laundry=0" &&
+              st(c2) === "stale" && (tb as { to?: string } | null)?.to === "dirty" && st(c3) === "applied" && afterCancel === "clean=6,dirty=2,laundry=0" &&
+              ids(seenAfter).length === 0 && Boolean(actAfter),
+            gre ? (gre.code === "PGRST202" ? "migration 33 absente" : gre.message) : `répété:${st(rep1) || repE1?.code}/${st(rep2) || repE2?.code} écart:${afterGap} annul:${st(c2)}/${st(c3)} reprise:${JSON.stringify(tb)} stock:${afterCancel} révoqué:${ids(seenAfter).length}/${actAfter?.code ?? "accepté"}`,
+          );
         }
       }
     }

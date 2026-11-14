@@ -4499,6 +4499,9 @@ test("59 · notifications complètes (SIMULÉ, aucun vrai téléphone) : urgence
     .select("id")
     .single();
   await m.goto(`/fr/app/stays/${r!.id}`);
+  // Fiche séjour : statut, prochaine action et accès direct aux sections en tête
+  await expect(m.getByTestId("stay-now-phase")).toHaveAttribute("data-phase", "upcoming");
+  await expect(m.getByTestId("stay-jump")).toContainText("Messages (0)");
   await m.getByTestId("link-create").click();
   const token = (await m.getByTestId("guest-link-url").inputValue()).split("/").pop()!;
   const g = await newPage(browser);
@@ -4551,6 +4554,12 @@ test("59 · notifications complètes (SIMULÉ, aucun vrai téléphone) : urgence
   expect(await overrunMails()).toEqual(["agent_task_overrun", "team_task_overrun"]);
   // Tâche planifiée : refusée sans secret (aucun déclenchement public)
   expect((await m.request.get("/api/cron/notifications")).status()).toBe(401);
+  expect((await m.request.get("/api/cron/notifications", { headers: { authorization: `Bearer ${"0".repeat(48)}` } })).status()).toBe(401);
+  // Jeton valide : passage accepté et ENREGISTRÉ, visible sur la page d'état (preuve que la tâche tourne)
+  const cr = await m.request.get("/api/cron/notifications", { headers: { authorization: `Bearer ${env.CRON_SECRET}` } });
+  expect(cr.status()).toBe(200);
+  const { data: lastRun } = await admin.rpc("cron_last_run");
+  expect(Date.now() - new Date(lastRun as string).getTime()).toBeLessThan(60_000);
 
   // 4. Réattribution d'une mission commencée : motif obligatoire, historique, plus aucun rappel pour l'ancien agent
   await m.goto(`/fr/app/missions/${tk!.id}`);

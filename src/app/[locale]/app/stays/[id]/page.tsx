@@ -137,6 +137,28 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
     unassignedMissions: (tasks ?? []).filter((k) => k.status === "unassigned").length,
   });
   const tn = await getTranslations("connected.stayNow");
+  // Statut du séjour en un mot : à venir (dans N jours), en cours, terminé, annulé
+  const nowMs = nowDate().getTime();
+  const inMs = Date.parse(s.check_in_at as string);
+  const outMs = Date.parse(s.check_out_at as string);
+  const phase = s.status === "cancelled" ? "cancelled" : nowMs < inMs ? "upcoming" : nowMs < outMs ? "ongoing" : "past";
+  const days = Math.max(0, Math.ceil((inMs - nowMs) / 86_400_000));
+  // Messages : les plus récents visibles (et tous les non lus), les plus anciens repliés
+  const allMsgs = msgs ?? [];
+  const keepFrom = Math.max(0, allMsgs.length - Math.max(4, toMark.length));
+  const olderMsgs = allMsgs.slice(0, keepFrom);
+  const recentMsgs = allMsgs.slice(keepFrom);
+  const renderMsg = (m: (typeof allMsgs)[number]) => (
+    <li key={m.id} className={cn("max-w-[85%] rounded-lg px-3 py-2 text-[15px]", m.author_kind === "guest" ? "bg-subtle dark:bg-surface-hover" : "ms-auto bg-accent-soft")} data-testid="stay-message" data-unread={unreadIds.includes(m.id) ? "1" : "0"}>
+      {unreadIds.includes(m.id) && <span className="mb-1 inline-block rounded-full bg-danger px-2 py-0.5 text-[11px] font-semibold text-white">{t("messages.new")}</span>}
+      <p className="whitespace-pre-wrap">{m.body}</p>
+      <p className="mt-1 text-[12px] text-faint">
+        {m.author_kind === "guest" ? t("messages.fromGuest") : t("messages.fromTeam")} · {d(m.created_at)}
+        {m.author_kind === "member" && (m.read_by_guest_at ? ` · ${t("messages.seen")}` : "")}
+        {m.author_kind === "guest" && m.read_by_team_at ? ` · ${t("messages.readByTeam", { at: d(m.read_by_team_at) })}` : ""}
+      </p>
+    </li>
+  );
   const prepStatus = (prep?.prep_status as string) ?? "to_prepare";
   return (
     <>
@@ -144,6 +166,9 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
       <Card className={cn("mb-4 p-4 md:p-5", now.length ? "border-accent" : "")} data-testid="stay-now" data-count={now.length}>
         <div className="flex flex-wrap items-center gap-2 text-[13px]">
           <span className="font-semibold uppercase tracking-wide text-muted">{tn("title")}</span>
+          <span className={cn("rounded-full px-2 py-0.5 font-medium", phase === "ongoing" ? "bg-accent-soft text-accent-text" : phase === "cancelled" ? "bg-danger-soft text-danger" : "bg-subtle text-muted dark:bg-surface-hover")} data-testid="stay-now-phase" data-phase={phase}>
+            {tn(`phase.${phase}`, { count: days })}
+          </span>
           <span className={cn("rounded-full px-2 py-0.5 font-medium", prepStatus === "ready" ? "bg-success-soft text-success" : "bg-subtle text-muted dark:bg-surface-hover")} data-testid="stay-now-prep">
             {tn("prep", { status: tp(`status.${prepStatus}`) })}
           </span>
@@ -170,6 +195,13 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
             )}
           </>
         )}
+        {/* Accès direct aux sections (utile sur téléphone, où la page est longue) */}
+        <nav className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-line pt-3 text-[13px]" aria-label={tn("jump")} data-testid="stay-jump">
+          <a href="#stay-missions" className="text-accent-text hover:underline">{tn("jumpMissions", { count: (tasks ?? []).length })}</a>
+          <a href="#stay-services" className="text-accent-text hover:underline">{tn("jumpServices", { count: (services ?? []).length })}</a>
+          <a href="#stay-messages" className="text-accent-text hover:underline">{tn("jumpMessages", { count: allMsgs.length })}</a>
+          <a href="#stay-prep" className="text-accent-text hover:underline">{tn("jumpGuest")}</a>
+        </nav>
       </Card>
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
@@ -444,18 +476,14 @@ export default async function StayPage({ params }: PageProps<"/[locale]/app/stay
           <Card id="stay-messages" className="scroll-mt-20 p-5" data-testid="stay-messages">
             <h2 className="text-[17px] font-semibold">{t("messages.title")}</h2>
             <p className="mt-1 text-[13px] text-muted">{t("messages.visibleToGuest")}</p>
+            {olderMsgs.length > 0 && (
+              <details className="group mt-3" data-testid="stay-messages-older">
+                <summary className="cursor-pointer list-none text-[13px] text-accent-text [&::-webkit-details-marker]:hidden">{tn("olderMessages", { count: olderMsgs.length })}</summary>
+                <ul className="mt-2 space-y-2">{olderMsgs.map(renderMsg)}</ul>
+              </details>
+            )}
             <ul className="mt-3 space-y-2">
-              {(msgs ?? []).map((m) => (
-                <li key={m.id} className={cn("max-w-[85%] rounded-lg px-3 py-2 text-[15px]", m.author_kind === "guest" ? "bg-subtle dark:bg-surface-hover" : "ms-auto bg-accent-soft")} data-testid="stay-message" data-unread={unreadIds.includes(m.id) ? "1" : "0"}>
-                  {unreadIds.includes(m.id) && <span className="mb-1 inline-block rounded-full bg-danger px-2 py-0.5 text-[11px] font-semibold text-white">{t("messages.new")}</span>}
-                  <p className="whitespace-pre-wrap">{m.body}</p>
-                  <p className="mt-1 text-[12px] text-faint">
-                    {m.author_kind === "guest" ? t("messages.fromGuest") : t("messages.fromTeam")} · {d(m.created_at)}
-                    {m.author_kind === "member" && (m.read_by_guest_at ? ` · ${t("messages.seen")}` : "")}
-                    {m.author_kind === "guest" && m.read_by_team_at ? ` · ${t("messages.readByTeam", { at: d(m.read_by_team_at) })}` : ""}
-                  </p>
-                </li>
-              ))}
+              {recentMsgs.map(renderMsg)}
               {toMark.length > 0 && <MarkStayRead reservationId={s.id} ids={toMark} />}
               {(msgs ?? []).length === 0 && <li className="text-[14px] text-muted">{t("messages.empty")}</li>}
             </ul>
