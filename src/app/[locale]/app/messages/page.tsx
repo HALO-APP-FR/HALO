@@ -40,6 +40,8 @@ export default async function MessagesPage({ params, searchParams }: PageProps<"
       ...(props ?? []).map((p) => ({ kind: "property" as const, id: p.id as string, label: p.name as string })),
       ...(stays ?? []).map((s) => ({ kind: "reservation" as const, id: s.id as string, label: `${s.guest_name || "—"} · ${(one(s.properties) as { name: string } | null)?.name ?? ""} · ${windowText(f, s.check_in_at, s.check_out_at)}` })),
     ];
+    // Depuis une mission : l'agent affecté est proposé d'office comme destinataire
+    const taskAssignee = typeof sp.task === "string" ? (((await supabase.from("tasks").select("assignee_id").eq("organization_id", org!.id).eq("id", sp.task).maybeSingle()).data?.assignee_id as string | null) ?? null) : null;
     const initial = typeof sp.task === "string" ? { kind: "task" as const, id: sp.task } : typeof sp.property === "string" ? { kind: "property" as const, id: sp.property } : typeof sp.stay === "string" ? { kind: "reservation" as const, id: sp.stay } : undefined;
     form = (
       <NewThreadForm
@@ -48,7 +50,7 @@ export default async function MessagesPage({ params, searchParams }: PageProps<"
           .map((m) => ({ id: m.user_id as string, role: m.role as string, name: ((Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as { full_name: string } | null)?.full_name ?? "" }))}
         contexts={contexts}
         initial={initial}
-        initialTo={typeof sp.to === "string" ? [sp.to] : []}
+        initialTo={typeof sp.to === "string" ? [sp.to] : taskAssignee ? [taskAssignee] : []}
       />
     );
   }

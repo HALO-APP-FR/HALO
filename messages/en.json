@@ -2284,7 +2284,7 @@
       "take": "Take it",
       "resolve": "Resolve",
       "resolution": "What was done (internal note)",
-      "resolutionHint": "Never visible to the guest.",
+      "resolutionHint": "Required to resolve. Never visible to the guest.",
       "guestMessage": "Message to the guest",
       "guestMessageHint": "Visible in their guest space (no email known).",
       "guestMessageHintEmail": "Visible in their space, and emailed.",
@@ -2579,7 +2579,7 @@
       "retry": "Retry",
       "empty": "No message.",
       "write": "Write a message…",
-      "markUrgent": "Urgent (e-mail even if muted, if sending is configured · no phone notification)",
+      "markUrgent": "Urgent (always sent: email if sending is set up, and notification on enabled phones)",
       "send": "Send",
       "newTitle": "New conversation",
       "newText": "To one or several people, linked to a mission, a property or a stay.",
@@ -2627,7 +2627,7 @@
         "pushOn": "{count, plural, one {Push notifications: active on # device} other {Push notifications: active on # devices}}"
       },
       "byEmail": "Email",
-      "alwaysSent": "Emergency: visible in HALO and e-mail always sent (if sending is configured) · no phone notification",
+      "alwaysSent": "Urgent: always sent — in HALO, by email (if sending is set up) and as a notification on your enabled devices",
       "urgentAlwaysSent": "Emergencies (access, leak, damage, blocker, urgent message) are always sent",
       "event": {
         "team_task_to_validate": "Mission finished, to validate",
@@ -3782,7 +3782,7 @@
       "managerHint": "The reminder shows in the agent's app (no push notification). Running over isn't a fault: talk to the agent if needed.",
       "setting": {
         "title": "Missions taking longer than planned",
-        "text": "At the estimated duration, the agent sees an in-app reminder (“Yes, I'm continuing” / “I'm done”). With no answer after this delay, the mission appears on your dashboard.",
+        "text": "At the estimated duration, the agent gets a reminder (in HALO, and on their phone if notifications are on): “Yes, still on it” or “I'm done”. With no reply after this delay, the mission shows on your dashboard and you are notified per your preferences. The duration is only an estimate.",
         "label": "Delay before alerting you (minutes)",
         "hint": "After the estimated duration, or after the last “Yes, I'm continuing”.",
         "save": "Save",
@@ -4233,7 +4233,9 @@
         "returned": "Delivered",
         "confirmed": "Confirmed",
         "yours": "you",
-        "declaredByLaundry": "declared by the laundry"
+        "declaredByLaundry": "declared by the laundry",
+        "byLaundryShort": "laundry",
+        "byConciergeShort": "concierge"
       },
       "stepsLabel": "Order steps",
       "history": "History ({count})",

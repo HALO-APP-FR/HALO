@@ -65,55 +65,51 @@ export function LaundrySteps({ status }: { status: Step }) {
   );
 }
 
-function LinesTable({ o, editable, onChange, values }: { o: OrderView; editable?: "received" | "returned" | "confirmed"; values?: Record<string, string>; onChange?: (id: string, v: string) => void }) {
+/**
+ * Lignes d'une commande, lisibles sur téléphone : une carte par article, quatre valeurs côte à côte avec, sous
+ * chaque titre, QUI l'a déclarée (vous / le blanchisseur / la conciergerie selon l'espace).
+ */
+function LinesTable({ o, side, editable, onChange, values }: { o: OrderView; side: "concierge" | "laundry"; editable?: "received" | "returned" | "confirmed"; values?: Record<string, string>; onChange?: (id: string, v: string) => void }) {
   const t = useTranslations("connected.laundry");
+  const who = (k: "sent" | "received" | "returned" | "confirmed") => {
+    const byConcierge = k === "sent" || k === "confirmed";
+    return side === "concierge" ? (byConcierge ? t("col.yours") : t("col.byLaundryShort")) : byConcierge ? t("col.byConciergeShort") : t("col.yours");
+  };
   return (
-    <div className="-mx-1 overflow-x-auto px-1">
-      <table className="w-full min-w-[300px] text-[13px]" data-testid="laundry-lines">
-        <thead>
-          <tr className="text-[10px] text-muted">
-            <th />
-            <th className="pt-1 text-end font-normal">{t("col.yours")}</th>
-            <th colSpan={2} className="pt-1 text-end font-normal">{t("col.declaredByLaundry")}</th>
-            <th className="pt-1 text-end font-normal">{t("col.yours")}</th>
-          </tr>
-          <tr className="text-[11px] uppercase tracking-wide text-muted">
-            <th className="py-1 text-start font-medium">{t("col.item")}</th>
-            <th className="py-1 text-end font-medium">{t("col.sent")}</th>
-            <th className="py-1 text-end font-medium">{t("col.received")}</th>
-            <th className="py-1 text-end font-medium">{t("col.returned")}</th>
-            <th className="py-1 text-end font-medium">{t("col.confirmed")}</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-line">
-          {o.lines.map((l) => (
-            <tr key={l.itemId} data-testid="laundry-line" data-gap={gapOf(l) ? "yes" : "no"}>
-              <td className="py-1.5 font-medium">{l.label}</td>
-              <td className="py-1.5 text-end tabular">{l.sent}</td>
-              {(["received", "returned", "confirmed"] as const).map((k) => (
-                <td key={k} className={cn("py-1.5 text-end tabular", l[k] != null && l[k] !== l.sent && "font-semibold text-danger")}>
+    <ul className="divide-y divide-line text-[13px]" data-testid="laundry-lines">
+      {o.lines.map((l) => (
+        <li key={l.itemId} className="py-2" data-testid="laundry-line" data-gap={gapOf(l) ? "yes" : "no"}>
+          <p className="font-medium">{l.label}</p>
+          <dl className="mt-1 grid grid-cols-4 gap-1.5">
+            {(["sent", "received", "returned", "confirmed"] as const).map((k) => (
+              <div key={k} className="min-w-0 rounded-md bg-subtle px-1.5 py-1 text-center dark:bg-surface-hover">
+                <dt className="truncate text-[11px] font-medium uppercase tracking-wide text-muted">{t(`col.${k}`)}</dt>
+                <dd className="truncate text-[10px] text-faint">{who(k)}</dd>
+                <dd className={cn("mt-0.5 text-[15px] tabular", k !== "sent" && l[k] != null && l[k] !== l.sent && "font-semibold text-danger")}>
                   {editable === k ? (
                     <Input
                       type="number"
                       min={0}
                       max={k === "confirmed" ? l.sent : 100000}
                       inputMode="numeric"
-                      className="ms-auto h-8 w-20 text-end"
+                      className="h-8 w-full px-1 text-center"
                       value={values?.[l.itemId] ?? ""}
                       onChange={(e) => onChange?.(l.itemId, e.target.value)}
                       aria-label={`${t(`col.${k}`)} · ${l.label}`}
                       data-testid={`laundry-qty-${k}`}
                     />
+                  ) : k === "sent" ? (
+                    l.sent
                   ) : (
                     (l[k] ?? "—")
                   )}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -188,7 +184,7 @@ export function LaundryOrderCard({ o }: { o: OrderView }) {
         <LaundrySteps status={o.status} />
       </div>
       <div className="mt-2">
-        <LinesTable o={o} editable={canConfirm || takingBack ? "confirmed" : undefined} values={qty} onChange={(id, v) => setQty((q) => ({ ...q, [id]: v }))} />
+        <LinesTable o={o} side="concierge" editable={canConfirm || takingBack ? "confirmed" : undefined} values={qty} onChange={(id, v) => setQty((q) => ({ ...q, [id]: v }))} />
       </div>
       {o.status === "out_for_delivery" && <p className="mt-2 rounded-md bg-accent-soft px-3 py-2 text-[13px] text-accent-text" data-testid="laundry-next-confirm">{t("nextConfirm")}</p>}
       {canTakeBack && !takingBack && (
@@ -289,7 +285,7 @@ export function PartnerOrderCard({ o }: { o: OrderView }) {
         <LaundrySteps status={o.status} />
       </div>
       <div className="mt-3">
-        <LinesTable o={o} editable={withQty ? (next === "received" ? "received" : "returned") : undefined} values={qty} onChange={(id, v) => setQty((q) => ({ ...q, [id]: v }))} />
+        <LinesTable o={o} side="laundry" editable={withQty ? (next === "received" ? "received" : "returned") : undefined} values={qty} onChange={(id, v) => setQty((q) => ({ ...q, [id]: v }))} />
       </div>
       {next && (
         <div className="mt-3 space-y-2">
@@ -417,7 +413,10 @@ export function RevokeLaundryAccess({ kind, partnerId, id }: { kind: "invite" | 
 export function LaundryOrderForm({ partners, items, dirty, defaultBackAt }: { partners: { id: string; name: string }[]; items: { id: string; label: string }[]; dirty: Record<string, number>; defaultBackAt: string }) {
   const t = useTranslations("connected.laundry");
   const { pending, error, run } = useRun();
-  const [partner, setPartner] = useState(partners[0]?.id ?? "");
+  const [chosen, setPartner] = useState(partners[0]?.id ?? "");
+  // Premier blanchisseur ajouté APRÈS l'affichage du formulaire : choisi d'office (constaté en préproduction le 14/11 :
+  // bouton « Envoyer » resté grisé tant que la page n'était pas rechargée)
+  const partner = partners.some((p) => p.id === chosen) ? chosen : (partners[0]?.id ?? "");
   const [qty, setQty] = useState<Record<string, string>>({});
   const [back, setBack] = useState(defaultBackAt);
   const [note, setNote] = useState("");

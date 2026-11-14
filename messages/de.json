@@ -2284,7 +2284,7 @@
       "take": "Übernehmen",
       "resolve": "Lösen",
       "resolution": "Was getan wurde (interne Notiz)",
-      "resolutionHint": "Nie für den Gast sichtbar.",
+      "resolutionHint": "Zum Lösen erforderlich. Für den Gast nie sichtbar.",
       "guestMessage": "Nachricht an den Gast",
       "guestMessageHint": "Im Gästebereich sichtbar (keine E-Mail).",
       "guestMessageHintEmail": "Im Gästebereich sichtbar und per E-Mail gesendet.",
@@ -2579,7 +2579,7 @@
       "retry": "Erneut versuchen",
       "empty": "Keine Nachricht.",
       "write": "Nachricht schreiben…",
-      "markUrgent": "Dringend (E-Mail auch wenn stummgeschaltet, falls Versand eingerichtet · keine Telefon-Benachrichtigung)",
+      "markUrgent": "Dringend (immer gesendet: E-Mail, falls eingerichtet, und Benachrichtigung auf aktivierten Telefonen)",
       "send": "Senden",
       "newTitle": "Neue Unterhaltung",
       "newText": "An eine oder mehrere Personen, verknüpft mit einem Einsatz, einer Unterkunft oder einem Aufenthalt.",
@@ -2627,7 +2627,7 @@
         "pushOn": "{count, plural, one {Push: aktiv auf # Gerät} other {Push: aktiv auf # Geräten}}"
       },
       "byEmail": "E-Mail",
-      "alwaysSent": "Notfall: in HALO sichtbar, E-Mail immer gesendet (falls eingerichtet) · keine Telefon-Benachrichtigung",
+      "alwaysSent": "Dringend: immer gesendet — in HALO, per E-Mail (falls eingerichtet) und als Benachrichtigung auf aktivierten Geräten",
       "urgentAlwaysSent": "Notfälle (Zugang, Leck, Schaden, Blockade, dringende Nachricht) werden immer gesendet",
       "event": {
         "team_task_to_validate": "Einsatz beendet, zu prüfen",
@@ -3782,7 +3782,7 @@
       "managerHint": "Die Erinnerung erscheint in der App der Person (keine Push-Benachrichtigung). Eine Überschreitung ist kein Fehler: sprechen Sie bei Bedarf mit der Person.",
       "setting": {
         "title": "Einsätze länger als geplant",
-        "text": "Bei Erreichen der geschätzten Dauer sieht die Person eine Erinnerung in der App („Ja, ich mache weiter“ / „Ich bin fertig“). Ohne Antwort nach dieser Frist erscheint der Einsatz in Ihrer Übersicht.",
+        "text": "Bei Erreichen der geschätzten Dauer erhält der Agent eine Erinnerung (in HALO und auf dem Telefon, falls aktiviert). Ohne Antwort nach dieser Frist erscheint die Mission im Dashboard und Sie werden gemäß Ihren Einstellungen benachrichtigt. Die Dauer ist nur eine Schätzung.",
         "label": "Frist bis zur Warnung (Minuten)",
         "hint": "Nach der geschätzten Dauer oder nach dem letzten „Ja, ich mache weiter“.",
         "save": "Speichern",
@@ -4233,7 +4233,9 @@
         "returned": "Geliefert",
         "confirmed": "Bestätigt",
         "yours": "Sie",
-        "declaredByLaundry": "von der Wäscherei angegeben"
+        "declaredByLaundry": "von der Wäscherei angegeben",
+        "byLaundryShort": "Wäscherei",
+        "byConciergeShort": "Concierge"
       },
       "stepsLabel": "Auftragsschritte",
       "history": "Verlauf ({count})",

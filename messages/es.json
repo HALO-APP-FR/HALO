@@ -2284,7 +2284,7 @@
       "take": "Hacerse cargo",
       "resolve": "Resolver",
       "resolution": "Lo que se hizo (nota interna)",
-      "resolutionHint": "Nunca visible para el huésped.",
+      "resolutionHint": "Obligatorio para resolver. Nunca visible para el viajero.",
       "guestMessage": "Mensaje al huésped",
       "guestMessageHint": "Visible en su espacio (sin e-mail).",
       "guestMessageHintEmail": "Visible en su espacio y enviado por e-mail.",
@@ -2579,7 +2579,7 @@
       "retry": "Reintentar",
       "empty": "Ningún mensaje.",
       "write": "Escribir un mensaje…",
-      "markUrgent": "Urgente (e-mail aunque estén desactivados, si el envío está configurado · sin notificación al teléfono)",
+      "markUrgent": "Urgente (siempre enviado: correo si está configurado y notificación en los teléfonos activados)",
       "send": "Enviar",
       "newTitle": "Nueva conversación",
       "newText": "A una o varias personas, vinculada a una misión, un alojamiento o una estancia.",
@@ -2627,7 +2627,7 @@
         "pushOn": "{count, plural, one {Push: activas en # dispositivo} other {Push: activas en # dispositivos}}"
       },
       "byEmail": "Correo",
-      "alwaysSent": "Urgencia: visible en HALO y e-mail siempre enviado (si está configurado) · sin notificación al teléfono",
+      "alwaysSent": "Urgencia: siempre enviada — en HALO, por correo (si está configurado) y como notificación en sus dispositivos activados",
       "urgentAlwaysSent": "Las urgencias (acceso, fuga, daño, bloqueo, mensaje urgente) siempre se envían",
       "event": {
         "team_task_to_validate": "Misión terminada, por validar",
@@ -3782,7 +3782,7 @@
       "managerHint": "El recordatorio aparece en la app del agente (sin notificación push). Un exceso no es una falta: hable con el agente si hace falta.",
       "setting": {
         "title": "Misiones más largas de lo previsto",
-        "text": "Al llegar a la duración estimada, el agente ve un recordatorio en la app («Sí, continúo» / «He terminado»). Sin respuesta tras este plazo, la misión aparece en su panel.",
+        "text": "Al cumplirse la duración estimada, el agente recibe un recordatorio (en HALO y en su teléfono si activó las notificaciones). Sin respuesta tras este plazo, la misión aparece en su panel y se le avisa según sus preferencias. La duración es solo una estimación.",
         "label": "Plazo antes de avisarle (minutos)",
         "hint": "Tras la duración estimada, o tras el último «Sí, continúo».",
         "save": "Guardar",
@@ -4233,7 +4233,9 @@
         "returned": "Entregado",
         "confirmed": "Confirmado",
         "yours": "usted",
-        "declaredByLaundry": "declarado por la lavandería"
+        "declaredByLaundry": "declarado por la lavandería",
+        "byLaundryShort": "lavandería",
+        "byConciergeShort": "conserjería"
       },
       "stepsLabel": "Etapas del pedido",
       "history": "Historial ({count})",

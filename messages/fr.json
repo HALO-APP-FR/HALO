@@ -2284,7 +2284,7 @@
       "take": "Prendre en charge",
       "resolve": "Résoudre",
       "resolution": "Ce qui a été fait (note interne)",
-      "resolutionHint": "Jamais visible par le voyageur.",
+      "resolutionHint": "Obligatoire pour résoudre. Jamais visible par le voyageur.",
       "guestMessage": "Message au voyageur",
       "guestMessageHint": "Visible dans son espace voyageur (aucune adresse e-mail connue).",
       "guestMessageHintEmail": "Visible dans son espace, et envoyé par e-mail.",
@@ -2579,7 +2579,7 @@
       "retry": "Réessayer",
       "empty": "Aucun message.",
       "write": "Écrire un message…",
-      "markUrgent": "Urgent (e-mail même si la personne les a coupés, si l'envoi est configuré · pas de notification téléphone)",
+      "markUrgent": "Urgent (toujours envoyé : e-mail si l'envoi est configuré, et notification sur les téléphones activés)",
       "send": "Envoyer",
       "newTitle": "Nouvelle conversation",
       "newText": "À une ou plusieurs personnes, rattachée à une mission, un logement ou un séjour.",
@@ -2627,7 +2627,7 @@
         "pushOn": "{count, plural, one {Notifications push : actives sur # appareil} other {Notifications push : actives sur # appareils}}"
       },
       "byEmail": "E-mail",
-      "alwaysSent": "Urgence : visible dans HALO et e-mail toujours envoyé (si l'envoi est configuré) · pas de notification téléphone",
+      "alwaysSent": "Urgence : toujours envoyée — dans HALO, par e-mail (si l'envoi est configuré) et en notification sur vos appareils activés",
       "urgentAlwaysSent": "Les urgences (accès, fuite, dégât, blocage, message urgent) partent toujours",
       "event": {
         "team_task_to_validate": "Mission terminée, à valider",
@@ -3782,7 +3782,7 @@
       "managerHint": "Le rappel s'affiche dans l'application de l'agent (pas de notification push). Un dépassement n'est pas une faute : échangez avec l'agent si besoin.",
       "setting": {
         "title": "Missions plus longues que prévu",
-        "text": "À la durée estimée, l'agent voit un rappel dans l'application (« Oui, je continue » / « J'ai terminé »). Sans réponse après ce délai, la mission apparaît sur votre tableau de bord.",
+        "text": "À la durée estimée, l'agent reçoit un rappel (dans HALO, et sur son téléphone s'il a activé les notifications) : « Oui, je continue » ou « J'ai terminé ». Sans réponse après ce délai, la mission apparaît sur votre tableau de bord et vous êtes prévenu selon vos préférences. La durée reste une estimation.",
         "label": "Délai avant de vous alerter (minutes)",
         "hint": "Après la durée estimée, ou après la dernière réponse « Oui, je continue ».",
         "save": "Enregistrer",
@@ -4233,7 +4233,9 @@
         "returned": "Livré",
         "confirmed": "Confirmé",
         "yours": "vous",
-        "declaredByLaundry": "déclaré par le blanchisseur"
+        "declaredByLaundry": "déclaré par le blanchisseur",
+        "byLaundryShort": "blanchisseur",
+        "byConciergeShort": "conciergerie"
       },
       "stepsLabel": "Étapes de la commande",
       "history": "Historique ({count})",
